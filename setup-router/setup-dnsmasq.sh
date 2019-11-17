@@ -1,13 +1,14 @@
 #!/bin/bash
 
+# Doc: http://www.thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html
+
 echo '
 port=53
 
+domain-needed
 bind-dynamic
 #interface=br0
 #interface=pptp*
-no-dhcp-interface=pptp*
-no-poll
 
 bogus-priv
 # dnssec
@@ -15,7 +16,13 @@ bogus-priv
 strict-order
 expand-hosts
 
+no-poll
 no-resolv
+
+#log-queries
+#log-dhcp
+#log-facility=/var/log/dnsmasq-debug.log
+
 # see https://www.dnsperf.com/#!dns-resolvers for DNS ranking
 # ipv4
 ## Cloudflare
