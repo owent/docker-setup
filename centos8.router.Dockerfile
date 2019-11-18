@@ -1,5 +1,5 @@
-FROM registry.centos.org/centos/centos:latest
-# FROM docker.io/library/centos:latest
+# FROM registry.centos.org/centos/centos:8
+FROM docker.io/library/centos:8
 
 COPY setup-router /opt/docker-setup
 # RUN dnf install -y vim dnsmasq dnsmasq-utils ppp dhcp-server dhcp-client ca-certificates ipset;         \

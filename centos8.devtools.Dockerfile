@@ -1,5 +1,5 @@
-FROM registry.centos.org/centos/centos:8
-# FROM docker.io/library/centos:8
+# FROM registry.centos.org/centos/centos:8
+FROM docker.io/library/centos:8
 
 ENV PATH="/opt/bin:$PATH"
 
