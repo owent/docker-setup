@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<service>
+    <short>redirect-sshd</short>
+    <description>Redirect sshd</description>
+    <port port="36000" protocol="tcp"/>
+    <port port="36001" protocol="tcp"/>
+</service>

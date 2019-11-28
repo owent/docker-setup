@@ -11,4 +11,4 @@ RUN dnf install -y vim dnsmasq dnsmasq-utils ppp  ca-certificates ipset;        
 
 # CMD /sbin/init
 
-# sudo podman/docker run --network=host --cap-add NET_ADMIN --cap-add SYS_ADMIN -d 0f3e07c0138f /sbin/init
+# sudo podman/docker run --network=host --cap-add NET_ADMIN --cap-add SYS_ADMIN -v /sys/fs/cgroup:/sys/fs/cgroup -d 0f3e07c0138f /sbin/init

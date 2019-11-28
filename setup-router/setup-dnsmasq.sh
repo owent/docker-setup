@@ -164,20 +164,21 @@ local=/lan/
 # ipv4
 dhcp-range=router-lan,172.18.3.1,172.18.255.254,255.255.0.0,86400s
 dhcp-host=70:85:c2:dc:0c:87,172.18.1.1
-dhcp-host=a0:36:9f:07:3f:98,172.18.1.11
-dhcp-host=a0:36:9f:07:3f:99,172.18.1.12
-dhcp-host=a0:36:9f:07:3f:9a,172.18.1.13
-dhcp-host=a0:36:9f:07:3f:9b,172.18.1.14
+dhcp-host=a0:36:9f:07:3f:98,172.18.1.10
+dhcp-host=a0:36:9f:07:3f:99,172.18.1.11
+dhcp-host=a0:36:9f:07:3f:9a,172.18.1.12
+dhcp-host=a0:36:9f:07:3f:9b,172.18.1.13
 # available options can be see by dnsmasq --help dhcp
 # https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol
 # https://www.iana.org/assignments/bootp-dhcp-parameters/bootp-dhcp-parameters.xhtml
-dhcp-option=router-lan,3,172.18.1.11
+dhcp-option=router-lan,3,172.18.1.10
 dhcp-option=router-lan,15,router-lan
 dhcp-option=router-lan,44,0.0.0.0
 dhcp-option=router-lan,252,"\n"
 
 # ipv6
 # dhcp-range=router-lan,fd27:32d6:172.18:0301,fd27:32d6:172.18:fffe,ra-names,64,86400s
+# dhcp-range=router-lan,fd27:32d6:172.18:0301,fd27:32d6:172.18/48,ra-names,64,86400s
 dhcp-range=router-lan,::0301,::ff01,constructor:enp1s0f1,ra-names,64,86400s
 dhcp-host=70:85:c2:dc:0c:87,[:::0101]
 dhcp-host=a0:36:9f:07:3f:98,[:::0111]
@@ -193,6 +194,8 @@ dhcp-option=router-lan,option6:23,[::]
 dhcp-option=router-lan,option6:24,router-lan
 dhcp-authoritative
 ' >> /etc/dnsmasq.d/router.conf
+
+# Test: dhclient -n enp1s0f0 enp1s0f1 / dhclient -6 -n enp1s0f0 enp1s0f1
 
 systemctl enable dnsmasq
 
