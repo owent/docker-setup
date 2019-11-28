@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# nftables
+# Quick: https://wiki.nftables.org/wiki-nftables/index.php/Performing_Network_Address_Translation_(NAT)
+# Quick(CN): https://wiki.archlinux.org/index.php/Nftables_(%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87)#Masquerading
+# List all tables/chains/rules/matches/statements: https://wiki.nftables.org/wiki-nftables/index.php/Quick_reference-nftables_in_10_minutes#Rules
+# man 8 nft: 
+#    https://www.netfilter.org/projects/nftables/manpage.html
+#    https://www.mankier.com/8/nft
 # IP http://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest
 
 cat delegated-apnic-latest | awk 'BEGIN{FS="|"}{if($2 == "CN" && $3 != "asn"){print $3 " " $4 " " $5}}'
@@ -36,16 +43,13 @@ nft add table mangle
 nft add chain mangle v2ray { type filter hook prerouting priority 1 \; }
 
 ### ipv4 - skip private network
-nft add rule mangle v2ray ip daddr 127.0.0.1/32 return
-nft add rule mangle v2ray ip daddr 224.0.0.0/4 return
-nft add rule mangle v2ray ip daddr 255.255.255.255/32 return
+nft add rule mangle v2ray ip daddr {127.0.0.1/32, 224.0.0.0/4, 255.255.255.255/32} return
 nft add rule mangle v2ray meta l4proto tcp ip daddr 172.18.0.0/16 return
 nft add rule mangle v2ray ip daddr 172.18.0.0/16 udp dport != 53 return
 
 ### ipv4 - forward to v2ray's listen address if not marked by v2ray
 nft add rule mangle v2ray meta mark 255 return # make sure v2ray's outbounds.*.streamSettings.sockopt.mark = 255
-nft add rule mangle v2ray meta l4proto tcp tproxy to :$V2RAY_PORT meta mark set 1 accept # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
-nft add rule mangle v2ray meta l4proto udp tproxy to :$V2RAY_PORT meta mark set 1 accept # -j TPROXY --on-port $V2RAY_PORT  # mark udp package with 1 and forward to $V2RAY_PORT
+nft add rule mangle v2ray meta l4proto {tcp, udp} tproxy to $V2RAY_HOST:$V2RAY_PORT meta mark set 1 accept # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
 
 ## Setup - ipv6
 nft add chain ip6 mangle v2ray { type filter hook prerouting priority 1 \; }
