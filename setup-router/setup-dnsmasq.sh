@@ -177,9 +177,8 @@ dhcp-option=router-lan,44,0.0.0.0
 dhcp-option=router-lan,252,"\n"
 
 # ipv6
-# dhcp-range=router-lan,fd27:32d6:ac12::0301,fd27:32d6:ac12::fffe,ra-names,64,86400s
-# dhcp-range=router-lan,fd27:32d6:172.18:0301,fd27:32d6:172.18/48,ra-names,64,86400s
-dhcp-range=router-lan,::0301,::ff01,constructor:enp1s0f1,ra-names,64,86400s
+dhcp-range=router-lan,fd27:32d6:ac12::0301,fd27:32d6:ac12::fffe,ra-names,64,86400s
+# dhcp-range=router-lan,::0301,::ff01,constructor:enp1s0f1,ra-names,64,86400s
 dhcp-host=70:85:c2:dc:0c:87,[::0101]
 dhcp-host=a0:36:9f:07:3f:98,[::0111]
 dhcp-host=a0:36:9f:07:3f:99,[::0112]
