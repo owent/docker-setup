@@ -7,6 +7,9 @@
 # man 8 nft: 
 #    https://www.netfilter.org/projects/nftables/manpage.html
 #    https://www.mankier.com/8/nft
+# Note:
+#     using ```find /lib/modules/$(uname -r) -type f -name '*.ko'``` to see all available modules
+
 
 ## NAT
 # just like iptables -t nat
