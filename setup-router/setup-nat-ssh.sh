@@ -1,5 +1,15 @@
 #!/bin/bash
 
+
+echo "
+net.ipv4.ip_forward=1
+net.ipv4.conf.all.forwarding=1
+net.ipv4.conf.default.forwarding=1
+net.ipv6.conf.all.forwarding=1
+net.ipv6.conf.default.forwarding=1
+" > /etc/sysctl.d/91-forwarding.conf ;
+sysctl -p ;
+
 # nftables
 # Quick: https://wiki.nftables.org/wiki-nftables/index.php/Performing_Network_Address_Translation_(NAT)
 # Quick(CN): https://wiki.archlinux.org/index.php/Nftables_(%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87)#Masquerading
@@ -27,7 +37,7 @@ nft add rule nat postrouting meta l4proto {tcp, udp} ip saddr 172.18.0.0/16 ip d
 
 ### Destination NAT - ipv4 - ssh
 nft add rule nat prerouting ip saddr != 172.18.0.0/16 tcp dport 36000 dnat to 172.18.1.1 :22
-nft add rule nat prerouting ip saddr != 172.18.0.0/16 tcp dport 36001 dnat to 172.18.1.11 :22
+# nft add rule nat prerouting ip saddr != 172.18.0.0/16 tcp dport 36001 dnat to 172.18.1.10 :22
 # nft add rule nat prerouting meta iif enp1s0f0 tcp dport 36000 redirect to :22
 
 
@@ -40,3 +50,8 @@ nft add rule ip6 nat postrouting ip6 saddr fd27:32d6:ac12::/48 ip6 daddr != fd27
 nft add rule ip6 nat postrouting meta l4proto {tcp, udp} ip6 saddr fd27:32d6:ac12::/48 ip6 daddr != fd27:32d6:ac12::/48 counter packets 0 bytes 0 masquerade to :1024-65535
 
 ### Destination NAT - ipv6
+
+
+### firewall
+# firewall-cmd --permanent --add-service=ssh
+firewall-cmd --permanent --add-service=redirect-sshd

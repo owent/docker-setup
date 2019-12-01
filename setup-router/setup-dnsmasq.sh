@@ -1,16 +1,24 @@
 #!/bin/bash
 
+echo "
+net.ipv6.conf.all.accept_ra=1
+net.ipv6.conf.default.accept_ra=1
+" > /etc/sysctl.d/91-ipv6-ra.conf ;
+sysctl -p ;
+
+firewall-cmd --permanent --add-service=dns ;
+firewall-cmd --permanent --add-service=dhcp ;
+firewall-cmd --permanent --add-service=dhcpv6 ;
+firewall-cmd --permanent --add-service=dhcpv6-client ;
+
 # Doc: http://www.thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html
 
 echo '
-port=53
-
-domain-needed
-bind-dynamic
+#domain-needed
 #interface=br0
 #interface=pptp*
 
-bogus-priv
+# bogus-priv
 # dnssec
 
 strict-order
@@ -77,17 +85,6 @@ nameserver 223.6.6.6
 nameserver 119.29.29.29
 ## Baidu
 nameserver 180.76.76.76
-
-# ipv6
-## Cloudflare
-nameserver 2606:4700:4700::1111
-nameserver 2606:4700:4700::1001
-## Google
-nameserver 2001:4860:4860::8888
-nameserver 2001:4860:4860::8844
-## Quad9
-nameserver 2620:fe::fe
-nameserver 2620:fe::9
 ' > /etc/resolv.conf ;
 
 # setup dns over https and store into ipset gfwlist/router/white_list/black_list
@@ -155,14 +152,28 @@ nameserver 2620:fe::9
 # ipset=/.kr.patch.battle.net/black_list
 # ' >> /etc/dnsmasq.d/router.conf
 
-echo '
-domain=router-lan
-expand-hosts
-bogus-priv
-local=/lan/
 
+# IPv6 - DHCPv6, it's require to configure a interface manually
+
+if [ "x$ROUTER_CONFIG_IPV6_INTERFACE" != "x" ]; then
+    echo '
+# ipv6
+## Cloudflare
+nameserver 2606:4700:4700::1111
+nameserver 2606:4700:4700::1001
+## Google
+nameserver 2001:4860:4860::8888
+nameserver 2001:4860:4860::8844
+## Quad9
+nameserver 2620:fe::fe
+nameserver 2620:fe::9
+' >> /etc/resolv.conf ;
+    echo "
+expand-hosts
+
+bind-dynamic
 # ipv4
-dhcp-range=router-lan,172.18.3.1,172.18.255.254,255.255.0.0,86400s
+dhcp-range=172.18.3.1,172.18.255.254,255.255.0.0,86400s
 dhcp-host=70:85:c2:dc:0c:87,172.18.1.1
 dhcp-host=a0:36:9f:07:3f:98,172.18.1.10
 dhcp-host=a0:36:9f:07:3f:99,172.18.1.11
@@ -171,31 +182,20 @@ dhcp-host=a0:36:9f:07:3f:9b,172.18.1.13
 # available options can be see by dnsmasq --help dhcp
 # https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol
 # https://www.iana.org/assignments/bootp-dhcp-parameters/bootp-dhcp-parameters.xhtml
-dhcp-option=router-lan,3,172.18.1.10
-dhcp-option=router-lan,15,router-lan
-dhcp-option=router-lan,44,0.0.0.0
-dhcp-option=router-lan,252,"\n"
+dhcp-option=3,172.18.1.10
+dhcp-option=44,0.0.0.0
+dhcp-option=252,"\n"
 
 # ipv6
-dhcp-range=router-lan,fd27:32d6:ac12::0301,fd27:32d6:ac12::fffe,ra-names,64,86400s
-# dhcp-range=router-lan,::0301,::ff01,constructor:enp1s0f1,ra-names,64,86400s
-dhcp-host=70:85:c2:dc:0c:87,[::0101]
-dhcp-host=a0:36:9f:07:3f:98,[::0111]
-dhcp-host=a0:36:9f:07:3f:99,[::0112]
-dhcp-host=a0:36:9f:07:3f:9a,[::0113]
-dhcp-host=a0:36:9f:07:3f:9b,[::0114]
+# dhcp-range=fd27:32d6:ac12::0301,fd27:32d6:ac12::fffe,slaac,64,86400s
+dhcp-range=::,constructor:$ROUTER_CONFIG_IPV6_INTERFACE,ra-names,64,86400s
+# dhcp-host for DHCPv6 seems not available
+# dhcp-host=70:85:c2:dc:0c:87,[::0101]
 
-ra-param=enp1s0f1,10,600
 enable-ra
 quiet-ra
-# dhcp-range=router-lan,::,constructor:enp1s0f1,ra-only,64,600
-dhcp-option=router-lan,option6:23,[::]
-dhcp-option=router-lan,option6:24,router-lan
 dhcp-authoritative
-' >> /etc/dnsmasq.d/router.conf
+" >> /etc/dnsmasq.d/router.conf
+fi
 
 # Test: dhclient -n enp1s0f0 enp1s0f1 / dhclient -6 -n enp1s0f0 enp1s0f1
-
-systemctl enable dnsmasq
-
-systemctl start dnsmasq
