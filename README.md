@@ -9,8 +9,22 @@ ENV:
 ## 启动命令备注
 
 ```bash
+
+
 # 带systemd
-podman/docker run docker run -d --cap-add=SYS_ADMIN -v /sys/fs/cgroup:/sys/fs/cgroup IMAGE /sbin/init
+podman run docker run -d --systemd=true IMAGE /sbin/init
+## systemd expects to have /run, /run/lock and /tmp on tmpfs
+## It also expects to be able to write to /sys/fs/cgroup/systemd and /var/log/journal
+## docker run -d --cap-add=SYS_ADMIN -v /sys/fs/cgroup:/sys/fs/cgroup IMAGE /sbin/init
+## Mount list come from setupSystemd@libpod/container_internal_linux.go on https://github.com/containers/libpod
+docker run -d --cap-add=SYS_ADMIN                                                           \
+        --mount type=tmpfs,target=/run,tmpfs-mode=1777,tmpfs-size=67108864                  \
+        --mount type=tmpfs,target=/run/lock,tmpfs-mode=1777,tmpfs-size=67108864             \
+        --mount type=tmpfs,target=/tmp,tmpfs-mode=1777                                      \
+        --mount type=tmpfs,target=/var/log/journal,tmpfs-mode=1777                          \
+        --mount type=bind,source=/sys/fs/cgroup,target=/sys/fs/cgroup                       \
+        IMAGE /sbin/init
+        # --mount type=bind,source=/sys/fs/cgroup/systemd,target=/sys/fs/cgroup/systemd
 
 # 路由
 podman/docker run docker run -d --cap-add=SYS_ADMIN --cap-add=NET_ADMIN -v /sys/fs/cgroup:/sys/fs/cgroup IMAGE /sbin/init
