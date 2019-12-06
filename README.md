@@ -9,10 +9,8 @@ ENV:
 ## 启动命令备注
 
 ```bash
-
-
 # 带systemd
-podman run docker run -d --systemd=true IMAGE /sbin/init
+podman run docker run -d --systemd true IMAGE /sbin/init
 ## systemd expects to have /run, /run/lock and /tmp on tmpfs
 ## It also expects to be able to write to /sys/fs/cgroup/systemd and /var/log/journal
 ## docker run -d --cap-add=SYS_ADMIN -v /sys/fs/cgroup:/sys/fs/cgroup IMAGE /sbin/init
@@ -27,7 +25,8 @@ docker run -d --cap-add=SYS_ADMIN                                               
         # --mount type=bind,source=/sys/fs/cgroup/systemd,target=/sys/fs/cgroup/systemd
 
 # 路由
-podman/docker run docker run -d --cap-add=SYS_ADMIN --cap-add=NET_ADMIN -v /sys/fs/cgroup:/sys/fs/cgroup IMAGE /sbin/init
+podman build --tag router-base -f debian10.router.raw.Dockerfile
+podman run -d --systemd true --mount type=bind,source=/home,target=/home --cap-add=NET_ADMIN --network=host IMAGE /sbin/init
 
 # @see https://docs.docker.com/engine/reference/builder/#entrypoint for detail about CMD and ENTRYPOINT
 
@@ -36,6 +35,25 @@ find /lib/modules/$(uname -r) -type f -name '*.ko*' | xargs basename -a | sort |
 
 # 查看已安装的内核所有可用的模块
 find /lib/modules/ -type f -name '*.ko*' | awk '{if (match($0, /^\/lib\/modules\/([^\/]+).*\/([^\/]+)\.ko(\.[^\/\.]+)?$/, m)) {print m[1] " : " m[2];}}' | sort | uniq
+```
+
+### 配置firewalld
+
+```bash
+apt/dnf/yum install firewalld;
+systemctl enable firewalld;
+systemctl start firewalld;
+vim /etc/firewalld/firewalld.conf ; # using FirewallBackend=nftables
+firewall-cmd --permanent --add-service=dhcp;
+firewall-cmd --permanent --add-service=dhcpv6;
+firewall-cmd --permanent --add-service=dhcpv6-client;
+firewall-cmd --permanent --add-service=dns;
+firewall-cmd --permanent --add-service=ssh;
+# firewall-cmd --permanent --add-service=custom services;
+# firewall-cmd --permanent --add-port=custom tcp port/tcp;
+# firewall-cmd --permanent --add-port=custom udp port/udp;
+firewall-cmd --reload ;
+firewall-cmd --list-all ;
 ```
 
 ## 文档地址备注

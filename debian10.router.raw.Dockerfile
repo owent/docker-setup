@@ -1,0 +1,18 @@
+FROM docker.io/library/debian:latest
+
+RUN cp -f /etc/apt/sources.list /etc/apt/sources.list.bak ;                                                     \
+    sed -i.1.bak -r "s;https?://.*/debian-security/?[[:space:]];http://mirrors.tencent.com/debian-security/ ;g" /etc/apt/sources.list ; \
+    sed -i.1.bak -r "s;https?://.*/debian/?[[:space:]];http://mirrors.tencent.com/debian/ ;g" /etc/apt/sources.list ;      \
+    cat /etc/apt/sources.list ;                                                                                 \
+    apt update -y;                                                                                              \
+    apt install -y procps locales tzdata less iproute2 gawk lsof cron openssh-client openssh-server systemd  ;  \
+    apt install -y vim wget curl ca-certificates telnet iotop htop knot-dnsutils dnsutils systemd-cron ;        \
+    apt install -y dnsmasq dnsmasq-utils ppp pppconfig pppoe pppoeconf ca-certificates ipset;                   \
+    apt install -y traceroute tcptraceroute tcpdump netcat-openbsd ncat network-manager nftables;               \
+    localectl set-locale LANGUAGE=en_US.UTF-8; localectl set-locale LANG=en_GB.utf8 ;                           \
+    ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                   \
+    rm -rf /var/lib/apt/lists/*
+
+CMD ["/sbin/init"]
+
+# https://github.com/owent-utils/docker-setup

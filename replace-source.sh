@@ -19,8 +19,8 @@ elif [ "x$DISTRIBUTE_NAME" == "xubuntu" ]; then
         cp /etc/apt/sources.list /etc/apt/sources.list.bak ;
     fi
 
-    sed -i -r 's;#?https?://archive.ubuntu.com/ubuntu/;http://mirrors.tencent.com/ubuntu/;g' /etc/apt/sources.list ;
-    sed -i -r 's;#?https?://security.ubuntu.com/ubuntu/;http://mirrors.tencent.com/ubuntu-security/;g' /etc/apt/sources.list ;
+    sed -i -r 's;#?https?://security.ubuntu.com/ubuntu/?[[:space:]];http://mirrors.tencent.com/ubuntu-security/ ;g' /etc/apt/sources.list ;
+    sed -i -r 's;#?https?://archive.ubuntu.com/ubuntu/?[[:space:]];http://mirrors.tencent.com/ubuntu/ ;g' /etc/apt/sources.list ;
 
     apt update -y;
 elif [ "x$DISTRIBUTE_NAME" == "xdebian" ]; then
@@ -28,8 +28,8 @@ elif [ "x$DISTRIBUTE_NAME" == "xdebian" ]; then
         cp /etc/apt/sources.list /etc/apt/sources.list.bak ;
     fi
 
-    sed -i -r 's;#?https?://.*/debian/;http://mirrors.tencent.com/debian/;g' /etc/apt/sources.list ;
-    sed -i -r 's;#?https?://.*/debian-security/;http://mirrors.tencent.com/debian-security/;g' /etc/apt/sources.list ;
+    sed -i -r 's;#?https?://.*/debian-security/?[[:space:]];http://mirrors.tencent.com/debian-security/ ;g' /etc/apt/sources.list ;
+    sed -i -r 's;#?https?://.*/debian/?[[:space:]];http://mirrors.tencent.com/debian/ ;g' /etc/apt/sources.list ;
 
     apt update -y;
 fi
