@@ -42,7 +42,7 @@ elif [ "x" != "x$SETUP_INSTALL_DISTRIBUTION_UBUNTU" ]; then
     apt update -y ;
 
     for DOTNET_CORE_VERSION in $DOTNET_CORE_VERSIONS; do
-        $SETUP_INSTALL_PKGTOOL_CENTOS install -y dotnet-sdk-$DOTNET_CORE_VERSION dotnet-runtime-$DOTNET_CORE_VERSION ;
+        apt install -y dotnet-sdk-$DOTNET_CORE_VERSION dotnet-runtime-$DOTNET_CORE_VERSION ;
     done
 
     # install powershell
@@ -64,7 +64,7 @@ elif [ "x" != "x$SETUP_INSTALL_DISTRIBUTION_DEBIAN" ]; then
     apt update -y ;
 
     for DOTNET_CORE_VERSION in $DOTNET_CORE_VERSIONS; do
-        $SETUP_INSTALL_PKGTOOL_CENTOS install -y dotnet-sdk-$DOTNET_CORE_VERSION dotnet-runtime-$DOTNET_CORE_VERSION ;
+        apt install -y dotnet-sdk-$DOTNET_CORE_VERSION dotnet-runtime-$DOTNET_CORE_VERSION ;
     done
 
     # install powershell
