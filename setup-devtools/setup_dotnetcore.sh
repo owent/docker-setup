@@ -55,7 +55,7 @@ elif [ "x" != "x$SETUP_INSTALL_DISTRIBUTION_UBUNTU" ]; then
 
 elif [ "x" != "x$SETUP_INSTALL_DISTRIBUTION_DEBIAN" ]; then
     run_wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.asc.gpg ;
-    run_wget https://packages.microsoft.com/config/debian/10/prod.list -O /etc/apt/sources.list.d/microsoft-prod.list ;
+    run_wget https://packages.microsoft.com/config/debian/$SETUP_INSTALL_DISTRIBUTION_DEBIAN/prod.list -O /etc/apt/sources.list.d/microsoft-prod.list ;
     chown root:root /etc/apt/trusted.gpg.d/microsoft.asc.gpg ;
     chown root:root /etc/apt/sources.list.d/microsoft-prod.list ;
 
