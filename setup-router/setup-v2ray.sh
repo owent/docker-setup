@@ -40,6 +40,8 @@ xt_socket
 nft_socket
 nft_tproxy
 " > /etc/modules-load.d/tproxy
+V2RAY_HOST_IPV4=
+V2RAY_PORT=3371
 
 ### Setup mangle xtable rule and policy routing
 ### ip rule { add | del } SELECTOR ACTION
@@ -55,6 +57,7 @@ nft add table filter
 
 ### Setup - ipv4
 nft add chain filter v2ray { type filter hook prerouting priority 1 \; }
+nft flush chain filter v2ray
 
 ### ipv4 - skip link-locak and broadcast address
 nft add rule filter v2ray ip daddr {127.0.0.1/32, 224.0.0.0/4, 255.255.255.255/32} return
@@ -64,18 +67,33 @@ nft add rule filter v2ray ip daddr 172.18.0.0/16 udp dport != 53 return
 
 ### ipv4 - forward to v2ray's listen address if not marked by v2ray
 nft add rule filter v2ray meta mark 255 return # make sure v2ray's outbounds.*.streamSettings.sockopt.mark = 255
-nft add rule filter v2ray meta l4proto {tcp, udp} tproxy to $V2RAY_HOST_IPV4:$V2RAY_PORT meta mark set 1 accept # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
+# nft add rule filter v2ray log prefix ">>>>>>tproxy" level debug flags all
+# tproxy ip to $V2RAY_HOST_IPV4:$V2RAY_PORT
+nft add rule filter v2ray meta l4proto {tcp, udp} meta mark set 1 tproxy to :$V2RAY_PORT # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
+
+# Setup - ipv4 local(Required?)
+nft add chain filter v2ray_mask { type filter hook output priority 1 \; }
+nft flush chain filter v2ray_mask
+nft add rule filter v2ray_mask ip daddr {224.0.0.0/4, 255.255.255.255/32} return
+nft add rule filter v2ray_mask meta l4proto tcp ip daddr 172.18.0.0/16 return
+nft add rule filter v2ray_mask ip daddr 172.18.0.0/16 udp dport != 53 return
+nft add rule filter v2ray_mask meta mark 255 return
+# nft add rule filter v2ray_mask log prefix "++++++mark 1" level debug flags all
+nft add rule filter v2ray_mask meta l4proto {tcp, udp} meta mark set 1
 
 ## Setup - ipv6
 nft add chain ip6 filter v2ray { type filter hook prerouting priority 1 \; }
+nft flush chain ip6 filter v2ray
 
 ### ipv6 - skip link-locak and multicast
-nft add rule filter v2ray ip6 daddr {::1/128, fe80::/10, ff00::/8} return
+nft add rule ip6 filter v2ray daddr {::1/128, fe80::/10, ff00::/8} return
 
 ### ipv6 - skip private network and UDP of DNS
-nft add rule filter v2ray ip6 meta l4proto tcp ip daddr fd27:32d6:ac12::/48 return
-nft add rule filter v2ray ip6 ip daddr fd27:32d6:ac12::/48 udp dport != 53 return
+nft add rule ip6 filter v2ray meta l4proto tcp ip daddr fd27:32d6:ac12::/48 return
+nft add rule ip6 filter v2ray ip daddr fd27:32d6:ac12::/48 udp dport != 53 return
 
 ### ipv4 - forward to v2ray's listen address if not marked by v2ray
-nft add rule filter v2ray ip6 meta mark 255 return # make sure v2ray's outbounds.*.streamSettings.sockopt.mark = 255
-nft add rule filter v2ray ip6 meta l4proto {tcp, udp} tproxy to $V2RAY_HOST_IPV6:$V2RAY_PORT meta mark set 1 accept # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
+nft add rule ip6 filter v2ray meta mark 255 return # make sure v2ray's outbounds.*.streamSettings.sockopt.mark = 255
+# nft add rule ip6 filter v2ray log prefix ">>>>>>v2ray-tproxy" level debug flags all
+# tproxy ip6 to $V2RAY_HOST_IPV6:$V2RAY_PORT
+nft add rule ip6 filter v2ray meta l4proto {tcp, udp} meta mark set 1 tproxy to :$V2RAY_PORT # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
