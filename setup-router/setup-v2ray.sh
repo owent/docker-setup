@@ -71,7 +71,7 @@ nft add rule filter v2ray meta mark 255 return # make sure v2ray's outbounds.*.s
 # tproxy ip to $V2RAY_HOST_IPV4:$V2RAY_PORT
 nft add rule filter v2ray meta l4proto {tcp, udp} meta mark set 1 tproxy to :$V2RAY_PORT # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
 
-# Setup - ipv4 local(Required?)
+# Setup - ipv4 local
 nft add chain filter v2ray_mask { type filter hook output priority 1 \; }
 nft flush chain filter v2ray_mask
 nft add rule filter v2ray_mask ip daddr {224.0.0.0/4, 255.255.255.255/32} return
@@ -97,3 +97,13 @@ nft add rule ip6 filter v2ray meta mark 255 return # make sure v2ray's outbounds
 # nft add rule ip6 filter v2ray log prefix ">>>>>>v2ray-tproxy" level debug flags all
 # tproxy ip6 to $V2RAY_HOST_IPV6:$V2RAY_PORT
 nft add rule ip6 filter v2ray meta l4proto {tcp, udp} meta mark set 1 tproxy to :$V2RAY_PORT # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
+
+# Setup - ipv6 local
+nft add chain ip6 filter v2ray_mask { type filter hook output priority 1 \; }
+nft flush chain ip6 filter v2ray_mask
+nft add rule ip6 filter v2ray_mask ip daddr {::1/128, fe80::/10, ff00::/8} return
+nft add rule ip6 filter v2ray_mask meta l4proto tcp ip daddr fd27:32d6:ac12::/48 return
+nft add rule ip6 filter v2ray_mask ip daddr fd27:32d6:ac12::/48 udp dport != 53 return
+nft add rule ip6 filter v2ray_mask meta mark 255 return
+# nft add rule ip6 filter v2ray_mask log prefix "++++++mark 1" level debug flags all
+nft add rule ip6 filter v2ray_mask meta l4proto {tcp, udp} meta mark set 1

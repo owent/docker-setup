@@ -17,7 +17,7 @@
   > R3: NAT规则: **PPP地址1**->**原始外网地址**         => **V2RAY-CLI地址**->**V2RAY-SVR地址**
   > R4: NAT规则: **V2RAY-SVR地址**->**V2RAY-CLI地址**   => **原始外网地址**->**PPP地址1**
 
-4. SNAT: **PPP地址2**->**V2RAY-SVR地址** (不命中转发规则， 走到后面的NAT链, ```white_list``` 包含 **V2RAY-SVR地址** 的IP ) - [xtable][2]
+4. SNAT: **PPP地址2**->**V2RAY-SVR地址** (不命中转发规则， 走到后面的NAT链, ```white_list``` 包含 **V2RAY-SVR地址** 的IP/或根据mark判定 ) - [xtable][2]
   > R5: SNAT规则: **V2RAY-CLI地址**->**V2RAY-SVR地址**  => **PPP地址2**->**V2RAY-SVR地址**
   > R6: SNAT规则: **V2RAY-SVR地址**->**PPP地址2**       => **V2RAY-SVR地址**->**V2RAY-CLI地址**
 
