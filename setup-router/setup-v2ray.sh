@@ -46,11 +46,13 @@ V2RAY_PORT=3371
 
 ### Setup mangle xtable rule and policy routing
 ### ip rule { add | del } SELECTOR ACTION
-### default table-> local: 255 , main: 254 , default: 253
+### default table/rule-> local(ID: 255)/Priority: 0 , main(ID: 254)/Priority: 32766 , default(ID: 253)/Priority: 32766
 ### 策略路由，所有 fwmark = 1 的包走 table:100
-ip rule add fwmark 1 lookup 100
 ip route add local 0.0.0.0/0 dev lo table 100
 ip -6 route add local ::/0 dev lo table 100
+ip rule delete fwmark 1 lookup 100
+ip rule add fwmark 1 lookup 100
+# ip route show table 100
 
 nft add table filter
 
@@ -71,8 +73,8 @@ nft add rule filter v2ray ip daddr 172.18.0.0/16 udp dport != 53 return
 nft add rule filter v2ray mark 255 return # make sure v2ray's outbounds.*.streamSettings.sockopt.mark = 255
 # tproxy ip to $V2RAY_HOST_IPV4:$V2RAY_PORT
 # nft add rule filter v2ray tcp sport != 22 log prefix '">>>>>>tproxy"' level debug flags all
-nft add rule filter v2ray meta l4proto tcp mark set 1 tproxy to :$V2RAY_PORT # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
-nft add rule filter v2ray meta l4proto udp mark set 1 tproxy to :$V2RAY_PORT # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
+nft add rule filter v2ray meta l4proto tcp tproxy to :$V2RAY_PORT # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
+nft add rule filter v2ray meta l4proto udp tproxy to :$V2RAY_PORT # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
 
 # Setup - ipv4 local
 nft add chain mangle v2ray_mask { type route hook output priority 1 \; }
@@ -100,8 +102,8 @@ nft add rule ip6 filter v2ray ip daddr fd27:32d6:ac12::/48 udp dport != 53 retur
 nft add rule ip6 filter v2ray mark 255 return # make sure v2ray's outbounds.*.streamSettings.sockopt.mark = 255
 # nft add rule ip6 filter v2ray log prefix '">>>>>>v2ray-tproxy"' level debug flags all
 # tproxy ip6 to $V2RAY_HOST_IPV6:$V2RAY_PORT
-nft add rule ip6 filter v2ray meta l4proto tcp mark set 1 tproxy to :$V2RAY_PORT # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
-nft add rule ip6 filter v2ray meta l4proto udp mark set 1 tproxy to :$V2RAY_PORT # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
+nft add rule ip6 filter v2ray meta l4proto tcp tproxy to :$V2RAY_PORT # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
+nft add rule ip6 filter v2ray meta l4proto udp tproxy to :$V2RAY_PORT # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
 
 # Setup - ipv6 local
 nft add chain ip6 mangle v2ray_mask { type route hook output priority 1 \; }
