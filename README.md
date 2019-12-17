@@ -15,7 +15,8 @@ podman run docker run -d --systemd true IMAGE /sbin/init
 ## It also expects to be able to write to /sys/fs/cgroup/systemd and /var/log/journal
 ## docker run -d --cap-add=SYS_ADMIN -v /sys/fs/cgroup:/sys/fs/cgroup IMAGE /sbin/init
 ## Mount list come from setupSystemd@libpod/container_internal_linux.go on https://github.com/containers/libpod
-docker run -d --cap-add=SYS_ADMIN                                                           \
+docker build --tag router-base -f debian10.router.raw.Dockerfile
+docker run -d --name router --cap-add=SYS_ADMIN                                             \
         --mount type=tmpfs,target=/run,tmpfs-mode=1777,tmpfs-size=67108864                  \
         --mount type=tmpfs,target=/run/lock,tmpfs-mode=1777,tmpfs-size=67108864             \
         --mount type=tmpfs,target=/tmp,tmpfs-mode=1777                                      \
@@ -26,7 +27,7 @@ docker run -d --cap-add=SYS_ADMIN                                               
 
 # 路由
 podman build --tag router-base -f debian10.router.raw.Dockerfile
-podman run -d --systemd true --mount type=bind,source=/home,target=/home --cap-add=NET_ADMIN --network=host IMAGE /sbin/init
+podman run -d --name router --systemd true --mount type=bind,source=/home,target=/home --cap-add=NET_ADMIN --network=host IMAGE /sbin/init
 
 # @see https://docs.docker.com/engine/reference/builder/#entrypoint for detail about CMD and ENTRYPOINT
 
@@ -35,6 +36,15 @@ find /lib/modules/$(uname -r) -type f -name '*.ko*' | xargs basename -a | sort |
 
 # 查看已安装的内核所有可用的模块
 find /lib/modules/ -type f -name '*.ko*' | awk '{if (match($0, /^\/lib\/modules\/([^\/]+).*\/([^\/]+)\.ko(\.[^\/\.]+)?$/, m)) {print m[1] " : " m[2];}}' | sort | uniq
+
+# 查看和管理当前内核加载的模块信息
+insmod/modprobe # 加载
+rmmod           # 卸载
+lsmod           # 查看系统中所有已经被加载了的所有的模块以及模块间的依赖关系
+modinfo         # 获得模块的信息
+cat /proc/modules  # 能够显示模块大小、在内核空间中的地址
+cat /proc/devices  # 只显示驱动的主设备号，且是分类显示
+ls /sys/modules    # 下面存在对应的驱动的目录，目录下包含驱动的分段信息等等。  
 ```
 
 ### 配置firewalld

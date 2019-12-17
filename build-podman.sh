@@ -12,9 +12,14 @@ if [ $? -eq 0 ]; then
     PODMAN_BUILD_MODE=apt
 else
     # Dependencies for Fedora, CentOS, RHEL, and related distributions
-    sudo dnf/yum install -y atomic-registries btrfs-progs-devel containernetworking-cni device-mapper-devel git glib2-devel glibc-devel glibc-static go golang-github-cpuguy83-go-md2man gpgme-devel iptables libassuan-devel libgpg-error-devel libseccomp-devel libselinux-devel make ostree-devel pkgconfig runc containers-common
-    sudo dnf/yum install -y automake bison e2fsprogs-devel fuse-devel libtool xz-devel zlib-devel libbtrfs-dev fuse-overlayfs
-    PODMAN_BUILD_MODE=dnf
+    which dnf > /dev/null 2>&1 ;
+    if [ $? -eq 0 ]; then
+        PODMAN_BUILD_MODE=dnf;
+    else
+        PODMAN_BUILD_MODE=yum;
+    fi
+    sudo $PODMAN_BUILD_MODE install -y atomic-registries btrfs-progs-devel containernetworking-cni device-mapper-devel git glib2-devel glibc-devel glibc-static go golang-github-cpuguy83-go-md2man gpgme-devel iptables libassuan-devel libgpg-error-devel libseccomp-devel libselinux-devel make ostree-devel pkgconfig runc containers-common
+    sudo $PODMAN_BUILD_MODE install -y automake bison e2fsprogs-devel fuse-devel libtool xz-devel zlib-devel libbtrfs-dev fuse-overlayfs
 fi
 
 # Kernel setup
