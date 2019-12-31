@@ -134,3 +134,28 @@ apt install linux-image-<VERSION>-generic
 apt search linux-image;
 apt install linux-image-<VERSION>
 ```
+
+## Docker备注
+
+```yum/apt install -y docker-ce``` 或 ```dnf install -y podman```
+
+```bash
+# 手动设置docker需要的网桥
+sudo brctl addbr docker0
+sudo ip addr add 192.168.10.1/24 dev docker0
+sudo ip link set dev docker0 up
+ip addr show docker0
+
+# 代理必须在启动脚本加环境变量
+HTTP_PROXY=$http_proxy
+HTTPS_PROXY=$https_proxy
+NO_PROXY=$no_proxy
+
+# /etc/docker/daemon.json 里可配不用验证证书的服务和存储位置
+{
+    "graph": "/data/docker-data",
+    "storage-driver": "overlay",
+    "insecure-registries" : [ "docker.io" ]
+}
+
+```

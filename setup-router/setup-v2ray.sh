@@ -134,6 +134,7 @@ User-Agent: curl/7.64.0
 Accept: */*
 
 " | ncat --ssl --proxy 127.0.0.1:1080 --proxy-type socks5 myip.biturl.top 443
+curl -vL --socks5 127.0.0.1:1080 myip.biturl.top
 
 echo "GET / HTTP/1.1
 Host: baidu.com
