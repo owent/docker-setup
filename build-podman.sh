@@ -40,10 +40,10 @@ fi
 
 PODMAN_INSTALL_PREFIX=/opt/podman
 PODMAN_ETC_PREFIX=/etc
-PODMAN_OSTREE_VERSION=v2019.5 ;
-# PODMAN_GOLANG_URL=https://dl.google.com/go/go1.13.4.linux-amd64.tar.gz ;
-PODMAN_GOLANG_URL=https://mirrors.ustc.edu.cn/golang/go1.13.4.linux-amd64.tar.gz ;
-PODMAN_COMMON_VERSION=v2.0.3;
+PODMAN_OSTREE_VERSION=v2019.6 ;
+# PODMAN_GOLANG_URL=https://dl.google.com/go/go1.13.5.linux-amd64.tar.gz ;
+PODMAN_GOLANG_URL=https://mirrors.ustc.edu.cn/golang/go1.13.5.linux-amd64.tar.gz ;
+PODMAN_COMMON_VERSION=v2.0.7;
 PODMAN_RUNC_VERSION=v1.0.0-rc9;
 PODMAN_CNI_PLUGINS_VERSION=v0.8.3 ;
 PODMAN_LIBPOD_VERSION=v1.6.4 ;
