@@ -43,7 +43,7 @@ PODMAN_ETC_PREFIX=/etc
 PODMAN_OSTREE_VERSION=v2019.6 ;
 # PODMAN_GOLANG_URL=https://dl.google.com/go/go1.13.5.linux-amd64.tar.gz ;
 PODMAN_GOLANG_URL=https://mirrors.ustc.edu.cn/golang/go1.13.5.linux-amd64.tar.gz ;
-PODMAN_COMMON_VERSION=v2.0.7;
+PODMAN_CONMON_VERSION=v2.0.7;
 PODMAN_RUNC_VERSION=v1.0.0-rc9;
 PODMAN_CNI_PLUGINS_VERSION=v0.8.3 ;
 PODMAN_LIBPOD_VERSION=v1.6.4 ;
@@ -61,6 +61,9 @@ sudo mkdir -p "$GOPATH" && sudo chmod 777 "$GOPATH" ;
 
 ### ostree
 if [ "$PODMAN_BUILD_MODE" != "apt" ]; then
+    if [ -e "$WORKING_DIR/ostree" ]; then
+        rm -rf "$WORKING_DIR/ostree";
+    fi
     git clone -b $PODMAN_OSTREE_VERSION --depth=100 https://github.com/ostreedev/ostree "$WORKING_DIR/ostree" ;
     cd "$WORKING_DIR/ostree" ;
     git submodule update -f --init ;
@@ -87,7 +90,10 @@ if [ ! -e "$PODMAN_INSTALL_PREFIX/$PODMAN_GOLANG_VERSION/go" ]; then
 fi
 
 ### conmon
-git clone -b $PODMAN_COMMON_VERSION --depth=100 https://github.com/containers/conmon.git "$WORKING_DIR/conmon" ;
+if [ -e "$WORKING_DIR/conmon" ]; then
+    rm -rf "$WORKING_DIR/conmon";
+fi
+git clone -b $PODMAN_CONMON_VERSION --depth=100 https://github.com/containers/conmon.git "$WORKING_DIR/conmon" ;
 cd "$WORKING_DIR/conmon" ;
 make -j PREFIX=$PODMAN_INSTALL_PREFIX ;
 sudo make podman -j PREFIX=$PODMAN_INSTALL_PREFIX;
@@ -95,6 +101,9 @@ sudo make podman -j PREFIX=$PODMAN_INSTALL_PREFIX;
 ### runc
 # if [ "$PODMAN_BUILD_MODE" != "apt" ]; then
     sudo mkdir -p "$GOPATH/src/github.com/opencontainers" && sudo chmod 777 "$GOPATH/src/github.com/opencontainers" ;
+    if [ -e "$GOPATH/src/github.com/opencontainers/runc" ]; then
+        rm -rf "$GOPATH/src/github.com/opencontainers/runc";
+    fi
     git clone -b $PODMAN_RUNC_VERSION --depth=100 https://github.com/opencontainers/runc.git "$GOPATH/src/github.com/opencontainers/runc" ;
     cd "$GOPATH/src/github.com/opencontainers/runc" ;
     make BUILDTAGS="selinux seccomp" -j PREFIX=$PODMAN_INSTALL_PREFIX ;
@@ -104,6 +113,9 @@ sudo make podman -j PREFIX=$PODMAN_INSTALL_PREFIX;
 ### CNI plugins
 # if [ "$PODMAN_BUILD_MODE" != "dnf" ] && [ "$PODMAN_BUILD_MODE" != "yum" ]; then
     sudo mkdir -p "$GOPATH/src/github.com/containernetworking" && sudo chmod 777 "$GOPATH/src/github.com/containernetworking";
+    if [ -e "$GOPATH/src/github.com/containernetworking/plugins" ]; then
+        rm -rf "$GOPATH/src/github.com/containernetworking/plugins";
+    fi
     git clone -b $PODMAN_CNI_PLUGINS_VERSION --depth=100 https://github.com/containernetworking/plugins.git "$GOPATH/src/github.com/containernetworking/plugins" ;
     cd "$GOPATH/src/github.com/containernetworking/plugins" ;
     ./build_linux.sh ;
@@ -123,6 +135,9 @@ sudo curl -qsSL https://raw.githubusercontent.com/containers/skopeo/master/defau
 ### Optional packages
 ### libpod
 sudo mkdir -p "$GOPATH/src/github.com/containers" && sudo chmod 777 "$GOPATH/src/github.com/containers" ;
+if [ -e "$GOPATH/src/github.com/containers/libpod" ]; then
+    rm -rf "$GOPATH/src/github.com/containers/libpod";
+fi
 git clone -b $PODMAN_LIBPOD_VERSION --depth=100 https://github.com/containers/libpod/ $GOPATH/src/github.com/containers/libpod ;
 cd $GOPATH/src/github.com/containers/libpod ;
 make BUILDTAGS="selinux seccomp systemd" PREFIX=$PODMAN_INSTALL_PREFIX ;
@@ -139,13 +154,14 @@ sudo curl -qsSL https://src.fedoraproject.org/rpms/skopeo/raw/master/f/seccomp.j
 sudo curl -qsSL https://raw.githubusercontent.com/containers/skopeo/master/default-policy.json -o "$PODMAN_ETC_PREFIX/containers/policy.json" ;
 
 ### Configure maually'
-# echo "Add $PODMAN_INSTALL_PREFIX:$PODMAN_INSTALL_PREFIX/libexec to PATH in conmon_env_vars." ;
-# echo "Add $PODMAN_INSTALL_PREFIX/libexec/podman/conmon into conmon_path" ;
-# echo "Add $PODMAN_INSTALL_PREFIX/libexec/cni into cni_plugin_dir" ;
-# echo "Add $PODMAN_INSTALL_PREFIX/bin/runc into runc" ;
-# 
-# vim $GOPATH/src/github.com/containers/libpod/libpod.conf 
-# add conmon_path 
+echo "Add $PODMAN_INSTALL_PREFIX:$PODMAN_INSTALL_PREFIX/libexec to PATH in conmon_env_vars." ;
+echo "Add $PODMAN_INSTALL_PREFIX/libexec/podman/conmon into conmon_path" ;
+echo "Add $PODMAN_INSTALL_PREFIX/libexec/cni into cni_plugin_dir" ;
+echo "Add $PODMAN_INSTALL_PREFIX/bin/runc into runc" ;
+ 
+echo "vim $GOPATH/src/github.com/containers/libpod/libpod.conf
+# add conmon_path
+" ;
 
 sudo mkdir -p "/usr/local/libexec"; 
 sudo mkdir -p "/usr/local/bin"; 
