@@ -46,7 +46,7 @@ PODMAN_GOLANG_URL=https://mirrors.ustc.edu.cn/golang/go1.13.4.linux-amd64.tar.gz
 PODMAN_COMMON_VERSION=v2.0.3;
 PODMAN_RUNC_VERSION=v1.0.0-rc9;
 PODMAN_CNI_PLUGINS_VERSION=v0.8.3 ;
-PODMAN_LIBPOD_VERSION=v1.6.3 ;
+PODMAN_LIBPOD_VERSION=v1.6.4 ;
 
 PODMAN_GOLANG_BASENAME=$(basename $PODMAN_GOLANG_URL);
 PODMAN_GOLANG_VERSION=$(echo "$PODMAN_GOLANG_BASENAME" | awk '{if(match($0, /go[0-9]*\.[0-9]*(\.[0-9]*)/, m)) {print m[0];}}') ;
@@ -112,7 +112,7 @@ sudo make podman -j PREFIX=$PODMAN_INSTALL_PREFIX;
     
     ### Setup CNI networking
     sudo mkdir -p "$PODMAN_ETC_PREFIX/cni/net.d" && sudo chmod 777 "$PODMAN_ETC_PREFIX/cni/net.d";
-    curl -qsSL https://raw.githubusercontent.com/containers/libpod/master/cni/87-podman-bridge.conflist | sudo tee $PODMAN_ETC_PREFIX/cni/net.d/99-loopback.conf ;
+    # curl -qsSL https://raw.githubusercontent.com/containers/libpod/master/cni/87-podman-bridge.conflist | sudo tee $PODMAN_ETC_PREFIX/cni/net.d/99-loopback.conf ;
 # fi
 
 ### Add configuration
@@ -137,7 +137,6 @@ sudo curl -qsSL https://src.fedoraproject.org/rpms/skopeo/raw/master/f/registrie
 echo "/usr/share/rhel/secrets:/run/secrets" | sudo tee "/usr/share/containers/mounts.conf" ;
 sudo curl -qsSL https://src.fedoraproject.org/rpms/skopeo/raw/master/f/seccomp.json -o /usr/share/containers/seccomp.json ;
 sudo curl -qsSL https://raw.githubusercontent.com/containers/skopeo/master/default-policy.json -o "$PODMAN_ETC_PREFIX/containers/policy.json" ;
-
 
 ### Configure maually'
 # echo "Add $PODMAN_INSTALL_PREFIX:$PODMAN_INSTALL_PREFIX/libexec to PATH in conmon_env_vars." ;
@@ -182,3 +181,7 @@ for BIN_LINK in $PODMAN_INSTALL_PREFIX/bin/* ; do
     fi
     sudo ln -s "$BIN_LINK" "/usr/local/bin/$BIN_LINK_BASENAME" ;
 done
+
+# sudo podman network create ;
+# Run script below if 'unable to start container "v2ray": container create failed (no logs from conmon): EOF'
+# sudo rm /var/lib/containers/storage/overlay-containers/<CONTAINER ID>/userdata/winsz
