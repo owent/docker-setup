@@ -126,6 +126,8 @@ podman run -d --name v2ray -v /etc/v2ray:/etc/v2ray \
     v2ray -config=/etc/v2ray/config.json
 podman generate systemd v2ray
 
+# podman run -d --name v2ray -v /etc/v2ray:/etc/v2ray -v /data/logs/v2ray:/data/logs/v2ray --cap-add=NET_ADMIN --network=host localhost/local-v2ray v2ray -config=/etc/v2ray/config.json
+
 # test scripts
 
 echo "GET / HTTP/1.1

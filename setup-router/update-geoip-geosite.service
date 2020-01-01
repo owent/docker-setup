@@ -1,0 +1,10 @@
+[Unit]
+Description=Update geoip geosite
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /etc/v2ray/update-geoip-geosite.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

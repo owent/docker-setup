@@ -1,0 +1,13 @@
+[Unit]
+Description=Run update-geoip-geosite on Monday 05:17
+
+[Timer]
+OnBootSec=1min
+OnCalendar=Mon *-*-* 05:17:00
+Unit=update-geoip-geosite
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+
+# systemctl start update-geoip-geosite.timer
