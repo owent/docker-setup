@@ -59,12 +59,35 @@ export GOPROXY=https://goproxy.cn,direct ;
 export GOPRIVATE=github.com ;
 sudo mkdir -p "$GOPATH" && sudo chmod 777 "$GOPATH" ;
 
+function git_clone_fetch() {
+    if [ -e "$3/.git" ]; then
+        cd "$3";
+        git fetch --depth=100 origin "$1";
+        if [ $? -ne 0 ]; then
+            cd -;
+            rm -rf "$3";
+        else
+            git clean -df ;
+            git reset --hard "origin/$1" ;
+            cd -;
+        fi
+    fi
+
+    if [ ! -e "$3/.git" ]; then
+        if [ -e "$3/.git" ]; then
+            rm -rf "$3" ;
+        fi
+
+        git clone -b "$1" --depth=100 "$2" "$3" ;
+    fi
+}
+
 ### ostree
 if [ "$PODMAN_BUILD_MODE" != "apt" ]; then
     if [ -e "$WORKING_DIR/ostree" ]; then
         rm -rf "$WORKING_DIR/ostree";
     fi
-    git clone -b $PODMAN_OSTREE_VERSION --depth=100 https://github.com/ostreedev/ostree "$WORKING_DIR/ostree" ;
+    git_clone_fetch $PODMAN_OSTREE_VERSION https://github.com/ostreedev/ostree "$WORKING_DIR/ostree" ;
     cd "$WORKING_DIR/ostree" ;
     git submodule update -f --init ;
     ./autogen.sh --prefix=$PODMAN_INSTALL_PREFIX --libdir=$PODMAN_INSTALL_PREFIX/lib64 --sysconfdir=$PODMAN_ETC_PREFIX ;
@@ -93,7 +116,7 @@ fi
 if [ -e "$WORKING_DIR/conmon" ]; then
     rm -rf "$WORKING_DIR/conmon";
 fi
-git clone -b $PODMAN_CONMON_VERSION --depth=100 https://github.com/containers/conmon.git "$WORKING_DIR/conmon" ;
+git_clone_fetch $PODMAN_CONMON_VERSION https://github.com/containers/conmon.git "$WORKING_DIR/conmon" ;
 cd "$WORKING_DIR/conmon" ;
 make -j PREFIX=$PODMAN_INSTALL_PREFIX ;
 sudo make podman -j PREFIX=$PODMAN_INSTALL_PREFIX;
@@ -104,7 +127,7 @@ sudo make podman -j PREFIX=$PODMAN_INSTALL_PREFIX;
     if [ -e "$GOPATH/src/github.com/opencontainers/runc" ]; then
         rm -rf "$GOPATH/src/github.com/opencontainers/runc";
     fi
-    git clone -b $PODMAN_RUNC_VERSION --depth=100 https://github.com/opencontainers/runc.git "$GOPATH/src/github.com/opencontainers/runc" ;
+    git_clone_fetch $PODMAN_RUNC_VERSION https://github.com/opencontainers/runc.git "$GOPATH/src/github.com/opencontainers/runc" ;
     cd "$GOPATH/src/github.com/opencontainers/runc" ;
     make BUILDTAGS="selinux seccomp" -j PREFIX=$PODMAN_INSTALL_PREFIX ;
     sudo cp -f runc "$PODMAN_INSTALL_PREFIX/bin/runc" ;
@@ -116,7 +139,7 @@ sudo make podman -j PREFIX=$PODMAN_INSTALL_PREFIX;
     if [ -e "$GOPATH/src/github.com/containernetworking/plugins" ]; then
         rm -rf "$GOPATH/src/github.com/containernetworking/plugins";
     fi
-    git clone -b $PODMAN_CNI_PLUGINS_VERSION --depth=100 https://github.com/containernetworking/plugins.git "$GOPATH/src/github.com/containernetworking/plugins" ;
+    git_clone_fetch $PODMAN_CNI_PLUGINS_VERSION https://github.com/containernetworking/plugins.git "$GOPATH/src/github.com/containernetworking/plugins" ;
     cd "$GOPATH/src/github.com/containernetworking/plugins" ;
     ./build_linux.sh ;
     sudo mkdir -p "$PODMAN_INSTALL_PREFIX/libexec/cni" && sudo chmod 777 "$PODMAN_INSTALL_PREFIX/libexec/cni";
@@ -138,7 +161,7 @@ sudo mkdir -p "$GOPATH/src/github.com/containers" && sudo chmod 777 "$GOPATH/src
 if [ -e "$GOPATH/src/github.com/containers/libpod" ]; then
     rm -rf "$GOPATH/src/github.com/containers/libpod";
 fi
-git clone -b $PODMAN_LIBPOD_VERSION --depth=100 https://github.com/containers/libpod/ $GOPATH/src/github.com/containers/libpod ;
+git_clone_fetch $PODMAN_LIBPOD_VERSION https://github.com/containers/libpod/ $GOPATH/src/github.com/containers/libpod ;
 cd $GOPATH/src/github.com/containers/libpod ;
 make BUILDTAGS="selinux seccomp systemd" PREFIX=$PODMAN_INSTALL_PREFIX ;
 sudo make install PREFIX=$PODMAN_INSTALL_PREFIX ;
