@@ -177,14 +177,23 @@ sudo curl -qsSL https://src.fedoraproject.org/rpms/skopeo/raw/master/f/seccomp.j
 sudo curl -qsSL https://raw.githubusercontent.com/containers/skopeo/master/default-policy.json -o "$PODMAN_ETC_PREFIX/containers/policy.json" ;
 
 ### Configure maually'
-echo "Add $PODMAN_INSTALL_PREFIX:$PODMAN_INSTALL_PREFIX/libexec to PATH in conmon_env_vars." ;
-echo "Add $PODMAN_INSTALL_PREFIX/libexec/podman/conmon into conmon_path" ;
-echo "Add $PODMAN_INSTALL_PREFIX/libexec/cni into cni_plugin_dir" ;
-echo "Add $PODMAN_INSTALL_PREFIX/bin/runc into runc" ;
- 
-echo "vim $GOPATH/src/github.com/containers/libpod/libpod.conf
-# add conmon_path
-" ;
+EDIT_LIBPOD_CONF="$GOPATH/src/github.com/containers/libpod/libpod.conf";
+echo -e "\033[1;31mvim $EDIT_LIBPOD_CONF\033[0;m" ;
+echo -e "\033[1;32mAdd $PODMAN_INSTALL_PREFIX/bin:$PODMAN_INSTALL_PREFIX/libexec to PATH in conmon_env_vars.\033[0;m" ;
+echo -e "\033[1;32mAdd $PODMAN_INSTALL_PREFIX/libexec/podman/conmon into conmon_path\033[0;m" ;
+echo -e "\033[1;32mAdd $PODMAN_INSTALL_PREFIX/libexec/cni into cni_plugin_dir\033[0;m" ;
+echo -e "\033[1;32mAdd $PODMAN_INSTALL_PREFIX/bin/runc into runc\033[0;m" ;
+
+sed -i -r "s#PATH=([^\"]+)#PATH=$PODMAN_INSTALL_PREFIX/bin:$PODMAN_INSTALL_PREFIX/libexec:\\1#" $EDIT_LIBPOD_CONF ;
+REGEX_RULE="$PODMAN_INSTALL_PREFIX/libexec/podman/conmon";
+sed -i -r "/${REGEX_RULE//\//\\\/}/d" $EDIT_LIBPOD_CONF ;
+sed -i -r "/conmon_path\\s*=\\s*\\[/a        \"$REGEX_RULE\"," $EDIT_LIBPOD_CONF ;
+REGEX_RULE="$PODMAN_INSTALL_PREFIX/libexec/cni" ;
+sed -i -r "/${REGEX_RULE//\//\\\/}/d" $EDIT_LIBPOD_CONF ;
+sed -i -r "/cni_plugin_dir\\s*=\\s*\\[/a        \"$REGEX_RULE\"," $EDIT_LIBPOD_CONF ;
+REGEX_RULE="$PODMAN_INSTALL_PREFIX/bin/runc" ;
+sed -i -r "/${REGEX_RULE//\//\\\/}/d" $EDIT_LIBPOD_CONF ;
+sed -i -r "/runc\\s*=\\s*\\[/a        \"$REGEX_RULE\"," $EDIT_LIBPOD_CONF ;
 
 sudo mkdir -p "/usr/local/libexec"; 
 sudo mkdir -p "/usr/local/bin"; 
