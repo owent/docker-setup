@@ -199,3 +199,26 @@ dhcp-authoritative
 fi
 
 # Test: dhclient -n enp1s0f0 enp1s0f1 / dhclient -6 -n enp1s0f0 enp1s0f1
+
+# Some system already has dnsmasq.service
+echo "
+[Unit]
+Description=dnsmasq - A lightweight DHCP and caching DNS server
+Requires=network.target
+Wants=nss-lookup.target
+Before=nss-lookup.target
+After=network.target
+
+[Service]
+Type=forking
+PIDFile=/var/run/dnsmasq-router.pid
+
+# Test the config file and refuse starting if it is not valid.
+ExecStartPre=/usr/sbin/dnsmasq -r /etc/resolv.conf -C /etc/dnsmasq.d/router.conf -x /var/run/dnsmasq-router.pid --test
+ExecStart=/usr/sbin/dnsmasq -r /etc/resolv.conf -C /etc/dnsmasq.d/router.conf -x /var/run/dnsmasq-router.pid
+ExecReload=/bin/kill -HUP $MAINPID
+
+[Install]
+WantedBy=multi-user.target
+" > $SETUP_SYSTEMD_SYSTEM_DIR/dnsmasq.service ;
+

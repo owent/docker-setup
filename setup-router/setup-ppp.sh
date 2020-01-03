@@ -37,7 +37,7 @@ Wants=network.target
 # User=ppp
 # Group=ppp
 Type=simple
-PIDFile=/var/run/ppp-$ROUTER_CONFIG_PPP_LINK_INTERFACE
+PIDFile=/var/run/ppp-$ROUTER_CONFIG_PPP_LINK_INTERFACE.pid
 ExecStart=/usr/sbin/pppd file /opt/ppp/etc/$ROUTER_CONFIG_PPP_LINK_INTERFACE
 Restart=on-failure
 # Don't restart in the case of configuration error

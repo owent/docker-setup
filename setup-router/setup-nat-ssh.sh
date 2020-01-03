@@ -50,7 +50,7 @@ nft add rule ip6 nat postrouting ip6 saddr fd27:32d6:ac12::/48 ip6 daddr != fd27
 nft add rule ip6 nat postrouting meta l4proto {tcp, udp} ip6 saddr fd27:32d6:ac12::/48 ip6 daddr != fd27:32d6:ac12::/48 counter packets 0 bytes 0 masquerade to :1024-65535
 
 ### Destination NAT - ipv6
-
+nft add rule ip6 nat prerouting ip saddr != fd27:32d6:ac12::/48 tcp dport 36000 dnat to fd27:32d6:ac12:18::1 :22
 
 ### firewall
 # firewall-cmd --permanent --add-service=ssh

@@ -27,7 +27,8 @@ docker run -d --name router --cap-add=SYS_ADMIN                                 
 
 # 路由
 podman build --tag router-base -f debian10.router.raw.Dockerfile
-podman run -d --name router --systemd true --mount type=bind,source=/home,target=/home      \
+podman run -d --name router --systemd true                                                  \
+       --mount type=bind,source=/home/router,target=/home/router                            \
        --mount type=bind,source=/opt/nftables,target=/opt/nftables,ro=true                  \
        --cap-add=NET_ADMIN --network=host router-base /sbin/init
 
