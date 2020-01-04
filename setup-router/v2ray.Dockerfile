@@ -23,11 +23,14 @@ COPY --from=builder /usr/bin/v2ray/geoip.dat /usr/bin/v2ray/
 COPY --from=builder /usr/bin/v2ray/geosite.dat /usr/bin/v2ray/
 COPY --from=builder /etc/v2ray/config.json /etc/v2ray/config.json
 
-RUN set -ex && \
-    apk --no-cache add ca-certificates && \
-    mkdir /var/log/v2ray/ &&\
-    chmod +x /usr/bin/v2ray/v2ctl && \
-    chmod +x /usr/bin/v2ray/v2ray
+# sed -i -r 's#dl-cdn.alpinelinux.org#mirrors.tencent.com#g' /etc/apk/repositories ; \
+RUN set -ex ;                                       \
+    sed -i -r 's#dl-cdn.alpinelinux.org#mirrors.aliyun.com#g' /etc/apk/repositories ; \
+    apk --no-cache add ca-certificates tzdata ;     \
+    ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ; \
+    mkdir /var/log/v2ray/ ;                         \
+    chmod +x /usr/bin/v2ray/v2ctl ;                 \
+    chmod +x /usr/bin/v2ray/v2ray ;
 
 ENV PATH /usr/bin/v2ray:$PATH
 
