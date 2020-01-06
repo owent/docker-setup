@@ -8,7 +8,7 @@ grep -E -i "ubuntu|debian" /etc/os-release ;
 if [ $? -eq 0 ]; then
     # Dependencies for Debian, Ubuntu, and related distributions
     sudo apt install -y btrfs-tools git golang-go go-md2man iptables libassuan-dev libc6-dev libdevmapper-dev libglib2.0-dev libgpgme-dev libgpg-error-dev libostree-dev libprotobuf-dev libprotobuf-c-dev libseccomp-dev libselinux1-dev libsystemd-dev pkg-config runc uidmap
-    sudo apt install -y make automake bison e2fsprogs e2fslibs-dev fuse libfuse-dev libgpgme-dev liblzma-dev libtool zlib1g libapparmor-dev
+    sudo apt install -y make automake bison e2fsprogs e2fslibs-dev fuse libfuse-dev libgpgme-dev liblzma-dev libtool zlib1g libapparmor-dev libcap-dev
     apt info libfuse3-dev > /dev/null 2>&1 ;
     if [ $! -eq 0 ]; then
         sudo apt install -y libfuse3-dev;
@@ -23,7 +23,7 @@ else
         PODMAN_BUILD_MODE=yum;
     fi
     sudo $PODMAN_BUILD_MODE install -y atomic-registries btrfs-progs-devel containernetworking-cni device-mapper-devel git glib2-devel glibc-devel glibc-static go golang-github-cpuguy83-go-md2man gpgme-devel iptables libassuan-devel libgpg-error-devel libseccomp-devel libselinux-devel make ostree-devel pkgconfig runc containers-common
-    sudo $PODMAN_BUILD_MODE install -y automake bison e2fsprogs-devel fuse-devel libtool xz-devel zlib-devel libbtrfs-dev # fuse-overlayfs
+    sudo $PODMAN_BUILD_MODE install -y automake bison e2fsprogs-devel fuse-devel libtool xz-devel zlib-devel libbtrfs-dev libcap-devel # fuse-overlayfs
 fi
 
 # Kernel setup
@@ -49,8 +49,9 @@ PODMAN_OSTREE_VERSION=v2019.6 ;
 PODMAN_GOLANG_URL=https://mirrors.ustc.edu.cn/golang/go1.13.5.linux-amd64.tar.gz ;
 PODMAN_CONMON_VERSION=v2.0.7;
 PODMAN_RUNC_VERSION=v1.0.0-rc9;
-PODMAN_CNI_PLUGINS_VERSION=v0.8.3 ;
+PODMAN_CNI_PLUGINS_VERSION=v0.8.3 ; # For rootful network
 PODMAN_LIBPOD_VERSION=v1.6.4 ;
+PODMAN_SLIRP4NETNS_VERSION=v0.4.3 ; # For rootless network
 PODMAN_FUSE_OVERLAYFS=v0.7.2 ;
 PODMAN_FUSE_OVERLAYFS_OVERWRITE=0 ;
 
@@ -178,6 +179,18 @@ if [ ! -e "/usr/bin/fuse-overlayfs" ] || [ $PODMAN_FUSE_OVERLAYFS_OVERWRITE -ne 
     sudo cp fuse-overlayfs "/usr/bin/fuse-overlayfs" ;
 fi
 
+#### Build slirp4netns
+which slirp4netns > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    git_clone_fetch $PODMAN_SLIRP4NETNS_VERSION https://github.com/rootless-containers/slirp4netns.git "$WORKING_DIR/slirp4netns" ;
+    cd "$WORKING_DIR/slirp4netns" ;
+    sh autogen.sh ;
+    LIBS="-ldl" LDFLAGS="-static" ./configure --prefix $PODMAN_INSTALL_PREFIX ;
+    make -j ;
+    make install ;
+    sudo cp slirp4netns "/usr/bin/slirp4netns" ;
+fi
+
 ### Configure maually'
 EDIT_LIBPOD_CONF="$GOPATH/src/github.com/containers/libpod/libpod.conf";
 echo -e "\033[1;31mvim $EDIT_LIBPOD_CONF\033[0;m" ;
@@ -232,6 +245,11 @@ for BIN_LINK in $PODMAN_INSTALL_PREFIX/bin/* ; do
     sudo ln -s "$BIN_LINK" "/usr/local/bin/$BIN_LINK_BASENAME" ;
 done
 
-# sudo podman network create ;
+if [ $(sudo podman network ls -q | wc | awk '{print $1}') -eq 0 ]; then
+    sudo podman network create ;
+fi
+
+echo -e "You can use script below to start rootful container:\n\033[32msudo podman run [options...] \033[1;31m--network $(sudo podman network ls -q)\033[1;32m IMAGE [CMD/ARGS...]\033[0;m"
+
 # Run script below if 'unable to start container "v2ray": container create failed (no logs from conmon): EOF'
 # sudo rm /var/lib/containers/storage/overlay-containers/<CONTAINER ID>/userdata/winsz

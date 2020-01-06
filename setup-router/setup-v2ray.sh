@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 # nftables
 # Quick: https://wiki.nftables.org/wiki-nftables/index.php/Performing_Network_Address_Translation_(NAT)
 # Quick(CN): https://wiki.archlinux.org/index.php/Nftables_(%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87)#Masquerading
@@ -42,6 +43,7 @@ nft_socket
 nft_tproxy
 " > /etc/modules-load.d/tproxy.conf
 
+### ==================================== v2ray nftables rules begin ====================================
 ### Setup mangle xtable rule and policy routing
 ### ip rule { add | del } SELECTOR ACTION
 ### default table/rule-> local(ID: 255)/Priority: 0 , main(ID: 254)/Priority: 32766 , default(ID: 253)/Priority: 32766
@@ -65,10 +67,11 @@ fi
 
 ip route add local 0.0.0.0/0 dev lo table 100
 ip -6 route add local ::/0 dev lo table 100
-ip rule show | grep "fwmark 1 lookup 100"
-if [ 0 -eq $? ] ; then 
+FWMARK_LOOPUP_TABLE_100=$(ip rule show fwmark 1 lookup 100 | awk 'END {print NF}')
+while [ 0 -ne $FWMARK_LOOPUP_TABLE_100 ] ; do
     ip rule delete fwmark 1 lookup 100
-fi
+    FWMARK_LOOPUP_TABLE_100=$(ip rule show fwmark 1 lookup 100 | awk 'END {print NF}')
+done
 ip rule add fwmark 1 lookup 100
 # ip route show table 100
 
@@ -83,16 +86,19 @@ nft flush chain mangle  v2ray
 ### ipv4 - skip internal services
 nft add rule mangle v2ray tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
-    nft add rule mangle v2ray tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"######tproxy:"' level debug flags all
-    nft add rule mangle v2ray udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"######tproxy:"' level debug flags all
+    nft add rule mangle v2ray tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###TCP4#PREROU:"' level debug flags all
+    nft add rule mangle v2ray udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###UDP4#PREROU:"' level debug flags all
 fi
 
 ### ipv4 - skip link-local and broadcast address
 nft add rule mangle  v2ray ip daddr {127.0.0.1/32, 224.0.0.0/4, 255.255.255.255/32} return
 nft add rule mangle  v2ray mark 255 return
 ### ipv4 - skip private network and UDP of DNS
-nft add rule mangle  v2ray meta l4proto tcp ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} return
-nft add rule mangle  v2ray ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} udp dport != 53 return
+nft add rule mangle  v2ray ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} return
+# if dns service and v2ray are on different server, use rules below
+# nft add rule mangle  v2ray meta l4proto tcp ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} return
+# nft add rule mangle  v2ray ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} udp dport != 53 return
+# nft add rule mangle  v2ray ip daddr {GATEWAY_ADDRESSES} return
 
 # ipv4 skip package from outside
 nft add rule mangle  v2ray meta iiftype ppp ip daddr != {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} return
@@ -100,8 +106,8 @@ nft add rule mangle  v2ray meta iiftype ppp ip daddr != {192.168.0.0/16, 172.16.
 ### ipv4 - forward to v2ray's listen address if not marked by v2ray
 # tproxy ip to $V2RAY_HOST_IPV4:$V2RAY_PORT
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
-    nft add rule mangle v2ray tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '">>>>>>tproxy:"' level debug flags all
-    nft add rule mangle v2ray udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '">>>>>>tproxy:"' level debug flags all
+    nft add rule mangle v2ray tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '">>>TCP4>tproxy:"' level debug flags all
+    nft add rule mangle v2ray udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '">>>UDP4>tproxy:"' level debug flags all
 fi
 
 nft add rule mangle  v2ray meta l4proto tcp tproxy to :$V2RAY_PORT # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
@@ -114,17 +120,20 @@ nft flush chain mangle v2ray_mask
 ### ipv4 - skip internal services
 nft add rule mangle v2ray_mask tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
-    nft add rule mangle v2ray_mask tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"######mark 1:"' level debug flags all
-    nft add rule mangle v2ray_mask udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"######mark 1:"' level debug flags all
+    nft add rule mangle v2ray_mask tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###TCP4#OUTPUT:"' level debug flags all
+    nft add rule mangle v2ray_mask udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###UDP4#OUTPUT:"' level debug flags all
 fi
 
 nft add rule mangle v2ray_mask ip daddr {127.0.0.1/32, 224.0.0.0/4, 255.255.255.255/32} return
-nft add rule mangle v2ray_mask meta l4proto tcp ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} return
-nft add rule mangle v2ray_mask ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} udp dport != 53 return
+nft add rule mangle v2ray_mask ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} return
+# if dns service and v2ray are on different server, use rules below
+# nft add rule mangle v2ray_mask meta l4proto tcp ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} return
+# nft add rule mangle v2ray_mask ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} udp dport != 53 return
+# nft add rule mangle v2ray_mask ip daddr {GATEWAY_ADDRESSES} return
 nft add rule mangle v2ray_mask mark 255 return
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
-    nft add rule mangle v2ray_mask tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"++++++mark 1:"' level debug flags all
-    nft add rule mangle v2ray_mask udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"++++++mark 1:"' level debug flags all
+    nft add rule mangle v2ray_mask tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"+++TCP4+mark 1:"' level debug flags all
+    nft add rule mangle v2ray_mask udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"+++UDP4+mark 1:"' level debug flags all
 fi
 nft add rule mangle v2ray_mask mark != 1 meta l4proto {tcp, udp} mark set 1 accept
 
@@ -136,24 +145,27 @@ nft flush chain ip6 mangle  v2ray
 nft add rule ip6 mangle v2ray tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 nft add rule ip6 mangle v2ray mark 255 return
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
-    nft add rule ip6 mangle v2ray tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"######tproxy:"' level debug flags all
-    nft add rule ip6 mangle v2ray udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"######tproxy:"' level debug flags all
+    nft add rule ip6 mangle v2ray tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###TCP6#PREROU:"' level debug flags all
+    nft add rule ip6 mangle v2ray udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###UDP6#PREROU:"' level debug flags all
 fi
 
 ### ipv6 - skip link-locak and multicast
 nft add rule ip6 mangle  v2ray ip6 daddr {::1/128, fc00::/7, fe80::/10, ff00::/8} return
 
 ### ipv6 - skip private network and UDP of DNS
-nft add rule ip6 mangle  v2ray meta l4proto tcp ip6 daddr fd00::/8 return
-nft add rule ip6 mangle  v2ray ip6 daddr fd00::/8 udp dport != 53 return
+nft add rule ip6 mangle  v2ray ip6 daddr fd00::/8 return
+# if dns service and v2ray are on different server, use rules below
+# nft add rule ip6 mangle  v2ray meta l4proto tcp ip6 daddr fd00::/8 return
+# nft add rule ip6 mangle  v2ray ip6 daddr fd00::/8 udp dport != 53 return
+# nft add rule ip6 mangle  v2ray ip6 daddr {GATEWAY_ADDRESSES} return
 
 # ipv6 skip package from outside
 nft add rule ip6 mangle  v2ray meta iiftype ppp ip6 daddr != fd00::/8 return
 
 ### ipv6 - forward to v2ray's listen address if not marked by v2ray
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
-    nft add rule ip6 mangle v2ray tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '">>>>>>tproxy:"' level debug flags all
-    nft add rule ip6 mangle v2ray udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '">>>>>>tproxy:"' level debug flags all
+    nft add rule ip6 mangle v2ray tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '">>>TCP6>tproxy:"' level debug flags all
+    nft add rule ip6 mangle v2ray udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '">>>UDP6>tproxy:"' level debug flags all
 fi
 # tproxy ip6 to $V2RAY_HOST_IPV6:$V2RAY_PORT
 nft add rule ip6 mangle  v2ray meta l4proto tcp tproxy to :$V2RAY_PORT # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
@@ -166,20 +178,24 @@ nft flush chain ip6 mangle v2ray_mask
 ### ipv6 - skip internal services
 nft add rule ip6 mangle v2ray_mask tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
-    nft add rule ip6 mangle v2ray_mask tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"######mark 1:"' level debug flags all
-    nft add rule ip6 mangle v2ray_mask udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"######mark 1:"' level debug flags all
+    nft add rule ip6 mangle v2ray_mask tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###TCP6#OUTPUT:"' level debug flags all
+    nft add rule ip6 mangle v2ray_mask udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###UDP6#OUTPUT:"' level debug flags all
 fi
 
 nft add rule ip6 mangle v2ray_mask ip6 daddr {::1/128, fc00::/7, fe80::/10, ff00::/8} return
-nft add rule ip6 mangle v2ray_mask meta l4proto tcp ip6 daddr fd00::/8 return
-nft add rule ip6 mangle v2ray_mask ip6 daddr fd00::/8 udp dport != 53 return
+nft add rule ip6 mangle v2ray_mask ip6 daddr fd00::/8 return
+# if dns service and v2ray are on different server, use rules below
+# nft add rule ip6 mangle v2ray_mask meta l4proto tcp ip6 daddr fd00::/8 return
+# nft add rule ip6 mangle v2ray_mask ip6 daddr fd00::/8 udp dport != 53 return
+# nft add rule ip6 mangle v2ray_mask ip6 daddr {GATEWAY_ADDRESSES} return
 nft add rule ip6 mangle v2ray_mask mark 255 return # make sure v2ray's outbounds.*.streamSettings.sockopt.mark = 255
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
-    nft add rule ip6 mangle v2ray_mask tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"++++++mark 1:"' level debug flags all
-    nft add rule ip6 mangle v2ray_mask udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"++++++mark 1:"' level debug flags all
+    nft add rule ip6 mangle v2ray_mask tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"+++TCP6+mark 1:"' level debug flags all
+    nft add rule ip6 mangle v2ray_mask udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"+++UDP6+mark 1:"' level debug flags all
 fi
 nft add rule ip6 mangle v2ray_mask mark != 1 meta l4proto {tcp, udp} mark set 1 accept
 
+### ==================================== v2ray nftables rules end ====================================
 
 # podman & systemd
 podman run -d --name v2ray -v /etc/v2ray:/etc/v2ray \
