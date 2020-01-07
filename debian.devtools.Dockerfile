@@ -2,6 +2,8 @@ FROM docker.io/library/library/ubuntu:18.04
 
 ENV PATH="/opt/bin:$PATH"
 
+LABEL maintainer "OWenT <admin@owent.net>"
+
 # EXPOSE 36000/tcp
 # EXPOSE 36000/udp
 EXPOSE 22/tcp

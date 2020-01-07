@@ -1,7 +1,9 @@
-# podman build --layers --force-rm --tag local-router -f arch.router.Dockerfile
-# docker build --layers --force-rm --tag local-router -f arch.router.Dockerfile
+# podman build --layers --force-rm --tag dev-arch -f arch.devtools.Dockerfile
+# docker build --force-rm --tag dev-arch -f arch.devtools.Dockerfile .
 # FROM docker.io/library/alpine:latest
 FROM docker.io/library/archlinux:latest
+
+LABEL maintainer "OWenT <admin@owent.net>"
 
 RUN set -ex ;                                                                                                   \
     sed -i -r '/Server\s*=\s*.*tencent.com/d' /etc/pacman.d/mirrorlist;                                         \
@@ -15,7 +17,7 @@ RUN set -ex ;                                                                   
     locale-gen en_US.UTF-8 ;                                                                                    \
     localectl set-locale LANGUAGE=en_US.UTF-8 || true; localectl set-locale LANG=en_GB.utf8 || true;            \
     pacman -Syy --noconfirm procps-ng less iproute2 gawk lsof openssh systemd sudo which;                       \
-    pacman -Syy --noconfirm wget curl inetutils iotop htop bind-tools knot httping;                             \
+    pacman -Syy --noconfirm wget curl inetutils iotop htop bind-tools knot httping cronie;                      \
     pacman -Syy --noconfirm traceroute tcpdump openbsd-netcat nmap nftables findutils;                          \
     pacman -Syy --noconfirm openssl python perl automake gdb valgrind unzip p7zip base-devel asciidoc ;         \
     pacman -Syy --noconfirm xmlto xmltoman expat re2c cmake git git-lfs ninja tmux zsh clang lld llvm;          \

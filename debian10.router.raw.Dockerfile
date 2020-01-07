@@ -1,5 +1,7 @@
 FROM docker.io/library/debian:latest
 
+LABEL maintainer "OWenT <admin@owent.net>"
+
 RUN cp -f /etc/apt/sources.list /etc/apt/sources.list.bak ;                                                     \
     sed -i.1.bak -r "s;https?://.*/debian-security/?[[:space:]];http://mirrors.tencent.com/debian-security/ ;g" /etc/apt/sources.list ; \
     sed -i.1.bak -r "s;https?://.*/debian/?[[:space:]];http://mirrors.tencent.com/debian/ ;g" /etc/apt/sources.list ;      \

@@ -14,3 +14,9 @@ sed -i -r 's/^\s*#?\s*AllowAgentForwarding.*/AllowAgentForwarding yes/' /etc/ssh
 sed -i -r 's/^\s*#?\s*TCPKeepAlive.*/TCPKeepAlive yes/' /etc/ssh/sshd_config
 sed -i -r 's/^\s*#?\s*ListenAddress\s*(.*)/#ListenAddress \1/' /etc/ssh/sshd_config
 sed -i '$!N; /^\(.*\)\n\1$/!P; D' /etc/ssh/sshd_config
+
+# sed -i -r 's/^\s*#?\s*Port\s*22/Port 36000/' /etc/ssh/sshd_config
+
+systemctl enable sshd
+# systemctl start sshd
+# systemctl status sshd

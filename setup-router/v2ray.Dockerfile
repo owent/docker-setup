@@ -1,5 +1,5 @@
 # podman build --layers --force-rm --tag local-v2ray -f v2ray.Dockerfile
-# docker build --layers --force-rm --tag local-v2ray -f v2ray.Dockerfile
+# docker build --force-rm --tag local-v2ray -f v2ray.Dockerfile .
 FROM debian:latest as builder
 
 RUN sed -i.bak -r 's;#?https?://.*/debian-security/?[[:space:]];http://mirrors.tencent.com/debian-security/ ;g' /etc/apt/sources.list ; \

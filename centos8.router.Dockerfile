@@ -1,6 +1,8 @@
 # FROM registry.centos.org/centos/centos:8
 FROM docker.io/library/centos:8
 
+LABEL maintainer "OWenT <admin@owent.net>"
+
 COPY setup-router /opt/docker-setup
 COPY replace-source.sh /opt/docker-setup/replace-source.sh
 # RUN dnf install -y vim dnsmasq dnsmasq-utils ppp dhcp-server dhcp-client ca-certificates ipset;         \
