@@ -13,6 +13,6 @@ RUN cp -f /etc/apt/sources.list /etc/apt/sources.list.bak ;                     
     ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                   \
     rm -rf /var/lib/apt/lists/*
 
-CMD ["/sbin/init"]
+CMD ["/lib/systemd/systemd"]
 
 # https://github.com/owent-utils/docker-setup

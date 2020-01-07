@@ -13,7 +13,7 @@ RUN sed -i.bak -r 's;#?https?://.*/debian-security/?[[:space:]];http://mirrors.t
     curl -k -qsL "https://github.com/owent/update-geoip-geosite/releases/download/latest/geosite.dat" -o /usr/bin/v2ray/geosite.dat ;  \
     if [ -e "/var/lib/apt/lists" ]; then for APT_CACHE in /var/lib/apt/lists/* ; do rm -rf "$APT_CACHE"; done fi
 
-FROM alpine:latest
+FROM docker.io/alpine:latest
 
 LABEL maintainer "OWenT <admin@owent.net>"
 

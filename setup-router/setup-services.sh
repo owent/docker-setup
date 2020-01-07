@@ -41,4 +41,8 @@ if [ "x$ROUTER_CONFIG_ON_FINISH_RUN" == "x" ]; then
     "$ROUTER_CONFIG_ON_FINISH_RUN";
 fi
 
-/sbin/init
+if [ -e "/lib/systemd/systemd" ]; then
+    /lib/systemd/systemd
+elif [ -e "/sbin/init" ]; then
+    /sbin/init
+fi
