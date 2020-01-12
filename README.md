@@ -32,6 +32,10 @@ podman run -d --name router --systemd true                                      
        --mount type=bind,source=/opt/nftables,target=/opt/nftables,ro=true                  \
        --cap-add=NET_ADMIN --network=host router-base /sbin/init
 
+podman run -d --name router --systemd true                                                  \
+       --mount type=bind,source=/home/router,target=/home/router                            \
+       --cap-add=NET_ADMIN --network=host router-base /lib/systemd/systemd
+
 # @see https://docs.docker.com/engine/reference/builder/#entrypoint for detail about CMD and ENTRYPOINT
 
 # 查看当前内核所有可用的模块

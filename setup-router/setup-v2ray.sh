@@ -18,7 +18,11 @@ curl -L -o generate_dnsmasq_chinalist.sh https://github.com/cokebar/openwrt-scri
 chmod +x generate_dnsmasq_chinalist.sh
 sh generate_dnsmasq_chinalist.sh -d 114.114.114.114 -p 53 -s ss_spec_dst_bp -o /etc/dnsmasq.d/accelerated-domains.china.conf
 
-export PATH=/opt/nftables/sbin:$PATH;
+if [ -e "/opt/nftables/sbin" ]; then
+    export PATH=/opt/nftables/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
+else
+    export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
+fi
 
 ## proxy
 ### Setup - kernel

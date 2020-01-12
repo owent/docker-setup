@@ -1,10 +1,19 @@
 #!/bin/bash
 
-# /etc/v2ray/update-geoip-geosite.sh
+# /home/router/etc/v2ray/update-geoip-geosite.sh
 
-export PATH=/opt/podman/bin:/opt/podman/libexec:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 
-cd /etc/v2ray ;
+if [ -e "/opt/podman" ]; then
+    export PATH=/opt/podman/bin:/opt/podman/libexec:$PATH
+fi
+
+if [ -e "/opt/nftables/sbin" ]; then
+    export PATH=/opt/nftables/sbin:$PATH
+fi
+
+mkdir -p /home/router/etc/v2ray ;
+cd /home/router/etc/v2ray ;
 
 if [ -e "geoip.dat" ]; then
     rm -f "geoip.dat";
