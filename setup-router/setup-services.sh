@@ -31,6 +31,7 @@ fi
 /bin/bash setup-dnsmasq.sh ;
 /bin/bash setup-nat-ssh.sh ;
 
+systemctl enable NetworkManager ;
 systemctl enable dnsmasq ;
 if [ "x$ROUTER_CONFIG_PPP_LINK_INTERFACE" != "x" ]; then
     systemctl enable pppd-$ROUTER_CONFIG_PPP_LINK_INTERFACE ;

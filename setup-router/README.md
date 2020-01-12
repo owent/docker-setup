@@ -1,5 +1,40 @@
 # README for router
 
+## host machine
+
+```bash
+cp -f kernel-modules-tproxy.conf /etc/modules-load.d/tproxy.conf
+cp -f kernel-modules-ppp.conf /etc/modules-load.d/ppp.conf
+
+for MOD_FOR_ROUTER in $(cat /etc/modules-load.d/tproxy.conf); do
+    modprobe $MOD_FOR_ROUTER;
+done
+
+for MOD_FOR_ROUTER in $(cat /etc/modules-load.d/ppp.conf); do
+    modprobe $MOD_FOR_ROUTER;
+done
+
+echo "
+net.ipv4.ip_forward=1
+net.ipv4.conf.all.forwarding=1
+net.ipv4.conf.default.forwarding=1
+net.ipv6.conf.all.forwarding=1
+net.ipv6.conf.default.forwarding=1
+" > /etc/sysctl.d/91-forwarding.conf ;
+sysctl -p ;
+
+```
+
+## ip route
+
+```bash
+while [ ! -z "$(ip route show default 2>/dev/null)" ]; do
+    ip route delete default ;
+done
+# ip route add default via XXX dev ppp0 ;
+ip route add default dev ppp0 ;
+```
+
 ## nftables Hook
 
 |  Type  |       Families          |      Hooks                             |        Description                                     |
