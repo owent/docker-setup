@@ -10,6 +10,7 @@ for MOD_FOR_ROUTER in $(cat /etc/modules-load.d/tproxy.conf); do
     modprobe $MOD_FOR_ROUTER;
 done
 
+# iptable_nat must not be loaded
 for MOD_FOR_ROUTER in $(cat /etc/modules-load.d/ppp.conf); do
     modprobe $MOD_FOR_ROUTER;
 done

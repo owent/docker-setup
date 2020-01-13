@@ -11,6 +11,8 @@
 # IP http://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest
 #    ipv4 <start> <count> => ipv4 58.42.0.0 65536
 #    ipv6 <prefix> <bits> => ipv6 2407:c380:: 32
+# Netfilter: https://en.wikipedia.org/wiki/Netfilter
+#            http://inai.de/images/nf-packet-flow.svg
 
 if [ -e "/opt/nftables/sbin" ]; then
     export PATH=/opt/nftables/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
@@ -75,12 +77,23 @@ done
 ip rule add fwmark 1 lookup 100
 # ip route show table 100
 
-nft add table mangle 
+nft list table ip mangle > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    nft add table ip mangle
+fi
+
+nft list table ip6 mangle > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    nft add table ip6 mangle
+fi
 
 ### See https://toutyrater.github.io/app/tproxy.html
 
 ### Setup - ipv4
-nft add chain mangle  v2ray { type filter hook prerouting priority 1 \; policy accept\; }
+nft list chain ip mangle v2ray > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    nft add chain ip mangle v2ray { type filter hook prerouting priority 1 \; policy accept\; }
+fi
 nft flush chain mangle  v2ray
 
 ### ipv4 - skip internal services
@@ -115,7 +128,10 @@ nft add rule mangle  v2ray meta l4proto tcp tproxy to :$V2RAY_PORT # -j TPROXY -
 nft add rule mangle  v2ray meta l4proto udp tproxy to :$V2RAY_PORT # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
 
 # Setup - ipv4 local
-nft add chain mangle v2ray_mask { type route hook output priority 1 \; policy accept\; }
+nft list chain ip mangle v2ray_mask > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    nft add chain ip mangle v2ray_mask { type route hook output priority 1 \; policy accept\; }
+fi
 nft flush chain mangle v2ray_mask
 
 ### ipv4 - skip internal services
@@ -140,7 +156,10 @@ fi
 nft add rule mangle v2ray_mask mark != 1 meta l4proto {tcp, udp} mark set 1 accept
 
 ## Setup - ipv6
-nft add chain ip6 mangle  v2ray { type filter hook prerouting priority 1 \; policy accept\; }
+nft list chain ip6 mangle v2ray > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    nft add chain ip6 mangle v2ray { type filter hook prerouting priority 1 \; policy accept\; }
+fi
 nft flush chain ip6 mangle  v2ray
 
 ### ipv6 - skip internal services
@@ -175,7 +194,10 @@ nft add rule ip6 mangle  v2ray meta l4proto tcp tproxy to :$V2RAY_PORT # -j TPRO
 nft add rule ip6 mangle  v2ray meta l4proto udp tproxy to :$V2RAY_PORT # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
 
 # Setup - ipv6 local
-nft add chain ip6 mangle v2ray_mask { type route hook output priority 1 \; policy accept\; }
+nft list chain ip6 mangle v2ray_mask > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    nft add chain ip6 mangle v2ray_mask { type route hook output priority 1 \; policy accept\; }
+fi
 nft flush chain ip6 mangle v2ray_mask
 
 ### ipv6 - skip internal services
@@ -210,8 +232,8 @@ if [ 0 -eq $? ] ; then
 fi
 
 # Cleanup ipv4
-nft delete chain mangle v2ray
-nft delete chain mangle v2ray_mask
+nft delete chain ip mangle v2ray
+nft delete chain ip mangle v2ray_mask
 
 # Cleanup ipv6
 nft delete chain ip6 mangle v2ray

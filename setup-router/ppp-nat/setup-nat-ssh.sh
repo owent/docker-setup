@@ -35,33 +35,73 @@ fi
 #    https://www.mankier.com/8/nft
 # Note:
 #     using ```find /lib/modules/$(uname -r) -type f -name '*.ko'``` to see all available modules
+#     sample: https://wiki.archlinux.org/index.php/Simple_stateful_firewall#Setting_up_a_NAT_gateway
+#     require kernel module: nft_nat, nft_chain_nat, xt_nat, nf_nat_ftp, nf_nat_tftp
+# Netfilter: https://en.wikipedia.org/wiki/Netfilter
+#            http://inai.de/images/nf-packet-flow.svg
 
 
 ## NAT
 # just like iptables -t nat
-nft add table nat
-nft add table ip6 nat
+nft list table ip nat > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    nft add table ip nat
+fi
+nft list table ip6 nat > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    nft add table ip6 nat
+fi
+nft list table inet nat > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    nft add table inet nat
+fi
+
+### Setup - ipv4&ipv6
+nft list chain inet nat filter > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    nft add chain inet nat filter { type filter hook forward priority 0 \; }
+fi
+nft flush chain inet nat filter
+nft add rule inet nat filter ct state { related, established } counter accept
+nft add rule inet nat filter ct status dnat accept
+nft add rule inet nat filter iifname { lo, enp1s0f0, enp1s0f1, enp1s0f2, enp1s0f3, enp5s0 } accept
+# These rules will conflict with other firewall services such firewalld
+# nft add rule inet nat filter ip6 daddr { ::/96, ::ffff:0.0.0.0/96, 2002::/24, 2002:a00::/24, 2002:7f00::/24, 2002:a9fe::/32, 2002:ac10::/28, 2002:c0a8::/32, 2002:e000::/19 } reject with icmpv6 type addr-unreachable
+# nft add rule inet nat filter ct state { invalid } drop
+# nft add rule inet nat filter reject with icmpx type admin-prohibited
 
 ### Setup - ipv4
-nft add chain nat prerouting { type nat hook prerouting priority 0 \; }
-nft add chain nat postrouting { type nat hook postrouting priority 100 \; }
-nft flush chain nat prerouting
-nft flush chain nat postrouting
+nft list chain ip nat prerouting > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    nft add chain ip nat prerouting { type nat hook prerouting priority 0 \; }
+fi
+nft list chain ip nat postrouting > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    nft add chain ip nat postrouting { type nat hook postrouting priority 100 \; }
+fi
+nft flush chain ip nat prerouting
+nft flush chain ip nat postrouting
 
 ### Source NAT - ipv4
-# nft add rule nat postrouting ip saddr 172.18.0.0/16 ip daddr != 172.18.0.0/16 snat to 1.2.3.4
+# nft add rule ip nat postrouting ip saddr 172.18.0.0/16 ip daddr != 172.18.0.0/16 snat to 1.2.3.4
 # nft add rule nat postrouting meta iifname enp1s0f1 counter packets 0 bytes 0 masquerade
-nft add rule nat postrouting ip saddr 172.18.0.0/16 ip daddr != 172.18.0.0/16 counter packets 0 bytes 0 masquerade
+nft add rule ip nat postrouting ip saddr 172.18.0.0/16 ip daddr != 172.18.0.0/16 counter packets 0 bytes 0 masquerade
 
 ### Destination NAT - ipv4 - ssh
-nft add rule nat prerouting ip saddr != 172.18.0.0/16 tcp dport 36000 dnat to 172.18.1.1 :22
-# nft add rule nat prerouting ip saddr != 172.18.0.0/16 tcp dport 36001 dnat to 172.18.1.10 :22
-# nft add rule nat prerouting meta iif enp1s0f0 tcp dport 36000 redirect to :22
+nft add rule ip nat prerouting ip saddr != 172.18.0.0/16 tcp dport 36000 dnat to 172.18.1.1 :22
+# nft add rule ip nat prerouting ip saddr != 172.18.0.0/16 tcp dport 36001 dnat to 172.18.1.10 :22
+# nft add rule ip nat prerouting meta iif enp1s0f0 tcp dport 36000 redirect to :22
 
 
 ### Setup NAT - ipv6
-nft add chain ip6 nat prerouting { type nat hook prerouting priority 0 \; }
-nft add chain ip6 nat postrouting { type nat hook postrouting priority 100 \; }
+nft list chain ip6 nat prerouting > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    nft add chain ip6 nat prerouting { type nat hook prerouting priority 0 \; }
+fi
+nft list chain ip6 nat postrouting > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    nft add chain ip6 nat postrouting { type nat hook postrouting priority 100 \; }
+fi
 nft flush chain ip6 nat prerouting
 nft flush chain ip6 nat postrouting
 

@@ -21,6 +21,7 @@ firewall-cmd --permanent --add-service=dns ;
 firewall-cmd --permanent --add-service=dhcp ;
 firewall-cmd --permanent --add-service=dhcpv6 ;
 firewall-cmd --permanent --add-service=dhcpv6-client ;
+firewall-cmd --permanent --add-service=dns-over-tls ;
 
 # Doc: http://www.thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html
 mkdir -p /etc/dnsmasq.d;
