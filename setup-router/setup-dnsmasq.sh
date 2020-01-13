@@ -136,12 +136,16 @@ fi
 echo "
 bind-dynamic
 # ipv4
-dhcp-range=172.18.3.1,172.18.255.254,255.255.0.0,86400s
+dhcp-range=172.18.11.1,172.18.255.254,255.255.0.0,86400s
 dhcp-host=70:85:c2:dc:0c:87,172.18.1.1
 dhcp-host=a0:36:9f:07:3f:98,172.18.1.10
 dhcp-host=a0:36:9f:07:3f:99,172.18.1.11
 dhcp-host=a0:36:9f:07:3f:9a,172.18.1.12
 dhcp-host=a0:36:9f:07:3f:9b,172.18.1.13
+dhcp-host=18:31:BF:A4:F0:30,172.18.2.1
+dhcp-host=18:31:BF:A4:F0:31,172.18.2.2
+dhcp-host=18:31:BF:A4:F0:34,172.18.2.3
+dhcp-host=18:31:BF:A4:F0:38,172.18.2.4
 # available options can be see by dnsmasq --help dhcp
 # https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol
 # https://www.iana.org/assignments/bootp-dhcp-parameters/bootp-dhcp-parameters.xhtml
