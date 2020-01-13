@@ -62,7 +62,7 @@ if [ $? -ne 0 ]; then
     nft add chain inet nat filter { type filter hook forward priority 0 \; }
 fi
 nft flush chain inet nat filter
-nft add rule inet nat filter ct state { related, established } counter accept
+nft add rule inet nat filter ct state { related, established } counter packets 0 bytes 0 accept
 nft add rule inet nat filter ct status dnat accept
 # accept all but the interface binded to ppp(enp1s0f3)
 nft add rule inet nat filter iifname { lo, enp1s0f0, enp1s0f1, enp1s0f2, enp5s0 } accept
