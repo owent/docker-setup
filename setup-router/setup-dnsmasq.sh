@@ -12,12 +12,18 @@ net.ipv6.conf.default.accept_ra=1
 " > /etc/sysctl.d/91-ipv6-ra.conf ;
 sysctl -p ;
 
+sed -i -r 's/#?DNSStubListener[[:space:]]*=.*/DNSStubListener=no/g'  /etc/systemd/resolved.conf ;
+
+systemctl disable systemd-resolved ;
+systemctl stop systemd-resolved ;
+
 firewall-cmd --permanent --add-service=dns ;
 firewall-cmd --permanent --add-service=dhcp ;
 firewall-cmd --permanent --add-service=dhcpv6 ;
 firewall-cmd --permanent --add-service=dhcpv6-client ;
 
 # Doc: http://www.thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html
+mkdir -p /etc/dnsmasq.d;
 
 echo '
 #domain-needed
@@ -55,16 +61,6 @@ server=119.29.29.29
 ## Baidu
 server=180.76.76.76
 
-# ipv6
-## Cloudflare
-server=2606:4700:4700::1111
-server=2606:4700:4700::1001
-## Google
-server=2001:4860:4860::8888
-server=2001:4860:4860::8844
-## Quad9
-server=2620:fe::fe
-server=2620:fe::9
 ' > /etc/dnsmasq.d/router.conf
 
 # echo '
@@ -104,60 +100,6 @@ nameserver 180.76.76.76
 # ipset=/.google.com.tw/router
 # server=/dns.google.com/127.0.0.1#5300
 # ipset=/dns.google.com/router
-# server=/.github.com/127.0.0.1#5300
-# ipset=/.github.com/router
-# server=/.github.io/127.0.0.1#5300
-# ipset=/.github.io/router
-# server=/.raw.githubusercontent.com/127.0.0.1#5300
-# ipset=/.raw.githubusercontent.com/router
-# server=/.adblockplus.org/127.0.0.1#5300
-# ipset=/.adblockplus.org/router
-# server=/.entware.net/127.0.0.1#5300
-# ipset=/.entware.net/router
-# server=/.apnic.net/127.0.0.1#5300
-# ipset=/.apnic.net/router
-# #for special site
-# server=/.apple.com/119.29.29.29#53
-# ipset=/.apple.com/white_list
-# server=/.microsoft.com/119.29.29.29#53
-# ipset=/.microsoft.com/white_list
-# #for black_domain
-# server=/.fonts.googleapis.com/127.0.0.1#5300
-# ipset=/.fonts.googleapis.com/black_list
-# server=/.ghs.googlehosted.com/127.0.0.1#5300
-# ipset=/.ghs.googlehosted.com/black_list
-# server=/.steamcommunity.com/127.0.0.1#5300
-# ipset=/.steamcommunity.com/black_list
-# server=/.store.steampowered.com/127.0.0.1#5300
-# ipset=/.store.steampowered.com/black_list
-# server=/.cdn.rubyinstaller.org/127.0.0.1#5300
-# ipset=/.cdn.rubyinstaller.org/black_list
-# server=/.download.mobatek.net/127.0.0.1#5300
-# ipset=/.download.mobatek.net/black_list
-# server=/.googleapis.cn/127.0.0.1#5300
-# ipset=/.googleapis.cn/black_list
-# server=/.services.googleapis.com/127.0.0.1#5300
-# ipset=/.services.googleapis.com/black_list
-# server=/.github.githubassets.com/127.0.0.1#5300
-# ipset=/.github.githubassets.com/black_list
-# server=/.developer.github.com/127.0.0.1#5300
-# ipset=/.developer.github.com/black_list
-# server=/.battle.net/127.0.0.1#5300
-# ipset=/.battle.net/black_list
-# server=/.us.battle.net/127.0.0.1#5300
-# ipset=/.us.battle.net/black_list
-# server=/.us.shop.battle.net/127.0.0.1#5300
-# ipset=/.us.shop.battle.net/black_list
-# server=/.us-legal.battle.net/127.0.0.1#5300
-# ipset=/.us-legal.battle.net/black_list
-# server=/.kr.actual.battle.net/127.0.0.1#5300
-# ipset=/.kr.actual.battle.net/black_list
-# server=/.kr.version.battle.net/127.0.0.1#5300
-# ipset=/.kr.version.battle.net/black_list
-# server=/.kr.patch.battle.net/127.0.0.1#5300
-# ipset=/.kr.patch.battle.net/black_list
-# ' >> /etc/dnsmasq.d/router.conf
-
 
 # IPv6 - DHCPv6, it's require to configure a interface manually
 
@@ -175,8 +117,22 @@ nameserver 2620:fe::fe
 nameserver 2620:fe::9
 ' >> /etc/resolv.conf ;
     echo "
-expand-hosts
 
+# ipv6
+## Cloudflare
+server=2606:4700:4700::1111
+server=2606:4700:4700::1001
+## Google
+server=2001:4860:4860::8888
+server=2001:4860:4860::8844
+## Quad9
+server=2620:fe::fe
+server=2620:fe::9
+
+" >> /etc/dnsmasq.d/router.conf
+fi
+
+echo "
 bind-dynamic
 # ipv4
 dhcp-range=172.18.3.1,172.18.255.254,255.255.0.0,86400s
@@ -190,8 +146,10 @@ dhcp-host=a0:36:9f:07:3f:9b,172.18.1.13
 # https://www.iana.org/assignments/bootp-dhcp-parameters/bootp-dhcp-parameters.xhtml
 dhcp-option=3,172.18.1.10
 dhcp-option=44,0.0.0.0
-dhcp-option=252,"\n"
+" >> /etc/dnsmasq.d/router.conf
 
+if [ "x$ROUTER_CONFIG_IPV6_INTERFACE" != "x" ]; then
+    echo "
 # ipv6
 # dhcp-range=fd27:32d6:ac12::0301,fd27:32d6:ac12::fffe,slaac,64,86400s
 dhcp-range=::,constructor:$ROUTER_CONFIG_IPV6_INTERFACE,ra-names,64,86400s
@@ -207,6 +165,11 @@ fi
 # Test: dhclient -n enp1s0f0 enp1s0f1 / dhclient -6 -n enp1s0f0 enp1s0f1
 
 # Some system already has dnsmasq.service
+if [ -e "/lib/systemd/system/dnsmasq.service" ] && [ ! -e "/lib/systemd/system/dnsmasq.service.bak" ]; then
+    systemctl disbale dnsmasq;
+    systemctl stop dnsmasq;
+    mv /lib/systemd/system/dnsmasq.service /lib/systemd/system/dnsmasq.service.bak;
+fi
 echo "
 [Unit]
 Description=dnsmasq - A lightweight DHCP and caching DNS server

@@ -42,6 +42,8 @@ nft_tproxy
 " > /etc/modules-load.d/tproxy.conf
 
 ### ==================================== v2ray nftables rules begin ====================================
+### ----------------------------------- /home/router/v2ray/setup-tproxy.sh -----------------------------------
+
 ### Setup mangle xtable rule and policy routing
 ### ip rule { add | del } SELECTOR ACTION
 ### default table/rule-> local(ID: 255)/Priority: 0 , main(ID: 254)/Priority: 32766 , default(ID: 253)/Priority: 32766
@@ -56,7 +58,7 @@ if [ "x" == "x$V2RAY_PORT" ]; then
 fi
 
 if [ "x" == "x$SETUP_WITH_INTERNAL_SERVICE_PORT" ]; then
-    SETUP_WITH_INTERNAL_SERVICE_PORT=22
+    SETUP_WITH_INTERNAL_SERVICE_PORT="{22, 53, 36000, 36001}"
 fi
 
 if [ "x" == "x$SETUP_WITH_DEBUG_LOG" ]; then
@@ -83,6 +85,7 @@ nft flush chain mangle  v2ray
 
 ### ipv4 - skip internal services
 nft add rule mangle v2ray tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
+nft add rule mangle v2ray udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     nft add rule mangle v2ray tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###TCP4#PREROU:"' level debug flags all
     nft add rule mangle v2ray udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###UDP4#PREROU:"' level debug flags all
@@ -117,6 +120,7 @@ nft flush chain mangle v2ray_mask
 
 ### ipv4 - skip internal services
 nft add rule mangle v2ray_mask tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
+nft add rule mangle v2ray_mask udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     nft add rule mangle v2ray_mask tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###TCP4#OUTPUT:"' level debug flags all
     nft add rule mangle v2ray_mask udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###UDP4#OUTPUT:"' level debug flags all
@@ -136,11 +140,12 @@ fi
 nft add rule mangle v2ray_mask mark != 1 meta l4proto {tcp, udp} mark set 1 accept
 
 ## Setup - ipv6
-nft add chain ip6 mangle  v2ray { type filter hook prerouting priority 1 \; }
+nft add chain ip6 mangle  v2ray { type filter hook prerouting priority 1 \; policy accept\; }
 nft flush chain ip6 mangle  v2ray
 
 ### ipv6 - skip internal services
 nft add rule ip6 mangle v2ray tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
+nft add rule ip6 mangle v2ray udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 nft add rule ip6 mangle v2ray mark 255 return
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     nft add rule ip6 mangle v2ray tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###TCP6#PREROU:"' level debug flags all
@@ -170,11 +175,12 @@ nft add rule ip6 mangle  v2ray meta l4proto tcp tproxy to :$V2RAY_PORT # -j TPRO
 nft add rule ip6 mangle  v2ray meta l4proto udp tproxy to :$V2RAY_PORT # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
 
 # Setup - ipv6 local
-nft add chain ip6 mangle v2ray_mask { type route hook output priority 1 \; }
+nft add chain ip6 mangle v2ray_mask { type route hook output priority 1 \; policy accept\; }
 nft flush chain ip6 mangle v2ray_mask
 
 ### ipv6 - skip internal services
 nft add rule ip6 mangle v2ray_mask tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
+nft add rule ip6 mangle v2ray_mask udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     nft add rule ip6 mangle v2ray_mask tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###TCP6#OUTPUT:"' level debug flags all
     nft add rule ip6 mangle v2ray_mask udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###UDP6#OUTPUT:"' level debug flags all
@@ -193,6 +199,25 @@ if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
 fi
 nft add rule ip6 mangle v2ray_mask mark != 1 meta l4proto {tcp, udp} mark set 1 accept
 
+
+### ----------------------------------- /home/router/v2ray/cleanup-tproxy.sh -----------------------------------
+## Cleanup hooks
+ip route delete local 0.0.0.0/0 dev lo table 100
+ip -6 route delete local ::/0 dev lo table 100
+ip rule show | grep "fwmark 1 lookup 100"
+if [ 0 -eq $? ] ; then
+    ip rule delete fwmark 1 lookup 100
+fi
+
+# Cleanup ipv4
+nft delete chain mangle v2ray
+nft delete chain mangle v2ray_mask
+
+# Cleanup ipv6
+nft delete chain ip6 mangle v2ray
+nft delete chain ip6 mangle v2ray_mask
+
+
 ### ==================================== v2ray nftables rules end ====================================
 
 # podman & systemd
@@ -200,9 +225,14 @@ podman run -d --name v2ray -v /etc/v2ray:/etc/v2ray \
     --cap-add=NET_ADMIN --network=host              \
     docker.io/v2ray/official:latest                 \
     v2ray -config=/etc/v2ray/config.json
-podman generate systemd v2ray
 
+# podman generate systemd v2ray
 # podman run -d --name v2ray -v /etc/v2ray:/etc/v2ray -v /data/logs/v2ray:/data/logs/v2ray --cap-add=NET_ADMIN --network=host localhost/local-v2ray v2ray -config=/etc/v2ray/config.json
+
+podman generate systemd v2ray | \
+    sed "/ExecStart=/a ExecStartPost=/home/router/v2ray/setup-tproxy.sh" | \
+    sed "/ExecStop=/a ExecStopPost=/home/router/v2ray/cleanup-tproxy.sh" | \
+    tee /lib/systemd/system/v2ray.service
 
 # test scripts
 
@@ -220,20 +250,3 @@ User-Agent: curl/7.64.0
 Accept: */*
 
 " | ncat -v --proxy 127.0.0.1:1080 --proxy-type socks5 baidu.com 80
-
-
-## Cleanup hooks
-ip route delete local 0.0.0.0/0 dev lo table 100
-ip -6 route delete local ::/0 dev lo table 100
-ip rule show | grep "fwmark 1 lookup 100"
-if [ 0 -eq $? ] ; then
-    ip rule delete fwmark 1 lookup 100
-fi
-
-# Cleanup ipv4
-nft delete chain mangle v2ray
-nft delete chain mangle v2ray_mask
-
-# Cleanup ipv6
-nft delete chain ip6 mangle v2ray
-nft delete chain ip6 mangle v2ray_mask

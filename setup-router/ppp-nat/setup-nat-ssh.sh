@@ -6,14 +6,25 @@ else
     export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
-echo "
-net.ipv4.ip_forward=1
-net.ipv4.conf.all.forwarding=1
-net.ipv4.conf.default.forwarding=1
-net.ipv6.conf.all.forwarding=1
-net.ipv6.conf.default.forwarding=1
-" > /etc/sysctl.d/91-forwarding.conf ;
-sysctl -p ;
+which firewall-cmd > /dev/null 2>&1 ;
+
+if [ $? -eq 0 ]; then
+    firewall-cmd --permanent --add-masquerade ;
+
+    echo '<?xml version="1.0" encoding="utf-8"?>
+<service>
+    <short>redirect-sshd</short>
+    <description>Redirect sshd</description>
+    <port port="36000" protocol="tcp"/>
+    <port port="36001" protocol="tcp"/>
+</service>
+' | tee /etc/firewalld/services/redirect-sshd.xml ;
+
+    firewall-cmd --permanent --add-service=ssh ;
+    firewall-cmd --permanent --add-service=redirect-sshd ;
+    firewall-cmd --reload ;
+    firewall-cmd --query-masquerade ;
+fi
 
 # nftables
 # Quick: https://wiki.nftables.org/wiki-nftables/index.php/Performing_Network_Address_Translation_(NAT)
@@ -29,16 +40,18 @@ sysctl -p ;
 ## NAT
 # just like iptables -t nat
 nft add table nat
+nft add table ip6 nat
 
 ### Setup - ipv4
 nft add chain nat prerouting { type nat hook prerouting priority 0 \; }
 nft add chain nat postrouting { type nat hook postrouting priority 100 \; }
+nft flush chain nat prerouting
+nft flush chain nat postrouting
 
 ### Source NAT - ipv4
 # nft add rule nat postrouting ip saddr 172.18.0.0/16 ip daddr != 172.18.0.0/16 snat to 1.2.3.4
 # nft add rule nat postrouting meta iifname enp1s0f1 counter packets 0 bytes 0 masquerade
 nft add rule nat postrouting ip saddr 172.18.0.0/16 ip daddr != 172.18.0.0/16 counter packets 0 bytes 0 masquerade
-nft add rule nat postrouting meta l4proto {tcp, udp} ip saddr 172.18.0.0/16 ip daddr != 172.18.0.0/16 counter packets 0 bytes 0 masquerade to :1024-65535
 
 ### Destination NAT - ipv4 - ssh
 nft add rule nat prerouting ip saddr != 172.18.0.0/16 tcp dport 36000 dnat to 172.18.1.1 :22
@@ -49,14 +62,11 @@ nft add rule nat prerouting ip saddr != 172.18.0.0/16 tcp dport 36000 dnat to 17
 ### Setup NAT - ipv6
 nft add chain ip6 nat prerouting { type nat hook prerouting priority 0 \; }
 nft add chain ip6 nat postrouting { type nat hook postrouting priority 100 \; }
+nft flush chain ip6 nat prerouting
+nft flush chain ip6 nat postrouting
 
 ### Source NAT - ipv6
 nft add rule ip6 nat postrouting ip6 saddr fd27:32d6:ac12::/48 ip6 daddr != fd27:32d6:ac12::/48 counter packets 0 bytes 0 masquerade
-nft add rule ip6 nat postrouting meta l4proto {tcp, udp} ip6 saddr fd27:32d6:ac12::/48 ip6 daddr != fd27:32d6:ac12::/48 counter packets 0 bytes 0 masquerade to :1024-65535
 
 ### Destination NAT - ipv6
-nft add rule ip6 nat prerouting ip saddr != fd27:32d6:ac12::/48 tcp dport 36000 dnat to fd27:32d6:ac12:18::1 :22
-
-### firewall
-# firewall-cmd --permanent --add-service=ssh
-firewall-cmd --permanent --add-service=redirect-sshd
+nft add rule ip6 nat prerouting ip6 saddr != fd27:32d6:ac12::/48 tcp dport 36000 dnat to fd27:32d6:ac12:18::1 :22
