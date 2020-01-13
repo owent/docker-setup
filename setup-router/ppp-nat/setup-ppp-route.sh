@@ -24,8 +24,8 @@ cd "$(dirname "${BASH_SOURCE[0]}")" ;
 while [ ! -z "$(ip route show default 2>/dev/null)" ]; do
     ip route delete default ;
 done
-# ip route add default via XXX dev $2 ;
-ip route add default via $5 dev $2 ;
+# ip route add default via XXX dev $1 ;
+ip route add default via $5 dev $1 ;
 
 chmod +x /home/router/ppp-nat/setup-nat-ssh.sh ;
 /bin/bash /home/router/ppp-nat/setup-nat-ssh.sh ;

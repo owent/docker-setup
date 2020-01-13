@@ -64,7 +64,8 @@ fi
 nft flush chain inet nat filter
 nft add rule inet nat filter ct state { related, established } counter accept
 nft add rule inet nat filter ct status dnat accept
-nft add rule inet nat filter iifname { lo, enp1s0f0, enp1s0f1, enp1s0f2, enp1s0f3, enp5s0 } accept
+# accept all but the interface binded to ppp(enp1s0f3)
+nft add rule inet nat filter iifname { lo, enp1s0f0, enp1s0f1, enp1s0f2, enp5s0 } accept
 # These rules will conflict with other firewall services such firewalld
 # nft add rule inet nat filter ip6 daddr { ::/96, ::ffff:0.0.0.0/96, 2002::/24, 2002:a00::/24, 2002:7f00::/24, 2002:a9fe::/32, 2002:ac10::/28, 2002:c0a8::/32, 2002:e000::/19 } reject with icmpv6 type addr-unreachable
 # nft add rule inet nat filter ct state { invalid } drop
