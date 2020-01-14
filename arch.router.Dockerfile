@@ -17,7 +17,7 @@ RUN set -ex ;                                                                   
     localectl set-locale LANGUAGE=en_US.UTF-8 || true; localectl set-locale LANG=en_GB.utf8 || true;            \
     pacman -Syy --noconfirm procps-ng less iproute2 gawk lsof openssh systemd sudo which cronie;                \
     pacman -Syy --noconfirm wget curl inetutils iotop htop bind-tools knot httping findutils iputils;           \
-    pacman -Syy --noconfirm traceroute tcpdump openbsd-netcat nmap networkmanager nftables ;                    \
+    pacman -Syy --noconfirm traceroute tcpdump openbsd-netcat nmap networkmanager nftables iptables-nft ;       \
     pacman -S -cc --noconfirm;                                                                                  \
     sed -i -r 's/#?DNSStubListener[[:space:]]*=.*/DNSStubListener=no/g'  /etc/systemd/resolved.conf ;           \
     echo "net.ipv4.ip_forward=1" > /etc/sysctl.d/91-forwarding.conf ;                                           \

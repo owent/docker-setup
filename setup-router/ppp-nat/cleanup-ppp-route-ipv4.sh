@@ -19,4 +19,4 @@ else
     export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
-ip -4 route delete default 0.0.0.0/0 via $5 dev $1 ;
+ip -4 route delete 0.0.0.0/0 via $5 dev $1 ;

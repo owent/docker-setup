@@ -7,6 +7,7 @@ Wan: enp1s0f2, enp1s0f3
 
 ```bash
 # Make sure iptable_nat is not loaded, @see https://wiki.nftables.org/wiki-nftables/index.php/Performing_Network_Address_Translation_(NAT)#Incompatibilities
+# Install iptables-nft to replace dependencies to iptables of some packages
 echo "## Do not load the iptable_nat,ip_tables,ip6table_nat,ip6_tables module on boot.
 blacklist iptable_nat
 blacklist ip_tables

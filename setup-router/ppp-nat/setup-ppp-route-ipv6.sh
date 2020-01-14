@@ -25,7 +25,7 @@ while [ ! -z "$(ip -6 route show default 2>/dev/null)" ]; do
     ip -6 route delete default ;
 done
 
-ip -6 route add default ::/0 via $5 dev $1 ;
+ip -6 route add ::/0 via $5 dev $1 ;
 
 nft list set ip6 nat ppp-address > /dev/null 2>&1 ;
 if [ $? -ne 0 ]; then
