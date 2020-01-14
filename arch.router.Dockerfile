@@ -11,11 +11,11 @@ RUN set -ex ;                                                                   
     sed -i '1i Server = http://mirrors.aliyun.com/archlinux/$repo/os/$arch' /etc/pacman.d/mirrorlist;           \
     sed -i '1i Server = https://mirrors.tencent.com/archlinux/$repo/os/$arch' /etc/pacman.d/mirrorlist;         \
     pacman -Syyu --noconfirm ;                                                                                  \
+    yes y | pacman -S iptables-nft nftables;                                                                    \
     pacman -Syy --noconfirm ca-certificates tzdata bash vim dnsmasq ppp pppusage dhcp dhcping ipset;            \
     ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                   \
     locale-gen en_US.UTF-8 ;                                                                                    \
     localectl set-locale LANGUAGE=en_US.UTF-8 || true; localectl set-locale LANG=en_GB.utf8 || true;            \
-    pacman -Syy --noconfirm nftables iptables-nft;                                                              \
     pacman -Syy --noconfirm procps-ng less iproute2 gawk lsof openssh systemd sudo which cronie;                \
     pacman -Syy --noconfirm wget curl inetutils iotop htop bind-tools knot httping findutils iputils;           \
     pacman -Syy --noconfirm traceroute tcpdump openbsd-netcat nmap networkmanager ;                             \
