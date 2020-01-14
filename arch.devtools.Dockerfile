@@ -18,12 +18,19 @@ RUN set -ex ;                                                                   
     localectl set-locale LANGUAGE=en_US.UTF-8 || true; localectl set-locale LANG=en_GB.utf8 || true;            \
     pacman -Syy --noconfirm procps-ng less iproute2 gawk lsof openssh systemd sudo which;                       \
     pacman -Syy --noconfirm wget curl inetutils iotop htop bind-tools knot httping cronie;                      \
-    pacman -Syy --noconfirm traceroute tcpdump openbsd-netcat nmap nftables findutils;                          \
+    pacman -Syy --noconfirm traceroute tcpdump openbsd-netcat nmap nftables findutils iputils;                  \
     pacman -Syy --noconfirm openssl python perl automake gdb valgrind unzip p7zip base-devel asciidoc ;         \
     pacman -Syy --noconfirm xmlto xmltoman expat re2c cmake git git-lfs ninja tmux zsh clang lld llvm;          \
     pacman -Syy --noconfirm dotnet-sdk dotnet-runtime jdk-openjdk;                                              \
     pacman -S -cc --noconfirm;                                                                                  \
     rm -rf /var/lib/pacman/sync/* /var/cache/pacman/pkg/* ;                                                     \
     echo "" > /var/log/pacman.log ;
+
+# Auto setup network
+# systemctl enable NetworkManager
+# systemctl start NetworkManager
+# cron/crontab
+# systemctl enable cronie
+# systemctl start cronie
 
 CMD [ "/lib/systemd/systemd" ]

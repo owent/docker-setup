@@ -2,7 +2,25 @@
 
 ## host machine
 
+Lan bridge: br0: enp1s0f0, enp1s0f1, enp5s0
+Wan: enp1s0f2, enp1s0f3
+
 ```bash
+# Make sure iptable_nat is not loaded, @see https://wiki.nftables.org/wiki-nftables/index.php/Performing_Network_Address_Translation_(NAT)#Incompatibilities
+echo "## Do not load the iptable_nat,ip_tables,ip6table_nat,ip6_tables module on boot.
+blacklist iptable_nat
+blacklist ip_tables
+blacklist ip6table_nat
+blacklist ip6_tables
+
+# Upper script will disable auto load , or using scripts below to force disable modules
+# install iptable_nat /bin/true
+# install ip_tables /bin/true
+# install ip6table_nat /bin/true
+# install ip6_tables /bin/true
+" | tee /etc/modprobe.d/disable-iptables.conf
+
+
 cp -f kernel-modules-tproxy.conf /etc/modules-load.d/tproxy.conf
 cp -f kernel-modules-ppp.conf /etc/modules-load.d/ppp.conf
 

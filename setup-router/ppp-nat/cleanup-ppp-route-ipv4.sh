@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# /home/router/ppp-nat/cleanup-ppp-route.sh
+# /home/router/ppp-nat/cleanup-ppp-route-ipv4.sh
 # @see https://linux.die.net/man/8/pppd
 #
 # When the ppp link comes up, this script is called with the following
@@ -19,4 +19,4 @@ else
     export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
-ip route add default via $5 dev $1 ;
+ip -4 route delete default 0.0.0.0/0 via $5 dev $1 ;

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# /home/router/ppp-nat/setup-ppp-route.sh
+# /home/router/ppp-nat/setup-ppp-route-ipv6.sh
 # @see https://linux.die.net/man/8/pppd
 #
 # When the ppp link comes up, this script is called with the following
@@ -21,11 +21,28 @@ fi
 
 cd "$(dirname "${BASH_SOURCE[0]}")" ;
 
-while [ ! -z "$(ip route show default 2>/dev/null)" ]; do
-    ip route delete default ;
+while [ ! -z "$(ip -6 route show default 2>/dev/null)" ]; do
+    ip -6 route delete default ;
 done
-# ip route add default via XXX dev $1 ;
-ip route add default via $5 dev $1 ;
 
-chmod +x /home/router/ppp-nat/setup-nat-ssh.sh ;
-/bin/bash /home/router/ppp-nat/setup-nat-ssh.sh ;
+ip -6 route add default ::/0 via $5 dev $1 ;
+
+nft list set ip6 nat ppp-address > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    nft add set ip6 nat ppp-address { type ipv6_addr\; }
+fi
+nft flush set ip6 nat ppp-address ;
+nft add element ip6 nat ppp-address { $4, $5 } ;
+
+
+# sync to v2ray-blacklist
+nft list table ip6 mangle > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    nft add table ip6 mangle
+fi
+nft list set ip6 mangle v2ray-blacklist > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    nft add set ip6 mangle v2ray-blacklist { type ipv6_addr\; }
+fi
+nft flush set ip6 mangle v2ray-blacklist ;
+nft add element ip6 mangle v2ray-blacklist { $4 } ;

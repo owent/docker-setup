@@ -90,6 +90,11 @@ fi
 ### See https://toutyrater.github.io/app/tproxy.html
 
 ### Setup - ipv4
+nft list set ip mangle v2ray-blacklist > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    nft add set ip mangle v2ray-blacklist { type ipv4_addr\; }
+fi
+
 nft list chain ip mangle v2ray > /dev/null 2>&1 ;
 if [ $? -ne 0 ]; then
     nft add chain ip mangle v2ray { type filter hook prerouting priority 1 \; policy accept\; }
@@ -115,7 +120,7 @@ nft add rule mangle  v2ray ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} 
 # nft add rule mangle  v2ray ip daddr {GATEWAY_ADDRESSES} return
 
 # ipv4 skip package from outside
-nft add rule mangle  v2ray meta iiftype ppp ip daddr != {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} return
+nft add rule mangle v2ray ip daddr @v2ray-blacklist return
 
 ### ipv4 - forward to v2ray's listen address if not marked by v2ray
 # tproxy ip to $V2RAY_HOST_IPV4:$V2RAY_PORT
@@ -156,6 +161,11 @@ fi
 nft add rule mangle v2ray_mask mark != 1 meta l4proto {tcp, udp} mark set 1 accept
 
 ## Setup - ipv6
+nft list set ip6 mangle v2ray-blacklist > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    nft add set ip6 mangle v2ray-blacklist { type ipv6_addr\; }
+fi
+
 nft list chain ip6 mangle v2ray > /dev/null 2>&1 ;
 if [ $? -ne 0 ]; then
     nft add chain ip6 mangle v2ray { type filter hook prerouting priority 1 \; policy accept\; }
@@ -182,7 +192,7 @@ nft add rule ip6 mangle  v2ray ip6 daddr fd00::/8 return
 # nft add rule ip6 mangle  v2ray ip6 daddr {GATEWAY_ADDRESSES} return
 
 # ipv6 skip package from outside
-nft add rule ip6 mangle  v2ray meta iiftype ppp ip6 daddr != fd00::/8 return
+nft add rule mangle v2ray ip6 daddr @v2ray-blacklist return
 
 ### ipv6 - forward to v2ray's listen address if not marked by v2ray
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then

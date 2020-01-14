@@ -11,13 +11,30 @@ if [ -e "/etc/ppp/ip-down.d/99-cleanup-ppp-route.sh" ]; then
     rm -f "/etc/ppp/ip-down.d/99-cleanup-ppp-route.sh";
 fi
 
-chmod +x /home/router/ppp-nat/cleanup-ppp-route.sh ;
-ln -s /home/router/ppp-nat/cleanup-ppp-route.sh /etc/ppp/ip-down.d/99-cleanup-ppp-route.sh ;
-
 if [ -e "/etc/ppp/ip-up.d/99-setup-ppp-route.sh" ]; then
     rm -f "/etc/ppp/ip-up.d/99-setup-ppp-route.sh";
 fi
 
-chmod +x /home/router/ppp-nat/setup-ppp-route.sh ;
-ln -s /home/router/ppp-nat/setup-ppp-route.sh /etc/ppp/ip-up.d/99-setup-ppp-route.sh ;
+if [ -e "/etc/ppp/ipv6-down.d/99-cleanup-ppp-route.sh" ]; then
+    rm -f "/etc/ppp/ipv6-down.d/99-cleanup-ppp-route.sh";
+fi
 
+if [ -e "/etc/ppp/ipv6-up.d/99-setup-ppp-route.sh" ]; then
+    rm -f "/etc/ppp/ipv6-up.d/99-setup-ppp-route.sh";
+fi
+
+chmod +x /home/router/ppp-nat/cleanup-ppp-route-ipv4.sh ;
+ln -sf /home/router/ppp-nat/cleanup-ppp-route-ipv4.sh /etc/ppp/ip-down.d/99-cleanup-ppp-route.sh ;
+
+chmod +x /home/router/ppp-nat/setup-ppp-route-ipv4.sh ;
+ln -sf /home/router/ppp-nat/setup-ppp-route-ipv4.sh /etc/ppp/ip-up.d/99-setup-ppp-route.sh ;
+
+chmod +x /home/router/ppp-nat/cleanup-ppp-route-ipv6.sh ;
+ln -sf /home/router/ppp-nat/cleanup-ppp-route-ipv6.sh /etc/ppp/ipv6-down.d/99-cleanup-ppp-route.sh ;
+
+chmod +x /home/router/ppp-nat/setup-ppp-route-ipv6.sh ;
+ln -sf /home/router/ppp-nat/setup-ppp-route-ipv6.sh /etc/ppp/ipv6-up.d/99-setup-ppp-route.sh ;
+
+
+chmod +x /home/router/ppp-nat/setup-nat-ssh.sh ;
+/bin/bash /home/router/ppp-nat/setup-nat-ssh.sh ;

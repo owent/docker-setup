@@ -1,11 +1,12 @@
 [Unit]
 Description=Run update-geoip-geosite on Monday 05:17
+# Requires=update-geoip-geosite.service
 
 [Timer]
 OnBootSec=1min
 OnCalendar=Mon *-*-* 05:17:00
-Unit=update-geoip-geosite
 Persistent=true
+# Unit=update-geoip-geosite.service
 
 [Install]
 WantedBy=timers.target
