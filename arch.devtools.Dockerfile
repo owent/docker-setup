@@ -16,9 +16,10 @@ RUN set -ex ;                                                                   
     ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                   \
     locale-gen en_US.UTF-8 ;                                                                                    \
     localectl set-locale LANGUAGE=en_US.UTF-8 || true; localectl set-locale LANG=en_GB.utf8 || true;            \
+    pacman -Syy --noconfirm nftables iptables-nft;                                                              \
     pacman -Syy --noconfirm procps-ng less iproute2 gawk lsof openssh systemd sudo which;                       \
     pacman -Syy --noconfirm wget curl inetutils iotop htop bind-tools knot httping cronie;                      \
-    pacman -Syy --noconfirm traceroute tcpdump openbsd-netcat nmap nftables iptables-nft findutils iputils;     \
+    pacman -Syy --noconfirm traceroute tcpdump openbsd-netcat nmap  findutils iputils;                          \
     pacman -Syy --noconfirm openssl python perl automake gdb valgrind unzip p7zip base-devel asciidoc ;         \
     pacman -Syy --noconfirm xmlto xmltoman expat re2c cmake git git-lfs ninja tmux zsh clang lld llvm;          \
     pacman -Syy --noconfirm dotnet-sdk dotnet-runtime jdk-openjdk;                                              \
