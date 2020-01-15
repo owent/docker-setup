@@ -27,7 +27,7 @@ password '$ROUTER_CONFIG_PPP_PASSWORD'
 nomppe
 plugin rp-pppoe.so
 $ROUTER_CONFIG_PPP_LINK_INTERFACE
-mru 1492 mtu 1492
+mru 1480 mtu 1480
 persist
 holdoff 10
 maxfail 0

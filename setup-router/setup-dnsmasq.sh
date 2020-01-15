@@ -6,23 +6,6 @@ else
     export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
-echo "
-net.ipv6.conf.all.accept_ra=1
-net.ipv6.conf.default.accept_ra=1
-" > /etc/sysctl.d/91-ipv6-ra.conf ;
-sysctl -p ;
-
-sed -i -r 's/#?DNSStubListener[[:space:]]*=.*/DNSStubListener=no/g'  /etc/systemd/resolved.conf ;
-
-systemctl disable systemd-resolved ;
-systemctl stop systemd-resolved ;
-
-firewall-cmd --permanent --add-service=dns ;
-firewall-cmd --permanent --add-service=dhcp ;
-firewall-cmd --permanent --add-service=dhcpv6 ;
-firewall-cmd --permanent --add-service=dhcpv6-client ;
-firewall-cmd --permanent --add-service=dns-over-tls ;
-
 # Doc: http://www.thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html
 mkdir -p /etc/dnsmasq.d;
 

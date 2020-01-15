@@ -1,9 +1,12 @@
 # README for router
 
-## host machine
+## Host machine
 
-Lan bridge: br0: enp1s0f0, enp1s0f1, enp5s0
+Lan bridge:  br0
+> enp1s0f0, enp1s0f1, enp5s0
+
 Wan: enp1s0f2, enp1s0f3
+> Disable auto start
 
 ```bash
 # Make sure iptable_nat is not loaded, @see https://wiki.nftables.org/wiki-nftables/index.php/Performing_Network_Address_Translation_(NAT)#Incompatibilities
@@ -22,8 +25,8 @@ blacklist ip6_tables
 " | tee /etc/modprobe.d/disable-iptables.conf
 
 
-cp -f kernel-modules-tproxy.conf /etc/modules-load.d/tproxy.conf
-cp -f kernel-modules-ppp.conf /etc/modules-load.d/ppp.conf
+cp -f kernel-modules-tproxy.conf /etc/modules-load.d/tproxy.conf ;
+cp -f kernel-modules-ppp.conf /etc/modules-load.d/ppp.conf ;
 
 for MOD_FOR_ROUTER in $(cat /etc/modules-load.d/tproxy.conf); do
     modprobe $MOD_FOR_ROUTER;
@@ -34,15 +37,66 @@ for MOD_FOR_ROUTER in $(cat /etc/modules-load.d/ppp.conf); do
     modprobe $MOD_FOR_ROUTER;
 done
 
-echo "
+echo "net.ipv4.tcp_mtu_probing=1
+net.ipv4.tcp_syncookies=1
+net.ipv4.tcp_tw_reuse=1
 net.ipv4.ip_forward=1
+net.ipv4.tcp_fastopen=3
 net.ipv4.conf.all.forwarding=1
 net.ipv4.conf.default.forwarding=1
 net.ipv6.conf.all.forwarding=1
 net.ipv6.conf.default.forwarding=1
+net.ipv6.conf.all.accept_ra=1
+net.ipv6.conf.default.accept_ra=1
 " > /etc/sysctl.d/91-forwarding.conf ;
 sysctl -p ;
 
+# Check and enable bbr
+find /lib/modules/ -type f -name '*.ko*' | awk '{if (match($0, /^\/lib\/modules\/([^\/]+).*\/([^\/]+)\.ko(\.[^\/\.]+)?$/, m)) {print m[1] " : " m[2];}}' | sort | uniq | grep tcp_bbr ;
+if [ $? -eq 0 ]; then
+    modprobe tcp_bbr ;
+    if [ $? -eq 0 ]; then
+        sed -i "/tcp_bbr/d" /etc/modules-load.d/*.conf ;
+        sed -i "/net.core.default_qdisc/d" /etc/sysctl.d/*.conf;
+        sed -i "/net.ipv4.tcp_congestion_control/d" /etc/sysctl.d/*.conf;
+        echo "tcp_bbr" >> /etc/modules-load.d/ppp.conf ;
+        echo "net.core.default_qdisc = fq
+net.ipv4.tcp_congestion_control = bbr" >> /etc/sysctl.d/91-forwarding.conf ;
+    fi
+fi
+
+
+# systemd-resolved will listen 53 and will conflict with our dnsmasq.service
+sed -i -r 's/#?DNSStubListener[[:space:]]*=.*/DNSStubListener=no/g'  /etc/systemd/resolved.conf ;
+
+systemctl disable systemd-resolved ;
+systemctl stop systemd-resolved ;
+
+firewall-cmd --permanent --add-service=dns ;
+firewall-cmd --permanent --add-service=dhcp ;
+firewall-cmd --permanent --add-service=dhcpv6 ;
+firewall-cmd --permanent --add-service=dhcpv6-client ;
+firewall-cmd --permanent --add-service=dns-over-tls ;
+
+# open 36000 for ssh forwarding
+which firewall-cmd > /dev/null 2>&1 ;
+
+if [ $? -eq 0 ]; then
+    firewall-cmd --permanent --add-masquerade ;
+
+    echo '<?xml version="1.0" encoding="utf-8"?>
+<service>
+    <short>redirect-sshd</short>
+    <description>Redirect sshd</description>
+    <port port="36000" protocol="tcp"/>
+</service>
+' | tee /etc/firewalld/services/redirect-sshd.xml ;
+
+    # firewall-cmd --permanent --add-service=ssh ;
+    firewall-cmd --permanent --add-service=redirect-sshd ;
+    firewall-cmd --reload ;
+    # firewall-cmd --query-masquerade ;
+fi
 ```
 
 ## ip route
