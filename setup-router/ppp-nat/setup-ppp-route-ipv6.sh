@@ -35,14 +35,14 @@ nft flush set ip6 nat ppp-address ;
 nft add element ip6 nat ppp-address { $4, $5 } ;
 
 
-# sync to v2ray-blacklist
-nft list table ip6 mangle > /dev/null 2>&1 ;
+# sync to v2ray BLACKLIST
+nft list table ip6 v2ray > /dev/null 2>&1 ;
 if [ $? -ne 0 ]; then
-    nft add table ip6 mangle
+    nft add table ip6 v2ray
 fi
-nft list set ip6 mangle v2ray-blacklist > /dev/null 2>&1 ;
+nft list set ip6 v2ray BLACKLIST > /dev/null 2>&1 ;
 if [ $? -ne 0 ]; then
-    nft add set ip6 mangle v2ray-blacklist { type ipv6_addr\; }
+    nft add set ip6 v2ray BLACKLIST { type ipv6_addr\; }
 fi
-nft flush set ip6 mangle v2ray-blacklist ;
-nft add element ip6 mangle v2ray-blacklist { $4 } ;
+nft flush set ip6 v2ray BLACKLIST ;
+nft add element ip6 v2ray BLACKLIST { $4 } ;

@@ -35,14 +35,14 @@ nft flush set ip nat ppp-address ;
 nft add element ip nat ppp-address { $4, $5 } ;
 
 
-# sync to v2ray-blacklist
-nft list table ip mangle > /dev/null 2>&1 ;
+# sync to v2ray BLACKLIST
+nft list table ip v2ray > /dev/null 2>&1 ;
 if [ $? -ne 0 ]; then
-    nft add table ip mangle
+    nft add table ip v2ray
 fi
-nft list set ip mangle v2ray-blacklist > /dev/null 2>&1 ;
+nft list set ip v2ray BLACKLIST > /dev/null 2>&1 ;
 if [ $? -ne 0 ]; then
-    nft add set ip mangle v2ray-blacklist { type ipv4_addr\; }
+    nft add set ip v2ray BLACKLIST { type ipv4_addr\; }
 fi
-nft flush set ip mangle v2ray-blacklist ;
-nft add element ip mangle v2ray-blacklist { $4 } ;
+nft flush set ip v2ray BLACKLIST ;
+nft add element ip v2ray BLACKLIST { $4 } ;

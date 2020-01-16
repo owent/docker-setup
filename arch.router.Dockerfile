@@ -21,11 +21,6 @@ RUN set -ex ;                                                                   
     pacman -Syy --noconfirm traceroute tcpdump openbsd-netcat nmap networkmanager ;                             \
     pacman -S -cc --noconfirm;                                                                                  \
     sed -i -r 's/#?DNSStubListener[[:space:]]*=.*/DNSStubListener=no/g'  /etc/systemd/resolved.conf ;           \
-    echo "net.ipv4.ip_forward=1" > /etc/sysctl.d/91-forwarding.conf ;                                           \
-    echo "net.ipv4.conf.all.forwarding=1" >> /etc/sysctl.d/91-forwarding.conf ;                                 \
-    echo "net.ipv4.conf.default.forwarding=1" >> /etc/sysctl.d/91-forwarding.conf ;                             \
-    echo "net.ipv6.conf.all.forwarding=1" >> /etc/sysctl.d/91-forwarding.conf ;                                 \
-    echo "net.ipv6.conf.default.forwarding=1" >> /etc/sysctl.d/91-forwarding.conf ;                             \
     rm -rf /var/lib/pacman/sync/* /var/cache/pacman/pkg/* ;                                                     \
     echo "" > /var/log/pacman.log ;
 

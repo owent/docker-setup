@@ -89,6 +89,9 @@ sed -i -r 's/#?DNSStubListener[[:space:]]*=.*/DNSStubListener=no/g'  /etc/system
 systemctl disable systemd-resolved ;
 systemctl stop systemd-resolved ;
 
+systemctl enable NetworkManager ;
+systemctl start NetworkManager ;
+
 firewall-cmd --permanent --add-service=dns ;
 firewall-cmd --permanent --add-service=dhcp ;
 firewall-cmd --permanent --add-service=dhcpv6 ;
@@ -124,6 +127,26 @@ while [ ! -z "$(ip route show default 2>/dev/null)" ]; do
 done
 # ip route add default via XXX dev ppp0 ;
 ip route add default dev ppp0 ;
+```
+
+## Test script
+
+```bash
+echo "GET / HTTP/1.1
+Host: myip.biturl.top
+User-Agent: curl/7.64.0
+Accept: */*
+
+" | ncat --ssl --proxy 127.0.0.1:1080 --proxy-type socks5 myip.biturl.top 443
+curl -vL --socks5 127.0.0.1:1080 myip.biturl.top
+
+echo "GET / HTTP/1.1
+Host: baidu.com
+User-Agent: curl/7.64.0
+Accept: */*
+
+" | ncat -v --proxy 127.0.0.1:1080 --proxy-type socks5 baidu.com 80
+
 ```
 
 ## nftables Hook
