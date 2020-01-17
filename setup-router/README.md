@@ -123,6 +123,14 @@ if [ $? -eq 0 ]; then
     firewall-cmd --reload ;
     # firewall-cmd --query-masquerade ;
 fi
+
+
+if [ -e  "/etc/security/limits.d" ]; then
+    echo "*          hard    nofile     1000000" | tee cat /etc/security/limits.d/99-nofile.conf
+else
+    sed -i '/hard    nofile     1000000/d' /etc/security/limits.conf
+    echo "*          hard    nofile     1000000" >> /etc/security/limits.conf
+fi
 ```
 
 ## ip route

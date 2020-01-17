@@ -19,7 +19,6 @@ RUN set -ex ;                                                                   
     pacman -Syy --noconfirm procps-ng less iproute2 gawk systemd which wget curl inetutils findutils;           \
     pacman -S -cc --noconfirm;                                                                                  \
     sed -i -r 's/#?DNSStubListener[[:space:]]*=.*/DNSStubListener=no/g'  /etc/systemd/resolved.conf ;           \
-    echo "*          hard    nofile     1000000" | tee cat /etc/security/limits.d/99-nofile.conf ;              \
     rm -rf /var/lib/pacman/sync/* /var/cache/pacman/pkg/* ;                                                     \
     echo "" > /var/log/pacman.log ;
 

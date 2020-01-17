@@ -24,7 +24,6 @@ RUN set -ex ;                                                                   
     pacman -Syy --noconfirm xmlto xmltoman expat re2c cmake git git-lfs ninja tmux zsh clang lld llvm;          \
     pacman -Syy --noconfirm dotnet-sdk dotnet-runtime jdk-openjdk;                                              \
     pacman -S -cc --noconfirm;                                                                                  \
-    echo "*          hard    nofile     1000000" | tee cat /etc/security/limits.d/99-nofile.conf ;              \
     rm -rf /var/lib/pacman/sync/* /var/cache/pacman/pkg/* ;                                                     \
     echo "" > /var/log/pacman.log ;
 
