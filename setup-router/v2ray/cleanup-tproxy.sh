@@ -22,14 +22,25 @@ while [ 0 -ne $FWMARK_LOOPUP_TABLE_100 ] ; do
     FWMARK_LOOPUP_TABLE_100=$(ip -6 rule show fwmark 1 lookup 100 | awk 'END {print NF}')
 done
 
+
 # Cleanup ipv4
-nft list table ip v2ray > /dev/null 2>&1 ;
+nft list chain ip v2ray PREROUTING > /dev/null 2>&1 ;
 if [ $? -eq 0 ]; then
-    nft delete table ip v2ray ;
+    nft delete chain ip v2ray PREROUTING ;
+fi
+nft list chain ip v2ray OUTPUT > /dev/null 2>&1 ;
+if [ $? -eq 0 ]; then
+    nft delete chain ip v2ray OUTPUT ;
 fi
 
+
 # Cleanup ipv6
-nft list table ip6 v2ray > /dev/null 2>&1 ;
+nft list chain ip6 v2ray PREROUTING > /dev/null 2>&1 ;
 if [ $? -eq 0 ]; then
-    nft delete table ip6 v2ray ;
+    nft delete chain ip6 v2ray PREROUTING ;
+fi
+
+nft list chain ip6 v2ray OUTPUT > /dev/null 2>&1 ;
+if [ $? -eq 0 ]; then
+    nft delete chain ip6 v2ray OUTPUT ;
 fi

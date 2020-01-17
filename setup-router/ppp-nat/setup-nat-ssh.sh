@@ -62,6 +62,8 @@ if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     nft add rule inet debug FORWARD ip saddr @WATCH log prefix '">>>TCP>>FORWARD:"' level debug flags all
     nft add rule inet debug FORWARD ip daddr @WATCH meta nftrace set 1
     nft add rule inet debug FORWARD ip daddr @WATCH log prefix '"<<<TCP<<FORWARD:"' level debug flags all
+    nft add rule inet debug FORWARD ip daddr 172.18.111.179 meta l4proto icmp meta nftrace set 1
+    nft add rule inet debug FORWARD ip daddr 172.18.111.179 meta l4proto icmp log prefix '"<<<ICMP:"' level debug flags all
     nft list chain inet debug PREROUTING > /dev/null 2>&1 ;
     if [ $? -ne 0 ]; then
         nft add chain inet debug PREROUTING { type filter hook prerouting priority filter - 1 \; }
@@ -73,6 +75,8 @@ if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     nft add rule inet debug PREROUTING ip saddr @WATCH log prefix '">>>TCP>>PRERO:"' level debug flags all
     nft add rule inet debug PREROUTING ip daddr @WATCH meta nftrace set 1
     nft add rule inet debug PREROUTING ip daddr @WATCH log prefix '"<<<TCP<<PRERO:"' level debug flags all
+    nft add rule inet debug PREROUTING ip daddr 172.18.111.179 meta l4proto icmp meta nftrace set 1
+    nft add rule inet debug PREROUTING ip daddr 172.18.111.179 meta l4proto icmp log prefix '"<<<ICMP:"' level debug flags all
     nft list chain inet debug OUTPUT > /dev/null 2>&1 ;
     if [ $? -ne 0 ]; then
         nft add chain inet debug OUTPUT { type filter hook output priority filter - 1 \; }
@@ -84,6 +88,8 @@ if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     nft add rule inet debug OUTPUT ip saddr @WATCH log prefix '">>>TCP>>OUTPUT:"' level debug flags all
     nft add rule inet debug OUTPUT ip daddr @WATCH meta nftrace set 1
     nft add rule inet debug OUTPUT ip daddr @WATCH log prefix '"<<<TCP<<OUTPUT:"' level debug flags all
+    nft add rule inet debug OUTPUT ip daddr 172.18.111.179 meta l4proto icmp meta nftrace set 1
+    nft add rule inet debug OUTPUT ip daddr 172.18.111.179 meta l4proto icmp log prefix '"<<<ICMP:"' level debug flags all
 else
     nft list table inet debug > /dev/null 2>&1 ;
     if [ $? -eq 0 ]; then

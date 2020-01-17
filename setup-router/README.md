@@ -65,6 +65,12 @@ net.ipv6.conf.all.forwarding=1
 net.ipv6.conf.default.forwarding=1
 net.ipv6.conf.all.accept_ra=1
 net.ipv6.conf.default.accept_ra=1
+# net.bridge.bridge-nf-call-arptables = 1
+# net.bridge.bridge-nf-call-ip6tables = 1
+# net.bridge.bridge-nf-call-iptables = 1
+# net.bridge.bridge-nf-filter-pppoe-tagged = 1
+# net.bridge.bridge-nf-filter-vlan-tagged = 1
+# net.bridge.bridge-nf-pass-vlan-input-dev = 1
 " > /etc/sysctl.d/91-forwarding.conf ;
 sysctl -p ;
 

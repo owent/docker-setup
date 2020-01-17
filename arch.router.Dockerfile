@@ -12,15 +12,14 @@ RUN set -ex ;                                                                   
     sed -i '1i Server = https://mirrors.tencent.com/archlinux/$repo/os/$arch' /etc/pacman.d/mirrorlist;         \
     pacman -Syyu --noconfirm ;                                                                                  \
     yes y | pacman -S iptables-nft nftables;                                                                    \
-    pacman -Syy --noconfirm ca-certificates tzdata bash vim dnsmasq ppp pppusage dhcp dhcping ipset;            \
+    pacman -Syy --noconfirm ca-certificates tzdata bash vim dnsmasq ppp;                                        \
     ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                   \
     locale-gen en_US.UTF-8 ;                                                                                    \
     localectl set-locale LANGUAGE=en_US.UTF-8 || true; localectl set-locale LANG=en_GB.utf8 || true;            \
-    pacman -Syy --noconfirm procps-ng less iproute2 gawk lsof openssh systemd sudo which cronie;                \
-    pacman -Syy --noconfirm wget curl inetutils iotop htop bind-tools knot httping findutils iputils;           \
-    pacman -Syy --noconfirm traceroute tcpdump openbsd-netcat nmap networkmanager ;                             \
+    pacman -Syy --noconfirm procps-ng less iproute2 gawk systemd which wget curl inetutils findutils;           \
     pacman -S -cc --noconfirm;                                                                                  \
     sed -i -r 's/#?DNSStubListener[[:space:]]*=.*/DNSStubListener=no/g'  /etc/systemd/resolved.conf ;           \
+    echo "*          hard    nofile     1000000" | tee cat /etc/security/limits.d/99-nofile.conf ;              \
     rm -rf /var/lib/pacman/sync/* /var/cache/pacman/pkg/* ;                                                     \
     echo "" > /var/log/pacman.log ;
 
