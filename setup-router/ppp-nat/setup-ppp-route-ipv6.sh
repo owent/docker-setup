@@ -27,22 +27,29 @@ done
 
 ip -6 route add ::/0 via $5 dev $1 ;
 
-nft list set ip6 nat ppp-address > /dev/null 2>&1 ;
-if [ $? -ne 0 ]; then
-    nft add set ip6 nat ppp-address { type ipv6_addr\; }
-fi
-nft flush set ip6 nat ppp-address ;
-nft add element ip6 nat ppp-address { $4, $5 } ;
 
+which nft > /dev/null 2>&1 ;
+if [ $? -eq 0 ]; then
+    # sync to v2ray BLACKLIST
+    nft list table ip6 v2ray > /dev/null 2>&1 ;
+    if [ $? -ne 0 ]; then
+        nft add table ip6 v2ray
+    fi
+    nft list set ip6 v2ray BLACKLIST > /dev/null 2>&1 ;
+    if [ $? -ne 0 ]; then
+        nft add set ip6 v2ray BLACKLIST { type ipv6_addr\; }
+    fi
+    nft flush set ip6 v2ray BLACKLIST ;
+    nft add element ip6 v2ray BLACKLIST { $4 } ;
+fi
 
-# sync to v2ray BLACKLIST
-nft list table ip6 v2ray > /dev/null 2>&1 ;
-if [ $? -ne 0 ]; then
-    nft add table ip6 v2ray
+which ipset > /dev/null 2>&1 ;
+if [ $? -eq 0 ]; then
+    ipset list V2RAY_BLACKLIST_IPV6 > /dev/null 2>&1 ;
+    if [ $? -ne 0 ]; then
+        ipset create V2RAY_BLACKLIST_IPV6 hash:ip family inet6;
+    fi
+
+    ipset flush V2RAY_BLACKLIST_IPV6;
+    ipset add V2RAY_BLACKLIST_IPV6 $4;
 fi
-nft list set ip6 v2ray BLACKLIST > /dev/null 2>&1 ;
-if [ $? -ne 0 ]; then
-    nft add set ip6 v2ray BLACKLIST { type ipv6_addr\; }
-fi
-nft flush set ip6 v2ray BLACKLIST ;
-nft add element ip6 v2ray BLACKLIST { $4 } ;

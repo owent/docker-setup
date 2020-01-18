@@ -24,23 +24,33 @@ done
 
 
 # Cleanup ipv4
-nft list chain ip v2ray PREROUTING > /dev/null 2>&1 ;
-if [ $? -eq 0 ]; then
-    nft delete chain ip v2ray PREROUTING ;
-fi
-nft list chain ip v2ray OUTPUT > /dev/null 2>&1 ;
-if [ $? -eq 0 ]; then
-    nft delete chain ip v2ray OUTPUT ;
-fi
+iptables -t mangle -D PREROUTING -j V2RAY > /dev/null 2>&1 ;
+while [ $? -eq 0 ]; do
+    iptables -t mangle -D PREROUTING -j V2RAY > /dev/null 2>&1;
+done
+iptables -t mangle -D OUTPUT -j V2RAY_MASK > /dev/null 2>&1 ;
+while [ $? -eq 0 ]; do
+    iptables -t mangle -D OUTPUT -j V2RAY_MASK > /dev/null 2>&1;
+done
+iptables -t mangle -X PREROUTING > /dev/null 2>&1;
+iptables -t mangle -X OUTPUT > /dev/null 2>&1;
 
 
 # Cleanup ipv6
-nft list chain ip6 v2ray PREROUTING > /dev/null 2>&1 ;
-if [ $? -eq 0 ]; then
-    nft delete chain ip6 v2ray PREROUTING ;
-fi
+ip6tables -t mangle -D PREROUTING -j V2RAY > /dev/null 2>&1 ;
+while [ $? -eq 0 ]; do
+    ip6tables -t mangle -D PREROUTING -j V2RAY > /dev/null 2>&1;
+done
+ip6tables -t mangle -D OUTPUT -j V2RAY_MASK > /dev/null 2>&1 ;
+while [ $? -eq 0 ]; do
+    ip6tables -t mangle -D OUTPUT -j V2RAY_MASK > /dev/null 2>&1;
+done
+ip6tables -t mangle -X PREROUTING > /dev/null 2>&1;
+ip6tables -t mangle -X OUTPUT > /dev/null 2>&1;
 
-nft list chain ip6 v2ray OUTPUT > /dev/null 2>&1 ;
-if [ $? -eq 0 ]; then
-    nft delete chain ip6 v2ray OUTPUT ;
-fi
+# Cleanup bridge
+ebtables -t broute -D BROUTING -j V2RAY_BRIDGE > /dev/null 2>&1 ;
+while [ $? -eq 0 ]; do
+    ebtables -t broute -D BROUTING -j V2RAY_BRIDGE > /dev/null 2>&1;
+done
+ebtables -t broute -X V2RAY_BRIDGE > /dev/null 2>&1;

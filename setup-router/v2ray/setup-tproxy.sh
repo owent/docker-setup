@@ -37,7 +37,7 @@ if [ "x" == "x$V2RAY_PORT" ]; then
 fi
 
 if [ "x" == "x$SETUP_WITH_INTERNAL_SERVICE_PORT" ]; then
-    SETUP_WITH_INTERNAL_SERVICE_PORT="{22, 53, 36000, 36001}"
+    SETUP_WITH_INTERNAL_SERVICE_PORT="22,53,36000"
 fi
 
 if [ "x" == "x$SETUP_WITH_DEBUG_LOG" ]; then
@@ -61,160 +61,223 @@ ip -4 rule add fwmark 1 lookup 100
 ip -6 rule add fwmark 1 lookup 100
 # ip route show table 100
 
-nft list table ip v2ray > /dev/null 2>&1 ;
-if [ $? -ne 0 ]; then
-    nft add table ip v2ray
-fi
-
-nft list table ip6 v2ray > /dev/null 2>&1 ;
-if [ $? -ne 0 ]; then
-    nft add table ip6 v2ray
-fi
-
 ### See https://toutyrater.github.io/app/tproxy.html
 
 ### Setup - ipv4
-nft list set ip v2ray BLACKLIST > /dev/null 2>&1 ;
+ipset list V2RAY_BLACKLIST_IPV4 > /dev/null 2>&1 ;
 if [ $? -ne 0 ]; then
-    nft add set ip v2ray BLACKLIST { type ipv4_addr\; }
+    ipset create V2RAY_BLACKLIST_IPV4 hash:ip family inet;
 fi
 
-nft list chain ip v2ray PREROUTING > /dev/null 2>&1 ;
+iptables -t mangle -L V2RAY > /dev/null 2>&1 ;
 if [ $? -ne 0 ]; then
-    nft add chain ip v2ray PREROUTING { type filter hook prerouting priority filter + 1 \; }
+    iptables -t mangle -N V2RAY ;
+else
+    iptables -t mangle -F V2RAY ;
 fi
-nft flush chain ip v2ray PREROUTING
+
+iptables -t mangle -L V2RAY_MASK > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    iptables -t mangle -N V2RAY_MASK ;
+else
+    iptables -t mangle -F V2RAY_MASK ;
+fi
 
 ### ipv4 - skip internal services
-nft add rule ip v2ray PREROUTING tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
-nft add rule ip v2ray PREROUTING udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
+iptables -t mangle -A V2RAY -p tcp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
+iptables -t mangle -A V2RAY -p udp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
-    nft add rule ip v2ray PREROUTING tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###TCP4#PREROU:"' level debug flags all
-    nft add rule ip v2ray PREROUTING udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###UDP4#PREROU:"' level debug flags all
+    iptables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j LOG --log-level debug --log-prefix "###TCP4#PREROU:"
 fi
 
 ### ipv4 - skip link-local and broadcast address
-nft add rule ip v2ray PREROUTING ip daddr {127.0.0.1/32, 224.0.0.0/4, 255.255.255.255/32} return
-nft add rule ip v2ray PREROUTING mark 255 return
+iptables -t mangle -A V2RAY -d 127.0.0.1/32,224.0.0.0/4,255.255.255.255/32 -j RETURN
+iptables -t mangle -A V2RAY -m mark --mark 0xff -j RETURN
 ### ipv4 - skip private network and UDP of DNS
-nft add rule ip v2ray PREROUTING ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} return
+iptables -t mangle -A V2RAY -d 192.168.0.0/16,172.16.0.0/12,10.0.0.0/8 -j RETURN
 # if dns service and V2RAY are on different server, use rules below
-# nft add rule ip v2ray PREROUTING meta l4proto tcp ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} return
-# nft add rule ip v2ray PREROUTING ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} udp dport != 53 return
-# nft add rule ip v2ray PREROUTING ip daddr {GATEWAY_ADDRESSES} return
+# iptables -t mangle -A V2RAY -p tcp -d 192.168.0.0/16,172.16.0.0/12,10.0.0.0/8 -j RETURN
+# iptables -t mangle -A V2RAY -p udp -d 192.168.0.0/16,172.16.0.0/12,10.0.0.0/8 ! --dport 53 -j RETURN
+# iptables -t mangle -A V2RAY -p tcp -d $GATEWAY_ADDRESSES -j RETURN
 
 # ipv4 skip package from outside
-nft add rule ip v2ray PREROUTING ip daddr @BLACKLIST return
-
+iptables -t mangle -A V2RAY -p tcp -m set --match-set V2RAY_BLACKLIST_IPV4 dst -j RETURN
+iptables -t mangle -A V2RAY -p udp -m set --match-set V2RAY_BLACKLIST_IPV4 dst -j RETURN
 ### ipv4 - forward to v2ray's listen address if not marked by v2ray
 # tproxy ip to $V2RAY_HOST_IPV4:$V2RAY_PORT
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
-    nft add rule ip v2ray PREROUTING tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT meta nftrace set 1
-    nft add rule ip v2ray PREROUTING tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '">>>TCP4>tproxy:"' level debug flags all
-    nft add rule ip v2ray PREROUTING udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '">>>UDP4>tproxy:"' level debug flags all
+    iptables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j TRACE
+    iptables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT LOG --log-level debug --log-prefix ">>>TCP4>tproxy:"
 fi
 
-nft add rule ip v2ray PREROUTING meta l4proto tcp tproxy to :$V2RAY_PORT accept # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
-nft add rule ip v2ray PREROUTING meta l4proto udp tproxy to :$V2RAY_PORT accept # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
+iptables -t mangle -A V2RAY -p tcp -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 1 # mark tcp package with 1 and forward to $V2RAY_PORT
+iptables -t mangle -A V2RAY -p udp -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 1 # mark tcp package with 1 and forward to $V2RAY_PORT
+iptables -t mangle -D PREROUTING -j V2RAY > /dev/null 2>&1 ;
+while [ $? -eq 0 ]; do
+    iptables -t mangle -D PREROUTING -j V2RAY > /dev/null 2>&1;
+done
+iptables -t mangle -A PREROUTING -j V2RAY # apply rules
 
 # Setup - ipv4 local
-nft list chain ip v2ray OUTPUT > /dev/null 2>&1 ;
-if [ $? -ne 0 ]; then
-    nft add chain ip v2ray OUTPUT { type route hook output priority filter + 1 \; }
-fi
-nft flush chain ip v2ray OUTPUT
-
 ### ipv4 - skip internal services
-nft add rule ip v2ray OUTPUT tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
-nft add rule ip v2ray OUTPUT udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
+iptables -t mangle -A V2RAY_MASK -p tcp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
+iptables -t mangle -A V2RAY_MASK -p udp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
-    nft add rule ip v2ray OUTPUT tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###TCP4#OUTPUT:"' level debug flags all
-    nft add rule ip v2ray OUTPUT udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###UDP4#OUTPUT:"' level debug flags all
+    iptables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT LOG --log-level debug --log-prefix "###TCP4#OUTPUT:"
 fi
 
-nft add rule ip v2ray OUTPUT ip daddr {127.0.0.1/32, 224.0.0.0/4, 255.255.255.255/32} return
-nft add rule ip v2ray OUTPUT ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} return
-# if dns service and v2ray are on different server, use rules below
-# nft add rule ip v2ray OUTPUT meta l4proto tcp ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} return
-# nft add rule ip v2ray OUTPUT ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} udp dport != 53 return
-# nft add rule ip v2ray OUTPUT ip daddr {GATEWAY_ADDRESSES} return
-nft add rule ip v2ray OUTPUT mark 255 return
+iptables -t mangle -A V2RAY_MASK -d 127.0.0.1/32,224.0.0.0/4,255.255.255.255/32 -j RETURN
+iptables -t mangle -A V2RAY_MASK -m mark --mark 0xff -j RETURN
+### ipv4 - skip private network and UDP of DNS
+iptables -t mangle -A V2RAY_MASK -d 192.168.0.0/16,172.16.0.0/12,10.0.0.0/8 -j RETURN
+# if dns service and V2RAY_MASK are on different server, use rules below
+# iptables -t mangle -A V2RAY_MASK -p tcp -d 192.168.0.0/16,172.16.0.0/12,10.0.0.0/8 -j RETURN
+# iptables -t mangle -A V2RAY_MASK -p udp -d 192.168.0.0/16,172.16.0.0/12,10.0.0.0/8 ! --dport 53 -j RETURN
+# iptables -t mangle -A V2RAY_MASK -p tcp -d $GATEWAY_ADDRESSES -j RETURN
+
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
-    nft add rule ip v2ray OUTPUT tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT meta nftrace set 1
-    nft add rule ip v2ray OUTPUT tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"+++TCP4+mark 1:"' level debug flags all
-    nft add rule ip v2ray OUTPUT udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"+++UDP4+mark 1:"' level debug flags all
+    iptables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j TRACE
+    iptables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT LOG --log-level debug --log-prefix "+++TCP4+mark 1:"
 fi
-nft add rule ip v2ray OUTPUT mark != 1 meta l4proto {tcp, udp} mark set 1 accept
+# ipv4 skip package from outside
+iptables -t mangle -A V2RAY_MASK -p udp -j MARK --set-mark 1
+iptables -t mangle -A V2RAY_MASK -p tcp -j MARK --set-mark 1
+
+iptables -t mangle -D OUTPUT -j V2RAY_MASK > /dev/null 2>&1 ;
+while [ $? -eq 0 ]; do
+    iptables -t mangle -D OUTPUT -j V2RAY_MASK > /dev/null 2>&1;
+done
+iptables -t mangle -A OUTPUT -j V2RAY_MASK # apply rules
 
 ## Setup - ipv6
-nft list set ip6 v2ray BLACKLIST > /dev/null 2>&1 ;
+ipset list V2RAY_BLACKLIST_IPV6 > /dev/null 2>&1 ;
 if [ $? -ne 0 ]; then
-    nft add set ip6 v2ray BLACKLIST { type ipv6_addr\; }
+    ipset create V2RAY_BLACKLIST_IPV6 hash:ip family inet6;
 fi
 
-nft list chain ip6 v2ray PREROUTING > /dev/null 2>&1 ;
+ip6tables -t mangle -L V2RAY > /dev/null 2>&1 ;
 if [ $? -ne 0 ]; then
-    nft add chain ip6 v2ray PREROUTING { type filter hook prerouting priority filter + 1 \; }
+    ip6tables -t mangle -N V2RAY ;
+else
+    ip6tables -t mangle -F V2RAY ;
 fi
-nft flush chain ip6 v2ray PREROUTING
+
+ip6tables -t mangle -L V2RAY_MASK > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    ip6tables -t mangle -N V2RAY_MASK ;
+else
+    ip6tables -t mangle -F V2RAY_MASK ;
+fi
 
 ### ipv6 - skip internal services
-nft add rule ip6 v2ray PREROUTING tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
-nft add rule ip6 v2ray PREROUTING udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
-nft add rule ip6 v2ray PREROUTING mark 255 return
+ip6tables -t mangle -A V2RAY -p tcp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
+ip6tables -t mangle -A V2RAY -p udp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
-    nft add rule ip6 v2ray PREROUTING tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###TCP6#PREROU:"' level debug flags all
-    nft add rule ip6 v2ray PREROUTING udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###UDP6#PREROU:"' level debug flags all
+    ip6tables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j LOG --log-level debug --log-prefix "###TCP6#PREROU:"
 fi
 
 ### ipv6 - skip link-locak and multicast
-nft add rule ip6 v2ray PREROUTING ip6 daddr {::1/128, fc00::/7, fe80::/10, ff00::/8} return
-
+ip6tables -t mangle -A V2RAY -d ::1/128,fc00::/7,fe80::/10,ff00::/8 -j RETURN
+ip6tables -t mangle -A V2RAY -m mark --mark 0xff -j RETURN
 ### ipv6 - skip private network and UDP of DNS
-nft add rule ip6 v2ray PREROUTING ip6 daddr fd00::/8 return
-# if dns service and v2ray are on different server, use rules below
-# nft add rule ip6 v2ray PREROUTING meta l4proto tcp ip6 daddr fd00::/8 return
-# nft add rule ip6 v2ray PREROUTING ip6 daddr fd00::/8 udp dport != 53 return
-# nft add rule ip6 v2ray PREROUTING ip6 daddr {GATEWAY_ADDRESSES} return
+# if dns service and V2RAY are on different server, use rules below
+# ip6tables -t mangle -A V2RAY -p tcp -d ::1/128,fc00::/7,fe80::/10,ff00::/8 -j RETURN
+# ip6tables -t mangle -A V2RAY -p udp -d ::1/128,fc00::/7,fe80::/10,ff00::/8 ! --dport 53 -j RETURN
+# ip6tables -t mangle -A V2RAY -p tcp -d $GATEWAY_ADDRESSES -j RETURN
 
 # ipv6 skip package from outside
-nft add rule ip6 v2ray PREROUTING ip6 daddr @BLACKLIST return
-
+ip6tables -t mangle -A V2RAY -p tcp -m set --match-set V2RAY_BLACKLIST_IPV6 dst -j RETURN
+ip6tables -t mangle -A V2RAY -p udp -m set --match-set V2RAY_BLACKLIST_IPV6 dst -j RETURN
 ### ipv6 - forward to v2ray's listen address if not marked by v2ray
+# tproxy ip to $V2RAY_HOST_IPV4:$V2RAY_PORT
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
-    nft add rule ip6 v2ray PREROUTING tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT meta nftrace set 1
-    nft add rule ip6 v2ray PREROUTING tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '">>>TCP6>tproxy:"' level debug flags all
-    nft add rule ip6 v2ray PREROUTING udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '">>>UDP6>tproxy:"' level debug flags all
+    ip6tables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j TRACE
+    ip6tables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT LOG --log-level debug --log-prefix ">>>TCP6>tproxy:"
 fi
-# tproxy ip6 to $V2RAY_HOST_IPV6:$V2RAY_PORT
-nft add rule ip6 v2ray PREROUTING meta l4proto tcp tproxy to :$V2RAY_PORT accept # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
-nft add rule ip6 v2ray PREROUTING meta l4proto udp tproxy to :$V2RAY_PORT accept # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
+
+ip6tables -t mangle -A V2RAY -p tcp -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 1 # mark tcp package with 1 and forward to $V2RAY_PORT
+ip6tables -t mangle -A V2RAY -p udp -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 1 # mark tcp package with 1 and forward to $V2RAY_PORT
+ip6tables -t mangle -D PREROUTING -j V2RAY > /dev/null 2>&1 ;
+while [ $? -eq 0 ]; do
+    ip6tables -t mangle -D PREROUTING -j V2RAY > /dev/null 2>&1;
+done
+ip6tables -t mangle -A PREROUTING -j V2RAY # apply rules
 
 # Setup - ipv6 local
-nft list chain ip6 v2ray OUTPUT > /dev/null 2>&1 ;
-if [ $? -ne 0 ]; then
-    nft add chain ip6 v2ray OUTPUT { type route hook output priority filter + 1 \; }
-fi
-nft flush chain ip6 v2ray OUTPUT
-
 ### ipv6 - skip internal services
-nft add rule ip6 v2ray OUTPUT tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
-nft add rule ip6 v2ray OUTPUT udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
+ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
+ip6tables -t mangle -A V2RAY_MASK -p udp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
-    nft add rule ip6 v2ray OUTPUT tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###TCP6#OUTPUT:"' level debug flags all
-    nft add rule ip6 v2ray OUTPUT udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###UDP6#OUTPUT:"' level debug flags all
+    ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT LOG --log-level debug --log-prefix "###TCP6#OUTPUT:"
 fi
 
-nft add rule ip6 v2ray OUTPUT ip6 daddr {::1/128, fc00::/7, fe80::/10, ff00::/8} return
-nft add rule ip6 v2ray OUTPUT ip6 daddr fd00::/8 return
-# if dns service and v2ray are on different server, use rules below
-# nft add rule ip6 v2ray OUTPUT meta l4proto tcp ip6 daddr fd00::/8 return
-# nft add rule ip6 v2ray OUTPUT ip6 daddr fd00::/8 udp dport != 53 return
-# nft add rule ip6 v2ray OUTPUT ip6 daddr {GATEWAY_ADDRESSES} return
-nft add rule ip6 v2ray OUTPUT mark 255 return # make sure v2ray's outbounds.*.streamSettings.sockopt.mark = 255
+ip6tables -t mangle -A V2RAY_MASK -d ::1/128,fc00::/7,fe80::/10,ff00::/8 -j RETURN
+ip6tables -t mangle -A V2RAY_MASK -m mark --mark 0xff -j RETURN
+### ipv6 - skip private network and UDP of DNS
+# if dns service and V2RAY_MASK are on different server, use rules below
+# ip6tables -t mangle -A V2RAY_MASK -p tcp -d ::1/128,fc00::/7,fe80::/10,ff00::/8 -j RETURN
+# ip6tables -t mangle -A V2RAY_MASK -p udp -d ::1/128,fc00::/7,fe80::/10,ff00::/8 ! --dport 53 -j RETURN
+# ip6tables -t mangle -A V2RAY_MASK -p tcp -d $GATEWAY_ADDRESSES -j RETURN
+
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
-    nft add rule ip6 v2ray OUTPUT tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT meta nftrace set 1
-    nft add rule ip6 v2ray OUTPUT tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"+++TCP6+mark 1:"' level debug flags all
-    nft add rule ip6 v2ray OUTPUT udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"+++UDP6+mark 1:"' level debug flags all
+    ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j TRACE
+    ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT LOG --log-level debug --log-prefix "+++TCP6+mark 1:"
 fi
-nft add rule ip6 v2ray OUTPUT mark != 1 meta l4proto {tcp, udp} mark set 1 accept
+# ipv6 skip package from outside
+ip6tables -t mangle -A V2RAY_MASK -p udp -j MARK --set-mark 1
+ip6tables -t mangle -A V2RAY_MASK -p tcp -j MARK --set-mark 1
+
+ip6tables -t mangle -D OUTPUT -j V2RAY_MASK > /dev/null 2>&1 ;
+while [ $? -eq 0 ]; do
+    ip6tables -t mangle -D OUTPUT -j V2RAY_MASK > /dev/null 2>&1;
+done
+ip6tables -t mangle -A OUTPUT -j V2RAY_MASK # apply rules
+
+
+## Setup - bridge
+ebtables -t broute -L V2RAY_BRIDGE > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    ebtables -t broute -N V2RAY_BRIDGE ;
+else
+    ebtables -t broute -F V2RAY_BRIDGE ;
+fi
+
+for SKIP_PORT in $(echo $SETUP_WITH_INTERNAL_SERVICE_PORT | sed 's/,/ /g'); do
+    ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-proto tcp --ip-sport $SKIP_PORT -j RETURN
+    ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-proto udp --ip-sport $SKIP_PORT -j RETURN
+    ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-proto tcp --ip6-sport $SKIP_PORT -j RETURN
+    ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-proto udp --ip6-sport $SKIP_PORT -j RETURN
+done
+
+
+### bridge - skip link-local and broadcast address
+ebtables -t broute -A V2RAY_BRIDGE --mark 0xff -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 127.0.0.1/32 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 224.0.0.0/4 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 255.255.255.255/32 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst ::1/128 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst fc00::/7 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst fe80::/10 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst ff00::/8 -j RETURN
+
+### bridge - skip private network and UDP of DNS
+ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 192.168.0.0/16 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 172.16.0.0/12 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 10.0.0.0/8 -j RETURN
+
+if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
+    ebtables -t broute -A V2RAY_BRIDGE --log-ip --log-level debug --log-prefix "---BRIDGE-DROP: "
+fi
+
+### ipv4 - forward to v2ray's listen address if not marked by v2ray
+# tproxy ip to $V2RAY_HOST_IPV4:$V2RAY_PORT
+ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-proto tcp -j redirect --redirect-target DROP
+ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-proto udp -j redirect --redirect-target DROP
+ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-proto tcp -j redirect --redirect-target DROP
+ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-proto udp -j redirect --redirect-target DROP
+
+ebtables -t broute -D BROUTING -j V2RAY_BRIDGE > /dev/null 2>&1 ;
+while [ $? -eq 0 ]; do
+    ebtables -t broute -D BROUTING -j V2RAY_BRIDGE > /dev/null 2>&1;
+done
+ebtables -t broute -A BROUTING -j V2RAY_BRIDGE

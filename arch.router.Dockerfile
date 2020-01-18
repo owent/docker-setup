@@ -11,7 +11,7 @@ RUN set -ex ;                                                                   
     sed -i '1i Server = http://mirrors.aliyun.com/archlinux/$repo/os/$arch' /etc/pacman.d/mirrorlist;           \
     sed -i '1i Server = https://mirrors.tencent.com/archlinux/$repo/os/$arch' /etc/pacman.d/mirrorlist;         \
     pacman -Syyu --noconfirm ;                                                                                  \
-    yes y | pacman -S iptables-nft nftables;                                                                    \
+    yes y | pacman -S iptables nftables ebtables ipset;                                                         \
     pacman -Syy --noconfirm ca-certificates tzdata bash vim dnsmasq ppp;                                        \
     ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                   \
     locale-gen en_US.UTF-8 ;                                                                                    \

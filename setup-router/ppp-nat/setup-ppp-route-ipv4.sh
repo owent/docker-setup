@@ -27,22 +27,28 @@ done
 # ip -4 route add default via XXX dev $1 ;
 ip -4 route add 0.0.0.0/0 via $5 dev $1 ;
 
-nft list set ip nat ppp-address > /dev/null 2>&1 ;
-if [ $? -ne 0 ]; then
-    nft add set ip nat ppp-address { type ipv4_addr\; }
+which nft > /dev/null 2>&1 ;
+if [ $? -eq 0 ]; then
+    # sync to v2ray BLACKLIST
+    nft list table ip v2ray > /dev/null 2>&1 ;
+    if [ $? -ne 0 ]; then
+        nft add table ip v2ray
+    fi
+    nft list set ip v2ray BLACKLIST > /dev/null 2>&1 ;
+    if [ $? -ne 0 ]; then
+        nft add set ip v2ray BLACKLIST { type ipv4_addr\; }
+    fi
+    nft flush set ip v2ray BLACKLIST ;
+    nft add element ip v2ray BLACKLIST { $4 } ;
 fi
-nft flush set ip nat ppp-address ;
-nft add element ip nat ppp-address { $4, $5 } ;
 
+which ipset > /dev/null 2>&1 ;
+if [ $? -eq 0 ]; then
+    ipset list V2RAY_BLACKLIST_IPV4 > /dev/null 2>&1 ;
+    if [ $? -ne 0 ]; then
+        ipset create V2RAY_BLACKLIST_IPV4 hash:ip family inet;
+    fi
 
-# sync to v2ray BLACKLIST
-nft list table ip v2ray > /dev/null 2>&1 ;
-if [ $? -ne 0 ]; then
-    nft add table ip v2ray
+    ipset flush V2RAY_BLACKLIST_IPV4;
+    ipset add V2RAY_BLACKLIST_IPV4 $4;
 fi
-nft list set ip v2ray BLACKLIST > /dev/null 2>&1 ;
-if [ $? -ne 0 ]; then
-    nft add set ip v2ray BLACKLIST { type ipv4_addr\; }
-fi
-nft flush set ip v2ray BLACKLIST ;
-nft add element ip v2ray BLACKLIST { $4 } ;

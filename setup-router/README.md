@@ -8,22 +8,22 @@ Lan bridge:  br0
 Wan: enp1s0f2, enp1s0f3
 > Disable auto start
 
+nftables 没找到类似 ```ebtables -t broute -A BROUTING ... -j redirect --redirect-target DROP``` 来改变FORWARD行为的方法。所以目前还是用了 ```iptables``` + ```ebtables``` 。
+等哪天找到方法了可以切过去试试，脚本里的 ```*.nft.sh``` 是宿主机正常透明代理，子网还只能走基本的NAT的的脚本。
+
+> 另： firewalld 会自动情况 iptables 规则和 ebtables 规则。所以母机上得自己设置安全选项
+
 ```bash
 # Make sure iptable_nat is not loaded, @see https://wiki.nftables.org/wiki-nftables/index.php/Performing_Network_Address_Translation_(NAT)#Incompatibilities
 # Install iptables-nft to replace dependencies to iptables of some packages
 echo "## Do not load the iptable_nat,ip_tables,ip6table_nat,ip6_tables module on boot.
 blacklist iptable_nat
-blacklist ip_tables
 blacklist ip6table_nat
-blacklist ip6_tables
 
 # Upper script will disable auto load , or using scripts below to force disable modules
 # install iptable_nat /bin/true
-# install ip_tables /bin/true
 # install ip6table_nat /bin/true
-# install ip6_tables /bin/true
 " | tee /etc/modprobe.d/disable-iptables.conf
-
 
 cp -f kernel-modules-tproxy.conf /etc/modules-load.d/tproxy.conf ;
 cp -f kernel-modules-ppp.conf /etc/modules-load.d/ppp.conf ;
@@ -65,12 +65,14 @@ net.ipv6.conf.all.forwarding=1
 net.ipv6.conf.default.forwarding=1
 net.ipv6.conf.all.accept_ra=1
 net.ipv6.conf.default.accept_ra=1
-# net.bridge.bridge-nf-call-arptables = 1
-# net.bridge.bridge-nf-call-ip6tables = 1
-# net.bridge.bridge-nf-call-iptables = 1
-# net.bridge.bridge-nf-filter-pppoe-tagged = 1
-# net.bridge.bridge-nf-filter-vlan-tagged = 1
-# net.bridge.bridge-nf-pass-vlan-input-dev = 1
+# Configures below are used to support tproxy for bridge
+net.bridge.bridge-nf-call-arptables = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+net.ipv4.conf.all.rp_filter=0
+net.ipv4.conf.default.rp_filter=0
+net.ipv4.conf.all.route_localnet=1
+net.ipv4.conf.default.route_localnet=1
 " > /etc/sysctl.d/91-forwarding.conf ;
 sysctl -p ;
 
@@ -123,7 +125,6 @@ if [ $? -eq 0 ]; then
     firewall-cmd --reload ;
     # firewall-cmd --query-masquerade ;
 fi
-
 
 if [ -e  "/etc/security/limits.d" ]; then
     echo "*          hard    nofile     1000000" | tee cat /etc/security/limits.d/99-nofile.conf

@@ -12,7 +12,7 @@ RUN set -ex ;                                                                   
     sed -i '1i Server = https://mirrors.tencent.com/archlinux/$repo/os/$arch' /etc/pacman.d/mirrorlist;         \
     sed -i -r 's/^NoExtract\s*=\s*.*/# \0/g' /etc/pacman.conf ;                                                 \
     pacman -Syyu --noconfirm ;                                                                                  \
-    yes y | pacman -S iptables-nft nftables ;                                                                   \
+    yes y | pacman -S iptables nftables ebtables ipset ;                                                        \
     pacman -Syy --noconfirm ca-certificates tzdata bash vim ipset man-db;                                       \
     ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                   \
     locale-gen en_US.UTF-8 ;                                                                                    \

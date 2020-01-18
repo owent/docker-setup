@@ -1,11 +1,8 @@
-if [ -e "/lib/systemd/system" ]; then
-    export SETUP_SYSTEMD_SYSTEM_DIR=/lib/systemd/system;
-elif [ -e "/usr/lib/systemd/system" ]; then
-    export SETUP_SYSTEMD_SYSTEM_DIR=/usr/lib/systemd/system;
-elif [ -e "/etc/systemd/system" ]; then
-    export SETUP_SYSTEMD_SYSTEM_DIR=/etc/systemd/system;
-**fi**
-fi
+iptables
+ebtables
+ipset
 
 
-podman kill -f =>  podman kill
+ip_tables
+ip6_tables
+iptable_mangle
