@@ -133,6 +133,8 @@ nft flush chain ip nat POSTROUTING
 # nft add rule ip nat POSTROUTING ip saddr 172.18.0.0/16 ip daddr != 172.18.0.0/16 snat to 1.2.3.4
 # nft add rule nat POSTROUTING meta iifname enp1s0f1 counter packets 0 bytes 0 masquerade
 nft add rule ip nat POSTROUTING ip saddr {127.0.0.1/32, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} ip daddr != {127.0.0.1/32, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} counter packets 0 bytes 0 masquerade
+nft add rule ip nat POSTROUTING meta l4proto udp ip saddr {127.0.0.1/32, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} ip daddr != {127.0.0.1/32, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} counter packets 0 bytes 0 masquerade to :10000-65535
+nft add rule ip nat POSTROUTING meta l4proto tcp ip saddr {127.0.0.1/32, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} ip daddr != {127.0.0.1/32, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} counter packets 0 bytes 0 masquerade to :10000-65535
 
 ### Destination NAT - ipv4 - ssh
 nft add rule ip nat PREROUTING ip saddr != {127.0.0.1/32, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} tcp dport 22 drop
@@ -153,6 +155,8 @@ nft flush chain ip6 nat POSTROUTING
 
 ### Source NAT - ipv6
 nft add rule ip6 nat POSTROUTING ip6 saddr {::1/128, fc00::/7, fe80::/10, fd00::/8, ff00::/8} ip6 daddr != {::1/128, fc00::/7, fe80::/10, fd00::/8, ff00::/8} counter packets 0 bytes 0 masquerade
+nft add rule ip6 nat POSTROUTING meta l4proto tcp ip6 saddr {::1/128, fc00::/7, fe80::/10, fd00::/8, ff00::/8} ip6 daddr != {::1/128, fc00::/7, fe80::/10, fd00::/8, ff00::/8} counter packets 0 bytes 0 masquerade to :10000-65535
+nft add rule ip6 nat POSTROUTING meta l4proto udp ip6 saddr {::1/128, fc00::/7, fe80::/10, fd00::/8, ff00::/8} ip6 daddr != {::1/128, fc00::/7, fe80::/10, fd00::/8, ff00::/8} counter packets 0 bytes 0 masquerade to :10000-65535
 
 ### Destination NAT - ipv6
 nft add rule ip6 nat PREROUTING ip6 saddr != {::1/128, fc00::/7, fe80::/10, fd00::/8, ff00::/8} tcp dport 22 drop

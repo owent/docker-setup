@@ -29,8 +29,14 @@ nft add rule inet security_firewall INPUT tcp dport 53 ct state { new, untracked
 nft add rule inet security_firewall INPUT udp dport 53 ct state { new, untracked } accept
 nft add rule inet security_firewall INPUT udp dport 67 ct state { new, untracked } accept
 nft add rule inet security_firewall INPUT udp dport 547 ct state { new, untracked } accept
-nft add rule inet security_firewall INPUT tcp dport 36000 ct state { new, untracked } accept
 nft add rule inet security_firewall INPUT tcp dport 853 ct state { new, untracked } accept
+nft add rule inet security_firewall INPUT udp dport 6881 ct state { new, untracked } accept
+nft add rule inet security_firewall INPUT tcp dport 6881 ct state { new, untracked } accept
+nft add rule inet security_firewall INPUT udp dport 6882 ct state { new, untracked } accept
+nft add rule inet security_firewall INPUT tcp dport 6882 ct state { new, untracked } accept
+nft add rule inet security_firewall INPUT udp dport 6883 ct state { new, untracked } accept
+nft add rule inet security_firewall INPUT tcp dport 6883 ct state { new, untracked } accept
+nft add rule inet security_firewall INPUT tcp dport 36000 ct state { new, untracked } accept
 # Internal services -- end
 nft add rule inet security_firewall INPUT meta l4proto { icmp, ipv6-icmp } accept
 nft add rule inet security_firewall INPUT ct state { invalid } drop
