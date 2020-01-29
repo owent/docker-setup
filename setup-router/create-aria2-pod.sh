@@ -51,6 +51,8 @@ mkdir -p "$RUN_HOME/aria2/log";
 mkdir -p /data/aria2/download;
 mkdir -p /data/aria2/session;
 
+curl -qsSL  "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt" -o "$RUN_HOME/aria2/etc/trackers_best.txt";
+
 echo '
 dir=/data/aria2/download
 log=/var/log/aria2/aria2.log
@@ -76,8 +78,26 @@ check-certificate=false
 
 # BT/Metalink
 # show-files=true # 这个会导致启动不了
+enable-dht=true
 bt-enable-lpd=true
+enable-peer-exchange=true
+' > $RUN_HOME/aria2/etc/aria2.conf
 
+
+ARIA2_BT_TRACKER="";
+for BT_SVR in $(cat "$RUN_HOME/aria2/etc/trackers_best.txt"); do
+    if [ ! -z "$ARIA2_BT_TRACKER" ]; then
+        ARIA2_BT_TRACKER="$ARIA2_BT_TRACKER,$BT_SVR";
+    else
+        ARIA2_BT_TRACKER="$BT_SVR";
+    fi
+done
+
+echo "
+bt-tracker=$ARIA2_BT_TRACKER
+" >> $RUN_HOME/aria2/etc/aria2.conf ;
+
+echo '
 # Advance
 optimize-concurrent-downloads=true
 auto-save-interval=600
@@ -115,7 +135,7 @@ rpc-max-request-size=2M
 
 rpc-secure=false
 # rpc-certificate=<FILE>
-' > $RUN_HOME/aria2/etc/aria2.conf ;
+' >> $RUN_HOME/aria2/etc/aria2.conf ;
 
 chmod 775 "$RUN_HOME/aria2/etc" ;
 chmod 775 "$RUN_HOME/aria2/log" ;

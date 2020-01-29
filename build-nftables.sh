@@ -34,7 +34,7 @@ fi
 
 # build libmnl
 cd "$WORKING_DIR";
-curl -qsSL "$LIBNML_URL" -O "$WORKING_DIR/libmnl-$LIBNML_VERSION.tar.bz2";
+curl -qsSL "$LIBNML_URL" -o "$WORKING_DIR/libmnl-$LIBNML_VERSION.tar.bz2";
 tar -axvf "libmnl-$LIBNML_VERSION.tar.bz2";
 cd "libmnl-$LIBNML_VERSION";
 ./configure --prefix=$NFTABLES_INSTALL_PREFIX --with-pic=yes ;
@@ -43,7 +43,7 @@ sudo make install ;
 
 # build libnftnl
 cd "$WORKING_DIR";
-curl -qsSL "$LIBNFTNL_URL" -O "$WORKING_DIR/libnftnl-$LIBNFTNL_VERSION.tar.bz2";
+curl -qsSL "$LIBNFTNL_URL" -o "$WORKING_DIR/libnftnl-$LIBNFTNL_VERSION.tar.bz2";
 tar -axvf "libnftnl-$LIBNFTNL_VERSION.tar.bz2";
 cd "libnftnl-$LIBNFTNL_VERSION";
 ./configure --prefix=$NFTABLES_INSTALL_PREFIX --with-pic=yes PKG_CONFIG_PATH=$NFTABLES_INSTALL_PREFIX/lib/pkgconfig;
@@ -52,7 +52,7 @@ sudo make install ;
 
 # build nftables
 cd "$WORKING_DIR";
-curl -qsSL "$NFTABLES_URL" -O "$WORKING_DIR/nftables-$NFTABLES_VERSION.tar.bz2";
+curl -qsSL "$NFTABLES_URL" -o "$WORKING_DIR/nftables-$NFTABLES_VERSION.tar.bz2";
 tar -axvf "nftables-$NFTABLES_VERSION.tar.bz2";
 cd "nftables-$NFTABLES_VERSION";
 ./configure --prefix=$NFTABLES_INSTALL_PREFIX --with-xtables --with-json --with-python-bin --with-pic=yes PKG_CONFIG_PATH=$NFTABLES_INSTALL_PREFIX/lib/pkgconfig;
