@@ -43,3 +43,9 @@ nft list chain ip6 v2ray OUTPUT > /dev/null 2>&1 ;
 if [ $? -eq 0 ]; then
     nft delete chain ip6 v2ray OUTPUT ;
 fi
+
+# Cleanup bridge
+nft list chain bridge v2ray PREROUTING > /dev/null 2>&1 ;
+if [ $? -eq 0 ]; then
+    nft delete chain bridge v2ray PREROUTING ;
+fi
