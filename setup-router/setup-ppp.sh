@@ -19,6 +19,7 @@ pppox
 ppp_synctty
 " | sudo tee /etc/modules-load.d/ppp.conf
 
+# It recommand to setup pppd with NetworkManager
 echo "
 noauth
 refuse-eap

@@ -24,12 +24,14 @@ fi
 # export ROUTER_CONFIG_PPP_USERNAME=<PPPOE USER NAME>
 # export ROUTER_CONFIG_PPP_PASSWORD=<PPPOE USER PASSWORD>
 
-/bin/bash setup-ppp.sh ;
-
 if [ "x$ROUTER_CONFIG_PPP_LINK_INTERFACE" != "x" ]; then
+    /bin/bash setup-ppp.sh ;
     systemctl daemon-reload ;
     systemctl enable pppd-$ROUTER_CONFIG_PPP_LINK_INTERFACE ;
     systemctl start pppd-$ROUTER_CONFIG_PPP_LINK_INTERFACE ;
+else
+    # Setup pppd with NetworkMansger on host
+    /bin/bash /home/router/ppp-nat/setup-ppp-up-down-rule.sh
 fi
 
 # Notice: gateways's ip must match the configure in setup-dnsmasq.sh and setup-nat-ssh.sh
