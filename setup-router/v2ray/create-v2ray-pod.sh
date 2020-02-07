@@ -14,12 +14,36 @@ cd /home/router/etc/v2ray ;
 if [ -e "geoip.dat" ]; then
     rm -f "geoip.dat";
 fi
-curl -k -qL "https://github.com/owent/update-geoip-geosite/releases/download/latest/geoip.dat" -o geoip.dat ;
+curl -k -L --retry 3 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/geoip.dat" -o geoip.dat ;
 
 if [ -e "geosite.dat" ]; then
     rm -f "geosite.dat";
 fi
-curl -k -qL "https://github.com/owent/update-geoip-geosite/releases/download/latest/geosite.dat" -o geosite.dat ;
+curl -k -L --retry 3 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/geosite.dat" -o geosite.dat ;
+
+curl -k -L --retry 3 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/ipv4_cn.ipset" -o ipv4_cn.ipset
+if [ $? -eq 0 ]; then
+    ipset list GEOIP_IPV4_CN > /dev/null 2>&1 ;
+    if [ $? -eq 0 ]; then
+        ipset flush GEOIP_IPV4_CN;
+    else
+        ipset create GEOIP_IPV4_CN hash:net family inet;
+    fi
+
+    cat ipv4_cn.ipset | ipset restore ;
+fi
+
+curl -k -L --retry 3 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/ipv6_cn.ipset" -o ipv6_cn.ipset
+if [ $? -eq 0 ]; then
+    ipset list GEOIP_IPV6_CN > /dev/null 2>&1 ;
+    if [ $? -eq 0 ]; then
+        ipset flush GEOIP_IPV6_CN;
+    else
+        ipset create GEOIP_IPV6_CN hash:net family inet6;
+    fi
+
+    cat ipv6_cn.ipset | ipset restore ;
+fi
 
 
 systemctl disable v2ray ;
