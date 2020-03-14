@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ZSH_VERSION=5.7.1 ;
+ZSH_VERSION=5.8 ;
 
 mkdir -p $SETUP_INSTALL_PREFIX/zsh ;
 cd $SETUP_INSTALL_PREFIX/zsh ;

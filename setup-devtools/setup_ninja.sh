@@ -3,9 +3,9 @@
 mkdir -p $SETUP_INSTALL_PREFIX/ninja-build ;
 cd $SETUP_INSTALL_PREFIX/ninja-build ;
 
-wget https://github.com/ninja-build/ninja/archive/v1.9.0.tar.gz ;
-tar -axvf v1.9.0.tar.gz ;
-cd ninja-1.9.0 ;
+wget https://github.com/ninja-build/ninja/archive/v1.10.0.tar.gz ;
+tar -axvf v1.10.0.tar.gz ;
+cd ninja-1.10.0 ;
 
 LDFLAGS="-static -static-libgcc -static-libstdc++" ./configure.py --bootstrap ;
 

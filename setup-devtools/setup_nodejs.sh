@@ -1,6 +1,6 @@
 #!/bin/bash
 
-NODEJS_VERSION=12.13.0
+NODEJS_VERSION=12.16.1
 
 mkdir -p $SETUP_INSTALL_PREFIX/nodejs ;
 cd $SETUP_INSTALL_PREFIX/nodejs ;
