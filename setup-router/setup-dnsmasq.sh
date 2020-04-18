@@ -150,6 +150,8 @@ dhcp-authoritative
 " >> /etc/dnsmasq.d/router.conf
 fi
 
+echo 'conf-dir=/etc/dnsmasq.d,*.router.conf' >> /etc/dnsmasq.d/router.conf;
+
 # Test: dhclient -n enp1s0f0 enp1s0f1 / dhclient -6 -n enp1s0f0 enp1s0f1
 
 # Some system already has dnsmasq.service
@@ -179,3 +181,19 @@ ExecReload=/bin/kill -HUP $MAINPID
 WantedBy=multi-user.target
 " > $SETUP_SYSTEMD_SYSTEM_DIR/dnsmasq.service ;
 
+which ipset > /dev/null 2>&1 ;
+if [ $? -eq 0 ]; then
+    ipset list DNSMASQ_GFW_IPV4 > /dev/null 2>&1 ;
+    if [ $? -ne 0 ]; then
+        ipset create DNSMASQ_GFW_IPV4 hash:ip family inet;
+    fi
+
+    ipset flush DNSMASQ_GFW_IPV4;
+
+    ipset list DNSMASQ_GFW_IPV6 > /dev/null 2>&1 ;
+    if [ $? -ne 0 ]; then
+        ipset create DNSMASQ_GFW_IPV6 hash:ip family inet6;
+    fi
+
+    ipset flush DNSMASQ_GFW_IPV6;
+fi

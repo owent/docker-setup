@@ -1,4 +1,4 @@
-# podman build --layers --force-rm --tag local-v2ray -f v2ray.Dockerfile
+# podman build --layers --force-rm --tag local-v2ray -f v2ray.Dockerfile .
 # docker build --force-rm --tag local-v2ray -f v2ray.Dockerfile .
 FROM debian:latest as builder
 

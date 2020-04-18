@@ -83,6 +83,10 @@ nft list set ip v2ray BLACKLIST > /dev/null 2>&1 ;
 if [ $? -ne 0 ]; then
     nft add set ip v2ray BLACKLIST { type ipv4_addr\; }
 fi
+nft list set ip v2ray GEOIP_CN > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    nft add set ip v2ray GEOIP_CN { type ipv4_addr\; flags interval\; }
+fi
 
 nft list chain ip v2ray PREROUTING > /dev/null 2>&1 ;
 if [ $? -ne 0 ]; then
@@ -110,6 +114,9 @@ nft add rule ip v2ray PREROUTING ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0
 
 # ipv4 skip package from outside
 nft add rule ip v2ray PREROUTING ip daddr @BLACKLIST return
+# GEOIP_CN
+nft add rule ip v2ray PREROUTING ip daddr @GEOIP_CN return
+## TODO DNSMASQ_GFW_IPV4
 
 ### ipv4 - forward to v2ray's listen address if not marked by v2ray
 # tproxy ip to $V2RAY_HOST_IPV4:$V2RAY_PORT
@@ -156,6 +163,10 @@ nft list set ip6 v2ray BLACKLIST > /dev/null 2>&1 ;
 if [ $? -ne 0 ]; then
     nft add set ip6 v2ray BLACKLIST { type ipv6_addr\; }
 fi
+nft list set ip6 v2ray GEOIP_CN > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    nft add set ip6 v2ray GEOIP_CN { type ipv6_addr\; flags interval\; }
+fi
 
 nft list chain ip6 v2ray PREROUTING > /dev/null 2>&1 ;
 if [ $? -ne 0 ]; then
@@ -183,6 +194,9 @@ nft add rule ip6 v2ray PREROUTING ip6 daddr {::1/128, fc00::/7, fe80::/10, ff00:
 
 # ipv6 skip package from outside
 nft add rule ip6 v2ray PREROUTING ip6 daddr @BLACKLIST return
+# GEOIP_CN
+nft add rule ip v2ray PREROUTING ip daddr @GEOIP_CN return
+## TODO DNSMASQ_GFW_IPV6
 
 ### ipv6 - forward to v2ray's listen address if not marked by v2ray
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then

@@ -68,6 +68,10 @@ ipset list V2RAY_BLACKLIST_IPV4 > /dev/null 2>&1 ;
 if [ $? -ne 0 ]; then
     ipset create V2RAY_BLACKLIST_IPV4 hash:ip family inet;
 fi
+ipset list GEOIP_IPV4_CN > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    ipset create GEOIP_IPV4_CN hash:net family inet;
+fi
 
 iptables -t mangle -L V2RAY > /dev/null 2>&1 ;
 if [ $? -ne 0 ]; then
@@ -103,6 +107,10 @@ iptables -t mangle -A V2RAY -d 192.168.0.0/16,172.16.0.0/12,10.0.0.0/8 -j RETURN
 # ipv4 skip package from outside
 iptables -t mangle -A V2RAY -p tcp -m set --match-set V2RAY_BLACKLIST_IPV4 dst -j RETURN
 iptables -t mangle -A V2RAY -p udp -m set --match-set V2RAY_BLACKLIST_IPV4 dst -j RETURN
+iptables -t mangle -A V2RAY -p tcp -m set --match-set GEOIP_IPV4_CN dst -j RETURN
+iptables -t mangle -A V2RAY -p udp -m set --match-set GEOIP_IPV4_CN dst -j RETURN
+# iptables -t mangle -A V2RAY -p tcp -m set ! --match-set DNSMASQ_GFW_IPV4 dst -j RETURN
+# iptables -t mangle -A V2RAY -p udp -m set ! --match-set DNSMASQ_GFW_IPV4 dst -j RETURN
 ### ipv4 - forward to v2ray's listen address if not marked by v2ray
 # tproxy ip to $V2RAY_HOST_IPV4:$V2RAY_PORT
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
@@ -154,6 +162,10 @@ ipset list V2RAY_BLACKLIST_IPV6 > /dev/null 2>&1 ;
 if [ $? -ne 0 ]; then
     ipset create V2RAY_BLACKLIST_IPV6 hash:ip family inet6;
 fi
+ipset list GEOIP_IPV6_CN > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    ipset create GEOIP_IPV6_CN hash:net family inet6;
+fi
 
 ip6tables -t mangle -L V2RAY > /dev/null 2>&1 ;
 if [ $? -ne 0 ]; then
@@ -188,6 +200,10 @@ ip6tables -t mangle -A V2RAY -m mark --mark 0xff -j RETURN
 # ipv6 skip package from outside
 ip6tables -t mangle -A V2RAY -p tcp -m set --match-set V2RAY_BLACKLIST_IPV6 dst -j RETURN
 ip6tables -t mangle -A V2RAY -p udp -m set --match-set V2RAY_BLACKLIST_IPV6 dst -j RETURN
+ip6tables -t mangle -A V2RAY -p tcp -m set --match-set GEOIP_IPV6_CN dst -j RETURN
+ip6tables -t mangle -A V2RAY -p udp -m set --match-set GEOIP_IPV6_CN dst -j RETURN
+# ip6tables -t mangle -A V2RAY -p tcp -m set ! --match-set DNSMASQ_GFW_IPV6 dst -j RETURN
+# ip6tables -t mangle -A V2RAY -p udp -m set ! --match-set DNSMASQ_GFW_IPV6 dst -j RETURN
 ### ipv6 - forward to v2ray's listen address if not marked by v2ray
 # tproxy ip to $V2RAY_HOST_IPV4:$V2RAY_PORT
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then

@@ -14,7 +14,10 @@ RUN set -ex ;                                                                   
     pacman -Syyu --noconfirm ;                                                                                  \
     yes y | pacman -S iptables nftables ebtables ipset ;                                                        \
     pacman -Syy --noconfirm ca-certificates tzdata bash vim ipset man-db;                                       \
-    ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                   \
+    timedatectl set-timezone Asia/Shanghai;                                                                     \
+    timedatectl set-ntp true;                                                                                   \
+    # hwclock -w;                                                                                                 \
+    # ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                   \
     locale-gen en_US.UTF-8 ;                                                                                    \
     localectl set-locale LANGUAGE=en_US.UTF-8 || true; localectl set-locale LANG=en_GB.utf8 || true;            \
     pacman -Syy --noconfirm procps-ng less iproute2 gawk lsof openssh systemd sudo which;                       \
