@@ -142,6 +142,10 @@ iptables -t mangle -A V2RAY_MASK -d 192.168.0.0/16,172.16.0.0/12,10.0.0.0/8 -j R
 # iptables -t mangle -A V2RAY_MASK -p tcp -d 192.168.0.0/16,172.16.0.0/12,10.0.0.0/8 -j RETURN
 # iptables -t mangle -A V2RAY_MASK -p udp -d 192.168.0.0/16,172.16.0.0/12,10.0.0.0/8 ! --dport 53 -j RETURN
 # iptables -t mangle -A V2RAY_MASK -p tcp -d $GATEWAY_ADDRESSES -j RETURN
+iptables -t mangle -A V2RAY_MASK -p tcp -m set --match-set V2RAY_BLACKLIST_IPV4 dst -j RETURN
+iptables -t mangle -A V2RAY_MASK -p udp -m set --match-set V2RAY_BLACKLIST_IPV4 dst -j RETURN
+iptables -t mangle -A V2RAY_MASK -p tcp -m set --match-set GEOIP_IPV4_CN dst -j RETURN
+iptables -t mangle -A V2RAY_MASK -p udp -m set --match-set GEOIP_IPV4_CN dst -j RETURN
 
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     iptables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j TRACE
@@ -234,6 +238,10 @@ ip6tables -t mangle -A V2RAY_MASK -m mark --mark 0xff -j RETURN
 # ip6tables -t mangle -A V2RAY_MASK -p tcp -d ::1/128,fc00::/7,fe80::/10,ff00::/8 -j RETURN
 # ip6tables -t mangle -A V2RAY_MASK -p udp -d ::1/128,fc00::/7,fe80::/10,ff00::/8 ! --dport 53 -j RETURN
 # ip6tables -t mangle -A V2RAY_MASK -p tcp -d $GATEWAY_ADDRESSES -j RETURN
+ip6tables -t mangle -A V2RAY -p tcp -m set --match-set V2RAY_BLACKLIST_IPV6 dst -j RETURN
+ip6tables -t mangle -A V2RAY -p udp -m set --match-set V2RAY_BLACKLIST_IPV6 dst -j RETURN
+ip6tables -t mangle -A V2RAY -p tcp -m set --match-set GEOIP_IPV6_CN dst -j RETURN
+ip6tables -t mangle -A V2RAY -p udp -m set --match-set GEOIP_IPV6_CN dst -j RETURN
 
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j TRACE
