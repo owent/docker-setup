@@ -115,7 +115,7 @@ iptables -t mangle -A V2RAY -p udp -m set --match-set GEOIP_IPV4_CN dst -j RETUR
 # tproxy ip to $V2RAY_HOST_IPV4:$V2RAY_PORT
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     iptables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j TRACE
-    iptables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT LOG --log-level debug --log-prefix ">>>TCP4>tproxy:"
+    iptables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j LOG --log-level debug --log-prefix ">>>TCP4>tproxy:"
 fi
 
 iptables -t mangle -A V2RAY -p tcp -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 1 # mark tcp package with 1 and forward to $V2RAY_PORT
@@ -131,7 +131,7 @@ iptables -t mangle -A PREROUTING -j V2RAY # apply rules
 iptables -t mangle -A V2RAY_MASK -p tcp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
 iptables -t mangle -A V2RAY_MASK -p udp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
-    iptables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT LOG --log-level debug --log-prefix "###TCP4#OUTPUT:"
+    iptables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j LOG --log-level debug --log-prefix "###TCP4#OUTPUT:"
 fi
 
 iptables -t mangle -A V2RAY_MASK -d 127.0.0.1/32,224.0.0.0/4,255.255.255.255/32 -j RETURN
@@ -145,7 +145,7 @@ iptables -t mangle -A V2RAY_MASK -d 192.168.0.0/16,172.16.0.0/12,10.0.0.0/8 -j R
 
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     iptables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j TRACE
-    iptables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT LOG --log-level debug --log-prefix "+++TCP4+mark 1:"
+    iptables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j LOG --log-level debug --log-prefix "+++TCP4+mark 1:"
 fi
 # ipv4 skip package from outside
 iptables -t mangle -A V2RAY_MASK -p udp -j MARK --set-mark 1
@@ -208,7 +208,7 @@ ip6tables -t mangle -A V2RAY -p udp -m set --match-set GEOIP_IPV6_CN dst -j RETU
 # tproxy ip to $V2RAY_HOST_IPV4:$V2RAY_PORT
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     ip6tables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j TRACE
-    ip6tables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT LOG --log-level debug --log-prefix ">>>TCP6>tproxy:"
+    ip6tables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j LOG --log-level debug --log-prefix ">>>TCP6>tproxy:"
 fi
 
 ip6tables -t mangle -A V2RAY -p tcp -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 1 # mark tcp package with 1 and forward to $V2RAY_PORT
@@ -224,7 +224,7 @@ ip6tables -t mangle -A PREROUTING -j V2RAY # apply rules
 ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
 ip6tables -t mangle -A V2RAY_MASK -p udp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
-    ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT LOG --log-level debug --log-prefix "###TCP6#OUTPUT:"
+    ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j LOG --log-level debug --log-prefix "###TCP6#OUTPUT:"
 fi
 
 ip6tables -t mangle -A V2RAY_MASK -d ::1/128,fc00::/7,fe80::/10,ff00::/8 -j RETURN
@@ -237,7 +237,7 @@ ip6tables -t mangle -A V2RAY_MASK -m mark --mark 0xff -j RETURN
 
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j TRACE
-    ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT LOG --log-level debug --log-prefix "+++TCP6+mark 1:"
+    ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j LOG --log-level debug --log-prefix "+++TCP6+mark 1:"
 fi
 # ipv6 skip package from outside
 ip6tables -t mangle -A V2RAY_MASK -p udp -j MARK --set-mark 1
