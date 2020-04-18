@@ -1,8 +1,8 @@
 #!/bin/bash
 
-TMUX_PREBUILT_VERSION=2.9a ;
+TMUX_PREBUILT_VERSION=3.0a ;
 
-TMUX_PURL=https://github.com/owent-contrib/tmux-build-musl/releases/download/2.9a/tmux-2.9a.musl-bin.tar.gz ;
+TMUX_PURL=https://github.com/owent-contrib/tmux-build-musl/releases/download/3.0a/tmux-3.0a.musl-bin.tar.gz ;
 
 mkdir -p $SETUP_INSTALL_PREFIX/tmux ;
 cd $SETUP_INSTALL_PREFIX/tmux ;

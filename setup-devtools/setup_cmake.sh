@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CMAKE_VERSION=3.15.5 ;
+CMAKE_VERSION=3.16.5 ;
 
 mkdir -p $SETUP_INSTALL_PREFIX/cmake ;
 cd $SETUP_INSTALL_PREFIX/cmake ;
