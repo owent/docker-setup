@@ -173,8 +173,8 @@ Type=forking
 PIDFile=/var/run/dnsmasq-router.pid
 
 # Test the config file and refuse starting if it is not valid.
-ExecStartPre=/usr/sbin/dnsmasq -r /etc/resolv.conf -C /etc/dnsmasq.d/router.conf -x /var/run/dnsmasq-router.pid --test
-ExecStart=/usr/sbin/dnsmasq -r /etc/resolv.conf -C /etc/dnsmasq.d/router.conf -x /var/run/dnsmasq-router.pid
+ExecStartPre=/usr/sbin/dnsmasq -R -C /etc/dnsmasq.d/router.conf -x /var/run/dnsmasq-router.pid --test
+ExecStart=/usr/sbin/dnsmasq -R -C /etc/dnsmasq.d/router.conf -x /var/run/dnsmasq-router.pid
 ExecReload=/bin/kill -HUP $MAINPID
 
 [Install]
