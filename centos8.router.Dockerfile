@@ -7,6 +7,9 @@ COPY setup-router /opt/docker-setup
 COPY replace-source.sh /opt/docker-setup/replace-source.sh
 # RUN dnf install -y vim dnsmasq dnsmasq-utils ppp dhcp-server dhcp-client ca-certificates ipset;         \
 RUN /bin/bash /opt/docker-setup/replace-source.sh ;                                             \
+    timedatectl set-timezone Asia/Shanghai;                                                     \
+    timedatectl set-ntp true;                                                                   \
+    # hwclock -w;                                                                               \
     dnf update -y ;                                                                             \
     dnf install -y vim dnsmasq dnsmasq-utils ppp ca-certificates ipset nftables ;               \
     dnf install -y NetworkManager NetworkManager-tui NetworkManager-wifi NetworkManager-ppp ;   \

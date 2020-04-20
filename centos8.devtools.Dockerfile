@@ -18,7 +18,10 @@ RUN /bin/bash /opt/docker-setup/replace-source.sh ;                             
     dnf install -y man-db tzdata less lsof openssh-clients openssh-server systemd vim wget curl ca-certificates  ;  \
     dnf install -y traceroute knot-utils tcpdump htop iotop nmap-ncat  ;                                            \
     localectl set-locale LANG=en_GB.utf8 ;                                                                          \
-    ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                       \
+    timedatectl set-timezone Asia/Shanghai;                                                                     \
+    timedatectl set-ntp true;                                                                                   \
+    # hwclock -w;                                                                                                 \
+    # ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                       \
     /bin/bash /opt/docker-setup/centos8.install-devtools.sh;                                                        \
     /bin/bash /opt/docker-setup/cleanup.devtools.sh
 

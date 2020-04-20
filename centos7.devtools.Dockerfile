@@ -17,7 +17,10 @@ RUN /bin/bash /opt/docker-setup/replace-source.sh ;                             
     yum install -y vim curl wget perl unzip lzip p7zip p7zip-plugins net-tools telnet iotop htop iproute psmisc;    \
     yum install -y man-db tzdata less lsof openssh-clients openssh-server systemd vim wget curl ca-certificates  ;  \
     localectl set-locale LANG=en_GB.utf8 ;                                                                          \
-    ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                       \
+    timedatectl set-timezone Asia/Shanghai;                                                                     \
+    timedatectl set-ntp true;                                                                                   \
+    # hwclock -w;                                                                                                 \
+    # ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                       \
     /bin/bash /opt/docker-setup/centos7.install-devtools.sh;                                                        \
     /bin/bash /opt/docker-setup/cleanup.devtools.sh
 

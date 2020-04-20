@@ -19,7 +19,10 @@ RUN /bin/bash /opt/docker-setup/replace-source.sh ;                             
     apt install -y vim wget curl ca-certificates telnet iotop htop knot-dnsutils dnsutils systemd-cron ;        \
     apt install -y traceroute tcptraceroute tcpdump netcat-openbsd nmap nftables ;                              \
     locale-gen en_US.UTF-8; localectl set-locale LANG=en_GB.utf8 ;                                              \
-    ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                   \
+    timedatectl set-timezone Asia/Shanghai;                                                                     \
+    timedatectl set-ntp true;                                                                                   \
+    # hwclock -w;                                                                                                 \
+    # ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                   \
     /bin/bash /opt/docker-setup/ubuntu.install-devtools.sh;                                                     \
     /bin/bash /opt/docker-setup/cleanup.devtools.sh
 
