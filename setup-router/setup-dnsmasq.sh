@@ -150,7 +150,7 @@ dhcp-authoritative
 " >> /etc/dnsmasq.d/router.conf
 fi
 
-echo 'conf-dir=/etc/dnsmasq.d,*.router.conf' >> /etc/dnsmasq.d/router.conf;
+echo 'conf-dir=/etc/dnsmasq.d/,*.router.conf' >> /etc/dnsmasq.d/router.conf;
 
 # Test: dhclient -n enp1s0f0 enp1s0f1 / dhclient -6 -n enp1s0f0 enp1s0f1
 
