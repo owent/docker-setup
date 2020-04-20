@@ -58,13 +58,14 @@ echo 'search localhost
 # see https://www.dnsperf.com/#!dns-resolvers for DNS ranking
 # ipv4
 ## Cloudflare
-nameserver 1.1.1.1
-nameserver 1.0.0.1
+# nameserver 1.1.1.1
+# nameserver 1.0.0.1
 ## Google
-nameserver 8.8.8.8
-nameserver 8.8.4.4
+# nameserver 8.8.8.8
+# nameserver 8.8.4.4
 ## Quad9
-nameserver 9.9.9.9
+# nameserver 9.9.9.9
+# glibc only use 3 dns server
 ## aliyun
 nameserver 223.5.5.5
 nameserver 223.6.6.6
