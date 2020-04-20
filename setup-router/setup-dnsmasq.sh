@@ -30,20 +30,21 @@ no-resolv
 # see https://www.dnsperf.com/#!dns-resolvers for DNS ranking
 # ipv4
 ## Cloudflare
-server=1.1.1.1
-server=1.0.0.1
+# server=1.1.1.1
+# server=1.0.0.1
 ## Google
-server=8.8.8.8
-server=8.8.4.4
+# server=8.8.8.8
+# server=8.8.4.4
 ## Quad9
-server=9.9.9.9
+# server=9.9.9.9
+# glibc only use 3 dns server
 ## aliyun
 server=223.5.5.5
 server=223.6.6.6
 ## DNSPod
 server=119.29.29.29
 ## Baidu
-server=180.76.76.76
+# server=180.76.76.76
 
 ' > /etc/dnsmasq.d/router.conf
 
