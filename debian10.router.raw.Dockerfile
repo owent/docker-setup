@@ -12,7 +12,10 @@ RUN cp -f /etc/apt/sources.list /etc/apt/sources.list.bak ;                     
     apt install -y dnsmasq dnsmasq-utils ppp pppconfig pppoe pppoeconf ca-certificates ipset;                   \
     apt install -y traceroute tcptraceroute tcpdump netcat-openbsd ncat network-manager nftables;               \
     localectl set-locale LANGUAGE=en_US.UTF-8; localectl set-locale LANG=en_GB.utf8 ;                           \
-    ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                   \
+    timedatectl set-timezone Asia/Shanghai;                                                                     \
+    timedatectl set-ntp true;                                                                                   \
+    # hwclock -w;                                                                                                 \
+    # ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                   \
     rm -rf /var/lib/apt/lists/*
 
 CMD ["/lib/systemd/systemd"]

@@ -30,20 +30,21 @@ no-resolv
 # see https://www.dnsperf.com/#!dns-resolvers for DNS ranking
 # ipv4
 ## Cloudflare
-server=1.1.1.1
-server=1.0.0.1
+# server=1.1.1.1
+# server=1.0.0.1
 ## Google
-server=8.8.8.8
-server=8.8.4.4
+# server=8.8.8.8
+# server=8.8.4.4
 ## Quad9
-server=9.9.9.9
+# server=9.9.9.9
+# glibc only use 3 dns server
 ## aliyun
 server=223.5.5.5
 server=223.6.6.6
 ## DNSPod
 server=119.29.29.29
 ## Baidu
-server=180.76.76.76
+# server=180.76.76.76
 
 ' > /etc/dnsmasq.d/router.conf
 
@@ -57,13 +58,14 @@ echo 'search localhost
 # see https://www.dnsperf.com/#!dns-resolvers for DNS ranking
 # ipv4
 ## Cloudflare
-nameserver 1.1.1.1
-nameserver 1.0.0.1
+# nameserver 1.1.1.1
+# nameserver 1.0.0.1
 ## Google
-nameserver 8.8.8.8
-nameserver 8.8.4.4
+# nameserver 8.8.8.8
+# nameserver 8.8.4.4
 ## Quad9
-nameserver 9.9.9.9
+# nameserver 9.9.9.9
+# glibc only use 3 dns server
 ## aliyun
 nameserver 223.5.5.5
 nameserver 223.6.6.6
@@ -150,7 +152,7 @@ dhcp-authoritative
 " >> /etc/dnsmasq.d/router.conf
 fi
 
-echo 'conf-dir=/etc/dnsmasq.d,*.router.conf' >> /etc/dnsmasq.d/router.conf;
+echo 'conf-dir=/etc/dnsmasq.d/,*.router.conf' >> /etc/dnsmasq.d/router.conf;
 
 # Test: dhclient -n enp1s0f0 enp1s0f1 / dhclient -6 -n enp1s0f0 enp1s0f1
 
@@ -173,8 +175,8 @@ Type=forking
 PIDFile=/var/run/dnsmasq-router.pid
 
 # Test the config file and refuse starting if it is not valid.
-ExecStartPre=/usr/sbin/dnsmasq -r /etc/resolv.conf -C /etc/dnsmasq.d/router.conf -x /var/run/dnsmasq-router.pid --test
-ExecStart=/usr/sbin/dnsmasq -r /etc/resolv.conf -C /etc/dnsmasq.d/router.conf -x /var/run/dnsmasq-router.pid
+ExecStartPre=/usr/sbin/dnsmasq -R -C /etc/dnsmasq.d/router.conf -x /var/run/dnsmasq-router.pid --test
+ExecStart=/usr/sbin/dnsmasq -R -C /etc/dnsmasq.d/router.conf -x /var/run/dnsmasq-router.pid
 ExecReload=/bin/kill -HUP $MAINPID
 
 [Install]
