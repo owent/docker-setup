@@ -74,6 +74,13 @@ net.ipv4.conf.all.rp_filter=0
 net.ipv4.conf.default.rp_filter=0
 net.ipv4.conf.all.route_localnet=1
 net.ipv4.conf.default.route_localnet=1
+# All bridge interface should also be set
+net.ipv4.conf.br0.rp_filter=0
+net.ipv4.conf.enp1s0f0.rp_filter=0
+net.ipv4.conf.enp1s0f1.rp_filter=0
+net.ipv4.conf.br0.route_localnet=1
+net.ipv4.conf.enp1s0f0.route_localnet=1
+net.ipv4.conf.enp1s0f1.route_localnet=1
 " > /etc/sysctl.d/91-forwarding.conf ;
 sysctl -p ;
 
