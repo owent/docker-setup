@@ -1,0 +1,4 @@
+*.sh eol=lf
+*.py eol=lf
+*.bat eol=crlf
+*.ps1 eol=crlf
