@@ -2,15 +2,15 @@
 # docker build --force-rm --tag local-v2ray -f v2ray.Dockerfile .
 FROM debian:latest as builder
 
-RUN sed -i.bak -r 's;#?https?://.*/debian-security/?[[:space:]];http://mirrors.tencent.com/debian-security/ ;g' /etc/apt/sources.list ; \
-    sed -i -r 's;#?https?://.*/debian/?[[:space:]];http://mirrors.tencent.com/debian/ ;g' /etc/apt/sources.list ; \
-    apt-get update;                                         \
-    apt-get install curl -y;                                \
+RUN sed -i.bak -r 's;#?https?://.*/debian-security/?[[:space:]];http://mirrors.aliyun.com/debian-security/ ;g' /etc/apt/sources.list ; \
+    sed -i -r 's;#?https?://.*/debian/?[[:space:]];http://mirrors.aliyun.com/debian/ ;g' /etc/apt/sources.list ; \
+    apt update -y;                                          \
+    apt install curl -y;                                    \
     curl -k -L --retry 10 --retry-max-time 1800 -o /tmp/go.sh https://install.direct/go.sh;     \
     chmod +x /tmp/go.sh;                                    \
-    /tmp/go.sh;                                             \
-    curl -k -qsL "https://github.com/owent/update-geoip-geosite/releases/download/latest/geoip.dat" -o /usr/bin/v2ray/geoip.dat ;      \
-    curl -k -qsL "https://github.com/owent/update-geoip-geosite/releases/download/latest/geosite.dat" -o /usr/bin/v2ray/geosite.dat ;  \
+    bash /tmp/go.sh;                                        \
+    curl -k -qL "https://github.com/owent/update-geoip-geosite/releases/download/latest/geoip.dat" -o /usr/bin/v2ray/geoip.dat ;      \
+    curl -k -qL "https://github.com/owent/update-geoip-geosite/releases/download/latest/geosite.dat" -o /usr/bin/v2ray/geosite.dat ;  \
     if [ -e "/var/lib/apt/lists" ]; then for APT_CACHE in /var/lib/apt/lists/* ; do rm -rf "$APT_CACHE"; done fi
 
 FROM docker.io/alpine:latest
