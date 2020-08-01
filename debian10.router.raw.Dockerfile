@@ -14,6 +14,8 @@ RUN cp -f /etc/apt/sources.list /etc/apt/sources.list.bak ;                     
     localectl set-locale LANGUAGE=en_US.UTF-8; localectl set-locale LANG=en_GB.utf8 ;                           \
     timedatectl set-timezone Asia/Shanghai;                                                                     \
     timedatectl set-ntp true;                                                                                   \
+    systemctl enable systemd-timesyncd.service || true ;                                                        \
+    systemctl start systemd-timesyncd.service || true ;                                                         \
     # hwclock -w;                                                                                                 \
     # ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                   \
     rm -rf /var/lib/apt/lists/*

@@ -59,6 +59,18 @@ if [ $? -eq 0 ]; then
     cat ipv4_cn.ipset | ipset restore ;
 fi
 
+curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/ipv4_hk.ipset" -o ipv4_hk.ipset
+if [ $? -eq 0 ]; then
+    ipset list GEOIP_IPV4_HK > /dev/null 2>&1 ;
+    if [ $? -eq 0 ]; then
+        ipset flush GEOIP_IPV4_HK;
+    else
+        ipset create GEOIP_IPV4_HK hash:net family inet;
+    fi
+
+    cat ipv4_hk.ipset | ipset restore ;
+fi
+
 curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/ipv6_cn.ipset" -o ipv6_cn.ipset
 if [ $? -eq 0 ]; then
     ipset list GEOIP_IPV6_CN > /dev/null 2>&1 ;
@@ -71,6 +83,17 @@ if [ $? -eq 0 ]; then
     cat ipv6_cn.ipset | ipset restore ;
 fi
 
+curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/ipv6_hk.ipset" -o ipv6_hk.ipset
+if [ $? -eq 0 ]; then
+    ipset list GEOIP_IPV6_HK > /dev/null 2>&1 ;
+    if [ $? -eq 0 ]; then
+        ipset flush GEOIP_IPV6_HK;
+    else
+        ipset create GEOIP_IPV6_HK hash:net family inet6;
+    fi
+
+    cat ipv6_hk.ipset | ipset restore ;
+fi
 
 curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/dnsmasq-blacklist.conf" -o dnsmasq-blacklist.conf
 if [ $? -eq 0 ]; then

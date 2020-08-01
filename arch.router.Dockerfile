@@ -15,6 +15,8 @@ RUN set -ex ;                                                                   
     pacman -Syy --noconfirm ca-certificates tzdata bash vim dnsmasq ppp;                                        \
     timedatectl set-timezone Asia/Shanghai;                                                                     \
     timedatectl set-ntp true;                                                                                   \
+    systemctl enable systemd-timesyncd.service || true ;                                                        \
+    systemctl start systemd-timesyncd.service || true ;                                                         \
     # hwclock -w;                                                                                                 \
     # ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                   \
     locale-gen en_US.UTF-8 ;                                                                                    \

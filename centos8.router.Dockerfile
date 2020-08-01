@@ -9,6 +9,8 @@ COPY replace-source.sh /opt/docker-setup/replace-source.sh
 RUN /bin/bash /opt/docker-setup/replace-source.sh ;                                             \
     timedatectl set-timezone Asia/Shanghai;                                                     \
     timedatectl set-ntp true;                                                                   \
+    systemctl enable systemd-timesyncd.service || true ;                                        \
+    systemctl start systemd-timesyncd.service || true ;                                         \
     # hwclock -w;                                                                               \
     dnf update -y ;                                                                             \
     dnf install -y vim dnsmasq dnsmasq-utils ppp ca-certificates ipset nftables ;               \
