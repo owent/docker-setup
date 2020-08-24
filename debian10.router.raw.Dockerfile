@@ -9,7 +9,7 @@ RUN cp -f /etc/apt/sources.list /etc/apt/sources.list.bak ;                     
     apt update -y;                                                                                              \
     apt install -y procps locales tzdata less iproute2 gawk lsof cron openssh-client openssh-server systemd  ;  \
     apt install -y vim wget curl ca-certificates telnet iotop htop knot-dnsutils dnsutils systemd-cron ;        \
-    apt install -y dnsmasq dnsmasq-utils ppp pppconfig pppoe pppoeconf ca-certificates ipset;                   \
+    apt install -y dnsmasq dnsmasq-utils ppp pppconfig pppoe pppoeconf ca-certificates ipset chrony;            \
     apt install -y traceroute tcptraceroute tcpdump netcat-openbsd ncat network-manager nftables;               \
     localectl set-locale LANGUAGE=en_US.UTF-8; localectl set-locale LANG=en_GB.utf8 ;                           \
     timedatectl set-timezone Asia/Shanghai;                                                                     \
