@@ -99,15 +99,16 @@ if [ $? -eq 0 ]; then
     podman rm -f v2ray
 fi
 
-podman run -d --name v2ray -v /home/router/etc/v2ray:/etc/v2ray -v /data/logs/v2ray:/data/logs/v2ray \
-    --cap-add=NET_ADMIN --network=host localhost/local-v2ray v2ray -config=/etc/v2ray/config.json ;
+podman run -d --name v2ray -v /home/router/etc/v2ray:/usr/local/v2ray/etc -v /data/logs/v2ray:/data/logs/v2ray \
+    --cap-add=NET_ADMIN --network=host docker.io/owt5008137/proxy-with-geo v2ray -config=/usr/local/v2ray/etc/config.json ;
 
 if [ -e "geoip.dat" ]; then
-    podman cp geoip.dat v2ray:/usr/bin/v2ray/geoip.dat ;
+    podman cp geoip.dat v2ray:/usr/local/v2ray/bin/geoip.dat ;
 fi
 if [ -e "geosite.dat" ]; then
-    podman cp geosite.dat v2ray:/usr/bin/v2ray/geosite.dat ;
+    podman cp geosite.dat v2ray:/usr/local/v2ray/bin/geosite.dat ;
 fi
+
 
 podman generate systemd v2ray | \
 sed "/ExecStart=/a ExecStartPost=/home/router/v2ray/setup-tproxy.sh" | \
