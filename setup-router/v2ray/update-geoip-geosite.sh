@@ -27,7 +27,7 @@ if [ $? -eq 0 ]; then
     fi
     curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/geoip.dat" -o geoip.dat ;
     if [ $? -eq 0 ]; then
-        podman cp geoip.dat v2ray:/usr/bin/v2ray/geoip.dat ;
+        podman cp geoip.dat v2ray:/usr/local/v2ray/bin/geoip.dat ;
     fi
 
     if [ -e "geosite.dat" ]; then
@@ -35,7 +35,7 @@ if [ $? -eq 0 ]; then
     fi
     curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/geosite.dat" -o geosite.dat ;
     if [ $? -eq 0 ]; then
-        podman cp geosite.dat v2ray:/usr/bin/v2ray/geosite.dat ;
+        podman cp geosite.dat v2ray:/usr/local/v2ray/bin/geosite.dat ;
     fi
 
     systemctl disable v2ray ;
