@@ -20,9 +20,12 @@ FROM docker.io/alpine:latest
 
 LABEL maintainer "OWenT <admin@owent.net>"
 
-COPY --from=builder /usr/local/v2ray/  /usr/local/
-COPY --from=builder /opt/v2ray/v2ray   /usr/local/v2ray/bin/
-COPY --from=builder /opt/v2ray/v2ctl   /usr/local/v2ray/bin/
+COPY --from=builder /opt/v2ray/v2ray                      /usr/local/v2ray/bin/
+COPY --from=builder /opt/v2ray/v2ctl                      /usr/local/v2ray/bin/
+COPY --from=builder /opt/v2ray/config.json                /usr/local/v2ray/etc/
+COPY --from=builder /usr/local/v2ray/share/geo-all.tar.gz /usr/local/v2ray/share/
+COPY --from=builder /usr/local/v2ray/bin/geoip.dat        /usr/local/v2ray/bin/
+COPY --from=builder /usr/local/v2ray/bin/geosite.dat      /usr/local/v2ray/bin/
 
 # sed -i -r 's#dl-cdn.alpinelinux.org#mirrors.tencent.com#g' /etc/apk/repositories ;    \
 RUN set -ex ;                                                                           \
@@ -37,7 +40,7 @@ ENV PATH /usr/local/v2ray/bin/:$PATH
 
 VOLUME /var/log/v2ray
 
-CMD ["v2ray", "-config=/opt/v2ray/config.json"]
+CMD ["v2ray", "-config=/usr/local/v2ray/etc/config.json"]
 
 # podman run -d --name v2ray -v /etc/v2ray:/usr/local/v2ray/etc -v /data/logs/v2ray:/var/log/v2ray --cap-add=NET_ADMIN --network=host docker.io/owt5008137/proxy-with-geo v2ray -config=/usr/local/v2ray/etc/config.json
 # podman generate systemd v2ray | sudo tee /lib/systemd/system/v2ray.service
