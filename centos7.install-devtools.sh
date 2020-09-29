@@ -18,7 +18,7 @@ chmod +x $CURRENT_SCRIPT_DIR/setup/*.sh
 chmod +x $CURRENT_SCRIPT_DIR/*.sh ;
 
 yum install -y libtool pkgconfig m4 autoconf python python-setuptools python-pip python-requests python-devel python3-rpm-macros python34 python34-setuptools ;
-yum install -y texinfo asciidoc xmlto zlib-devel;
+yum install -y texinfo asciidoc xmlto zlib-devel chrpath;
 yum install -y ca-certificates gcc gcc-c++ gdb valgrind automake autoconf m4 make libcurl-devel expat expat-devel glibc glibc-devel;
 yum install -y pkgconfig java-1.8.0-openjdk
 

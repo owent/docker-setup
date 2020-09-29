@@ -3,7 +3,7 @@
 mkdir -p $SETUP_INSTALL_PREFIX/gcc ;
 cd $SETUP_INSTALL_PREFIX/gcc ;
 
-GCC_INSTALLER_URL=https://github.com/owent-utils/bash-shell/raw/master/GCC%20Installer/gcc-9/installer.sh ;
+GCC_INSTALLER_URL=https://github.com/owent-utils/bash-shell/raw/master/GCC%20Installer/gcc-10/installer.sh ;
 
 wget $GCC_INSTALLER_URL ;
 

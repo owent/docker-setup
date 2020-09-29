@@ -3,9 +3,9 @@
 mkdir -p $SETUP_INSTALL_PREFIX/git ;
 cd $SETUP_INSTALL_PREFIX/git ;
 
-RE2C_VERSION=1.2.1 ;
-GIT_VERSION=2.25.1 ;
-GIT_LFS_VERSION=2.10.0 ;
+RE2C_VERSION=2.0.3 ;
+GIT_VERSION=2.28.0 ;
+GIT_LFS_VERSION=2.12.0 ;
 export PATH="$SETUP_INSTALL_PREFIX/bin:$PATH"
 
 wget https://github.com/skvadrik/re2c/releases/download/$RE2C_VERSION/re2c-$RE2C_VERSION.tar.xz;

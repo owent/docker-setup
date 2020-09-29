@@ -26,7 +26,7 @@ RUN sed -i -r '/Server\s*=\s*.*tencent.com/d' /etc/pacman.d/mirrorlist;         
     pacman -Syy --noconfirm traceroute tcpdump openbsd-netcat nmap findutils iputils;                           \
     pacman -Syy --noconfirm openssl python perl automake gdb valgrind unzip p7zip base-devel asciidoc ;         \
     pacman -Syy --noconfirm xmlto xmltoman expat re2c cmake git git-lfs ninja tmux zsh clang lld llvm;          \
-    pacman -Syy --noconfirm dotnet-sdk dotnet-runtime jdk-openjdk;                                              \
+    pacman -Syy --noconfirm dotnet-sdk dotnet-runtime jdk-openjdk chrpath;                                      \
     pacman -S -cc --noconfirm;                                                                                  \
     rm -rf /var/lib/pacman/sync/* /var/cache/pacman/pkg/* ;                                                     \
     echo "" > /var/log/pacman.log ;

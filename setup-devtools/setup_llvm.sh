@@ -3,7 +3,7 @@
 mkdir -p $SETUP_INSTALL_PREFIX/llvm ;
 cd $SETUP_INSTALL_PREFIX/llvm ;
 
-LLVM_INSTALLER_URL=https://github.com/owent-utils/bash-shell/raw/master/LLVM%26Clang%20Installer/9.0/installer.sh ;
+LLVM_INSTALLER_URL=https://github.com/owent-utils/bash-shell/raw/master/LLVM%26Clang%20Installer/10.0/installer.sh ;
 
 wget $LLVM_INSTALLER_URL ;
 

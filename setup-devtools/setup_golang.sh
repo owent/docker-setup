@@ -1,6 +1,6 @@
 #!/bin/bash
 
-GOLANG_VERSION=1.14;
+GOLANG_VERSION=1.15.2;
 
 mkdir -p $SETUP_INSTALL_PREFIX/golang ;
 cd $SETUP_INSTALL_PREFIX/golang ;

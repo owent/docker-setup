@@ -17,7 +17,7 @@ CURRENT_SCRIPT_DIR=$PWD;
 chmod +x $CURRENT_SCRIPT_DIR/setup/*.sh 
 chmod +x $CURRENT_SCRIPT_DIR/*.sh ;
 
-dnf install -y libtool m4 autoconf python3 python3-setuptools python3-pip python3-devel info asciidoc xmlto zlib-devel;
+dnf install -y libtool m4 autoconf python3 python3-setuptools python3-pip python3-devel info asciidoc xmlto zlib-devel chrpath;
 dnf install -y ca-certificates gcc gcc-c++ gdb valgrind automake autoconf m4 make libcurl-devel expat expat-devel glibc glibc-devel;
 dnf install -y pkgconf-pkg-config java-latest-openjdk
 

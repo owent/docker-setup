@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TMUX_PREBUILT_VERSION=3.0a ;
+TMUX_PREBUILT_VERSION=3.1b ;
 
 TMUX_PURL=https://github.com/owent-contrib/tmux-build-musl/releases/download/3.0a/tmux-3.0a.musl-bin.tar.gz ;
 

@@ -20,7 +20,7 @@ chmod +x $CURRENT_SCRIPT_DIR/*.sh ;
 # Development tools
 apt install -y systemd-coredump libssl-dev python3-setuptools python3-pip python3-mako perl automake gdb valgrind unzip lunzip  \
                p7zip-full autoconf libtool build-essential pkg-config gettext asciidoc xmlto xmltoman expat libexpat1-dev       \
-               libcurl4-openssl-dev re2c gettext zlibc zlib1g zlib1g-dev default-jdk
+               libcurl4-openssl-dev re2c gettext zlibc zlib1g zlib1g-dev default-jdk chrpath
 
 export SETUP_INSTALL_DISTRIBUTION_DEBIAN=$(cat /etc/os-release | perl -n -e'/VERSION_ID="?([^"]+)"?/ && print $1') ;
 
