@@ -40,6 +40,11 @@ if [ "x" == "x$SETUP_WITH_INTERNAL_SERVICE_PORT" ]; then
     SETUP_WITH_INTERNAL_SERVICE_PORT="{22, 53, 6881, 6882, 6883, 8371, 8372, 36000}"
 fi
 
+if [ "x" == "x$SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT" ]; then
+    # NTP Port: 123
+    SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT="{123}"
+fi
+
 if [ "x" == "x$SETUP_WITH_DEBUG_LOG" ]; then
     SETUP_WITH_DEBUG_LOG=0
 fi
@@ -97,6 +102,7 @@ nft flush chain ip v2ray PREROUTING
 ### ipv4 - skip internal services
 nft add rule ip v2ray PREROUTING tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 nft add rule ip v2ray PREROUTING udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
+nft add rule ip v2ray PREROUTING udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     nft add rule ip v2ray PREROUTING tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###TCP4#PREROU:"' level debug flags all
     nft add rule ip v2ray PREROUTING udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###UDP4#PREROU:"' level debug flags all
@@ -139,6 +145,7 @@ nft flush chain ip v2ray OUTPUT
 ### ipv4 - skip internal services
 nft add rule ip v2ray OUTPUT tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 nft add rule ip v2ray OUTPUT udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
+nft add rule ip v2ray OUTPUT udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     nft add rule ip v2ray OUTPUT tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###TCP4#OUTPUT:"' level debug flags all
     nft add rule ip v2ray OUTPUT udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###UDP4#OUTPUT:"' level debug flags all
@@ -177,6 +184,7 @@ nft flush chain ip6 v2ray PREROUTING
 ### ipv6 - skip internal services
 nft add rule ip6 v2ray PREROUTING tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 nft add rule ip6 v2ray PREROUTING udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
+nft add rule ip6 v2ray PREROUTING udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
 nft add rule ip6 v2ray PREROUTING mark 255 return
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     nft add rule ip6 v2ray PREROUTING tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###TCP6#PREROU:"' level debug flags all
@@ -218,6 +226,7 @@ nft flush chain ip6 v2ray OUTPUT
 ### ipv6 - skip internal services
 nft add rule ip6 v2ray OUTPUT tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 nft add rule ip6 v2ray OUTPUT udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
+nft add rule ip6 v2ray OUTPUT udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     nft add rule ip6 v2ray OUTPUT tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###TCP6#OUTPUT:"' level debug flags all
     nft add rule ip6 v2ray OUTPUT udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###UDP6#OUTPUT:"' level debug flags all
@@ -253,6 +262,7 @@ nft flush chain bridge v2ray PREROUTING
 ### bridge - skip internal services
 nft add rule bridge v2ray PREROUTING tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 nft add rule bridge v2ray PREROUTING udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
+nft add rule bridge v2ray PREROUTING udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     nft add rule bridge v2ray PREROUTING tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###BRIDGE#PREROU:"' level debug flags all
     nft add rule bridge v2ray PREROUTING udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###BRIDGE#PREROU:"' level debug flags all

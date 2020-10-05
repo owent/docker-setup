@@ -40,6 +40,11 @@ if [ "x" == "x$SETUP_WITH_INTERNAL_SERVICE_PORT" ]; then
     SETUP_WITH_INTERNAL_SERVICE_PORT="22,53,6881,6882,6883,8371,8372,36000"
 fi
 
+if [ "x" == "x$SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT" ]; then
+    # NTP Port: 123
+    SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT="123"
+fi
+
 if [ "x" == "x$SETUP_WITH_DEBUG_LOG" ]; then
     SETUP_WITH_DEBUG_LOG=0
 fi
@@ -94,6 +99,7 @@ fi
 ### ipv4 - skip internal services
 iptables -t mangle -A V2RAY -p tcp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
 iptables -t mangle -A V2RAY -p udp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
+iptables -t mangle -A V2RAY -p udp -m multiport --dports $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT -j RETURN
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     iptables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j LOG --log-level debug --log-prefix "###TCP4#PREROU:"
 fi
@@ -136,6 +142,7 @@ iptables -t mangle -A PREROUTING -j V2RAY # apply rules
 ### ipv4 - skip internal services
 iptables -t mangle -A V2RAY_MASK -p tcp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
 iptables -t mangle -A V2RAY_MASK -p udp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
+iptables -t mangle -A V2RAY_MASK -p udp -m multiport --dports $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT -j RETURN
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     iptables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j LOG --log-level debug --log-prefix "###TCP4#OUTPUT:"
 fi
@@ -200,6 +207,7 @@ fi
 ### ipv6 - skip internal services
 ip6tables -t mangle -A V2RAY -p tcp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
 ip6tables -t mangle -A V2RAY -p udp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
+ip6tables -t mangle -A V2RAY -p udp -m multiport --dports $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT -j RETURN
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     ip6tables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j LOG --log-level debug --log-prefix "###TCP6#PREROU:"
 fi
@@ -241,6 +249,7 @@ ip6tables -t mangle -A PREROUTING -j V2RAY # apply rules
 ### ipv6 - skip internal services
 ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
 ip6tables -t mangle -A V2RAY_MASK -p udp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
+ip6tables -t mangle -A V2RAY_MASK -p udp -m multiport --dports $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT -j RETURN
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j LOG --log-level debug --log-prefix "###TCP6#OUTPUT:"
 fi
@@ -289,6 +298,10 @@ for SKIP_PORT in $(echo $SETUP_WITH_INTERNAL_SERVICE_PORT | sed 's/,/ /g'); do
     ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-proto udp --ip6-sport $SKIP_PORT -j RETURN
 done
 
+for SKIP_PORT in $(echo $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT | sed 's/,/ /g'); do
+    ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-proto udp --ip-dport $SKIP_PORT -j RETURN
+    ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-proto udp --ip6-dport $SKIP_PORT -j RETURN
+done
 
 ### bridge - skip link-local and broadcast address
 ebtables -t broute -A V2RAY_BRIDGE --mark 0xff -j RETURN
