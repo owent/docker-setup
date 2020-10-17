@@ -27,8 +27,18 @@ fi
 
 ADMIN_TOKEN=$(openssl rand -base64 48);
 
+# -e SMTP_HOST=smtp.exmail.qq.com                                                   \
+# -e SMTP_FROM=admin@owent.net                                                      \
+# -e SMTP_PORT=465                                                                  \
+# -e SMTP_SSL=true                                                                  \
+# -e SMTP_USERNAME=admin@owent.net                                                  \
+# -e SMTP_PASSWORD=<TOKEN>                                                          \
+
+# -e ROCKET_WORKERS=8
+
 podman run -d --name bitwarden                                                           \
        -e ROCKET_TLS='{certs="/ssl/fullchain.cer",key="/ssl/owent.net.key"}'             \
+       -e DOMAIN=https://bitwarden.x-ha.com:8381/                                        \
        -e SIGNUPS_ALLOWED=false -e WEBSOCKET_ENABLED=true                                \
        -e ROCKET_PORT=8381 -e WEBSOCKET_PORT=8382                                        \
        -e INVITATIONS_ALLOWED=false -e LOG_FILE=/logs/bitwarden.log                      \
