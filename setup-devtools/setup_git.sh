@@ -1,5 +1,11 @@
 #!/bin/bash
 
+if [[ -z "$SETUP_INSTALL_PREFIX" ]]; then
+    SETUP_INSTALL_PREFIX=/opt
+fi
+
+# Require xmlto and asciidoc to build documents
+
 mkdir -p $SETUP_INSTALL_PREFIX/git ;
 cd $SETUP_INSTALL_PREFIX/git ;
 
