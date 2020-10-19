@@ -16,7 +16,10 @@ export PATH="$SETUP_INSTALL_PREFIX/bin:$PATH"
 
 mkdir -p "$SETUP_INSTALL_PREFIX/bin";
 
-wget https://github.com/skvadrik/re2c/releases/download/$RE2C_VERSION/re2c-$RE2C_VERSION.tar.xz;
+if [[ ! -e "re2c-$RE2C_VERSION.tar.xz" ]]; then
+    wget https://github.com/skvadrik/re2c/releases/download/$RE2C_VERSION/re2c-$RE2C_VERSION.tar.xz;
+fi
+
 tar -axvf re2c-$RE2C_VERSION.tar.xz ;
 cd re2c-$RE2C_VERSION ;
 ./configure --prefix=$SETUP_INSTALL_PREFIX/re2c/$RE2C_VERSION --with-pic=yes;
@@ -33,7 +36,9 @@ done
 
 cd ..;
 
-wget https://mirrors.edge.kernel.org/pub/software/scm/git/git-$GIT_VERSION.tar.xz;
+if [[ ! -e "git-$GIT_VERSION.tar.xz" ]]; then
+    wget https://mirrors.edge.kernel.org/pub/software/scm/git/git-$GIT_VERSION.tar.xz;
+fi
 tar -axvf git-$GIT_VERSION.tar.xz ;
 cd git-$GIT_VERSION;
 ./configure --prefix=$SETUP_INSTALL_PREFIX/git/$GIT_VERSION --with-curl --with-expat --with-openssl --with-libpcre2 --with-editor=vim ;
@@ -55,7 +60,9 @@ mkdir -p git-lfs;
 cd git-lfs;
 
 # git lfs
-wget https://github.com/git-lfs/git-lfs/releases/download/v$GIT_LFS_VERSION/git-lfs-linux-amd64-v$GIT_LFS_VERSION.tar.gz ;
+if [[ ! -e "git-lfs-linux-amd64-v$GIT_LFS_VERSION.tar.gz" ]]; then
+    wget https://github.com/git-lfs/git-lfs/releases/download/v$GIT_LFS_VERSION/git-lfs-linux-amd64-v$GIT_LFS_VERSION.tar.gz ;
+fi
 mkdir git-lfs-v$GIT_LFS_VERSION;
 cd git-lfs-v$GIT_LFS_VERSION ; 
 tar -axvf ../git-lfs-linux-amd64-v$GIT_LFS_VERSION.tar.gz ;
