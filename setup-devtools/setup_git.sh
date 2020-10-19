@@ -8,13 +8,14 @@ GIT_VERSION=2.28.0 ;
 GIT_LFS_VERSION=2.12.0 ;
 export PATH="$SETUP_INSTALL_PREFIX/bin:$PATH"
 
+mkdir -p "$SETUP_INSTALL_PREFIX/bin";
+
 wget https://github.com/skvadrik/re2c/releases/download/$RE2C_VERSION/re2c-$RE2C_VERSION.tar.xz;
 tar -axvf re2c-$RE2C_VERSION.tar.xz ;
 cd re2c-$RE2C_VERSION ;
 ./configure --prefix=$SETUP_INSTALL_PREFIX/re2c/$RE2C_VERSION --with-pic=yes;
 make -j8;
 make install;
-
 
 for UPDATE_LNK in $SETUP_INSTALL_PREFIX/re2c/$RE2C_VERSION/bin/*; do
     UNDATE_LNK_BASENAME="$(basename "$UPDATE_LNK")";
