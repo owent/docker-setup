@@ -60,6 +60,7 @@ net.ipv4.tcp_keepalive_intvl = 75
 net.ipv4.tcp_keepalive_probes = 6
 net.ipv4.ip_forward=1
 net.ipv4.ip_forward_use_pmtu=1
+net.ipv4.ip_local_port_range=\"10240 65000\"
 net.ipv4.conf.all.forwarding=1
 net.ipv4.conf.default.forwarding=1
 net.ipv6.conf.all.forwarding=1

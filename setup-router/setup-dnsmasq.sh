@@ -49,8 +49,8 @@ server=119.29.29.29
 ' > /etc/dnsmasq.d/router.conf
 
 # echo '
-# #address=/ouri.app/104.27.145.8
-# #address=/ouri.app/2606:4700:30::681b:9108
+# #address=/shkits.com/104.27.145.8
+# #address=/shkits.com/2606:4700:30::681b:9108
 # ' > /etc/dnsmasq.d/custom.conf
 
 echo 'search localhost
