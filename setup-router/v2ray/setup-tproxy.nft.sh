@@ -117,6 +117,8 @@ nft add rule ip v2ray PREROUTING ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0
 # nft add rule ip v2ray PREROUTING meta l4proto tcp ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} return
 # nft add rule ip v2ray PREROUTING ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} udp dport != 53 return
 # nft add rule ip v2ray PREROUTING ip daddr {GATEWAY_ADDRESSES} return
+### ipv4 - skip CN DNS
+nft add rule ip v2ray PREROUTING ip daddr {119.29.29.29/32, 223.5.5.5/32, 223.6.6.6/32, 180.76.76.76/32} return
 
 # ipv4 skip package from outside
 nft add rule ip v2ray PREROUTING ip daddr @BLACKLIST return
@@ -157,6 +159,8 @@ nft add rule ip v2ray OUTPUT ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8
 # nft add rule ip v2ray OUTPUT meta l4proto tcp ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} return
 # nft add rule ip v2ray OUTPUT ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} udp dport != 53 return
 # nft add rule ip v2ray OUTPUT ip daddr {GATEWAY_ADDRESSES} return
+### ipv4 - skip CN DNS
+nft add rule ip v2ray OUTPUT ip daddr {119.29.29.29/32, 223.5.5.5/32, 223.6.6.6/32, 180.76.76.76/32} return
 nft add rule ip v2ray OUTPUT mark 255 return
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     nft add rule ip v2ray OUTPUT tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT meta nftrace set 1
@@ -199,6 +203,8 @@ nft add rule ip6 v2ray PREROUTING ip6 daddr {::1/128, fc00::/7, fe80::/10, ff00:
 # nft add rule ip6 v2ray PREROUTING meta l4proto tcp ip6 daddr fd00::/8 return
 # nft add rule ip6 v2ray PREROUTING ip6 daddr fd00::/8 udp dport != 53 return
 # nft add rule ip6 v2ray PREROUTING ip6 daddr {GATEWAY_ADDRESSES} return
+### ipv6 - skip CN DNS
+nft add rule ip6 v2ray PREROUTING ip daddr {2400:3200::1/128, 2400:3200:baba::1/128, 2400:da00::6666/128} return
 
 # ipv6 skip package from outside
 nft add rule ip6 v2ray PREROUTING ip6 daddr @BLACKLIST return
@@ -238,6 +244,8 @@ nft add rule ip6 v2ray OUTPUT ip6 daddr fd00::/8 return
 # nft add rule ip6 v2ray OUTPUT meta l4proto tcp ip6 daddr fd00::/8 return
 # nft add rule ip6 v2ray OUTPUT ip6 daddr fd00::/8 udp dport != 53 return
 # nft add rule ip6 v2ray OUTPUT ip6 daddr {GATEWAY_ADDRESSES} return
+### ipv6 - skip CN DNS
+nft add rule ip6 v2ray OUTPUT ip6 daddr {2400:3200::1/128, 2400:3200:baba::1/128, 2400:da00::6666/128} return
 nft add rule ip6 v2ray OUTPUT mark 255 return # make sure v2ray's outbounds.*.streamSettings.sockopt.mark = 255
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     nft add rule ip6 v2ray OUTPUT tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT meta nftrace set 1
@@ -271,7 +279,6 @@ fi
 ### bridge - skip link-local and broadcast address
 nft add rule bridge v2ray PREROUTING mark 255 return
 
-nft add rule bridge v2ray PREROUTING ip daddr {127.0.0.1/32, 224.0.0.0/4, 255.255.255.255/32} return
 ### bridge - skip private network and UDP of DNS
 nft add rule bridge v2ray PREROUTING ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} return
 # if dns service and V2RAY are on different server, use rules below
@@ -288,6 +295,9 @@ nft add rule bridge v2ray PREROUTING ip6 daddr {::1/128, fc00::/7, fe80::/10, ff
 # nft add rule bridge v2ray PREROUTING ip6 daddr fd00::/8 udp dport != 53 return
 # nft add rule bridge v2ray PREROUTING ip6 daddr {GATEWAY_ADDRESSES} return
 
+### bridge - skip CN DNS
+nft add rule bridge v2ray PREROUTING ip daddr {119.29.29.29/32, 223.5.5.5/32, 223.6.6.6/32, 180.76.76.76/32} return
+nft add rule bridge v2ray PREROUTING ip6 daddr {2400:3200::1/128, 2400:3200:baba::1/128, 2400:da00::6666/128} return
 
 # bridge skip package from outside
 # nft add rule bridge v2ray PREROUTING ip daddr @BLACKLIST return

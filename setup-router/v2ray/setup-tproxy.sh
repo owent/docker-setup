@@ -113,6 +113,8 @@ iptables -t mangle -A V2RAY -d 192.168.0.0/16,172.16.0.0/12,10.0.0.0/8 -j RETURN
 # iptables -t mangle -A V2RAY -p tcp -d 192.168.0.0/16,172.16.0.0/12,10.0.0.0/8 -j RETURN
 # iptables -t mangle -A V2RAY -p udp -d 192.168.0.0/16,172.16.0.0/12,10.0.0.0/8 ! --dport 53 -j RETURN
 # iptables -t mangle -A V2RAY -p tcp -d $GATEWAY_ADDRESSES -j RETURN
+### ipv4 - skip CN DNS
+iptables -t mangle -A V2RAY -d 119.29.29.29/32,223.5.5.5/32,223.6.6.6/32,180.76.76.76/32 -j RETURN
 
 # ipv4 skip package from outside
 iptables -t mangle -A V2RAY -p tcp -m set --match-set V2RAY_BLACKLIST_IPV4 dst -j RETURN
@@ -155,6 +157,8 @@ iptables -t mangle -A V2RAY_MASK -d 192.168.0.0/16,172.16.0.0/12,10.0.0.0/8 -j R
 # iptables -t mangle -A V2RAY_MASK -p tcp -d 192.168.0.0/16,172.16.0.0/12,10.0.0.0/8 -j RETURN
 # iptables -t mangle -A V2RAY_MASK -p udp -d 192.168.0.0/16,172.16.0.0/12,10.0.0.0/8 ! --dport 53 -j RETURN
 # iptables -t mangle -A V2RAY_MASK -p tcp -d $GATEWAY_ADDRESSES -j RETURN
+### ipv4 - skip CN DNS
+iptables -t mangle -A V2RAY_MASK -d 119.29.29.29/32,223.5.5.5/32,223.6.6.6/32,180.76.76.76/32 -j RETURN
 iptables -t mangle -A V2RAY_MASK -p tcp -m set --match-set V2RAY_BLACKLIST_IPV4 dst -j RETURN
 iptables -t mangle -A V2RAY_MASK -p udp -m set --match-set V2RAY_BLACKLIST_IPV4 dst -j RETURN
 iptables -t mangle -A V2RAY_MASK -p tcp -m set --match-set GEOIP_IPV4_CN dst -j RETURN
@@ -220,6 +224,8 @@ ip6tables -t mangle -A V2RAY -m mark --mark 0xff -j RETURN
 # ip6tables -t mangle -A V2RAY -p tcp -d ::1/128,fc00::/7,fe80::/10,ff00::/8 -j RETURN
 # ip6tables -t mangle -A V2RAY -p udp -d ::1/128,fc00::/7,fe80::/10,ff00::/8 ! --dport 53 -j RETURN
 # ip6tables -t mangle -A V2RAY -p tcp -d $GATEWAY_ADDRESSES -j RETURN
+### ipv6 - skip CN DNS
+ip6tables -t mangle -A V2RAY -d 2400:3200::1/128,2400:3200:baba::1/128,2400:da00::6666/128 -j RETURN
 
 # ipv6 skip package from outside
 ip6tables -t mangle -A V2RAY -p tcp -m set --match-set V2RAY_BLACKLIST_IPV6 dst -j RETURN
@@ -261,12 +267,14 @@ ip6tables -t mangle -A V2RAY_MASK -m mark --mark 0xff -j RETURN
 # ip6tables -t mangle -A V2RAY_MASK -p tcp -d ::1/128,fc00::/7,fe80::/10,ff00::/8 -j RETURN
 # ip6tables -t mangle -A V2RAY_MASK -p udp -d ::1/128,fc00::/7,fe80::/10,ff00::/8 ! --dport 53 -j RETURN
 # ip6tables -t mangle -A V2RAY_MASK -p tcp -d $GATEWAY_ADDRESSES -j RETURN
-ip6tables -t mangle -A V2RAY -p tcp -m set --match-set V2RAY_BLACKLIST_IPV6 dst -j RETURN
-ip6tables -t mangle -A V2RAY -p udp -m set --match-set V2RAY_BLACKLIST_IPV6 dst -j RETURN
-ip6tables -t mangle -A V2RAY -p tcp -m set --match-set GEOIP_IPV6_CN dst -j RETURN
-ip6tables -t mangle -A V2RAY -p udp -m set --match-set GEOIP_IPV6_CN dst -j RETURN
-ip6tables -t mangle -A V2RAY -p tcp -m set --match-set GEOIP_IPV6_HK dst -j RETURN
-ip6tables -t mangle -A V2RAY -p udp -m set --match-set GEOIP_IPV6_HK dst -j RETURN
+### ipv6 - skip CN DNS
+ip6tables -t mangle -A V2RAY_MASK -d 2400:3200::1/128,2400:3200:baba::1/128,2400:da00::6666/128 -j RETURN
+ip6tables -t mangle -A V2RAY_MASK -p tcp -m set --match-set V2RAY_BLACKLIST_IPV6 dst -j RETURN
+ip6tables -t mangle -A V2RAY_MASK -p udp -m set --match-set V2RAY_BLACKLIST_IPV6 dst -j RETURN
+ip6tables -t mangle -A V2RAY_MASK -p tcp -m set --match-set GEOIP_IPV6_CN dst -j RETURN
+ip6tables -t mangle -A V2RAY_MASK -p udp -m set --match-set GEOIP_IPV6_CN dst -j RETURN
+ip6tables -t mangle -A V2RAY_MASK -p tcp -m set --match-set GEOIP_IPV6_HK dst -j RETURN
+ip6tables -t mangle -A V2RAY_MASK -p udp -m set --match-set GEOIP_IPV6_HK dst -j RETURN
 
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     # ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j TRACE
@@ -305,6 +313,7 @@ done
 
 ### bridge - skip link-local and broadcast address
 ebtables -t broute -A V2RAY_BRIDGE --mark 0xff -j RETURN
+
 ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 127.0.0.1/32 -j RETURN
 ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 224.0.0.0/4 -j RETURN
 ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 255.255.255.255/32 -j RETURN
@@ -317,6 +326,15 @@ ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst ff00::/8 -j RETURN
 ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 192.168.0.0/16 -j RETURN
 ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 172.16.0.0/12 -j RETURN
 ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 10.0.0.0/8 -j RETURN
+
+### bridge - skip CN DNS
+ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 119.29.29.29/32 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 223.5.5.5/32 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 223.6.6.6/32 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 180.76.76.76/32 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst 2400:3200::1/128 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst 2400:3200:baba::1/128 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst 2400:da00::6666/128 -j RETURN
 
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     ebtables -t broute -A V2RAY_BRIDGE --log-ip --log-level debug --log-prefix "---BRIDGE-DROP: "

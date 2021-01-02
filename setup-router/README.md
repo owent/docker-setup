@@ -83,6 +83,12 @@ net.ipv4.conf.br0.route_localnet=1
 net.ipv4.conf.enp1s0f0.route_localnet=1
 net.ipv4.conf.enp1s0f1.route_localnet=1
 " > /etc/sysctl.d/91-forwarding.conf ;
+
+echo "
+kernel.unprivileged_userns_clone=1
+user.max_user_namespaces=28633
+" > /etc/sysctl.d/92-container.conf ;
+
 sysctl -p ;
 
 # Check and enable bbr
@@ -98,7 +104,6 @@ if [ $? -eq 0 ]; then
 net.ipv4.tcp_congestion_control = bbr" >> /etc/sysctl.d/91-forwarding.conf ;
     fi
 fi
-
 
 # systemd-resolved will listen 53 and will conflict with our dnsmasq.service
 sed -i -r 's/#?DNSStubListener[[:space:]]*=.*/DNSStubListener=no/g'  /etc/systemd/resolved.conf ;
@@ -202,3 +207,83 @@ Accept: */*
 |filter | -200  | all         |
 |out    | 100   | output      |
 |srcnat | 300   | postrouting |
+
+
+## Public DNS
+
+See https://en.wikipedia.org/wiki/Public_recursive_name_server for more details
+
++ Dnspod
+  + 119.29.29.29
+  + [DoH: RFC 8484][1] https://dns.pub/dns-query , https://doh.pub/dns-query
+  + [DoT: RFC 7858][2] dns.pub , doh.pub
+  + [DNSCrypt][3] ```sdns://AgAAAAAAAAAAACDrdSX4jw2UWPgamVAZv9NMuJzNyVfnsO8xXxD4l2OBGAdkb2gucHViCi9kbnMtcXVlcnk```
+
+  > Home: https://www.dnspod.cn/Products/Public.DNS
+  > DoT/DoH: https://docs.dnspod.cn/public-dns/5fb5db1462110a2b153a77dd/
+
++ Aliyun
+  + 223.5.5.5
+  + 223.6.6.6
+  + 2400:3200::1
+  + 2400:3200:baba::1
+  + [DoH: RFC 8484][1] https://dns.alidns.com/dns-query , https://<IP>/dns-query
+  + [DoT: RFC 7858][2] dns.alidns.com , <IP>
+  + [DNSCrypt][3] ```sdns://AgAAAAAAAAAACTIyMy41LjUuNSCoF6cUD2dwqtorNi96I2e3nkHPSJH1ka3xbdOglmOVkQ5kbnMuYWxpZG5zLmNvbQovZG5zLXF1ZXJ5```
+
+  > Home: https://alidns.com/
+  > DoT/DoH: https://www.alidns.com/faqs/?spm=a2chw.13814944.0.0.783a1760ibr9Md#dns-safe
+
++ Baidu
+  + 180.76.76.76
+  + 2400:da00::6666
++ Google
+  + 8.8.8.8
+  + 8.8.4.4
+  + 2001:4860:4860::8888
+  + 2001:4860:4860::8844
+  + [DoH: RFC 8484][1] https://dns.google/dns-query
+  + [DoT: RFC 7858][2] dns.google
+  + [DNSCrypt][3] ```sdns://AgUAAAAAAAAABzguOC44LjigHvYkz_9ea9O63fP92_3qVlRn43cpncfuZnUWbzAMwbkgdoAkR6AZkxo_AEMExT_cbBssN43Evo9zs5_ZyWnftEUKZG5zLmdvb2dsZQovZG5zLXF1ZXJ5```
+  + [DNSCrypt][3] - ipv6 ```sdns://AgUAAAAAAAAAFlsyMDAxOjQ4NjA6NDg2MDo6ODg4OF2gHvYkz_9ea9O63fP92_3qVlRn43cpncfuZnUWbzAMwbkgdoAkR6AZkxo_AEMExT_cbBssN43Evo9zs5_ZyWnftEUKZG5zLmdvb2dsZQovZG5zLXF1ZXJ5```
++ Cloudflare
+  + 1.1.1.1
+  + 1.0.0.1
+  + 2606:4700:4700::1111
+  + 2606:4700:4700::1001
+  + [DoH: RFC 8484][1] https://one.one.one.one/dns-query , https://<IP>/dns-query
+  + [DoT: RFC 7858][2] one.one.one.one , <IP>
+  + [DNSCrypt][3] ```sdns://AgcAAAAAAAAABzEuMC4wLjEAEmRucy5jbG91ZGZsYXJlLmNvbQovZG5zLXF1ZXJ5```
+  + [DNSCrypt][3] - ipv6 ```sdns://AgcAAAAAAAAAFlsyNjA2OjQ3MDA6NDcwMDo6MTExMV0AIDFkb3QxZG90MWRvdDEuY2xvdWRmbGFyZS1kbnMuY29tCi9kbnMtcXVlcnk``` , ```sdns://AgcAAAAAAAAAFlsyNjA2OjQ3MDA6NDcwMDo6MTAwMV0AIDFkb3QxZG90MWRvdDEuY2xvdWRmbGFyZS1kbnMuY29tCi9kbnMtcXVlcnk```
+
+  > DoT/DoH: https://developers.cloudflare.com/1.1.1.1/dns-over-https
+
++ AdGuard
+  + 94.140.14.14
+  + 94.140.15.15
+  + 2a10:50c0::ad1:ff
+  + 2a10:50c0::ad2:ff
+  + [DoH: RFC 8484][1] https://dns.adguard.com/dns-query , https://<IP>/dns-query
+  + [DoT: RFC 7858][2] dns.adguard.com , <IP>
+  + [DNSCrypt][3] ```sdns://AQIAAAAAAAAAFDE3Ni4xMDMuMTMwLjEzMDo1NDQzINErR_JS3PLCu_iZEIbq95zkSV2LFsigxDIuUso_OQhzIjIuZG5zY3J5cHQuZGVmYXVsdC5uczEuYWRndWFyZC5jb20```
+  + [DoQ][4]
++ Quad9
+  + 9.9.9.9
+  + 149.112.112.112
+  + 2620:fe::10
+  + 2620:fe::fe:10
+  + [DoT: RFC 7858][2] dns.quad9.net
+  + [DoT: RFC 7858][2] <IP>
++ OpenDNS
+  + 208.67.222.222
+  + 208.67.220.220
+  + 2620:119:35::35
+  + 2620:119:53::53
+
+
+> [DoT: RFC 7858][2] port: 853
+
+[1]: https://tools.ietf.org/html/rfc8484 "RFC 8484"
+[2]: https://tools.ietf.org/html/rfc7858 "RFC 7858"
+[3]: https://dnscrypt.info/ "DNSCrypt"
+[4]: https://tools.ietf.org/html/draft-huitema-quic-dnsoquic-07 "DNS over Quic"

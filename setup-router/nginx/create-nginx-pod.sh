@@ -53,9 +53,11 @@ podman run -d --name nginx                                                      
     --mount type=bind,source=/home/website/ssl,target=/home/website/ssl,ro=true                \
     --mount type=bind,source=/home/website/etc/nginx.conf,target=/etc/nginx/nginx.conf         \
     --mount type=bind,source=/home/website/etc/conf.d,target=/etc/nginx/conf.d                 \
-    -p 80:80/tcp -p 80:80/udp -p 443:443/tcp -p 443:443/udp                                    \
+    --network=host                                                                             \
     docker.io/nginx:latest
 
+# Some system with old slirp4netns do not work, debian 10 for example, so we use --network=host here
+# -p 80:80/tcp -p 80:80/udp -p 443:443/tcp -p 443:443/udp                                    \
 if [[ $? -ne 0 ]]; then
     exit $?;
 fi
