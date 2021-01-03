@@ -19,4 +19,29 @@ else
     export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
-ip -4 route delete 0.0.0.0/0 via $5 dev $1 ;
+ip -4 route delete 0.0.0.0/0 via $IPREMOTE dev $IFNAME ;
+
+which nft > /dev/null 2>&1 ;
+if [[ $? -eq 0 ]]; then
+    # sync to v2ray BLACKLIST
+    nft list table ip v2ray > /dev/null 2>&1 ;
+    if [[ $? -ne 0 ]]; then
+        nft add table ip v2ray
+    fi
+    nft list set ip v2ray BLACKLIST > /dev/null 2>&1 ;
+    if [[ $? -ne 0 ]]; then
+        nft add set ip v2ray BLACKLIST { type ipv4_addr\; }
+    fi
+    nft delete element ip v2ray BLACKLIST { $IPLOCAL } ;
+fi
+
+which ipset > /dev/null 2>&1 ;
+if [[ $? -eq 0 ]]; then
+    ipset list V2RAY_BLACKLIST_IPV4 > /dev/null 2>&1 ;
+    if [[ $? -ne 0 ]]; then
+        ipset create V2RAY_BLACKLIST_IPV4 hash:ip family inet;
+    fi
+
+    ipset del V2RAY_BLACKLIST_IPV4 $IPLOCAL;
+fi
+

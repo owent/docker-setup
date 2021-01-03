@@ -16,9 +16,6 @@ cd /home/router/etc/v2ray ;
 #   @see https://bbs.archlinux.org/viewtopic.php?id=251410
 #   @see https://github.com/containers/libpod/issues/4522
 
-
-/home/router/v2ray/create-v2ray-pod.sh
-
 podman container inspect v2ray > /dev/null 2>&1
 if [ $? -eq 0 ]; then
 
@@ -49,6 +46,7 @@ fi
 
 curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/ipv4_cn.ipset" -o ipv4_cn.ipset
 if [ $? -eq 0 ]; then
+    # ipset
     ipset list GEOIP_IPV4_CN > /dev/null 2>&1 ;
     if [ $? -eq 0 ]; then
         ipset flush GEOIP_IPV4_CN;
@@ -57,10 +55,22 @@ if [ $? -eq 0 ]; then
     fi
 
     cat ipv4_cn.ipset | ipset restore ;
+    # nft set
+    nft list table ip v2ray > /dev/null 2>&1 ;
+    if [ $? -ne 0 ]; then
+        nft add table ip v2ray
+    fi
+    nft list set ip v2ray GEOIP_CN > /dev/null 2>&1 ;
+    if [ $? -ne 0 ]; then
+        nft add set ip v2ray GEOIP_CN { type ipv4_addr\; flags interval\; }
+    fi
+    nft flush set ip v2ray GEOIP_CN ;
+    # cat ipv4_cn.ipset | awk '{print $NF}' | xargs -r -I IPADDR nft add element ip v2ray GEOIP_CN { IPADDR } ;
 fi
 
 curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/ipv4_hk.ipset" -o ipv4_hk.ipset
 if [ $? -eq 0 ]; then
+    # ipset
     ipset list GEOIP_IPV4_HK > /dev/null 2>&1 ;
     if [ $? -eq 0 ]; then
         ipset flush GEOIP_IPV4_HK;
@@ -69,10 +79,22 @@ if [ $? -eq 0 ]; then
     fi
 
     cat ipv4_hk.ipset | ipset restore ;
+    # nft set
+    nft list table ip v2ray > /dev/null 2>&1 ;
+    if [ $? -ne 0 ]; then
+        nft add table ip v2ray
+    fi
+    nft list set ip v2ray GEOIP_HK > /dev/null 2>&1 ;
+    if [ $? -ne 0 ]; then
+        nft add set ip v2ray GEOIP_HK { type ipv4_addr\; flags interval\; }
+    fi
+    nft flush set ip v2ray GEOIP_HK ;
+    # cat ipv4_cn.ipset | awk '{print $NF}' | xargs -r -I IPADDR nft add element ip v2ray GEOIP_HK { IPADDR } ;
 fi
 
 curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/ipv6_cn.ipset" -o ipv6_cn.ipset
 if [ $? -eq 0 ]; then
+    # ipset
     ipset list GEOIP_IPV6_CN > /dev/null 2>&1 ;
     if [ $? -eq 0 ]; then
         ipset flush GEOIP_IPV6_CN;
@@ -81,10 +103,22 @@ if [ $? -eq 0 ]; then
     fi
 
     cat ipv6_cn.ipset | ipset restore ;
+    # nft set
+    nft list table ip6 v2ray > /dev/null 2>&1 ;
+    if [ $? -ne 0 ]; then
+        nft add table ip6 v2ray
+    fi
+    nft list set ip6 v2ray GEOIP_CN > /dev/null 2>&1 ;
+    if [ $? -ne 0 ]; then
+        nft add set ip6 v2ray GEOIP_CN { type ipv6_addr\; flags interval\; }
+    fi
+    nft flush set ip6 v2ray GEOIP_CN ;
+    # cat ipv4_cn.ipset | awk '{print $NF}' | xargs -r -I IPADDR nft add element ip6 v2ray GEOIP_CN { IPADDR } ;
 fi
 
 curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/ipv6_hk.ipset" -o ipv6_hk.ipset
 if [ $? -eq 0 ]; then
+    # ipset
     ipset list GEOIP_IPV6_HK > /dev/null 2>&1 ;
     if [ $? -eq 0 ]; then
         ipset flush GEOIP_IPV6_HK;
@@ -93,10 +127,23 @@ if [ $? -eq 0 ]; then
     fi
 
     cat ipv6_hk.ipset | ipset restore ;
+
+    # nft set
+    nft list table ip6 v2ray > /dev/null 2>&1 ;
+    if [ $? -ne 0 ]; then
+        nft add table ip6 v2ray
+    fi
+    nft list set ip6 v2ray GEOIP_HK > /dev/null 2>&1 ;
+    if [ $? -ne 0 ]; then
+        nft add set ip6 v2ray GEOIP_HK { type ipv6_addr\; flags interval\; }
+    fi
+    nft flush set ip6 v2ray GEOIP_HK ;
+    # cat ipv4_cn.ipset | awk '{print $NF}' | xargs -r -I IPADDR nft add element ip6 v2ray GEOIP_HK { IPADDR } ;
 fi
 
 curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/dnsmasq-blacklist.conf" -o dnsmasq-blacklist.conf
 if [ $? -eq 0 ]; then
+    # ipset
     cp -f dnsmasq-blacklist.conf /etc/dnsmasq.d/10-dnsmasq-blacklist.router.conf
     ipset list DNSMASQ_GFW_IPV4 > /dev/null 2>&1 ;
     if [ $? -eq 0 ]; then

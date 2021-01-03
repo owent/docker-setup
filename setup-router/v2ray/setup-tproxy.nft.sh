@@ -92,6 +92,10 @@ nft list set ip v2ray GEOIP_CN > /dev/null 2>&1 ;
 if [ $? -ne 0 ]; then
     nft add set ip v2ray GEOIP_CN { type ipv4_addr\; flags interval\; }
 fi
+nft list set ip v2ray GEOIP_HK > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    nft add set ip v2ray GEOIP_HK { type ipv4_addr\; flags interval\; }
+fi
 
 nft list chain ip v2ray PREROUTING > /dev/null 2>&1 ;
 if [ $? -ne 0 ]; then
@@ -124,6 +128,8 @@ nft add rule ip v2ray PREROUTING ip daddr {119.29.29.29/32, 223.5.5.5/32, 223.6.
 nft add rule ip v2ray PREROUTING ip daddr @BLACKLIST return
 # GEOIP_CN
 nft add rule ip v2ray PREROUTING ip daddr @GEOIP_CN return
+## GEOIP_HK
+#nft add rule ip v2ray PREROUTING ip daddr @GEOIP_HK return
 ## TODO DNSMASQ_GFW_IPV4
 
 ### ipv4 - forward to v2ray's listen address if not marked by v2ray
@@ -178,6 +184,10 @@ nft list set ip6 v2ray GEOIP_CN > /dev/null 2>&1 ;
 if [ $? -ne 0 ]; then
     nft add set ip6 v2ray GEOIP_CN { type ipv6_addr\; flags interval\; }
 fi
+nft list set ip6 v2ray GEOIP_HK > /dev/null 2>&1 ;
+if [ $? -ne 0 ]; then
+    nft add set ip6 v2ray GEOIP_HK { type ipv6_addr\; flags interval\; }
+fi
 
 nft list chain ip6 v2ray PREROUTING > /dev/null 2>&1 ;
 if [ $? -ne 0 ]; then
@@ -210,6 +220,8 @@ nft add rule ip6 v2ray PREROUTING ip daddr {2400:3200::1/128, 2400:3200:baba::1/
 nft add rule ip6 v2ray PREROUTING ip6 daddr @BLACKLIST return
 # GEOIP_CN
 nft add rule ip v2ray PREROUTING ip daddr @GEOIP_CN return
+## GEOIP_HK
+#nft add rule ip v2ray PREROUTING ip daddr @GEOIP_HK return
 ## TODO DNSMASQ_GFW_IPV6
 
 ### ipv6 - forward to v2ray's listen address if not marked by v2ray

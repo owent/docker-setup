@@ -48,8 +48,6 @@ else
     mkdir -p "$SYSTEMD_SERVICE_DIR";
 fi
 
-podman pull docker.io/owt5008137/proxy-with-geo:latest ;
-
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
     systemctl --all | grep -F v2ray-proxy-with-geo.service > /dev/null 2>&1 ;
     if [ $? -eq 0 ]; then
@@ -75,6 +73,15 @@ if [[ $? -eq 0 ]]; then
     podman stop v2ray-proxy-with-geo ;
     podman rm -f v2ray-proxy-with-geo ;
 fi
+
+if [[ "x$V2RAY_UPDATE" != "x" ]]; then
+    podman image inspect docker.io/owt5008137/proxy-with-geo:latest > /dev/null 2>&1
+    if [[ $? -eq 0 ]]; then
+        podman image rm -f docker.io/owt5008137/proxy-with-geo:latest ;
+    fi
+fi
+
+podman pull docker.io/owt5008137/proxy-with-geo:latest ;
 
 podman run -d --name v2ray-proxy-with-geo                                               \
     --mount type=bind,source=$V2RAY_ETC_DIR,target=/usr/local/v2ray/etc,ro=true         \

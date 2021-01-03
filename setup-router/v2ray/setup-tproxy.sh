@@ -121,8 +121,8 @@ iptables -t mangle -A V2RAY -p tcp -m set --match-set V2RAY_BLACKLIST_IPV4 dst -
 iptables -t mangle -A V2RAY -p udp -m set --match-set V2RAY_BLACKLIST_IPV4 dst -j RETURN
 iptables -t mangle -A V2RAY -p tcp -m set --match-set GEOIP_IPV4_CN dst -j RETURN
 iptables -t mangle -A V2RAY -p udp -m set --match-set GEOIP_IPV4_CN dst -j RETURN
-iptables -t mangle -A V2RAY -p tcp -m set --match-set GEOIP_IPV4_HK dst -j RETURN
-iptables -t mangle -A V2RAY -p udp -m set --match-set GEOIP_IPV4_HK dst -j RETURN
+# iptables -t mangle -A V2RAY -p tcp -m set --match-set GEOIP_IPV4_HK dst -j RETURN
+# iptables -t mangle -A V2RAY -p udp -m set --match-set GEOIP_IPV4_HK dst -j RETURN
 # iptables -t mangle -A V2RAY -p tcp -m set ! --match-set DNSMASQ_GFW_IPV4 dst -j RETURN
 # iptables -t mangle -A V2RAY -p udp -m set ! --match-set DNSMASQ_GFW_IPV4 dst -j RETURN
 ### ipv4 - forward to v2ray's listen address if not marked by v2ray
@@ -163,8 +163,10 @@ iptables -t mangle -A V2RAY_MASK -p tcp -m set --match-set V2RAY_BLACKLIST_IPV4 
 iptables -t mangle -A V2RAY_MASK -p udp -m set --match-set V2RAY_BLACKLIST_IPV4 dst -j RETURN
 iptables -t mangle -A V2RAY_MASK -p tcp -m set --match-set GEOIP_IPV4_CN dst -j RETURN
 iptables -t mangle -A V2RAY_MASK -p udp -m set --match-set GEOIP_IPV4_CN dst -j RETURN
-iptables -t mangle -A V2RAY_MASK -p tcp -m set --match-set GEOIP_IPV4_HK dst -j RETURN
-iptables -t mangle -A V2RAY_MASK -p udp -m set --match-set GEOIP_IPV4_HK dst -j RETURN
+# iptables -t mangle -A V2RAY_MASK -p tcp -m set --match-set GEOIP_IPV4_HK dst -j RETURN
+# iptables -t mangle -A V2RAY_MASK -p udp -m set --match-set GEOIP_IPV4_HK dst -j RETURN
+# iptables -t mangle -A V2RAY_MASK -p tcp -m set --match-set DNSMASQ_GFW_IPV4 dst -j RETURN
+# iptables -t mangle -A V2RAY_MASK -p udp -m set --match-set DNSMASQ_GFW_IPV4 dst -j RETURN
 
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     # iptables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j TRACE
@@ -232,8 +234,8 @@ ip6tables -t mangle -A V2RAY -p tcp -m set --match-set V2RAY_BLACKLIST_IPV6 dst 
 ip6tables -t mangle -A V2RAY -p udp -m set --match-set V2RAY_BLACKLIST_IPV6 dst -j RETURN
 ip6tables -t mangle -A V2RAY -p tcp -m set --match-set GEOIP_IPV6_CN dst -j RETURN
 ip6tables -t mangle -A V2RAY -p udp -m set --match-set GEOIP_IPV6_CN dst -j RETURN
-ip6tables -t mangle -A V2RAY -p tcp -m set --match-set GEOIP_IPV6_HK dst -j RETURN
-ip6tables -t mangle -A V2RAY -p udp -m set --match-set GEOIP_IPV6_HK dst -j RETURN
+# ip6tables -t mangle -A V2RAY -p tcp -m set --match-set GEOIP_IPV6_HK dst -j RETURN
+# ip6tables -t mangle -A V2RAY -p udp -m set --match-set GEOIP_IPV6_HK dst -j RETURN
 # ip6tables -t mangle -A V2RAY -p tcp -m set ! --match-set DNSMASQ_GFW_IPV6 dst -j RETURN
 # ip6tables -t mangle -A V2RAY -p udp -m set ! --match-set DNSMASQ_GFW_IPV6 dst -j RETURN
 ### ipv6 - forward to v2ray's listen address if not marked by v2ray
@@ -273,8 +275,10 @@ ip6tables -t mangle -A V2RAY_MASK -p tcp -m set --match-set V2RAY_BLACKLIST_IPV6
 ip6tables -t mangle -A V2RAY_MASK -p udp -m set --match-set V2RAY_BLACKLIST_IPV6 dst -j RETURN
 ip6tables -t mangle -A V2RAY_MASK -p tcp -m set --match-set GEOIP_IPV6_CN dst -j RETURN
 ip6tables -t mangle -A V2RAY_MASK -p udp -m set --match-set GEOIP_IPV6_CN dst -j RETURN
-ip6tables -t mangle -A V2RAY_MASK -p tcp -m set --match-set GEOIP_IPV6_HK dst -j RETURN
-ip6tables -t mangle -A V2RAY_MASK -p udp -m set --match-set GEOIP_IPV6_HK dst -j RETURN
+# ip6tables -t mangle -A V2RAY_MASK -p tcp -m set --match-set GEOIP_IPV6_HK dst -j RETURN
+# ip6tables -t mangle -A V2RAY_MASK -p udp -m set --match-set GEOIP_IPV6_HK dst -j RETURN
+# ip6tables -t mangle -A V2RAY_MASK -p tcp -m set --match-set DNSMASQ_GFW_IPV6 dst -j RETURN
+# ip6tables -t mangle -A V2RAY_MASK -p udp -m set --match-set DNSMASQ_GFW_IPV6 dst -j RETURN
 
 if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     # ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j TRACE

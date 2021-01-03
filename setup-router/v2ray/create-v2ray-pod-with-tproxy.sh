@@ -11,8 +11,6 @@ fi
 mkdir -p /home/router/etc/v2ray ;
 cd /home/router/etc/v2ray ;
 
-podman pull docker.io/owt5008137/proxy-with-geo ;
-
 systemctl disable v2ray ;
 systemctl stop v2ray ;
 
@@ -22,11 +20,20 @@ if [[ $? -eq 0 ]]; then
     podman rm -f v2ray
 fi
 
+if [[ "x$V2RAY_UPDATE" != "x" ]]; then
+    podman image inspect docker.io/owt5008137/proxy-with-geo:latest > /dev/null 2>&1
+    if [[ $? -eq 0 ]]; then
+        podman image rm -f docker.io/owt5008137/proxy-with-geo:latest ;
+    fi
+fi
+
+podman pull docker.io/owt5008137/proxy-with-geo:latest ;
+
 podman run -d --name v2ray --cap-add=NET_ADMIN --network=host                               \
     --mount type=bind,source=/home/router/etc/v2ray,target=/usr/local/v2ray/etc,ro=true     \
     --mount type=bind,source=/data/logs/v2ray,target=/data/logs/v2ray                       \
     --mount type=bind,source=/home/router/etc/v2ray/ssl,target=/usr/local/v2ray/ssl,ro=true \
-    docker.io/owt5008137/proxy-with-geo v2ray -config=/usr/local/v2ray/etc/config.json ;
+    docker.io/owt5008137/proxy-with-geo:latest v2ray -config=/usr/local/v2ray/etc/config.json ;
 
 podman cp v2ray:/usr/local/v2ray/share/geo-all.tar.gz geo-all.tar.gz ;
 if [[ $? -eq 0 ]]; then
@@ -41,6 +48,8 @@ if [[ $? -eq 0 ]]; then
         fi
 
         cat ipv4_cn.ipset | ipset restore ;
+
+        # TODO Maybe nftable ip set 
     fi
 
     if [[ $? -eq 0 ]]; then
@@ -52,6 +61,8 @@ if [[ $? -eq 0 ]]; then
         fi
 
         cat ipv4_hk.ipset | ipset restore ;
+
+        # TODO Maybe nftable ip set 
     fi
 
     if [[ $? -eq 0 ]]; then
@@ -63,6 +74,8 @@ if [[ $? -eq 0 ]]; then
         fi
 
         cat ipv6_cn.ipset | ipset restore ;
+
+        # TODO Maybe nftable ip set 
     fi
 
     if [[ $? -eq 0 ]]; then
@@ -74,6 +87,8 @@ if [[ $? -eq 0 ]]; then
         fi
 
         cat ipv6_hk.ipset | ipset restore ;
+
+        # TODO Maybe nftable ip set 
     fi
 
     if [[ $? -eq 0 ]]; then
