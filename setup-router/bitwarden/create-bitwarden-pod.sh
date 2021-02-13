@@ -9,21 +9,35 @@ fi
 export XDG_RUNTIME_DIR="/run/user/$UID"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
 
+if [[ "x$(whoami)" == "x" ]] || [[ "x$(whoami)" == "xroot" ]]; then
+    echo -e "\033[1;32m$0 can not run with\033[0;m \033[1;31m$(whoami)\033[0;m" ;
+    exit 1;
+fi
+
 # sudo loginctl enable-linger tools
 
 systemctl --user --all | grep -F container-bitwarden.service ;
 
-if [ $? -eq 0 ]; then
-    systemctl --user stop container-bitwarden
-    systemctl --user disable container-bitwarden
+if [[ $? -eq 0 ]]; then
+    systemctl --user stop container-bitwarden ;
+    systemctl --user disable container-bitwarden ;
 fi
 
 podman container inspect bitwarden > /dev/null 2>&1
 
-if [ $? -eq 0 ]; then
-    podman stop bitwarden
-    podman rm -f bitwarden
+if [[ $? -eq 0 ]]; then
+    podman stop bitwarden ;
+    podman rm -f bitwarden ;
 fi
+
+if [[ "x$BITWARDEN_UPDATE" != "x" ]]; then
+    podman image inspect docker.io/bitwardenrs/server:latest > /dev/null 2>&1
+    if [[ $? -eq 0 ]]; then
+        podman image rm -f docker.io/bitwardenrs/server:latest ;
+    fi
+fi
+
+podman pull docker.io/bitwardenrs/server:latest ;
 
 ADMIN_TOKEN=$(openssl rand -base64 48);
 

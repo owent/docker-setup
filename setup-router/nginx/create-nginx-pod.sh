@@ -47,6 +47,15 @@ fi
 
 mkdir -p /home/website/log/nginx ;
 
+if [[ "x$NGINX_UPDATE" != "x" ]]; then
+    podman image inspect docker.io/nginx:latest > /dev/null 2>&1
+    if [[ $? -eq 0 ]]; then
+        podman image rm -f docker.io/nginx:latest ;
+    fi
+fi
+
+podman pull docker.io/nginx:latest ;
+
 podman run -d --name nginx                                                                     \
     --mount type=bind,source=/home/website/log,target=/home/website/log                        \
     --mount type=bind,source=/home/website/home,target=/home/website/home,ro=true              \

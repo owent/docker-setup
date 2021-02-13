@@ -178,10 +178,10 @@ chown $RUN_USER aria2c_with_session.sh ;
 
 podman build --layers --force-rm --tag local-aria2 -f aria2.Dockerfile . ;
 
-podman --log-level debug run -d --name aria2 --user $RUN_USER                                           \
+podman --log-level debug run -d --name aria2 --user $RUN_USER                         \
     --mount type=bind,source=$RUN_HOME/aria2/etc,target=/etc/aria2                    \
     --mount type=bind,source=$RUN_HOME/aria2/log,target=/var/log/aria2                \
-    --mount type=bind,source=$ARIA2_DATA_ROOT,target=$ARIA2_DATA_ROOT                           \
+    --mount type=bind,source=$ARIA2_DATA_ROOT,target=$ARIA2_DATA_ROOT                 \
     -p 6800:6800/tcp -p 6881-6883:6881-6883/tcp -p 6881-6883:6881-6883/udp            \
     local-aria2 bash /usr/bin/aria2c_with_session.sh --conf-path=/etc/aria2/aria2.conf
 
