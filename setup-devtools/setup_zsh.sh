@@ -2,6 +2,10 @@
 
 ZSH_VERSION=5.8 ;
 
+if [[ -z "$SETUP_INSTALL_PREFIX" ]]; then
+    SETUP_INSTALL_PREFIX=/opt
+fi
+
 mkdir -p $SETUP_INSTALL_PREFIX/zsh ;
 cd $SETUP_INSTALL_PREFIX/zsh ;
 
