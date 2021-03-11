@@ -32,7 +32,7 @@ if [[ $? -eq 0 ]]; then
     # sync to v2ray BLACKLIST
     nft list table ip v2ray > /dev/null 2>&1 ;
     if [[ $? -ne 0 ]]; then
-        nft add table ip v2ray
+        nft add table ip v2ray ;
     fi
     nft list set ip v2ray BLACKLIST > /dev/null 2>&1 ;
     if [[ $? -ne 0 ]]; then

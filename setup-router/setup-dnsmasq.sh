@@ -25,6 +25,7 @@ no-resolv
 
 #log-queries
 #log-dhcp
+#log-async=25
 #log-facility=/var/log/dnsmasq-debug.log
 
 # see https://www.dnsperf.com/#!dns-resolvers for DNS ranking
@@ -93,27 +94,37 @@ if [ "x$ROUTER_CONFIG_IPV6_INTERFACE" != "x" ]; then
     echo '
 # ipv6
 ## Cloudflare
-nameserver 2606:4700:4700::1111
-nameserver 2606:4700:4700::1001
+# nameserver 2606:4700:4700::1111
+# nameserver 2606:4700:4700::1001
 ## Google
-nameserver 2001:4860:4860::8888
-nameserver 2001:4860:4860::8844
+# nameserver 2001:4860:4860::8888
+# nameserver 2001:4860:4860::8844
 ## Quad9
-nameserver 2620:fe::fe
-nameserver 2620:fe::9
+# nameserver 2620:fe::fe
+# nameserver 2620:fe::9
+## aliyun
+nameserver 2400:3200::1
+nameserver 2400:3200:baba::1
+## biigroup
+nameserver 240c::6666
 ' >> /etc/resolv.conf ;
     echo "
 
 # ipv6
 ## Cloudflare
-server=2606:4700:4700::1111
-server=2606:4700:4700::1001
+# server=2606:4700:4700::1111
+# server=2606:4700:4700::1001
 ## Google
-server=2001:4860:4860::8888
-server=2001:4860:4860::8844
+# server=2001:4860:4860::8888
+# server=2001:4860:4860::8844
 ## Quad9
-server=2620:fe::fe
-server=2620:fe::9
+# server=2620:fe::fe
+# server=2620:fe::9
+## aliyun
+server=2400:3200::1
+server=2400:3200:baba::1
+## biigroup
+server=240c::6666
 
 " >> /etc/dnsmasq.d/router.conf
 fi
@@ -121,7 +132,7 @@ fi
 echo "
 bind-dynamic
 # ipv4
-dhcp-range=172.18.11.1,172.18.255.254,255.255.0.0,86400s
+dhcp-range=172.18.11.1,172.18.255.254,255.255.0.0,28800s
 dhcp-host=70:85:c2:dc:0c:87,172.18.1.1
 dhcp-host=a0:36:9f:07:3f:98,172.18.1.10
 dhcp-host=a0:36:9f:07:3f:99,172.18.1.11
@@ -141,8 +152,8 @@ dhcp-option=44,0.0.0.0
 if [ "x$ROUTER_CONFIG_IPV6_INTERFACE" != "x" ]; then
     echo "
 # ipv6
-# dhcp-range=fd27:32d6:ac12::0301,fd27:32d6:ac12::fffe,slaac,64,86400s
-dhcp-range=::,constructor:$ROUTER_CONFIG_IPV6_INTERFACE,ra-names,64,86400s
+# dhcp-range=fd27:32d6:ac12::0301,fd27:32d6:ac12::fffe,slaac,64,28800s
+dhcp-range=::,constructor:$ROUTER_CONFIG_IPV6_INTERFACE,ra-names,28800s
 # dhcp-host for DHCPv6 seems not available
 # dhcp-host=70:85:c2:dc:0c:87,[::0101]
 

@@ -234,6 +234,12 @@ See https://en.wikipedia.org/wiki/Public_recursive_name_server for more details
   > Home: https://alidns.com/
   > DoT/DoH: https://www.alidns.com/faqs/?spm=a2chw.13814944.0.0.783a1760ibr9Md#dns-safe
 
++ biigroup(天地互联)
+  + 240c::6666
+  + 240c::6644
+  
+  > https://www.biigroup.com/dns/s/?888.html
+
 + Baidu
   + 180.76.76.76
   + 2400:da00::6666
