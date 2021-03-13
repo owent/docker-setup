@@ -32,7 +32,7 @@ if [[ -e "$SETUP_INSTALL_PREFIX/re2c/$RE2C_VERSION/bin" ]]; then
         if [ -e "$SETUP_INSTALL_PREFIX/bin/$UNDATE_LNK_BASENAME" ]; then
             rm -rf "$SETUP_INSTALL_PREFIX/bin/$UNDATE_LNK_BASENAME";
         fi
-        ln -sf "$UPDATE_LNK" "$SETUP_INSTALL_PREFIX/bin/$UNDATE_LNK_BASENAME" ;
+        ln -rsf "$UPDATE_LNK" "$SETUP_INSTALL_PREFIX/bin/$UNDATE_LNK_BASENAME" ;
     done
 fi
 
@@ -59,7 +59,7 @@ if [[ -e "$SETUP_INSTALL_PREFIX/git/$GIT_VERSION/bin" ]]; then
         if [ -e "$SETUP_INSTALL_PREFIX/bin/$UNDATE_LNK_BASENAME" ]; then
             rm -rf "$SETUP_INSTALL_PREFIX/bin/$UNDATE_LNK_BASENAME";
         fi
-        ln -sf "$UPDATE_LNK" "$SETUP_INSTALL_PREFIX/bin/$UNDATE_LNK_BASENAME" ;
+        ln -rsf "$UPDATE_LNK" "$SETUP_INSTALL_PREFIX/bin/$UNDATE_LNK_BASENAME" ;
     done
 fi
 cd ../../../ ;
@@ -85,7 +85,7 @@ if [[ -e "$SETUP_INSTALL_PREFIX/git-lfs/v$GIT_LFS_VERSION/bin" ]]; then
         if [ -e "$SETUP_INSTALL_PREFIX/bin/$UNDATE_LNK_BASENAME" ]; then
             rm -rf "$SETUP_INSTALL_PREFIX/bin/$UNDATE_LNK_BASENAME";
         fi
-        ln -sf "$UPDATE_LNK" "$SETUP_INSTALL_PREFIX/bin/$UNDATE_LNK_BASENAME" ;
+        ln -rsf "$UPDATE_LNK" "$SETUP_INSTALL_PREFIX/bin/$UNDATE_LNK_BASENAME" ;
     done
 fi
 

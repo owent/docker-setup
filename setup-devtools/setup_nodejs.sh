@@ -16,7 +16,7 @@ for UPDATE_LNK in $SETUP_INSTALL_PREFIX/nodejs/node-v$NODEJS_VERSION-linux-x64/b
     if [ -e "$SETUP_INSTALL_PREFIX/bin/$UNDATE_LNK_BASENAME" ]; then
         rm -rf "$SETUP_INSTALL_PREFIX/bin/$UNDATE_LNK_BASENAME";
     fi
-    ln -sf "$UPDATE_LNK" "$SETUP_INSTALL_PREFIX/bin/$UNDATE_LNK_BASENAME" ;
+    ln -rsf "$UPDATE_LNK" "$SETUP_INSTALL_PREFIX/bin/$UNDATE_LNK_BASENAME" ;
 done
 
 # init

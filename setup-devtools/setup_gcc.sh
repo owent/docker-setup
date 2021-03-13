@@ -18,4 +18,4 @@ export PATH=$SETUP_INSTALL_PREFIX/bin:$PATH
 if [ -e $SETUP_INSTALL_PREFIX/gcc/latest ]; then
     rm -f $SETUP_INSTALL_PREFIX/gcc/latest ;
 fi
-ln -s $SETUP_INSTALL_PREFIX/gcc/$GCC_VERSION $SETUP_INSTALL_PREFIX/gcc/latest ;
+ln -rs $SETUP_INSTALL_PREFIX/gcc/$GCC_VERSION $SETUP_INSTALL_PREFIX/gcc/latest ;

@@ -21,4 +21,4 @@ if [ -e $SETUP_INSTALL_PREFIX/llvm/latest ]; then
     rm -f $SETUP_INSTALL_PREFIX/llvm/latest ;
 fi
 
-ln -s $SETUP_INSTALL_PREFIX/llvm/$LLVM_VERSION $SETUP_INSTALL_PREFIX/llvm/latest ;
+ln -rs $SETUP_INSTALL_PREFIX/llvm/$LLVM_VERSION $SETUP_INSTALL_PREFIX/llvm/latest ;
