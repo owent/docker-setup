@@ -19,7 +19,7 @@ else
     export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
-ip -6 route delete ::/0 via $IPREMOTE dev $IFNAME ;
+# ip -6 route delete ::/0 via $IPREMOTE dev $IFNAME ;
 
 which nft > /dev/null 2>&1 ;
 if [[ $? -eq 0 ]]; then

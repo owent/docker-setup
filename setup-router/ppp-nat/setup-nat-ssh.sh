@@ -137,8 +137,8 @@ nft add rule ip nat POSTROUTING meta l4proto udp ip saddr {127.0.0.1/32, 192.168
 nft add rule ip nat POSTROUTING meta l4proto tcp ip saddr {127.0.0.1/32, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} ip daddr != {127.0.0.1/32, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} counter packets 0 bytes 0 masquerade to :10000-65535
 
 ### Destination NAT - ipv4 - ssh
-nft add rule ip nat PREROUTING ip saddr != {127.0.0.1/32, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} tcp dport 22 drop
-nft add rule ip nat PREROUTING ip saddr != {127.0.0.1/32, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} tcp dport 36000 dnat to 172.18.1.1 :22
+# nft add rule ip nat PREROUTING ip saddr != {127.0.0.1/32, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} tcp dport 22 drop
+# nft add rule ip nat PREROUTING ip saddr != {127.0.0.1/32, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} tcp dport 36000 dnat to 172.18.1.1 :22
 
 
 ### Setup NAT - ipv6
@@ -160,4 +160,5 @@ nft add rule ip6 nat POSTROUTING meta l4proto udp ip6 saddr {::1/128, fc00::/7, 
 
 ### Destination NAT - ipv6
 nft add rule ip6 nat PREROUTING ip6 saddr != {::1/128, fc00::/7, fe80::/10, fd00::/8, ff00::/8} tcp dport 22 drop
-nft add rule ip6 nat PREROUTING ip6 saddr != {::1/128, fc00::/7, fe80::/10, fd00::/8, ff00::/8} tcp dport 36000 dnat to fd27:32d6:ac12:18::1 :22
+# nft add rule ip6 nat PREROUTING ip6 saddr != {::1/128, fc00::/7, fe80::/10, fd00::/8, ff00::/8} tcp dport 36000 dnat to fd27:32d6:ac12:18::1 :22
+# nft add rule ip6 nat PREROUTING ip6 saddr != {::1/128, fc00::/7, fe80::/10, fd00::/8, ff00::/8} tcp dport 36000 redirect to :22

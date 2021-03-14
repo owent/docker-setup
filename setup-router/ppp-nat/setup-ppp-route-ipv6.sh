@@ -21,11 +21,11 @@ fi
 
 cd "$(dirname "${BASH_SOURCE[0]}")" ;
 
-while [ ! -z "$(ip -6 route show default 2>/dev/null)" ]; do
-    ip -6 route delete default ;
-done
-# ip -6 route add default via XXX dev $1 ;
-ip -6 route add ::/0 via $IPREMOTE dev $IFNAME ;
+# while [ ! -z "$(ip -6 route show default 2>/dev/null)" ]; do
+#     ip -6 route delete default ;
+# done
+# # ip -6 route add default via XXX dev $1 ;
+# ip -6 route add ::/0 via $IPREMOTE dev $IFNAME ;
 
 which nft > /dev/null 2>&1 ;
 if [[ $? -eq 0 ]]; then
