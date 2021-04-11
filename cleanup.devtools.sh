@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ "x$SETUP_INSTALL_PREFIX" == "x" ]; then
+if [[ "x$SETUP_INSTALL_PREFIX" == "x" ]]; then
     export SETUP_INSTALL_PREFIX=/opt
 fi
 
@@ -8,7 +8,7 @@ if [ "x$SETUP_WORK_DIR" == "x" ]; then
     export SETUP_WORK_DIR=/data/setup
 fi
 
-if [ -e "$SETUP_WORK_DIR/server-docker/.git" ]; then
+if [[ -e "$SETUP_WORK_DIR/server-docker/.git" ]]; then
     export PATH=$SETUP_INSTALL_PREFIX/bin:$PATH
     if [ -e "$SETUP_INSTALL_PREFIX/server-docker" ]; then
         rm -rf "$SETUP_INSTALL_PREFIX/server-docker" ;
@@ -23,7 +23,7 @@ if [ -e "$SETUP_WORK_DIR/server-docker/.git" ]; then
     cp -rfv $(git ls-tree -r --full-name HEAD | awk '{print $NF}') $SETUP_INSTALL_PREFIX/server-docker/ ;
 fi
 
-if [ -e "$SETUP_WORK_DIR" ]; then
+if [[ -e "$SETUP_WORK_DIR" ]]; then
     rm -rf $SETUP_WORK_DIR ;
     echo "Cleanup $SETUP_WORK_DIR done" ;
 fi
@@ -32,7 +32,7 @@ cd ~ ;
 
 
 # Ubuntu/Debian
-if [ -e "/var/lib/apt/lists" ]; then
+if [[ -e "/var/lib/apt/lists" ]]; then
     for APT_CACHE in /var/lib/apt/lists/* ; do
         rm -rf "$APT_CACHE";
     done
@@ -43,6 +43,10 @@ which dnf 2>/dev/null && dnf clean all;
 which yum 2>/dev/null && yum clean all;
 
 # Test script
+
+if [[ ! -e "/etc/profile.d/devnet.sh" ]]; then
+    exit 0;
+fi
 
 chmod +x /etc/profile.d/devnet.sh
 chmod +x /opt/gcc/latest/load-gcc-envs.sh
