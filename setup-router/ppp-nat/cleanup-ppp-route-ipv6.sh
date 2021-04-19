@@ -13,13 +13,13 @@
 #       $6      the parameter specified by the 'ipparam' option to pppd
 #
 
-if [ -e "/opt/nftables/sbin" ]; then
-    export PATH=/opt/nftables/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/u    sr/bin/core_perl
+if [[ -e "/opt/nftables/sbin" ]]; then
+    export PATH=/opt/nftables/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 else
     export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
-# Using journalctl -u docker-setup-ppp to see this log
+# Using journalctl -t docker-setup-ppp to see this log
 echo "[$(date "+%F %T")]: $0 $@" | systemd-cat -t docker-setup-ppp -p info ;
 
 # ip -6 route delete ::/0 via $IPREMOTE dev $IFNAME ;
