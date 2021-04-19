@@ -19,11 +19,14 @@ else
     export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
+# Using journalctl -u docker-setup-ppp to see this log
+echo "[$(date "+%F %T")]: $0 $@" | systemd-cat -t docker-setup-ppp -p info ;
+
 # ip -6 route delete ::/0 via $IPREMOTE dev $IFNAME ;
 
 which nft > /dev/null 2>&1 ;
 if [[ $? -eq 0 ]]; then
-    # sync to v2ray BLACKLIST
+    # sync to v2ray BLACKLIST/IPLOCAL
     nft list table ip6 v2ray > /dev/null 2>&1 ;
     if [[ $? -ne 0 ]]; then
         nft add table ip6 v2ray
@@ -33,6 +36,12 @@ if [[ $? -eq 0 ]]; then
         nft add set ip6 v2ray BLACKLIST { type ipv6_addr\; }
     fi
     nft delete element ip6 v2ray BLACKLIST { $IPLOCAL } ;
+
+    nft list set ip6 nat IPLOCAL > /dev/null 2>&1 ;
+    if [[ $? -ne 0 ]]; then
+        nft add set ip6 nat IPLOCAL { type ipv6_addr\; }
+    fi
+    nft delete element ip6 nat IPLOCAL { $IPLOCAL } ;
 fi
 
 which ipset > /dev/null 2>&1 ;
@@ -41,7 +50,12 @@ if [[ $? -eq 0 ]]; then
     if [[ $? -ne 0 ]]; then
         ipset create V2RAY_BLACKLIST_IPV6 hash:ip family inet6;
     fi
-    
     ipset del V2RAY_BLACKLIST_IPV6 $IPLOCAL;
+
+    ipset list NAT_IPLOCAL_IPV6 > /dev/null 2>&1 ;
+    if [[ $? -ne 0 ]]; then
+        ipset create NAT_IPLOCAL_IPV6 hash:ip family inet6;
+    fi
+    ipset del NAT_IPLOCAL_IPV6 $IPLOCAL;
 fi
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ -e "/opt/nftables/sbin" ]; then
+if [[ -e "/opt/nftables/sbin" ]]; then
     export PATH=/opt/nftables/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 else
     export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
@@ -20,37 +20,49 @@ fi
 # Netfilter: https://en.wikipedia.org/wiki/Netfilter
 #            http://inai.de/images/nf-packet-flow.svg
 
-if [ "x" == "x$SETUP_WITH_DEBUG_LOG" ]; then
+if [[ "x" == "x$SETUP_WITH_DEBUG_LOG" ]]; then
     SETUP_WITH_DEBUG_LOG=0
 fi
 
 ## NAT
 # just like iptables -t nat
 nft list table ip nat > /dev/null 2>&1 ;
-if [ $? -ne 0 ]; then
+if [[ $? -ne 0 ]]; then
     nft add table ip nat
 fi
+
+nft list set ip nat IPLOCAL > /dev/null 2>&1 ;
+if [[ $? -ne 0 ]]; then
+    nft add set ip nat IPLOCAL { type ipv4_addr\; }
+fi
+
 nft list table ip6 nat > /dev/null 2>&1 ;
-if [ $? -ne 0 ]; then
+if [[ $? -ne 0 ]]; then
     nft add table ip6 nat
 fi
+
+nft list set ip6 nat IPLOCAL > /dev/null 2>&1 ;
+if [[ $? -ne 0 ]]; then
+    nft add set ip6 nat IPLOCAL { type ipv6_addr\; }
+fi
+
 nft list table inet nat > /dev/null 2>&1 ;
-if [ $? -ne 0 ]; then
+if [[ $? -ne 0 ]]; then
     nft add table inet nat
 fi
 
 #### ========== debug ==========
-if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
+if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
     nft list table inet debug > /dev/null 2>&1 ;
-    if [ $? -ne 0 ]; then
+    if [[ $? -ne 0 ]]; then
         nft add table inet debug
     fi
     nft list chain inet debug FORWARD > /dev/null 2>&1 ;
-    if [ $? -ne 0 ]; then
+    if [[ $? -ne 0 ]]; then
         nft add chain inet debug FORWARD { type filter hook forward priority filter - 1 \; }
     fi
     nft list set inet debug WATCH > /dev/null 2>&1 ;
-    if [ $? -ne 0 ]; then
+    if [[ $? -ne 0 ]]; then
         nft add set inet debug WATCH { type ipv4_addr\; }
     fi
     nft flush set inet debug WATCH ;
@@ -65,7 +77,7 @@ if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     nft add rule inet debug FORWARD ip daddr 172.18.111.179 meta l4proto icmp meta nftrace set 1
     nft add rule inet debug FORWARD ip daddr 172.18.111.179 meta l4proto icmp log prefix '"<<<ICMP:"' level debug flags all
     nft list chain inet debug PREROUTING > /dev/null 2>&1 ;
-    if [ $? -ne 0 ]; then
+    if [[ $? -ne 0 ]]; then
         nft add chain inet debug PREROUTING { type filter hook prerouting priority filter - 1 \; }
     fi
     nft flush chain inet debug PREROUTING
@@ -78,7 +90,7 @@ if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     nft add rule inet debug PREROUTING ip daddr 172.18.111.179 meta l4proto icmp meta nftrace set 1
     nft add rule inet debug PREROUTING ip daddr 172.18.111.179 meta l4proto icmp log prefix '"<<<ICMP:"' level debug flags all
     nft list chain inet debug OUTPUT > /dev/null 2>&1 ;
-    if [ $? -ne 0 ]; then
+    if [[ $? -ne 0 ]]; then
         nft add chain inet debug OUTPUT { type filter hook output priority filter - 1 \; }
     fi
     nft flush chain inet debug OUTPUT
@@ -92,14 +104,14 @@ if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
     nft add rule inet debug OUTPUT ip daddr 172.18.111.179 meta l4proto icmp log prefix '"<<<ICMP:"' level debug flags all
 else
     nft list table inet debug > /dev/null 2>&1 ;
-    if [ $? -eq 0 ]; then
+    if [[ $? -eq 0 ]]; then
         nft delete table inet debug
     fi
 fi
 
 ### Setup - ipv4&ipv6
 nft list chain inet nat FORWARD > /dev/null 2>&1 ;
-if [ $? -ne 0 ]; then
+if [[ $? -ne 0 ]]; then
     nft add chain inet nat FORWARD { type filter hook forward priority filter \; }
 fi
 nft flush chain inet nat FORWARD
@@ -119,11 +131,11 @@ nft add rule inet nat FORWARD iifname { lo, br0, enp1s0f0, enp1s0f1, enp5s0 } ac
 
 ### Setup - ipv4
 nft list chain ip nat PREROUTING > /dev/null 2>&1 ;
-if [ $? -ne 0 ]; then
+if [[ $? -ne 0 ]]; then
     nft add chain ip nat PREROUTING { type nat hook prerouting priority dstnat \; }
 fi
 nft list chain ip nat POSTROUTING > /dev/null 2>&1 ;
-if [ $? -ne 0 ]; then
+if [[ $? -ne 0 ]]; then
     nft add chain ip nat POSTROUTING { type nat hook postrouting priority srcnat \; }
 fi
 nft flush chain ip nat PREROUTING
@@ -132,6 +144,8 @@ nft flush chain ip nat POSTROUTING
 ### Source NAT - ipv4
 # nft add rule ip nat POSTROUTING ip saddr 172.18.0.0/16 ip daddr != 172.18.0.0/16 snat to 1.2.3.4
 # nft add rule nat POSTROUTING meta iifname enp1s0f1 counter packets 0 bytes 0 masquerade
+# Skip local address when DSL interface get a local address
+nft add rule ip nat POSTROUTING ip saddr @IPLOCAL return
 nft add rule ip nat POSTROUTING ip saddr {127.0.0.1/32, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} ip daddr != {127.0.0.1/32, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} counter packets 0 bytes 0 masquerade
 nft add rule ip nat POSTROUTING meta l4proto udp ip saddr {127.0.0.1/32, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} ip daddr != {127.0.0.1/32, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} counter packets 0 bytes 0 masquerade to :10000-65535
 nft add rule ip nat POSTROUTING meta l4proto tcp ip saddr {127.0.0.1/32, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} ip daddr != {127.0.0.1/32, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} counter packets 0 bytes 0 masquerade to :10000-65535
@@ -143,17 +157,19 @@ nft add rule ip nat POSTROUTING meta l4proto tcp ip saddr {127.0.0.1/32, 192.168
 
 ### Setup NAT - ipv6
 nft list chain ip6 nat PREROUTING > /dev/null 2>&1 ;
-if [ $? -ne 0 ]; then
+if [[ $? -ne 0 ]]; then
     nft add chain ip6 nat PREROUTING { type nat hook prerouting priority dstnat \; }
 fi
 nft list chain ip6 nat POSTROUTING > /dev/null 2>&1 ;
-if [ $? -ne 0 ]; then
+if [[ $? -ne 0 ]]; then
     nft add chain ip6 nat POSTROUTING { type nat hook postrouting priority srcnat \; }
 fi
 nft flush chain ip6 nat PREROUTING
 nft flush chain ip6 nat POSTROUTING
 
 ### Source NAT - ipv6
+# Skip local address when DSL interface get a local address
+nft add rule ip6 nat POSTROUTING ip6 saddr @IPLOCAL return
 nft add rule ip6 nat POSTROUTING ip6 saddr {::1/128, fc00::/7, fe80::/10, fd00::/8, ff00::/8} ip6 daddr != {::1/128, fc00::/7, fe80::/10, fd00::/8, ff00::/8} counter packets 0 bytes 0 masquerade
 nft add rule ip6 nat POSTROUTING meta l4proto tcp ip6 saddr {::1/128, fc00::/7, fe80::/10, fd00::/8, ff00::/8} ip6 daddr != {::1/128, fc00::/7, fe80::/10, fd00::/8, ff00::/8} counter packets 0 bytes 0 masquerade to :10000-65535
 nft add rule ip6 nat POSTROUTING meta l4proto udp ip6 saddr {::1/128, fc00::/7, fe80::/10, fd00::/8, ff00::/8} ip6 daddr != {::1/128, fc00::/7, fe80::/10, fd00::/8, ff00::/8} counter packets 0 bytes 0 masquerade to :10000-65535

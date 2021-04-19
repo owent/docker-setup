@@ -1,12 +1,22 @@
 #!/bin/bash
 
-if [ -e "/opt/nftables/sbin" ]; then
+if [[ -e "/opt/nftables/sbin" ]]; then
     export PATH=/opt/nftables/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 else
     export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
-if [ "x$ROUTER_CONFIG_PPP_LINK_INTERFACE" != "x" ]; then
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)";
+
+if [[ -e "/lib/systemd/system" ]]; then
+    export SETUP_SYSTEMD_SYSTEM_DIR=/lib/systemd/system;
+elif [[ -e "/usr/lib/systemd/system" ]]; then
+    export SETUP_SYSTEMD_SYSTEM_DIR=/usr/lib/systemd/system;
+elif [[ -e "/etc/systemd/system" ]]; then
+    export SETUP_SYSTEMD_SYSTEM_DIR=/etc/systemd/system;
+fi
+
+if [[ "x$ROUTER_CONFIG_PPP_LINK_INTERFACE" != "x" ]]; then
 mkdir -p /opt/ppp/etc ;
 
 echo "

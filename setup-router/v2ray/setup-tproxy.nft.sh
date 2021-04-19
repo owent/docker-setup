@@ -339,7 +339,7 @@ fi
 # fi
 
 ### bridge - meta pkttype set unicast
-if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
+if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
     nft add rule bridge v2ray PREROUTING tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT meta nftrace set 1
     nft add rule bridge v2ray PREROUTING tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '">>>BR TCP>pkttype:"' level debug flags all
     nft add rule bridge v2ray PREROUTING udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '">>>BR UDP>pkttype:"' level debug flags all

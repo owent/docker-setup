@@ -251,7 +251,7 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
     # ip6tables -t mangle -A V2RAY -p udp -m set ! --match-set DNSMASQ_GFW_IPV6 dst -j RETURN
     ### ipv6 - forward to v2ray's listen address if not marked by v2ray
     # tproxy ip to $V2RAY_HOST_IPV4:$V2RAY_PORT
-    if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
+    if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
         # ip6tables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j TRACE
         ip6tables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j LOG --log-level debug --log-prefix ">>>TCP6>tproxy:"
     fi
@@ -269,7 +269,7 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
     ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
     ip6tables -t mangle -A V2RAY_MASK -p udp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
     ip6tables -t mangle -A V2RAY_MASK -p udp -m multiport --dports $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT -j RETURN
-    if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
+    if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
         ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j LOG --log-level debug --log-prefix "###TCP6#OUTPUT:"
     fi
 
@@ -291,7 +291,7 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
     # ip6tables -t mangle -A V2RAY_MASK -p tcp -m set --match-set DNSMASQ_GFW_IPV6 dst -j RETURN
     # ip6tables -t mangle -A V2RAY_MASK -p udp -m set --match-set DNSMASQ_GFW_IPV6 dst -j RETURN
 
-    if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
+    if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
         # ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j TRACE
         ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j LOG --log-level debug --log-prefix "+++TCP6+mark 1:"
     fi
@@ -323,7 +323,7 @@ fi
 
 ## Setup - bridge
 ebtables -t broute -L V2RAY_BRIDGE > /dev/null 2>&1 ;
-if [ $? -ne 0 ]; then
+if [[ $? -ne 0 ]]; then
     ebtables -t broute -N V2RAY_BRIDGE ;
 else
     ebtables -t broute -F V2RAY_BRIDGE ;
@@ -374,7 +374,7 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
     ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst 2400:da00::6666/128 -j RETURN
 fi
 
-if [ $SETUP_WITH_DEBUG_LOG -ne 0 ]; then
+if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
     ebtables -t broute -A V2RAY_BRIDGE --log-ip --log-level debug --log-prefix "---BRIDGE-DROP: "
 fi
 
@@ -388,7 +388,7 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
 fi
 
 ebtables -t broute -D BROUTING -j V2RAY_BRIDGE > /dev/null 2>&1 ;
-while [ $? -eq 0 ]; do
+while [[ $? -eq 0 ]]; do
     ebtables -t broute -D BROUTING -j V2RAY_BRIDGE > /dev/null 2>&1;
 done
 ebtables -t broute -A BROUTING -j V2RAY_BRIDGE
