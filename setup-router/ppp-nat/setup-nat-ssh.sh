@@ -68,7 +68,7 @@ if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
     nft flush set inet debug WATCH ;
     nft add element inet debug WATCH { 103.235.46.39, 180.101.49.11, 180.101.49.12 } ;
     nft flush chain inet debug FORWARD ;
-    nft add rule inet debug FORWARD meta l4proto tcp mark 255 meta nftrace set 1
+    nft add rule inet debug FORWARD meta l4proto tcp mark and 0xff == 0xff meta nftrace set 1
     nft add rule inet debug FORWARD tcp dport 3371 meta nftrace set 1
     nft add rule inet debug FORWARD ip saddr @WATCH meta nftrace set 1
     nft add rule inet debug FORWARD ip saddr @WATCH log prefix '">>>TCP>>FORWARD:"' level debug flags all
@@ -81,7 +81,7 @@ if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
         nft add chain inet debug PREROUTING { type filter hook prerouting priority filter - 1 \; }
     fi
     nft flush chain inet debug PREROUTING
-    nft add rule inet debug PREROUTING meta l4proto tcp mark 255 meta nftrace set 1
+    nft add rule inet debug PREROUTING meta l4proto tcp mark and 0xff == 0xff meta nftrace set 1
     nft add rule inet debug PREROUTING tcp dport 3371 meta nftrace set 1
     nft add rule inet debug PREROUTING ip saddr @WATCH meta nftrace set 1
     nft add rule inet debug PREROUTING ip saddr @WATCH log prefix '">>>TCP>>PRERO:"' level debug flags all
@@ -94,7 +94,7 @@ if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
         nft add chain inet debug OUTPUT { type filter hook output priority filter - 1 \; }
     fi
     nft flush chain inet debug OUTPUT
-    nft add rule inet debug OUTPUT meta l4proto tcp mark 255 meta nftrace set 1
+    nft add rule inet debug OUTPUT meta l4proto tcp mark and 0xff == 0xff meta nftrace set 1
     nft add rule inet debug OUTPUT tcp dport 3371 meta nftrace set 1
     nft add rule inet debug OUTPUT ip saddr @WATCH meta nftrace set 1
     nft add rule inet debug OUTPUT ip saddr @WATCH log prefix '">>>TCP>>OUTPUT:"' level debug flags all

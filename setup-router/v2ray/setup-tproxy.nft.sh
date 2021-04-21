@@ -127,7 +127,7 @@ fi
 
 ### ipv4 - skip link-local and broadcast address
 nft add rule ip v2ray PREROUTING ip daddr {127.0.0.1/32, 224.0.0.0/4, 255.255.255.255/32} return
-nft add rule ip v2ray PREROUTING mark 255 return
+nft add rule ip v2ray PREROUTING mark and 0xff == 0xff return
 ### ipv4 - skip private network and UDP of DNS
 nft add rule ip v2ray PREROUTING ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} return
 # if dns service and V2RAY are on different server, use rules below
@@ -180,13 +180,13 @@ nft add rule ip v2ray OUTPUT ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8
 # nft add rule ip v2ray OUTPUT ip daddr {GATEWAY_ADDRESSES} return
 ### ipv4 - skip CN DNS
 nft add rule ip v2ray OUTPUT ip daddr {119.29.29.29/32, 223.5.5.5/32, 223.6.6.6/32, 180.76.76.76/32} return
-nft add rule ip v2ray OUTPUT mark 255 return
+nft add rule ip v2ray OUTPUT mark and 0xff == 0xff return
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
     nft add rule ip v2ray OUTPUT tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT meta nftrace set 1
     nft add rule ip v2ray OUTPUT tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"+++TCP4+mark 1:"' level debug flags all
     nft add rule ip v2ray OUTPUT udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"+++UDP4+mark 1:"' level debug flags all
 fi
-nft add rule ip v2ray OUTPUT mark != 1 meta l4proto {tcp, udp} mark set 1 accept
+nft add rule ip v2ray OUTPUT mark and 0xff != 0x1 meta l4proto {tcp, udp} mark set mark and 0xffffff00 xor 0x1 accept
 
 ## Setup - ipv6
 if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
@@ -213,7 +213,7 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
     nft add rule ip6 v2ray PREROUTING tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
     nft add rule ip6 v2ray PREROUTING udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
     nft add rule ip6 v2ray PREROUTING udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
-    nft add rule ip6 v2ray PREROUTING mark 255 return
+    nft add rule ip6 v2ray PREROUTING mark and 0xff == 0xff return
     if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
         nft add rule ip6 v2ray PREROUTING tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###TCP6#PREROU:"' level debug flags all
         nft add rule ip6 v2ray PREROUTING udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###UDP6#PREROU:"' level debug flags all
@@ -272,13 +272,13 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
     # nft add rule ip6 v2ray OUTPUT ip6 daddr {GATEWAY_ADDRESSES} return
     ### ipv6 - skip CN DNS
     nft add rule ip6 v2ray OUTPUT ip6 daddr {2400:3200::1/128, 2400:3200:baba::1/128, 2400:da00::6666/128} return
-    nft add rule ip6 v2ray OUTPUT mark 255 return # make sure v2ray's outbounds.*.streamSettings.sockopt.mark = 255
+    nft add rule ip6 v2ray OUTPUT mark and 0xff == 0xff return # make sure v2ray's outbounds.*.streamSettings.sockopt.mark = 255
     if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
         nft add rule ip6 v2ray OUTPUT tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT meta nftrace set 1
         nft add rule ip6 v2ray OUTPUT tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"+++TCP6+mark 1:"' level debug flags all
         nft add rule ip6 v2ray OUTPUT udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"+++UDP6+mark 1:"' level debug flags all
     fi
-    nft add rule ip6 v2ray OUTPUT mark != 1 meta l4proto {tcp, udp} mark set 1 accept
+    nft add rule ip6 v2ray OUTPUT mark and 0xff != 0x1 meta l4proto {tcp, udp} mark set mark and 0xffffff00 xor 0x1 accept
 else
     nft delete chain ip6 v2ray PREROUTING
     nft delete chain ip6 v2ray OUTPUT
@@ -306,7 +306,7 @@ if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
 fi
 
 ### bridge - skip link-local and broadcast address
-nft add rule bridge v2ray PREROUTING mark 255 return
+nft add rule bridge v2ray PREROUTING mark and 0xff == 0xff return
 
 ### bridge - skip private network and UDP of DNS
 nft add rule bridge v2ray PREROUTING ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} return

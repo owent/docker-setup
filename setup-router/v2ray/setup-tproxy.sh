@@ -116,7 +116,7 @@ fi
 
 ### ipv4 - skip link-local and broadcast address
 iptables -t mangle -A V2RAY -d 127.0.0.1/32,224.0.0.0/4,255.255.255.255/32 -j RETURN
-iptables -t mangle -A V2RAY -m mark --mark 0xff -j RETURN
+iptables -t mangle -A V2RAY -m mark --mark 0xff/0xff -j RETURN
 ### ipv4 - skip private network and UDP of DNS
 iptables -t mangle -A V2RAY -d 192.168.0.0/16,172.16.0.0/12,10.0.0.0/8 -j RETURN
 # if dns service and V2RAY are on different server, use rules below
@@ -142,8 +142,8 @@ if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
     iptables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j LOG --log-level debug --log-prefix ">>>TCP4>tproxy:"
 fi
 
-iptables -t mangle -A V2RAY -p tcp -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 1 # mark tcp package with 1 and forward to $V2RAY_PORT
-iptables -t mangle -A V2RAY -p udp -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 1 # mark tcp package with 1 and forward to $V2RAY_PORT
+iptables -t mangle -A V2RAY -p tcp -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 0x1/0xff # mark tcp package with 1 and forward to $V2RAY_PORT
+iptables -t mangle -A V2RAY -p udp -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 0x1/0xff # mark tcp package with 1 and forward to $V2RAY_PORT
 iptables -t mangle -D PREROUTING -j V2RAY > /dev/null 2>&1 ;
 while [[ $? -eq 0 ]]; do
     iptables -t mangle -D PREROUTING -j V2RAY > /dev/null 2>&1;
@@ -160,7 +160,7 @@ if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
 fi
 
 iptables -t mangle -A V2RAY_MASK -d 127.0.0.1/32,224.0.0.0/4,255.255.255.255/32 -j RETURN
-iptables -t mangle -A V2RAY_MASK -m mark --mark 0xff -j RETURN
+iptables -t mangle -A V2RAY_MASK -m mark --mark 0xff/0xff -j RETURN
 ### ipv4 - skip private network and UDP of DNS
 iptables -t mangle -A V2RAY_MASK -d 192.168.0.0/16,172.16.0.0/12,10.0.0.0/8 -j RETURN
 # if dns service and V2RAY_MASK are on different server, use rules below
@@ -183,8 +183,8 @@ if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
     iptables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j LOG --log-level debug --log-prefix "+++TCP4+mark 1:"
 fi
 # ipv4 skip package from outside
-iptables -t mangle -A V2RAY_MASK -p udp -j MARK --set-mark 1
-iptables -t mangle -A V2RAY_MASK -p tcp -j MARK --set-mark 1
+iptables -t mangle -A V2RAY_MASK -p udp -j MARK --set-xmark 0x1/0xff
+iptables -t mangle -A V2RAY_MASK -p tcp -j MARK --set-xmark 0x1/0xff
 
 iptables -t mangle -D OUTPUT -j V2RAY_MASK > /dev/null 2>&1 ;
 while [[ $? -eq 0 ]]; do
@@ -231,7 +231,7 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
 
     ### ipv6 - skip link-locak and multicast
     ip6tables -t mangle -A V2RAY -d ::1/128,fc00::/7,fe80::/10,ff00::/8 -j RETURN
-    ip6tables -t mangle -A V2RAY -m mark --mark 0xff -j RETURN
+    ip6tables -t mangle -A V2RAY -m mark --mark 0xff/0xff -j RETURN
     ### ipv6 - skip private network and UDP of DNS
     # if dns service and V2RAY are on different server, use rules below
     # ip6tables -t mangle -A V2RAY -p tcp -d ::1/128,fc00::/7,fe80::/10,ff00::/8 -j RETURN
@@ -256,8 +256,8 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
         ip6tables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j LOG --log-level debug --log-prefix ">>>TCP6>tproxy:"
     fi
 
-    ip6tables -t mangle -A V2RAY -p tcp -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 1 # mark tcp package with 1 and forward to $V2RAY_PORT
-    ip6tables -t mangle -A V2RAY -p udp -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 1 # mark tcp package with 1 and forward to $V2RAY_PORT
+    ip6tables -t mangle -A V2RAY -p tcp -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 0x1/0xff # mark tcp package with 1 and forward to $V2RAY_PORT
+    ip6tables -t mangle -A V2RAY -p udp -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 0x1/0xff # mark tcp package with 1 and forward to $V2RAY_PORT
     ip6tables -t mangle -D PREROUTING -j V2RAY > /dev/null 2>&1 ;
     while [[ $? -eq 0 ]]; do
         ip6tables -t mangle -D PREROUTING -j V2RAY > /dev/null 2>&1;
@@ -274,7 +274,7 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
     fi
 
     ip6tables -t mangle -A V2RAY_MASK -d ::1/128,fc00::/7,fe80::/10,ff00::/8 -j RETURN
-    ip6tables -t mangle -A V2RAY_MASK -m mark --mark 0xff -j RETURN
+    ip6tables -t mangle -A V2RAY_MASK -m mark --mark 0xff/0xff -j RETURN
     ### ipv6 - skip private network and UDP of DNS
     # if dns service and V2RAY_MASK are on different server, use rules below
     # ip6tables -t mangle -A V2RAY_MASK -p tcp -d ::1/128,fc00::/7,fe80::/10,ff00::/8 -j RETURN
@@ -296,8 +296,8 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
         ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j LOG --log-level debug --log-prefix "+++TCP6+mark 1:"
     fi
     # ipv6 skip package from outside
-    ip6tables -t mangle -A V2RAY_MASK -p udp -j MARK --set-mark 1
-    ip6tables -t mangle -A V2RAY_MASK -p tcp -j MARK --set-mark 1
+    ip6tables -t mangle -A V2RAY_MASK -p udp -j MARK --set-xmark 0x1/0xff
+    ip6tables -t mangle -A V2RAY_MASK -p tcp -j MARK --set-xmark 0x1/0xff
 
     ip6tables -t mangle -D OUTPUT -j V2RAY_MASK > /dev/null 2>&1 ;
     while [[ $? -eq 0 ]]; do
@@ -346,7 +346,7 @@ for SKIP_PORT in $(echo $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT | sed 's/,/ /g'); d
 done
 
 ### bridge - skip link-local and broadcast address
-ebtables -t broute -A V2RAY_BRIDGE --mark 0xff -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE --mark 0xff/0xff -j RETURN
 
 ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 127.0.0.1/32 -j RETURN
 ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 224.0.0.0/4 -j RETURN
