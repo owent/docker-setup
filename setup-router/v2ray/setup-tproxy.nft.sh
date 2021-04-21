@@ -186,7 +186,7 @@ if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
     nft add rule ip v2ray OUTPUT tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"+++TCP4+mark 1:"' level debug flags all
     nft add rule ip v2ray OUTPUT udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"+++UDP4+mark 1:"' level debug flags all
 fi
-nft add rule ip v2ray OUTPUT mark and 0xff != 0x1 meta l4proto {tcp, udp} mark set mark and 0xffffff00 xor 0x1 accept
+nft add rule ip v2ray OUTPUT mark and 0xff != 0x1 meta l4proto {tcp, udp} mark set mark and 0xffffff00 xor 0x1 return
 
 ## Setup - ipv6
 if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
@@ -278,7 +278,7 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
         nft add rule ip6 v2ray OUTPUT tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"+++TCP6+mark 1:"' level debug flags all
         nft add rule ip6 v2ray OUTPUT udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"+++UDP6+mark 1:"' level debug flags all
     fi
-    nft add rule ip6 v2ray OUTPUT mark and 0xff != 0x1 meta l4proto {tcp, udp} mark set mark and 0xffffff00 xor 0x1 accept
+    nft add rule ip6 v2ray OUTPUT mark and 0xff != 0x1 meta l4proto {tcp, udp} mark set mark and 0xffffff00 xor 0x1 return
 else
     nft delete chain ip6 v2ray PREROUTING
     nft delete chain ip6 v2ray OUTPUT
