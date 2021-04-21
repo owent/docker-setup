@@ -183,8 +183,8 @@ if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
     iptables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j LOG --log-level debug --log-prefix "+++TCP4+mark 1:"
 fi
 # ipv4 skip package from outside
-iptables -t mangle -A V2RAY_MASK -p udp -j MARK --set-xmark 0x1/0xff
-iptables -t mangle -A V2RAY_MASK -p tcp -j MARK --set-xmark 0x1/0xff
+iptables -t mangle -A V2RAY_MASK -p udp -m mark ! --mark 0x1/0xff -j MARK --set-xmark 0x1/0xff
+iptables -t mangle -A V2RAY_MASK -p tcp -m mark ! --mark 0x1/0xff -j MARK --set-xmark 0x1/0xff
 
 iptables -t mangle -D OUTPUT -j V2RAY_MASK > /dev/null 2>&1 ;
 while [[ $? -eq 0 ]]; do
@@ -296,8 +296,8 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
         ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j LOG --log-level debug --log-prefix "+++TCP6+mark 1:"
     fi
     # ipv6 skip package from outside
-    ip6tables -t mangle -A V2RAY_MASK -p udp -j MARK --set-xmark 0x1/0xff
-    ip6tables -t mangle -A V2RAY_MASK -p tcp -j MARK --set-xmark 0x1/0xff
+    ip6tables -t mangle -A V2RAY_MASK -p udp -m mark ! --mark 0x1/0xff -j MARK --set-xmark 0x1/0xff
+    ip6tables -t mangle -A V2RAY_MASK -p tcp -m mark ! --mark 0x1/0xff -j MARK --set-xmark 0x1/0xff
 
     ip6tables -t mangle -D OUTPUT -j V2RAY_MASK > /dev/null 2>&1 ;
     while [[ $? -eq 0 ]]; do
