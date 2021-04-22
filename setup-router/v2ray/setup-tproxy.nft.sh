@@ -1,5 +1,6 @@
 #!/bin/bash
 
+set -x
 
 # nftables
 # Quick: https://wiki.nftables.org/wiki-nftables/index.php/Performing_Network_Address_Translation_(NAT)
@@ -26,7 +27,11 @@ fi
 ### Setup v2ray xtable rule and policy routing
 ### ip rule { add | del } SELECTOR ACTION
 ### default table/rule-> local(ID: 255)/Priority: 0 , main(ID: 254)/Priority: 32766 , default(ID: 253)/Priority: 32766
-### 策略路由，所有 fwmark = 1 的包走 table:100
+### 策略路由(占用mark的后8位):
+###   OUTPUT 链约定    : 判定需要重路由设置 设置 fwmark = 0x0e/0x0f (00001110)
+###   PREROUTING链约定 : 跳过tproxy fwmark = 0x70/0x70 (01110000)
+###   所有 fwmark = 0x0e/0x0f 的包走 table 100
+###     (v2ray会设置255,0xff), 避开 0x0e/0x0f 规则(跳过table 100)，满足 0x70/0x70 规则(防止循环重定向)
 
 if [[ "x" == "x$V2RAY_HOST_IPV4" ]]; then
     V2RAY_HOST_IPV4=
@@ -57,22 +62,27 @@ fi
 
 ip -4 route add local 0.0.0.0/0 dev lo table 100
 
-FWMARK_LOOPUP_TABLE_100=$(ip -4 rule show fwmark 1 lookup 100 | awk 'END {print NF}')
+FWMARK_LOOPUP_TABLE_100=$(ip -4 rule show fwmark 0x0e/0x0f lookup 100 | awk 'END {print NF}')
 while [[ 0 -ne $FWMARK_LOOPUP_TABLE_100 ]] ; do
-    ip -4 rule delete fwmark 1 lookup 100
-    FWMARK_LOOPUP_TABLE_100=$(ip -4 rule show fwmark 1 lookup 100 | awk 'END {print NF}')
+    ip -4 rule delete fwmark 0x0e/0x0f lookup 100
+    FWMARK_LOOPUP_TABLE_100=$(ip -4 rule show fwmark 0x0e/0x0f lookup 100 | awk 'END {print NF}')
 done
-ip -4 rule add fwmark 1 lookup 100
+ip -4 rule add fwmark 0x0e/0x0f lookup 100
 
 if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
     ip -6 route add local ::/0 dev lo table 100
-    FWMARK_LOOPUP_TABLE_100=$(ip -6 rule show fwmark 1 lookup 100 | awk 'END {print NF}')
+    FWMARK_LOOPUP_TABLE_100=$(ip -6 rule show fwmark 0x0e/0x0f lookup 100 | awk 'END {print NF}')
     while [[ 0 -ne $FWMARK_LOOPUP_TABLE_100 ]] ; do
-        ip -6 rule delete fwmark 1 lookup 100
-        FWMARK_LOOPUP_TABLE_100=$(ip -6 rule show fwmark 1 lookup 100 | awk 'END {print NF}')
+        ip -6 rule delete fwmark 0x0e/0x0f lookup 100
+        FWMARK_LOOPUP_TABLE_100=$(ip -6 rule show fwmark 0x0e/0x0f lookup 100 | awk 'END {print NF}')
     done
-    ip -6 rule add fwmark 1 lookup 100
+    ip -6 rule add fwmark 0x0e/0x0f lookup 100
 else
+    FWMARK_LOOPUP_TABLE_100=$(ip -6 rule show fwmark 0x0e/0x0f lookup 100 | awk 'END {print NF}')
+    while [[ 0 -ne $FWMARK_LOOPUP_TABLE_100 ]] ; do
+        ip -6 rule delete fwmark 0x0e/0x0f lookup 100
+        FWMARK_LOOPUP_TABLE_100=$(ip -6 rule show fwmark 0x0e/0x0f lookup 100 | awk 'END {print NF}')
+    done
     ip -6 route del local ::/0 dev lo table 100
 fi
 # ip route show table 100
@@ -117,6 +127,7 @@ fi
 nft flush chain ip v2ray PREROUTING
 
 ### ipv4 - skip internal services
+nft add rule ip v2ray PREROUTING meta l4proto != {tcp, udp} return
 nft add rule ip v2ray PREROUTING tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 nft add rule ip v2ray PREROUTING udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 nft add rule ip v2ray PREROUTING udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
@@ -127,7 +138,7 @@ fi
 
 ### ipv4 - skip link-local and broadcast address
 nft add rule ip v2ray PREROUTING ip daddr {127.0.0.1/32, 224.0.0.0/4, 255.255.255.255/32} return
-nft add rule ip v2ray PREROUTING mark and 0xff == 0xff return
+nft add rule ip v2ray PREROUTING mark and 0x70 == 0x70 return
 ### ipv4 - skip private network and UDP of DNS
 nft add rule ip v2ray PREROUTING ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} return
 # if dns service and V2RAY are on different server, use rules below
@@ -155,6 +166,7 @@ fi
 
 nft add rule ip v2ray PREROUTING meta l4proto tcp tproxy to :$V2RAY_PORT accept # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
 nft add rule ip v2ray PREROUTING meta l4proto udp tproxy to :$V2RAY_PORT accept # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
+nft add rule ip v2ray PREROUTING mark and 0x70 != 0x70 mark set mark or 0x70 return
 
 # Setup - ipv4 local
 nft list chain ip v2ray OUTPUT > /dev/null 2>&1 ;
@@ -164,6 +176,7 @@ fi
 nft flush chain ip v2ray OUTPUT
 
 ### ipv4 - skip internal services
+nft add rule ip v2ray OUTPUT meta l4proto != {tcp, udp} return
 nft add rule ip v2ray OUTPUT tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 nft add rule ip v2ray OUTPUT udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 nft add rule ip v2ray OUTPUT udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
@@ -180,13 +193,13 @@ nft add rule ip v2ray OUTPUT ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8
 # nft add rule ip v2ray OUTPUT ip daddr {GATEWAY_ADDRESSES} return
 ### ipv4 - skip CN DNS
 nft add rule ip v2ray OUTPUT ip daddr {119.29.29.29/32, 223.5.5.5/32, 223.6.6.6/32, 180.76.76.76/32} return
-nft add rule ip v2ray OUTPUT mark and 0xff == 0xff return
+nft add rule ip v2ray OUTPUT mark and 0x70 == 0x70 return
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
     nft add rule ip v2ray OUTPUT tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT meta nftrace set 1
     nft add rule ip v2ray OUTPUT tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"+++TCP4+mark 1:"' level debug flags all
     nft add rule ip v2ray OUTPUT udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"+++UDP4+mark 1:"' level debug flags all
 fi
-nft add rule ip v2ray OUTPUT mark and 0xff != 0x1 meta l4proto {tcp, udp} mark set mark and 0xffffff00 xor 0x1 return
+nft add rule ip v2ray OUTPUT mark and 0x0f != 0x0e meta l4proto {tcp, udp} mark set mark and 0xfffffff0 xor 0x0e return
 
 ## Setup - ipv6
 if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
@@ -210,10 +223,11 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
     nft flush chain ip6 v2ray PREROUTING
 
     ### ipv6 - skip internal services
+    nft add rule ip6 v2ray PREROUTING meta l4proto != {tcp, udp} return
     nft add rule ip6 v2ray PREROUTING tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
     nft add rule ip6 v2ray PREROUTING udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
     nft add rule ip6 v2ray PREROUTING udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
-    nft add rule ip6 v2ray PREROUTING mark and 0xff == 0xff return
+    nft add rule ip6 v2ray PREROUTING mark and 0x70 == 0x70 return
     if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
         nft add rule ip6 v2ray PREROUTING tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###TCP6#PREROU:"' level debug flags all
         nft add rule ip6 v2ray PREROUTING udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###UDP6#PREROU:"' level debug flags all
@@ -247,6 +261,7 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
     # tproxy ip6 to $V2RAY_HOST_IPV6:$V2RAY_PORT
     nft add rule ip6 v2ray PREROUTING meta l4proto tcp tproxy to :$V2RAY_PORT accept # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
     nft add rule ip6 v2ray PREROUTING meta l4proto udp tproxy to :$V2RAY_PORT accept # -j TPROXY --on-port $V2RAY_PORT  # mark tcp package with 1 and forward to $V2RAY_PORT
+    nft add rule ip6 v2ray PREROUTING mark and 0x70 != 0x70 mark set mark or 0x70 return
 
     # Setup - ipv6 local
     nft list chain ip6 v2ray OUTPUT > /dev/null 2>&1 ;
@@ -256,6 +271,7 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
     nft flush chain ip6 v2ray OUTPUT
 
     ### ipv6 - skip internal services
+    nft add rule ip6 v2ray OUTPUT meta l4proto != {tcp, udp} return
     nft add rule ip6 v2ray OUTPUT tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
     nft add rule ip6 v2ray OUTPUT udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
     nft add rule ip6 v2ray OUTPUT udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
@@ -272,13 +288,13 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
     # nft add rule ip6 v2ray OUTPUT ip6 daddr {GATEWAY_ADDRESSES} return
     ### ipv6 - skip CN DNS
     nft add rule ip6 v2ray OUTPUT ip6 daddr {2400:3200::1/128, 2400:3200:baba::1/128, 2400:da00::6666/128} return
-    nft add rule ip6 v2ray OUTPUT mark and 0xff == 0xff return # make sure v2ray's outbounds.*.streamSettings.sockopt.mark = 255
+    nft add rule ip6 v2ray OUTPUT mark and 0x70 == 0x70 return # make sure v2ray's outbounds.*.streamSettings.sockopt.mark = 255
     if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
         nft add rule ip6 v2ray OUTPUT tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT meta nftrace set 1
         nft add rule ip6 v2ray OUTPUT tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"+++TCP6+mark 1:"' level debug flags all
         nft add rule ip6 v2ray OUTPUT udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"+++UDP6+mark 1:"' level debug flags all
     fi
-    nft add rule ip6 v2ray OUTPUT mark and 0xff != 0x1 meta l4proto {tcp, udp} mark set mark and 0xffffff00 xor 0x1 return
+    nft add rule ip6 v2ray OUTPUT mark and 0x0f != 0x0e meta l4proto {tcp, udp} mark set mark and 0xfffffff0 xor 0x0e return
 else
     nft delete chain ip6 v2ray PREROUTING
     nft delete chain ip6 v2ray OUTPUT
@@ -297,6 +313,7 @@ fi
 nft flush chain bridge v2ray PREROUTING
 
 ### bridge - skip internal services
+nft add rule bridge v2ray PREROUTING meta l4proto != {tcp, udp} return
 nft add rule bridge v2ray PREROUTING tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 nft add rule bridge v2ray PREROUTING udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 nft add rule bridge v2ray PREROUTING udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
@@ -306,7 +323,7 @@ if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
 fi
 
 ### bridge - skip link-local and broadcast address
-nft add rule bridge v2ray PREROUTING mark and 0xff == 0xff return
+nft add rule bridge v2ray PREROUTING mark and 0x70 == 0x70 return
 
 ### bridge - skip private network and UDP of DNS
 nft add rule bridge v2ray PREROUTING ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} return
