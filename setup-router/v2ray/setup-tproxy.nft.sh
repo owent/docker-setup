@@ -41,6 +41,10 @@ if [[ "x" == "x$V2RAY_PORT" ]]; then
     V2RAY_PORT=3371
 fi
 
+if [[ "x" == "x$SETUP_FWMARK_RULE_PRIORITY" ]]; then
+    SETUP_FWMARK_RULE_PRIORITY=19991
+fi
+
 if [[ "x" == "x$SETUP_WITH_INTERNAL_SERVICE_PORT" ]]; then
     SETUP_WITH_INTERNAL_SERVICE_PORT="{22, 53, 6881, 6882, 6883, 8371, 8372, 8381, 8382, 36000}"
 fi
@@ -71,7 +75,13 @@ while [[ 0 -ne $FWMARK_LOOPUP_TABLE_100 ]] ; do
     ip -4 rule delete fwmark 0x0e/0x0f lookup 100
     FWMARK_LOOPUP_TABLE_100=$(ip -4 rule show fwmark 0x0e/0x0f lookup 100 | awk 'END {print NF}')
 done
-ip -4 rule add fwmark 0x0e/0x0f lookup 100
+SETUP_FWMARK_RULE_RETRY_TIMES=0 ;
+ip -4 rule add fwmark 0x0e/0x0f priority $SETUP_FWMARK_RULE_PRIORITY lookup 100 ;
+while [[ $? -ne 0 ]] && [[ $SETUP_FWMARK_RULE_RETRY_TIMES -lt 1000 ]] ; do
+    let SETUP_FWMARK_RULE_RETRY_TIMES=$SETUP_FWMARK_RULE_RETRY_TIMES+1;
+    let SETUP_FWMARK_RULE_PRIORITY=$SETUP_FWMARK_RULE_PRIORITY-1;
+    ip -4 rule add fwmark 0x0e/0x0f priority $SETUP_FWMARK_RULE_PRIORITY lookup 100 ;
+done
 
 if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
     ip -6 route add local ::/0 dev lo table 100
@@ -80,7 +90,13 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
         ip -6 rule delete fwmark 0x0e/0x0f lookup 100
         FWMARK_LOOPUP_TABLE_100=$(ip -6 rule show fwmark 0x0e/0x0f lookup 100 | awk 'END {print NF}')
     done
-    ip -6 rule add fwmark 0x0e/0x0f lookup 100
+    SETUP_FWMARK_RULE_RETRY_TIMES=0 ;
+    ip -6 rule add fwmark 0x0e/0x0f priority $SETUP_FWMARK_RULE_PRIORITY lookup 100 ;
+    while [[ $? -ne 0 ]] && [[ $SETUP_FWMARK_RULE_RETRY_TIMES -lt 1000 ]] ; do
+        let SETUP_FWMARK_RULE_RETRY_TIMES=$SETUP_FWMARK_RULE_RETRY_TIMES+1;
+        let SETUP_FWMARK_RULE_PRIORITY=$SETUP_FWMARK_RULE_PRIORITY-1;
+        ip -6 rule add fwmark 0x0e/0x0f priority $SETUP_FWMARK_RULE_PRIORITY lookup 100 ;
+    done
 else
     FWMARK_LOOPUP_TABLE_100=$(ip -6 rule show fwmark 0x0e/0x0f lookup 100 | awk 'END {print NF}')
     while [[ 0 -ne $FWMARK_LOOPUP_TABLE_100 ]] ; do
@@ -244,14 +260,14 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
     # nft add rule ip6 v2ray PREROUTING meta l4proto tcp ip6 daddr fd00::/8 return
     # nft add rule ip6 v2ray PREROUTING ip6 daddr fd00::/8 udp dport != 53 return
     ### ipv6 - skip CN DNS
-    nft add rule ip6 v2ray PREROUTING ip daddr {2400:3200::1/128, 2400:3200:baba::1/128, 2400:da00::6666/128} return
+    nft add rule ip6 v2ray PREROUTING ip6 daddr {2400:3200::1/128, 2400:3200:baba::1/128, 2400:da00::6666/128} return
 
     # ipv6 skip package from outside
     nft add rule ip6 v2ray PREROUTING ip6 daddr @BLACKLIST return
     # GEOIP_CN
-    nft add rule ip v2ray PREROUTING ip daddr @GEOIP_CN return
+    nft add rule ip6 v2ray PREROUTING ip6 daddr @GEOIP_CN return
     ## GEOIP_HK
-    #nft add rule ip v2ray PREROUTING ip daddr @GEOIP_HK return
+    #nft add rule ip6 v2ray PREROUTING ip6 daddr @GEOIP_HK return
     ## TODO DNSMASQ_GFW_IPV6
 
     ### ipv6 - forward to v2ray's listen address if not marked by v2ray
@@ -261,8 +277,8 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
         nft add rule ip6 v2ray PREROUTING udp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '">>>UDP6>tproxy:"' level debug flags all
     fi
     # tproxy ip6 to $V2RAY_HOST_IPV6:$V2RAY_PORT
-    # fwmark here must match: ip rule list lookup 100
-    nft add rule ip v2ray PREROUTING mark and 0x7f != 0x7e meta mark set mark and 0xffffff80 xor 0x7e
+    # fwmark here must match: ip -6 rule list lookup 100
+    nft add rule ip6 v2ray PREROUTING mark and 0x7f != 0x7e meta mark set mark and 0xffffff80 xor 0x7e
     nft add rule ip6 v2ray PREROUTING meta l4proto tcp tproxy to :$V2RAY_PORT accept # -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 0x7e/0x7f  # mark tcp package with 1 and forward to $V2RAY_PORT
     nft add rule ip6 v2ray PREROUTING meta l4proto udp tproxy to :$V2RAY_PORT accept # -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 0x7e/0x7f  # mark tcp package with 1 and forward to $V2RAY_PORT
 
