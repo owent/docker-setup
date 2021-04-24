@@ -1,113 +1,85 @@
-# Note
+# Note for mwan
+
+## TODO
+
++ ppp up
+  1. add named route table `ppp_policy_${PPP_IF_INDEX}` into `/etc/iproute2/rt_tables` when ppp up
+  2. `ip -4 rule add iif $IFNAME lookup main`
+  3. `ip -4 rule add fwmark 0x${PPP_IF_INDEX}00/0xff00 lookup main suppress_prefixlength 0`
+  4. `ip -4 rule add fwmark 0x${PPP_IF_INDEX}00/0xff00 lookup ppp_policy_${PPP_IF_INDEX}`
+  5. `nft add chain inet mwan MARK_PPP_${PPP_IF_INDEX}`
+  6. `nft add rule inet mwan MARK_PPP_${PPP_IF_INDEX} meta mark and 0xff00 == 0x0 ip saddr $LOCAL_ADDRESS meta mark set meta mark and 0xffff00ff xor 0xff00`
+  7. `nft add rule inet mwan MARK_PPP_${PPP_IF_INDEX} meta mark and 0xff00 == 0x0 ip saddr $PEER_ADDRESS meta mark set meta mark and 0xffff00ff xor 0xff00`
+  8. Add `MARK_PPP_${PPP_IF_INDEX}` into `MARK`
+  9. Patch Balance rule `MARK_BALANCE` : (insert top, reset `$SUM_WEIGHT`)
+    + `nft add rule inet mwan MARK_BALANCE meta mark & 0xff00 == 0x0000 symhash mod $SUM_WEIGHT 0 meta mark set meta mark and 0xffff00ff xor 0x${PPP_IF_INDEX}00`
+
++ ppp down
+  1. remove named route table `ppp_policy_${PPP_IF_INDEX}` into /etc/iproute2/rt_tables when ppp up
+  2. `ip -4 rule delete iif $IFNAME lookup main`
+  3. `ip -4 rule delete fwmark 0x${PPP_IF_INDEX}00/0xff00 lookup main`
+  4. `ip -4 rule delete fwmark 0x${PPP_IF_INDEX}00/0xff00 lookup ppp_policy_${PPP_IF_INDEX}`
+  5. `nft delete delete inet mwan MARK_PPP_${PPP_IF_INDEX}`
+  6. Remove `MARK_PPP_${PPP_IF_INDEX}` from `MARK`
+  7. Patch Balance rule `MARK_BALANCE`
+    + `nft remove rule inet mwan MARK_BALANCE meta mark & 0xff00 == 0x0000 symhash mod $SUM_WEIGHT 0 meta mark set meta mark and 0xffff00ff xor 0x${PPP_IF_INDEX}00`
+
+## ip rule and ip route
 
 ```bash
-root@Lepton:/# ip rule s
-0:      from all lookup 128
-1:      from all lookup local
-1001:   from all iif eth0 lookup main
-1002:   from all iif eth1 lookup main
-2001:   from all fwmark 0x100/0xff00 lookup 1
-2002:   from all fwmark 0x200/0xff00 lookup 2
-2254:   from all fwmark 0xfe00/0xff00 unreachable
+$ ip rule
+0:      from all lookup local
+7100:   from all iif ppp0 lookup main
+7101:   from all iif ppp1 lookup main
+23001:  from all fwmark 0x200/0xff00 lookup main suppress_prefixlength 0
+23002:  from all fwmark 0x200/0xff00 lookup 101
+29991:  from all fwmark 0xe/0xf lookup 100
 32766:  from all lookup main
-32767:  from all lookup default 
+32767:  from all lookup default
 
-root@Lepton:/# ip route
-default via 192.168.1.2 dev eth0  proto static  src 192.168.1.103
-default via 172.16.8.1 dev eth1  proto static  src 172.16.8.121  metric 1
-172.16.8.0/24 dev eth1  proto static  scope link  metric 1
-172.16.8.1 dev eth1  proto static  scope link  src 172.16.8.121  metric 1
-172.16.9.0/24 dev br-lan  proto kernel  scope link  src 172.16.9.2
-192.168.1.0/24 dev eth0  proto kernel  scope link  src 192.168.1.103
-192.168.1.2 dev eth0  proto static  scope link  src 192.168.1.103
+$ ip route show table main         
+default via 114.95.200.1 dev ppp1 proto static metric 101 
+default via 10.64.255.254 dev ppp0 proto static metric 104 
+10.64.255.254 dev ppp0 proto kernel scope link src 10.64.177.190 metric 109 
+114.95.200.1 dev ppp1 proto kernel scope link src 114.95.201.4 metric 108 
+172.18.0.0/16 dev br0 proto kernel scope link src 172.18.1.10 metric 425 
+172.20.0.0/16 dev br0 proto kernel scope link src 172.20.1.1 metric 425
 
-
+$ ip route show table 101 
+default via 10.64.255.254 dev ppp0 proto static metric 104
 ```
 
+## nftables
+
 ```bash
-root@Lepton:/# iptables -t mangle -L
-Chain PREROUTING (policy ACCEPT)
-target     prot opt source               destination
-mwan3_hook  all  --  anywhere             anywhere
+$ sudo nft list table inet mwan
+table inet mwan {
+  chain PREROUTING {
+    type filter hook prerouting priority mangle; policy accept;
+    goto MARK
+  }
 
-Chain OUTPUT (policy ACCEPT)
-target     prot opt source               destination
-mwan3_hook  all  --  anywhere             anywhere
-mwan3_output_hook  all  --  anywhere             anywhere
+  chain OUTPUT {
+    type route hook output priority mangle; policy accept;
+    goto MARK
+  }
 
-Chain mwan3_connected (1 references)
-target     prot opt source               destination
-MARK       all  --  anywhere             127.0.0.0/8          MARK or 0xff00
-MARK       all  --  anywhere             base-address.mcast.net/3  MARK or 0xff00
-MARK       all  --  anywhere             172.16.8.0/24        MARK or 0xff00
-MARK       all  --  anywhere             172.16.8.1           MARK or 0xff00
-MARK       all  --  anywhere             172.16.9.0/24        MARK or 0xff00
-MARK       all  --  anywhere             192.168.1.0/24       MARK or 0xff00
-MARK       all  --  anywhere             192.168.1.2          MARK or 0xff00
-MARK       all  --  anywhere             127.0.0.0            MARK or 0xff00
-MARK       all  --  anywhere             127.0.0.0/8          MARK or 0xff00
-MARK       all  --  anywhere             localhost            MARK or 0xff00
-MARK       all  --  anywhere             127.255.255.255      MARK or 0xff00
-MARK       all  --  anywhere             172.16.8.0           MARK or 0xff00
-MARK       all  --  anywhere             172.16.8.121         MARK or 0xff00
-MARK       all  --  anywhere             172.16.8.255         MARK or 0xff00
-MARK       all  --  anywhere             172.16.9.0           MARK or 0xff00
-MARK       all  --  anywhere             Lepton.lan           MARK or 0xff00
-MARK       all  --  anywhere             172.16.9.255         MARK or 0xff00
-MARK       all  --  anywhere             192.168.1.0          MARK or 0xff00
-MARK       all  --  anywhere             192.168.1.103        MARK or 0xff00
-MARK       all  --  anywhere             192.168.1.255        MARK or 0xff00
-
-Chain mwan3_hook (2 references)
-target     prot opt source               destination
-CONNMARK   all  --  anywhere             anywhere             CONNMARK restore mask 0xff00
-mwan3_ifaces  all  --  anywhere             anywhere             mark match 0x0/0xff00
-mwan3_rules  all  --  anywhere             anywhere             mark match 0x0/0xff00
-CONNMARK   all  --  anywhere             anywhere             CONNMARK save mask 0xff00
-mwan3_connected  all  --  anywhere             anywhere
-
-Chain mwan3_iface_wan (1 references)
-target     prot opt source               destination
-MARK       all  --  192.168.1.2          anywhere             mark match 0x0/0xff00 /* wan */ MARK or 0xff00
-MARK       all  --  192.168.1.0/24       anywhere             mark match 0x0/0xff00 /* wan */ MARK or 0xff00
-MARK       all  --  anywhere             anywhere             mark match 0x0/0xff00 /* wan */ MARK xset 0x100/0xff00
-
-Chain mwan3_iface_wan1 (1 references)
-target     prot opt source               destination
-MARK       all  --  172.16.8.1           anywhere             mark match 0x0/0xff00 /* wan1 */ MARK or 0xff00
-MARK       all  --  172.16.8.0/24        anywhere             mark match 0x0/0xff00 /* wan1 */ MARK or 0xff00
-MARK       all  --  anywhere             anywhere             mark match 0x0/0xff00 /* wan1 */ MARK xset 0x200/0xff00
-
-Chain mwan3_ifaces (1 references)
-target     prot opt source               destination
-mwan3_iface_wan  all  --  anywhere             anywhere             mark match 0x0/0xff00
-mwan3_iface_wan1  all  --  anywhere             anywhere             mark match 0x0/0xff00
-
-Chain mwan3_output_hook (1 references)
-target     prot opt source               destination
-mwan3_track_wan  icmp --  anywhere             anywhere             icmp echo-request length 32
-mwan3_track_wan1  icmp --  anywhere             anywhere             icmp echo-request length 32
-
-Chain mwan3_policy_balanced (1 references)
-target     prot opt source               destination
-MARK       all  --  anywhere             anywhere             mark match 0x0/0xff00 statistic mode random probability 0.50000000000 /* wan1 1 2 */ MARK xset 0x200/0xff00
-MARK       all  --  anywhere             anywhere             mark match 0x0/0xff00 /* wan 1 1 */ MARK xset 0x100/0xff00
-
-Chain mwan3_rules (1 references)
-target     prot opt source               destination
-mwan3_policy_balanced  all  --  anywhere             anywhere             mark match 0x0/0xff00 /* default_rule */
-
-Chain mwan3_track_wan (1 references)
-target     prot opt source               destination
-MARK       all  --  anywhere             resolver2.opendns.com  MARK or 0xff00
-MARK       all  --  anywhere             resolver1.opendns.com  MARK or 0xff00
-MARK       all  --  anywhere             google-public-dns-a.google.com  MARK or 0xff00
-MARK       all  --  anywhere             google-public-dns-b.google.com  MARK or 0xff00
-MARK       all  --  anywhere             public1.114dns.com   MARK or 0xff00
-
-Chain mwan3_track_wan1 (1 references)
-target     prot opt source               destination
-MARK       all  --  anywhere             resolver2.opendns.com  MARK or 0xff00
-MARK       all  --  anywhere             google-public-dns-a.google.com  MARK or 0xff00
-MARK       all  --  anywhere             public1.114dns.com   MARK or 0xff00 
+  chain MARK {
+    meta l4proto != { tcp, udp } return
+    meta mark & 0x0000ff00 == 0x00000000 meta mark set ct mark & 0x0000ffff
+    meta mark & 0x0000ff00 != 0x00000000 return
+    ip daddr { 127.0.0.1, 224.0.0.0/4, 255.255.255.255 } return
+    ip daddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } return
+    ip daddr { 119.29.29.29, 180.76.76.76, 223.5.5.5, 223.6.6.6 } return
+    ip6 daddr { ::1, fc00::/7, fe80::/10, ff00::-ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff } return
+    ip6 daddr { 2400:3200::1, 2400:3200:baba::1, 2400:da00::6666 } return
+    meta mark & 0x0000ff00 == 0x00000000 ip saddr 114.95.201.4 meta mark set meta mark | 0x0000ff00
+    meta mark & 0x0000ff00 == 0x00000000 ip saddr 114.95.200.1 meta mark set meta mark | 0x0000ff00
+    meta mark & 0x0000ff00 == 0x00000000 ip saddr 10.64.177.190 meta mark set meta mark | 0x0000ff00
+    meta mark & 0x0000ff00 == 0x00000000 ip saddr 10.64.255.254 meta mark set meta mark | 0x0000ff00
+    meta mark & 0x0000ff00 == 0x00000000 symhash mod 4 0 meta mark set meta mark & 0xffff02ff | 0x00000200
+    meta mark & 0x0000ff00 == 0x00000000 meta mark set meta mark & 0xfffffeff | 0x0000fe00
+    ct mark set meta mark & 0x0000ffff
+  }
+}
 ```

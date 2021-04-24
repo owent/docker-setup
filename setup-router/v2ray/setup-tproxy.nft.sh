@@ -14,6 +14,7 @@ set -x
 #    ipv6 <prefix> <bits> => ipv6 2407:c380:: 32
 # Netfilter: https://en.wikipedia.org/wiki/Netfilter
 #            http://inai.de/images/nf-packet-flow.svg
+# Monitor: nft monitor
 
 if [[ -e "/opt/nftables/sbin" ]]; then
     export PATH=/opt/nftables/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
@@ -185,6 +186,7 @@ fi
 
 # fwmark here must match: ip rule list lookup 100
 nft add rule ip v2ray PREROUTING mark and 0x7f != 0x7e meta mark set mark and 0xffffff80 xor 0x7e
+nft add rule ip v2ray PREROUTING ct mark set mark and 0xffff
 nft add rule ip v2ray PREROUTING meta l4proto tcp tproxy to :$V2RAY_PORT accept # -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 0x7e/0x7f # mark tcp package with 1 and forward to $V2RAY_PORT
 nft add rule ip v2ray PREROUTING meta l4proto udp tproxy to :$V2RAY_PORT accept # -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 0x7e/0x7f # mark tcp package with 1 and forward to $V2RAY_PORT
 
@@ -219,6 +221,7 @@ if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
     nft add rule ip v2ray OUTPUT udp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"+++UDP4+mark 1:"' level debug flags all
 fi
 nft add rule ip v2ray OUTPUT mark and 0x0f != 0x0e meta l4proto {tcp, udp} mark set mark and 0xfffffff0 xor 0x0e return
+nft add rule ip v2ray OUTPUT ct mark set mark and 0xffff
 
 ## Setup - ipv6
 if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
@@ -279,6 +282,7 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
     # tproxy ip6 to $V2RAY_HOST_IPV6:$V2RAY_PORT
     # fwmark here must match: ip -6 rule list lookup 100
     nft add rule ip6 v2ray PREROUTING mark and 0x7f != 0x7e meta mark set mark and 0xffffff80 xor 0x7e
+    nft add rule ip6 v2ray PREROUTING ct mark set mark and 0xffff
     nft add rule ip6 v2ray PREROUTING meta l4proto tcp tproxy to :$V2RAY_PORT accept # -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 0x7e/0x7f  # mark tcp package with 1 and forward to $V2RAY_PORT
     nft add rule ip6 v2ray PREROUTING meta l4proto udp tproxy to :$V2RAY_PORT accept # -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 0x7e/0x7f  # mark tcp package with 1 and forward to $V2RAY_PORT
 
@@ -313,6 +317,7 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
         nft add rule ip6 v2ray OUTPUT udp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"+++UDP6+mark 1:"' level debug flags all
     fi
     nft add rule ip6 v2ray OUTPUT mark and 0x0f != 0x0e meta l4proto {tcp, udp} mark set mark and 0xfffffff0 xor 0x0e return
+    nft add rule ip6 v2ray OUTPUT ct mark set mark and 0xffff
 else
     nft delete chain ip6 v2ray PREROUTING
     nft delete chain ip6 v2ray OUTPUT

@@ -176,6 +176,7 @@ if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
     iptables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_DEBUG_LOG_IGNORE_PORT -j LOG --log-level debug --log-prefix ">>>TCP4>mark:0x70"
 fi
 iptables -t mangle -A V2RAY -m mark ! --mark 0x70/0x70 -j MARK --set-xmark 0x70/0x70
+iptables -t mangle -A V2RAY -m CONNMARK -j CONNMARK --save-mark --mask 0xffff
 
 # reset chain
 iptables -t mangle -D PREROUTING -p tcp -j V2RAY > /dev/null 2>&1 ;
@@ -218,6 +219,7 @@ if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
 fi
 # ipv4 skip package from outside
 iptables -t mangle -A V2RAY_MASK -m mark ! --mark 0x0e/0x0f -j MARK --set-xmark 0x0e/0x0f
+iptables -t mangle -A V2RAY_MASK -m CONNMARK -j CONNMARK --save-mark --mask 0xffff
 
 # reset chain
 iptables -t mangle -D OUTPUT -p tcp -j V2RAY_MASK > /dev/null 2>&1 ;
@@ -298,6 +300,7 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
         ip6tables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j LOG --log-level debug --log-prefix ">>>TCP6>mark:0x70"
     fi
     ip6tables -t mangle -A V2RAY -m mark ! --mark 0x70/0x70 -j MARK --set-xmark 0x70/0x70
+    ip6tables -t mangle -A V2RAY -m CONNMARK -j CONNMARK --save-mark --mask 0xffff
 
     # reset chain
     ip6tables -t mangle -D PREROUTING -p tcp -j V2RAY > /dev/null 2>&1 ;
@@ -339,6 +342,7 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
     fi
     # ipv6 skip package from outside
     ip6tables -t mangle -A V2RAY_MASK -m mark ! --mark 0x0e/0x0f -j MARK --set-xmark 0x0e/0x0f
+    ip6tables -t mangle -A V2RAY_MASK -m CONNMARK -j CONNMARK --save-mark --mask 0xffff
 
     # reset chain
     ip6tables -t mangle -D OUTPUT -p tcp -j V2RAY_MASK > /dev/null 2>&1 ;

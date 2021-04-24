@@ -10,16 +10,16 @@ fi
 ip -4 route delete local 0.0.0.0/0 dev lo table 100
 ip -6 route delete local ::/0 dev lo table 100
 
-FWMARK_LOOPUP_TABLE_100=$(ip -4 rule show fwmark 0x0e/0x0f lookup 100 | awk 'END {print NF}')
-while [[ 0 -ne $FWMARK_LOOPUP_TABLE_100 ]] ; do
-    ip -4 rule delete fwmark 0x0e/0x0f lookup 100
-    FWMARK_LOOPUP_TABLE_100=$(ip -4 rule show fwmark 0x0e/0x0f lookup 100 | awk 'END {print NF}')
+FWMARK_LOOPUP_TABLE_IDS=($(ip -4 rule show fwmark 0x0e/0x0f lookup 100 | awk 'END {print $NF}'));
+for TABLE_ID in ${FWMARK_LOOPUP_TABLE_IDS[@]}; do
+    ip -4 rule delete fwmark 0x0e/0x0f lookup $TABLE_ID ;
+    ip -4 route delete local 0.0.0.0/0 dev lo table $TABLE_ID ;
 done
 
-FWMARK_LOOPUP_TABLE_100=$(ip -6 rule show fwmark 0x0e/0x0f lookup 100 | awk 'END {print NF}')
-while [[ 0 -ne $FWMARK_LOOPUP_TABLE_100 ]] ; do
-    ip -6 rule delete fwmark 0x0e/0x0f lookup 100
-    FWMARK_LOOPUP_TABLE_100=$(ip -6 rule show fwmark 0x0e/0x0f lookup 100 | awk 'END {print NF}')
+FWMARK_LOOPUP_TABLE_IDS=($(ip -6 rule show fwmark 0x0e/0x0f lookup 100 | awk 'END {print $NF}'));
+for TABLE_ID in ${FWMARK_LOOPUP_TABLE_IDS[@]}; do
+    ip -6 rule delete fwmark 0x0e/0x0f lookup $TABLE_ID ;
+    ip -6 route delete local ::/0 dev lo table $TABLE_ID ;
 done
 
 # Cleanup ipv4
