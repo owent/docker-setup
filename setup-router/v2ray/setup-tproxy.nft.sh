@@ -43,7 +43,7 @@ if [[ "x" == "x$V2RAY_PORT" ]]; then
 fi
 
 if [[ "x" == "x$SETUP_FWMARK_RULE_PRIORITY" ]]; then
-    SETUP_FWMARK_RULE_PRIORITY=19991
+    SETUP_FWMARK_RULE_PRIORITY=17995
 fi
 
 if [[ "x" == "x$SETUP_WITH_INTERNAL_SERVICE_PORT" ]]; then
@@ -69,7 +69,9 @@ else
     V2RAY_SETUP_SKIP_IPV6=0;
 fi
 
-ip -4 route add local 0.0.0.0/0 dev lo table 100
+if [[ $(ip -4 route list 0.0.0.0/0 dev lo table 100 | wc -l) -eq 0 ]]; then
+  ip -4 route add local 0.0.0.0/0 dev lo table 100 ;
+fi
 
 FWMARK_LOOPUP_TABLE_100=$(ip -4 rule show fwmark 0x0e/0x0f lookup 100 | awk 'END {print NF}')
 while [[ 0 -ne $FWMARK_LOOPUP_TABLE_100 ]] ; do
@@ -85,7 +87,9 @@ while [[ $? -ne 0 ]] && [[ $SETUP_FWMARK_RULE_RETRY_TIMES -lt 1000 ]] ; do
 done
 
 if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
-    ip -6 route add local ::/0 dev lo table 100
+    if [[ $(ip -6 route list ::/0 dev lo table 100 | wc -l) -eq 0 ]]; then
+      ip -6 route add local ::/0 dev lo table 100 ;
+    fi
     FWMARK_LOOPUP_TABLE_100=$(ip -6 rule show fwmark 0x0e/0x0f lookup 100 | awk 'END {print NF}')
     while [[ 0 -ne $FWMARK_LOOPUP_TABLE_100 ]] ; do
         ip -6 rule delete fwmark 0x0e/0x0f lookup 100

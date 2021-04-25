@@ -8,7 +8,7 @@ else
     export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)";
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)";
 
 # nftables
 # Quick: https://wiki.nftables.org/wiki-nftables/index.php/Performing_Network_Address_Translation_(NAT)
@@ -125,6 +125,13 @@ else
   nft flush chain inet mwan MARK ;
 fi
 
+nft list chain inet mwan POLICY_MARK > /dev/null 2>&1 ;
+if [[ $? -ne 0 ]]; then
+  nft add chain inet mwan POLICY_MARK ;
+else
+  nft flush chain inet mwan POLICY_MARK ;
+fi
+
 # Add rules to skip local address
 nft add rule inet mwan MARK meta l4proto != {tcp, udp} return
 
@@ -133,7 +140,11 @@ if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
   nft add rule inet mwan MARK ip daddr { 103.235.46.39, 180.101.49.11, 180.101.49.12 } log prefix '"===mwan===MARK:"' level debug flags all
 fi
 
-nft add rule inet mwan MARK meta mark and 0xff00 == 0x0 meta mark set ct mark and 0xffff ;
+nft add rule inet mwan MARK meta mark and 0xff00 != 0x0 return
+# Restore fwmark of last 8 bits into ct mark
+nft add rule inet mwan MARK meta mark and 0xffff != 0x0 ct mark and 0xff00 == 0x0 ct mark set meta mark and 0xffff ;
+# And then set last 9-16 bits in conntrack into packet
+nft add rule inet mwan MARK meta mark and 0xff00 == 0x0 ct mark and 0xff00 != 0x0 meta mark set ct mark and 0xffff ;
 nft add rule inet mwan MARK meta mark and 0xff00 != 0x0 return
 nft add rule inet mwan MARK ip daddr {127.0.0.1/32, 224.0.0.0/4, 255.255.255.255/32} return
 nft add rule inet mwan MARK ip daddr {192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8} return
@@ -163,48 +174,48 @@ for PPP_IF_NAME in ${PPP_INTERFACES_IPV4[@]}; do
   if [[ ! -z "$IPREMOTE" ]]; then
     nft add rule inet mwan MARK meta mark and 0xff00 == 0x0 ip saddr "$IPREMOTE" meta mark set meta mark and 0xffff00ff xor 0xff00 ;
   fi
-  if [[ $PPP_INDEX -gt 1 ]]; then
-    let TABLE_ID=$TABLE_ID+1;
-    TABLE_ID=$(get_next_empty_table_id_ipv4 $TABLE_ID);
-    TABLE_OPTIONS=($(ip -4 route show table main default | grep -E "dev[[:space:]]+$PPP_IF_NAME"));
-    RETRY_TIMES=0;
-    # Route table
-    ip -4 route add ${TABLE_OPTIONS[@]} table $TABLE_ID ;
 
-    # Rule to fallback to main
+  let TABLE_ID=$TABLE_ID+1;
+  TABLE_ID=$(get_next_empty_table_id_ipv4 $TABLE_ID);
+  TABLE_OPTIONS=($(ip -4 route show table main default | grep -E "dev[[:space:]]+$PPP_IF_NAME"));
+  RETRY_TIMES=0;
+  # Route table
+  ip -4 route add ${TABLE_OPTIONS[@]} table $TABLE_ID ;
+
+  # Rule to fallback to main
+  ip -4 rule add fwmark "$CURRENT_PPP_FWMARK/0xff00" priority $SETUP_FWMARK_RULE_PRIORITY lookup main suppress_prefixlength 0;
+  LAST_ACTION_SUCCESS=$?;
+  while [[ $LAST_ACTION_SUCCESS -ne 0 ]] && [[ $RETRY_TIMES -lt $MAX_RETRY_TIMES ]]; do
+    let RETRY_TIMES=$RETRY_TIMES+1;
+    let SETUP_FWMARK_RULE_PRIORITY=$SETUP_FWMARK_RULE_PRIORITY+1;
     ip -4 rule add fwmark "$CURRENT_PPP_FWMARK/0xff00" priority $SETUP_FWMARK_RULE_PRIORITY lookup main suppress_prefixlength 0;
+    LAST_ACTION_SUCCESS=$?;
+  done
+  let SETUP_FWMARK_RULE_PRIORITY=$SETUP_FWMARK_RULE_PRIORITY+1;
+
+  # Rule to policy to $PPP_IF_NAME, must be lower priority than before
+  if [[ $LAST_ACTION_SUCCESS -eq 0 ]]; then
+    ip -4 rule add fwmark "$CURRENT_PPP_FWMARK/0xff00" priority $SETUP_FWMARK_RULE_PRIORITY lookup $TABLE_ID ;
     LAST_ACTION_SUCCESS=$?;
     while [[ $LAST_ACTION_SUCCESS -ne 0 ]] && [[ $RETRY_TIMES -lt $MAX_RETRY_TIMES ]]; do
       let RETRY_TIMES=$RETRY_TIMES+1;
       let SETUP_FWMARK_RULE_PRIORITY=$SETUP_FWMARK_RULE_PRIORITY+1;
-      ip -4 rule add fwmark "$CURRENT_PPP_FWMARK/0xff00" priority $SETUP_FWMARK_RULE_PRIORITY lookup main suppress_prefixlength 0;
+      ip -4 rule add fwmark "$CURRENT_PPP_FWMARK/0xff00" priority $SETUP_FWMARK_RULE_PRIORITY lookup $TABLE_ID ;
       LAST_ACTION_SUCCESS=$?;
     done
     let SETUP_FWMARK_RULE_PRIORITY=$SETUP_FWMARK_RULE_PRIORITY+1;
+  fi
 
-    # Rule to policy to $PPP_IF_NAME, must be lower priority than before
-    if [[ $LAST_ACTION_SUCCESS -eq 0 ]]; then
-      ip -4 rule add fwmark "$CURRENT_PPP_FWMARK/0xff00" priority $SETUP_FWMARK_RULE_PRIORITY lookup $TABLE_ID ;
-      LAST_ACTION_SUCCESS=$?;
-      while [[ $LAST_ACTION_SUCCESS -ne 0 ]] && [[ $RETRY_TIMES -lt $MAX_RETRY_TIMES ]]; do
-        let RETRY_TIMES=$RETRY_TIMES+1;
-        let SETUP_FWMARK_RULE_PRIORITY=$SETUP_FWMARK_RULE_PRIORITY+1;
-        ip -4 rule add fwmark "$CURRENT_PPP_FWMARK/0xff00" priority $SETUP_FWMARK_RULE_PRIORITY lookup $TABLE_ID ;
-        LAST_ACTION_SUCCESS=$?;
-      done
-      let SETUP_FWMARK_RULE_PRIORITY=$SETUP_FWMARK_RULE_PRIORITY+1;
+  # Policy set fwmark 
+  if [[ $LAST_ACTION_SUCCESS -eq 0 ]]; then
+    if [[ $SETUP_WITH_DEBUG_LOG -eq 0 ]]; then
+      # By hash fwmark: 0x100
+      nft add rule inet mwan POLICY_MARK meta mark and 0xff00 == 0x0 symhash mod $SUM_WEIGHT_IPV4 == 0 meta mark set meta mark and 0xffff00ff xor $CURRENT_PPP_FWMARK ;
+    else
+      # By random fwmark: 0x100
+      nft add rule inet mwan POLICY_MARK meta mark and 0xff00 == 0x0 numgen random mod $SUM_WEIGHT_IPV4 == 0 meta mark set meta mark and 0xffff00ff xor $CURRENT_PPP_FWMARK ;
     fi
-
-    if [[ $LAST_ACTION_SUCCESS -eq 0 ]]; then
-      if [[ $SETUP_WITH_DEBUG_LOG -eq 0 ]]; then
-        # By hash fwmark: 0x100
-        nft add rule inet mwan MARK meta mark and 0xff00 == 0x0 symhash mod $SUM_WEIGHT_IPV4 == 0 meta mark set meta mark and 0xffff00ff xor $CURRENT_PPP_FWMARK ;
-      else
-        # By random fwmark: 0x100
-        nft add rule inet mwan MARK meta mark and 0xff00 == 0x0 numgen random mod $SUM_WEIGHT_IPV4 == 0 meta mark set meta mark and 0xffff00ff xor $CURRENT_PPP_FWMARK ;
-      fi
-      let SUM_WEIGHT_IPV4=$SUM_WEIGHT_IPV4-1;
-    fi
+    let SUM_WEIGHT_IPV4=$SUM_WEIGHT_IPV4-1;
   fi
   
   # Policy router for ppp
@@ -221,6 +232,9 @@ for PPP_IF_NAME in ${PPP_INTERFACES_IPV4[@]}; do
     let SETUP_PPP_RULE_PRIORITY=$SETUP_PPP_RULE_PRIORITY-1;
   fi
 done
+
+# Balance policy
+nft add rule inet mwan MARK meta mark and 0xff00 == 0x0 jump POLICY_MARK ;
 
 # Force set fwmark in case of change router later
 nft add rule inet mwan MARK meta mark and 0xff00 == 0x0 meta mark set meta mark and 0xffff00ff xor 0xfe00 ;
