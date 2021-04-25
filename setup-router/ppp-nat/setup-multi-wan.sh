@@ -87,6 +87,14 @@ function get_next_empty_table_id_ipv4() {
   done
 }
 
+if [[ $(ip -4 rule list priority 1 lookup local | wc -l) -eq 0 ]]; then
+  ip -4 rule add priority 1 lookup local ;
+fi
+
+if [[ $(ip -6 rule list priority 1 lookup local | wc -l) -eq 0 ]]; then
+  ip -6 rule add priority 1 lookup local ;
+fi
+
 nft list table inet mwan > /dev/null 2>&1 ;
 if [[ $? -ne 0 ]]; then
   nft add table inet mwan ;
