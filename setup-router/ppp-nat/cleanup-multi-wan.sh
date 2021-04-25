@@ -11,8 +11,8 @@ fi
 # Remove ppp rules
 TRY_DELETE_PPP_INDEX=0;
 IP_RULE_LOOPUP_TABLE_IIF_PPP=($(ip -4 rule show | grep -E -o "iif[[:space:]]+(ppp[0-9]+)" | awk '{print $NF}'));
-for PPP_IF in ${IP_RULE_LOOPUP_TABLE_IIF_PPP[@]}; do
-  ip -4 rule delete iif $PPP_IF lookup main ;
+for PPP_IF_NAME in ${IP_RULE_LOOPUP_TABLE_IIF_PPP[@]}; do
+  ip -4 rule delete iif $PPP_IF_NAME lookup main ;
 done
 
 # Remove fwmark rules

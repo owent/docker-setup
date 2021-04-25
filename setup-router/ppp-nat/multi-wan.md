@@ -1,28 +1,76 @@
 # Note for mwan
 
-## TODO
+## PPP scripts(TODO)
 
-+ ppp up
-  1. add named route table `ppp_policy_${PPP_IF_INDEX}` into `/etc/iproute2/rt_tables` when ppp up
-  2. `ip -4 rule add iif $IFNAME lookup main`
-  3. `ip -4 rule add fwmark 0x${PPP_IF_INDEX}00/0xff00 lookup main suppress_prefixlength 0`
-  4. `ip -4 rule add fwmark 0x${PPP_IF_INDEX}00/0xff00 lookup ppp_policy_${PPP_IF_INDEX}`
-  5. `nft add chain inet mwan MARK_PPP_${PPP_IF_INDEX}`
-  6. `nft add rule inet mwan MARK_PPP_${PPP_IF_INDEX} meta mark and 0xff00 == 0x0 ip saddr $LOCAL_ADDRESS meta mark set meta mark and 0xffff00ff xor 0xff00`
-  7. `nft add rule inet mwan MARK_PPP_${PPP_IF_INDEX} meta mark and 0xff00 == 0x0 ip saddr $PEER_ADDRESS meta mark set meta mark and 0xffff00ff xor 0xff00`
-  8. Add `MARK_PPP_${PPP_IF_INDEX}` into `MARK`
-  9. Patch Balance rule `MARK_BALANCE` : (insert top, reset `$SUM_WEIGHT`)
-    + `nft add rule inet mwan MARK_BALANCE meta mark & 0xff00 == 0x0000 symhash mod $SUM_WEIGHT 0 meta mark set meta mark and 0xffff00ff xor 0x${PPP_IF_INDEX}00`
+```bash
+PPP_IF_INDEX=$(echo "$IFNAME" | grep -E -o '[0-9]+$');
+MAX_RETRY_TIMES=32;
+let PPP_ROUTE_TABLE_ID=121+$PPP_IF_INDEX;
+let PPP_RULE_IF_PRIORITY=$PPP_ROUTE_TABLE_ID*100;
+let PPP_RULE_POLICY_PRIORITY=$PPP_RULE_IF_PRIORITY+10000;
+```
 
-+ ppp down
-  1. remove named route table `ppp_policy_${PPP_IF_INDEX}` into /etc/iproute2/rt_tables when ppp up
-  2. `ip -4 rule delete iif $IFNAME lookup main`
-  3. `ip -4 rule delete fwmark 0x${PPP_IF_INDEX}00/0xff00 lookup main`
-  4. `ip -4 rule delete fwmark 0x${PPP_IF_INDEX}00/0xff00 lookup ppp_policy_${PPP_IF_INDEX}`
-  5. `nft delete delete inet mwan MARK_PPP_${PPP_IF_INDEX}`
-  6. Remove `MARK_PPP_${PPP_IF_INDEX}` from `MARK`
-  7. Patch Balance rule `MARK_BALANCE`
-    + `nft remove rule inet mwan MARK_BALANCE meta mark & 0xff00 == 0x0000 symhash mod $SUM_WEIGHT 0 meta mark set meta mark and 0xffff00ff xor 0x${PPP_IF_INDEX}00`
+### ppp up
+
+```bash
+export PATH=$PATH:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:$HOME/bin:$HOME/.local/bin
+mkdir -p /run/multi-wan/ ;
+
+sed -i "/^$IFNAME\\b/d" /run/multi-wan/ipv4 ;
+echo "$IFNAME DEVICE=\"$DEVICE\" IPLOCAL=\"$IPLOCAL\" IPREMOTE=\"$IPREMOTE\" PEERNAME=\"$PEERNAME\" SPEED=\"$SPEED\" LINKNAME=\"$LINKNAME\"" >> /run/multi-wan/ipv4 ;
+for RECHECK_PPP_IF in $(cat /run/multi-wan/ipv4 | awk '{print $1}'); do
+  ip -4 -o addr show dev $CHECK_PPP_IF ;
+  if [[ $? -ne 0 ]]; then
+    sed -i "/^$RECHECK_PPP_IF\\b/d" /run/multi-wan/ipv4 ;
+  fi
+done
+```
+
+1. add named route table `$PPP_ROUTE_TABLE_ID` into `/etc/iproute2/rt_tables` when ppp up
+2. `ip -4 rule add iif $IFNAME priority $PPP_RULE_IF_PRIORITY lookup main`
+3. `ip -4 rule add fwmark 0x${PPP_IF_INDEX}00/0xff00 priority $PPP_RULE_POLICY_PRIORITY lookup main suppress_prefixlength 0`
+4. `ip -4 rule add fwmark 0x${PPP_IF_INDEX}00/0xff00 priority $PPP_RULE_POLICY_PRIORITY lookup $PPP_ROUTE_TABLE_ID`
+5. `nft add chain inet mwan MARK_PPP_${PPP_IF_INDEX}`
+6. `nft add rule inet mwan MARK_PPP_${PPP_IF_INDEX} meta mark and 0xff00 == 0x0 ip saddr $IPLOCAL meta mark set meta mark and 0xffff00ff xor 0xff00`
+7. `nft add rule inet mwan MARK_PPP_${PPP_IF_INDEX} meta mark and 0xff00 == 0x0 ip saddr $IPREMOTE meta mark set meta mark and 0xffff00ff xor 0xff00`
+8. `nft add rule inet mwan MARK meta mark & 0xff00 == 0x0000 jump MARK_PPP_${PPP_IF_INDEX}`
+9. Patch Balance Rule `MARK_BALANCE` : (insert top, reset `$SUM_WEIGHT`)
+
+### ppp down
+
+```bash
+export PATH=$PATH:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:$HOME/bin:$HOME/.local/bin
+
+if [[ -e "/run/multi-wan/ipv4" ]]; then
+  sed -i "/^$IFNAME\\b/d" /run/multi-wan/ipv4 ;
+fi
+```
+
+1. remove named route table `$PPP_ROUTE_TABLE_ID` into /etc/iproute2/rt_tables when ppp up
+2. `ip -4 rule delete iif $IFNAME lookup main`
+3. `ip -4 rule delete fwmark 0x${PPP_IF_INDEX}00/0xff00 lookup main`
+4. `ip -4 rule delete fwmark 0x${PPP_IF_INDEX}00/0xff00 lookup $PPP_ROUTE_TABLE_ID`
+5. Remove `MARK_PPP_${PPP_IF_INDEX}` from `MARK`
+  >
+  > ```bash
+  > HANDLE_ID=$(nft -a list chain inet mwan MARK | grep -E -i "jump[[:space:]]+MARK_PPP_${PPP_IF_INDEX}" | grep -E -i "#[[:space:]]*handle[[:space:]]*.*$" | awk '{print $NF}') ;
+  > nft delete rule inet mwan MARK handle $HANDLE_ID ;
+  > ```
+  >
+6. `nft delete chain inet mwan MARK_PPP_${PPP_IF_INDEX}`
+7. Patch Balance rule `MARK_BALANCE`
+
+### Patch Balance Rule
+
+> `nft insert rule inet mwan MARK_BALANCE index 0 meta mark & 0xff00 == 0x0000 symhash mod $SUM_WEIGHT 0 meta mark set meta mark and 0xffff00ff xor 0x${PPP_IF_INDEX}00`
+> `nft delete rule inet mwan MARK_BALANCE handle HANDLE`
+
+```bash
+eval "ALL_RULES=($(nft list chain inet mwan MARK_BALANCE | grep -E -i "numgen|symhash|jhash" | awk '{sub(/^[[:space:]]+/, "");print "\""$0"\""}'))";
+for RULE in "${ALL_RULES[@]}"; do
+  echo "RULE: $RULE";
+done
+```
 
 ## ip rule and ip route
 
@@ -56,12 +104,12 @@ $ sudo nft list table inet mwan
 table inet mwan {
   chain PREROUTING {
     type filter hook prerouting priority mangle; policy accept;
-    goto MARK
+    jump MARK
   }
 
   chain OUTPUT {
     type route hook output priority mangle; policy accept;
-    goto MARK
+    jump MARK
   }
 
   chain MARK {

@@ -44,9 +44,22 @@ fi
 if [[ "x" == "x$SETUP_PPP_RULE_PRIORITY" ]]; then
     SETUP_PPP_RULE_PRIORITY=7101
 fi
-MAX_RETRY_TIMES=16;
+MAX_RETRY_TIMES=32;
 
-PPP_INTERFACES_IPV4=($(ip -4 route show table main default | grep -E -o "ppp[0-9]+"));
+if [[ ! -e "/run/multi-wan/ipv4" ]]; then
+  # Fake create /run/multi-wan/ipv4
+  mkdir -p /run/multi-wan/ ;
+  chmod 777 /run/multi-wan/ ;
+  for PPP_IF_NAME in $(ip -4 route show table main default | grep -E -o "ppp[0-9]+"); do
+    PPP_ADDRS=($(ip -4 -o addr show dev $PPP_IF_NAME | grep -E -o '[0-9\]+\.[0-9\]+\.[0-9\]+\.[0-9\]+(/[0-9]+)?'));
+    if [[ ${#PPP_ADDRS[@]} -gt 0 ]]; then
+      echo "$PPP_IF_NAME IPLOCAL=\"${PPP_ADDRS[0]}\" IPREMOTE=\"${PPP_ADDRS[1]}\"" >> /run/multi-wan/ipv4 ;
+    fi
+  done
+fi
+
+PPP_INTERFACES_DB="$(cat /run/multi-wan/ipv4)";
+PPP_INTERFACES_IPV4=($(echo "$PPP_INTERFACES_DB" | awk '{print $1}'));
 
 bash "$SCRIPT_DIR/cleanup-multi-wan.sh" ;
 if [[ ${#PPP_INTERFACES_IPV4[@]} -lt 2 ]]; then
@@ -126,19 +139,24 @@ fi
 
 PPP_INDEX=0;
 TABLE_ID=100;
-for PPP_IF in ${PPP_INTERFACES_IPV4[@]}; do
+for PPP_IF_NAME in ${PPP_INTERFACES_IPV4[@]}; do
+  EVAL_EXPR="$(echo "$PPP_INTERFACES_DB" | awk "\$1 == \"$PPP_IF_NAME\" { print \"IFNAME=\"\$0; }")" ;
+  eval "$EVAL_EXPR";
   let PPP_INDEX=$PPP_INDEX+1;
   CURRENT_PPP_FWMARK="0x$(printf '%x' $PPP_INDEX)00";
   # Policy router only for not first ppp
   let LAST_ACTION_SUCCESS=0;
 
-  for LOCAL_AND_PEER_ADDR in $(ip -4 -o addr show dev $PPP_IF | grep -E -o '[0-9\]+\.[0-9\]+\.[0-9\]+\.[0-9\]+(/[0-9]+)?'); do
-    nft add rule inet mwan MARK meta mark and 0xff00 == 0x0 ip saddr "$LOCAL_AND_PEER_ADDR" meta mark set meta mark and 0xffff00ff xor 0xff00 ;
-  done
+  if [[ ! -z "$IPLOCAL" ]]; then
+    nft add rule inet mwan MARK meta mark and 0xff00 == 0x0 ip saddr "$IPLOCAL" meta mark set meta mark and 0xffff00ff xor 0xff00 ;
+  fi
+  if [[ ! -z "$IPREMOTE" ]]; then
+    nft add rule inet mwan MARK meta mark and 0xff00 == 0x0 ip saddr "$IPREMOTE" meta mark set meta mark and 0xffff00ff xor 0xff00 ;
+  fi
   if [[ $PPP_INDEX -gt 1 ]]; then
     let TABLE_ID=$TABLE_ID+1;
     TABLE_ID=$(get_next_empty_table_id_ipv4 $TABLE_ID);
-    TABLE_OPTIONS=($(ip -4 route show table main default | grep -E "dev[[:space:]]+$PPP_IF"));
+    TABLE_OPTIONS=($(ip -4 route show table main default | grep -E "dev[[:space:]]+$PPP_IF_NAME"));
     RETRY_TIMES=0;
     # Route table
     ip -4 route add ${TABLE_OPTIONS[@]} table $TABLE_ID ;
@@ -154,7 +172,7 @@ for PPP_IF in ${PPP_INTERFACES_IPV4[@]}; do
     done
     let SETUP_FWMARK_RULE_PRIORITY=$SETUP_FWMARK_RULE_PRIORITY+1;
 
-    # Rule to policy to $PPP_IF, must be lower priority than before
+    # Rule to policy to $PPP_IF_NAME, must be lower priority than before
     if [[ $LAST_ACTION_SUCCESS -eq 0 ]]; then
       ip -4 rule add fwmark "$CURRENT_PPP_FWMARK/0xff00" priority $SETUP_FWMARK_RULE_PRIORITY lookup $TABLE_ID ;
       LAST_ACTION_SUCCESS=$?;
@@ -182,12 +200,12 @@ for PPP_IF in ${PPP_INTERFACES_IPV4[@]}; do
   # Policy router for ppp
   if [[ $LAST_ACTION_SUCCESS -eq 0 ]]; then
     RETRY_TIMES=0;
-    ip -4 rule add iif $PPP_IF priority $SETUP_PPP_RULE_PRIORITY lookup main ;
+    ip -4 rule add iif $PPP_IF_NAME priority $SETUP_PPP_RULE_PRIORITY lookup main ;
     LAST_ACTION_SUCCESS=$?;
     while [[ $LAST_ACTION_SUCCESS -ne 0 ]] && [[ $RETRY_TIMES -lt $MAX_RETRY_TIMES ]]; do
       let RETRY_TIMES=$RETRY_TIMES+1;
       let SETUP_PPP_RULE_PRIORITY=$SETUP_PPP_RULE_PRIORITY-1;
-      ip -4 rule add iif $PPP_IF priority $SETUP_PPP_RULE_PRIORITY lookup main ;
+      ip -4 rule add iif $PPP_IF_NAME priority $SETUP_PPP_RULE_PRIORITY lookup main ;
       LAST_ACTION_SUCCESS=$?;
     done
     let SETUP_PPP_RULE_PRIORITY=$SETUP_PPP_RULE_PRIORITY-1;
@@ -198,5 +216,5 @@ done
 nft add rule inet mwan MARK meta mark and 0xff00 == 0x0 meta mark set meta mark and 0xffff00ff xor 0xfe00 ;
 nft add rule inet mwan MARK ct mark set meta mark and 0xffff ;
 
-nft add rule inet mwan PREROUTING goto MARK
-nft add rule inet mwan OUTPUT goto MARK
+nft add rule inet mwan PREROUTING jump MARK
+nft add rule inet mwan OUTPUT jump MARK
