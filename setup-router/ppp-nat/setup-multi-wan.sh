@@ -50,6 +50,8 @@ if [[ ! -e "/run/multi-wan/ipv4" ]]; then
   # Fake create /run/multi-wan/ipv4
   mkdir -p /run/multi-wan/ ;
   chmod 777 /run/multi-wan/ ;
+  touch /run/multi-wan/ipv4 ;
+  chmod 777 /run/multi-wan/ipv4 ;
   for PPP_IF_NAME in $(ip -4 route show table main default | grep -E -o "ppp[0-9]+"); do
     PPP_ADDRS=($(ip -4 -o addr show dev $PPP_IF_NAME | grep -E -o '[0-9\]+\.[0-9\]+\.[0-9\]+\.[0-9\]+(/[0-9]+)?'));
     if [[ ${#PPP_ADDRS[@]} -gt 0 ]]; then

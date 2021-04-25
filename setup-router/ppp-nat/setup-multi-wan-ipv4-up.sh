@@ -16,4 +16,6 @@ for RECHECK_PPP_IF in $(cat /run/multi-wan/ipv4 | awk '{print $1}'); do
   fi
 done
 
+chmod 777 /run/multi-wan/ipv4 ;
+
 bash "$SCRIPT_DIR/setup-multi-wan.sh" ;
