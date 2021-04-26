@@ -80,7 +80,7 @@ function get_next_empty_table_id_ipv4() {
       echo "$TABLE_ID";
       return;
     fi
-    RULE_COUNT=$(ip -4 route show table 101 | wc -l);
+    RULE_COUNT=$(ip -4 route show table $TABLE_ID | wc -l);
     if [[ $RULE_COUNT -eq 0 ]]; then
       echo "$TABLE_ID";
       return;
@@ -210,12 +210,12 @@ for PPP_IF_NAME in ${PPP_INTERFACES_IPV4[@]}; do
   if [[ $LAST_ACTION_SUCCESS -eq 0 ]]; then
     if [[ $SETUP_WITH_DEBUG_LOG -eq 0 ]]; then
       # By hash fwmark: 0x100
-      nft add rule inet mwan POLICY_MARK meta mark and 0xff00 == 0x0 symhash mod $SUM_WEIGHT_IPV4 == 0 meta mark set meta mark and 0xffff00ff xor $CURRENT_PPP_FWMARK ;
+      nft add rule inet mwan POLICY_MARK meta mark and 0xff00 == 0x0 symhash mod $SUM_WEIGHT_IPV4 == $PPP_INDEX meta mark set meta mark and 0xffff00ff xor $CURRENT_PPP_FWMARK ;
     else
       # By random fwmark: 0x100
       nft add rule inet mwan POLICY_MARK meta mark and 0xff00 == 0x0 numgen random mod $SUM_WEIGHT_IPV4 == 0 meta mark set meta mark and 0xffff00ff xor $CURRENT_PPP_FWMARK ;
+      let SUM_WEIGHT_IPV4=$SUM_WEIGHT_IPV4-1;
     fi
-    let SUM_WEIGHT_IPV4=$SUM_WEIGHT_IPV4-1;
   fi
   
   # Policy router for ppp
