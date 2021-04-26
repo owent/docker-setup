@@ -38,9 +38,9 @@ expand-hosts
 no-poll
 no-resolv
 
-#log-queries
+log-queries
 #log-dhcp
-#log-async=25
+log-async=50
 #log-facility=/var/log/dnsmasq-debug.log
 
 # see https://www.dnsperf.com/#!dns-resolvers for DNS ranking

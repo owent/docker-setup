@@ -2,7 +2,7 @@
 
 # /home/router/etc/v2ray/update-geoip-geosite.sh
 
-if [ -e "/opt/podman" ]; then
+if [[ -e "/opt/podman" ]]; then
     export PATH=/opt/podman/bin:/opt/podman/libexec:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 else
     export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
@@ -17,7 +17,7 @@ cd /home/router/etc/v2ray ;
 #   @see https://github.com/containers/libpod/issues/4522
 
 podman container inspect v2ray > /dev/null 2>&1
-if [ $? -eq 0 ]; then
+if [[ $? -eq 0 ]]; then
 
     if [ -e "geoip.dat" ]; then
         rm -f "geoip.dat";
@@ -45,7 +45,7 @@ else
 fi
 
 curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/ipv4_cn.ipset" -o ipv4_cn.ipset
-if [ $? -eq 0 ]; then
+if [[ $? -eq 0 ]]; then
     # ipset
     ipset list GEOIP_IPV4_CN > /dev/null 2>&1 ;
     if [ $? -eq 0 ]; then
@@ -69,7 +69,7 @@ if [ $? -eq 0 ]; then
 fi
 
 curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/ipv4_hk.ipset" -o ipv4_hk.ipset
-if [ $? -eq 0 ]; then
+if [[ $? -eq 0 ]]; then
     # ipset
     ipset list GEOIP_IPV4_HK > /dev/null 2>&1 ;
     if [ $? -eq 0 ]; then
@@ -93,7 +93,7 @@ if [ $? -eq 0 ]; then
 fi
 
 curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/ipv6_cn.ipset" -o ipv6_cn.ipset
-if [ $? -eq 0 ]; then
+if [[ $? -eq 0 ]]; then
     # ipset
     ipset list GEOIP_IPV6_CN > /dev/null 2>&1 ;
     if [ $? -eq 0 ]; then
@@ -117,7 +117,7 @@ if [ $? -eq 0 ]; then
 fi
 
 curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/ipv6_hk.ipset" -o ipv6_hk.ipset
-if [ $? -eq 0 ]; then
+if [[ $? -eq 0 ]]; then
     # ipset
     ipset list GEOIP_IPV6_HK > /dev/null 2>&1 ;
     if [ $? -eq 0 ]; then
@@ -142,7 +142,7 @@ if [ $? -eq 0 ]; then
 fi
 
 curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/dnsmasq-blacklist.conf" -o dnsmasq-blacklist.conf
-if [ $? -eq 0 ]; then
+if [[ $? -eq 0 ]]; then
     # ipset
     cp -f dnsmasq-blacklist.conf /etc/dnsmasq.d/10-dnsmasq-blacklist.router.conf
     ipset list DNSMASQ_GFW_IPV4 > /dev/null 2>&1 ;

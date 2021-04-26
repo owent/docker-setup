@@ -164,3 +164,38 @@ NO_PROXY=$no_proxy
 }
 
 ```
+
+## ```systemd/journald``` 备注
+
+### 日志
+
+```bash
+echo "$LOG_CONTENT" | systemd-cat -t TARGET_NAME -p info ; # Write log
+journalctl -t TARGET_NAME ; # Review log
+```
+
+Configure GC of journal
+
+```bash
+# Usage
+journalctl --disk-usage
+du -sh /var/log/journal/
+
+# Rotate and cleanup
+journalctl --rotate
+
+# Clear journal log older than x days
+journalctl --vacuum-time=2d
+
+# Restrict logs to a certain size
+journalctl --vacuum-size=100M
+
+# Restrict number of log files
+journalctl --vacuum-files=5
+```
+
+Auto cleanup: edit ```/etc/systemd/journald.conf```
+
+```bash
+systemctl restart systemd-journald
+```
