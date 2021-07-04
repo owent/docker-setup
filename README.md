@@ -199,3 +199,9 @@ Auto cleanup: edit ```/etc/systemd/journald.conf```
 ```bash
 systemctl restart systemd-journald
 ```
+
+## 常见错误
+
++ podman启动报 `Error: OCI runtime error: container_linux.go:380: starting container process caused: error adding seccomp filter rule for syscall bdflush: requested action matches default action of filter`
+
+启动时增加 `--security-opt seccomp=unconfined` 参数
