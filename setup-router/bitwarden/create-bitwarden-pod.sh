@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ -e "/opt/nftables/sbin" ]; then
+if [[ -e "/opt/nftables/sbin" ]]; then
     export PATH=/opt/nftables/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 else
     export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
@@ -9,12 +9,39 @@ fi
 export XDG_RUNTIME_DIR="/run/user/$UID"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
 
-if [[ "x$(whoami)" == "x" ]] || [[ "x$(whoami)" == "xroot" ]]; then
-    echo -e "\033[1;32m$0 can not run with\033[0;m \033[1;31m$(whoami)\033[0;m" ;
+RUN_USER=$(whoami);
+# sudo loginctl enable-linger $RUN_USER
+
+if [[ "x$RUN_USER" == "x" ]] || [[ "x$RUN_USER" == "xroot" ]]; then
+    echo -e "\033[1;32m$0 can not run with\033[0;m \033[1;31m$RUN_USER\033[0;m" ;
     exit 1;
 fi
 
-# sudo loginctl enable-linger tools
+RUN_HOME=$(cat /etc/passwd | awk "BEGIN{FS=\":\"} \$1 == \"$RUN_USER\" { print \$6 }")
+
+if [[ "x$RUN_HOME" == "x" ]]; then
+    RUN_HOME="$HOME";
+fi
+
+if [[ "x$BITWARDEN_ETC_DIR" == "x" ]]; then
+    BITWARDEN_ETC_DIR="$RUN_HOME/bitwarden/etc";
+fi
+mkdir -p "$BITWARDEN_ETC_DIR";
+
+if [[ "x$BITWARDEN_LOG_DIR" == "x" ]]; then
+    BITWARDEN_LOG_DIR="$RUN_HOME/bitwarden/log";
+fi
+mkdir -p "$BITWARDEN_LOG_DIR";
+
+if [[ "x$BITWARDEN_DATA_DIR" == "x" ]]; then
+    BITWARDEN_DATA_DIR="$RUN_HOME/bitwarden/data";
+fi
+mkdir -p "$BITWARDEN_DATA_DIR";
+
+if [[ "x$BITWARDEN_SSL_DIR" == "x" ]]; then
+    BITWARDEN_SSL_DIR="$RUN_HOME/bitwarden/ssl/";
+fi
+mkdir -p "$BITWARDEN_SSL_DIR";
 
 systemctl --user --all | grep -F container-bitwarden.service ;
 
@@ -31,13 +58,13 @@ if [[ $? -eq 0 ]]; then
 fi
 
 if [[ "x$BITWARDEN_UPDATE" != "x" ]]; then
-    podman image inspect docker.io/bitwardenrs/server:latest > /dev/null 2>&1
+    podman image inspect docker.io/vaultwarden/server:latest > /dev/null 2>&1
     if [[ $? -eq 0 ]]; then
-        podman image rm -f docker.io/bitwardenrs/server:latest ;
+        podman image rm -f docker.io/vaultwarden/server:latest ;
     fi
 fi
 
-podman pull docker.io/bitwardenrs/server:latest ;
+podman pull docker.io/vaultwarden/server:latest ;
 
 ADMIN_TOKEN=$(openssl rand -base64 48);
 
@@ -50,24 +77,20 @@ ADMIN_TOKEN=$(openssl rand -base64 48);
 
 # -e ROCKET_WORKERS=8
 
-podman run -d --name bitwarden                                                           \
-       -e ROCKET_TLS='{certs="/ssl/fullchain.cer",key="/ssl/owent.net.key"}'             \
-       -e DOMAIN=https://bitwarden.x-ha.com:8381/                                        \
-       -e SIGNUPS_ALLOWED=false -e WEBSOCKET_ENABLED=true                                \
-       -e ROCKET_PORT=8381 -e WEBSOCKET_PORT=8382                                        \
-       -e INVITATIONS_ALLOWED=false -e LOG_FILE=/logs/bitwarden.log                      \
-       -e ADMIN_TOKEN=$ADMIN_TOKEN                                                       \
-       --mount type=bind,source=/data/logs/bitwarden/,target=/logs/                      \
-       -v /home/router/bitwarden/data/:/data/:Z                                          \
-       --mount type=bind,source=/home/router/bitwarden/ssl/,target=/ssl/                 \
-       --network=host docker.io/bitwardenrs/server:latest
+podman run -d --name bitwarden                                                          \
+       -e SIGNUPS_ALLOWED=false -e WEBSOCKET_ENABLED=true                               \
+       -e ROCKET_ADDRESS=127.0.0.1 -e ROCKET_PORT=8381                                  \
+       -e WEBSOCKET_ADDRESS=127.0.0.1 -e WEBSOCKET_PORT=8382                            \
+       -e INVITATIONS_ALLOWED=false -e LOG_FILE=/logs/bitwarden.log                     \
+       -e ADMIN_TOKEN=$ADMIN_TOKEN                                                      \
+       --mount type=bind,source=$BITWARDEN_LOG_DIR/,target=/logs/                       \
+       -v $BITWARDEN_DATA_DIR/:/data/:Z                                                 \
+       --network=host docker.io/vaultwarden/server:latest
 
-echo $ADMIN_TOKEN > /home/router/bitwarden/ADMIN_TOKEN ;
+podman exec bitwarden ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
-chmod 700 /home/router/bitwarden/ADMIN_TOKEN ;
+podman generate systemd --name bitwarden | tee $BITWARDEN_ETC_DIR/container-bitwarden.service ;
 
-podman generate systemd --name bitwarden | tee /home/router/bitwarden/container-bitwarden.service ;
-
-systemctl --user enable /home/router/bitwarden/container-bitwarden.service ;
-systemctl --user start container-bitwarden
+systemctl --user enable $BITWARDEN_ETC_DIR/container-bitwarden.service ;
+systemctl --user restart container-bitwarden
 
