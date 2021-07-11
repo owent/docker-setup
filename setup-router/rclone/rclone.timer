@@ -1,0 +1,17 @@
+[Unit]
+Description=Run rclone sync
+Requires=rclone.service
+After=network-online.target
+
+[Timer]
+OnCalendar=*-*-* 03:17:00
+AccuracySec=1h
+RandomizedDelaySec=6000
+
+[Install]
+WantedBy=timers.target
+
+# systemctl --user disable rclone.timer
+# systemctl --user enable $PWD/rclone.timer
+# systemctl --user start rclone.timer
+# systemctl status --user rclone.timer
