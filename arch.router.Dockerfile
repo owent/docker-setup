@@ -12,13 +12,14 @@ RUN set -ex ;                                                                   
     sed -i '1i Server = https://mirrors.tencent.com/archlinux/$repo/os/$arch' /etc/pacman.d/mirrorlist;         \
     pacman -Syyu --noconfirm ;                                                                                  \
     yes y | pacman -S iptables nftables ebtables ipset chrony;                                                  \
-    pacman -Syy --noconfirm ca-certificates tzdata bash vim dnsmasq ppp;                                        \
+    pacman -Syy --noconfirm ca-certificates tzdata bash vim dnsmasq ppp networkmanager;                         \
+    pacman -Syy --noconfirm rp-pppoe;                                                                           \
     timedatectl set-timezone Asia/Shanghai;                                                                     \
     timedatectl set-ntp true;                                                                                   \
     systemctl enable systemd-timesyncd.service || true ;                                                        \
     systemctl start systemd-timesyncd.service || true ;                                                         \
-    # hwclock -w;                                                                                                 \
-    # ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                   \
+    # hwclock -w;                                                                                               \
+    # ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                 \
     locale-gen en_US.UTF-8 ;                                                                                    \
     localectl set-locale LANGUAGE=en_US.UTF-8 || true; localectl set-locale LANG=en_GB.utf8 || true;            \
     pacman -Syy --noconfirm procps-ng less iproute2 gawk systemd which wget curl inetutils findutils;           \

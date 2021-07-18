@@ -1,0 +1,14 @@
+[Unit]
+Description=Reactive ppp interfaces
+Requires=NetworkManager.service
+After=NetworkManager.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /home/router/ppp-nat/reactive-ppp-interfaces.sh
+# RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+
+# journalctl -e -u reactive-ppp-interfaces.service

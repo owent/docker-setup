@@ -1,0 +1,19 @@
+[Unit]
+Description=Run Reactive ppp interfaces
+Requires=reactive-ppp-interfaces.service
+After=network-online.target
+
+[Timer]
+OnBootSec=1min
+OnCalendar=*-*-* *:2/5:30
+AccuracySec=15s
+RandomizedDelaySec=15
+
+[Install]
+WantedBy=timers.target
+
+# systemctl disable reactive-ppp-interfaces.timer
+# systemctl enable reactive-ppp-interfaces.timer
+# systemctl start reactive-ppp-interfaces.timer
+# systemctl status reactive-ppp-interfaces.timer
+# journalctl -e -u reactive-ppp-interfaces.timer
