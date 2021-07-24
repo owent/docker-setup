@@ -29,7 +29,7 @@ fi
 
 podman pull docker.io/owt5008137/proxy-with-geo:latest ;
 
-podman run -d --name v2ray --cap-add=NET_ADMIN --network=host                               \
+podman run -d --name v2ray --cap-add=NET_ADMIN --network=host --security-opt label=disable  \
     --mount type=bind,source=/home/router/etc/v2ray,target=/usr/local/v2ray/etc,ro=true     \
     --mount type=bind,source=/data/logs/v2ray,target=/data/logs/v2ray                       \
     --mount type=bind,source=/home/router/etc/v2ray/ssl,target=/usr/local/v2ray/ssl,ro=true \

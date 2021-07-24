@@ -83,7 +83,7 @@ fi
 
 podman pull docker.io/owt5008137/proxy-with-geo:latest ;
 
-podman run -d --name v2ray-proxy-with-geo                                               \
+podman run -d --name v2ray-proxy-with-geo --security-opt label=disable                  \
     --mount type=bind,source=$V2RAY_ETC_DIR,target=/usr/local/v2ray/etc,ro=true         \
     --mount type=bind,source=$V2RAY_LOG_DIR,target=/usr/local/v2ray/log                 \
     --mount type=bind,source=$V2RAY_SSL_DIR,target=/home/website/ssl,ro=true            \

@@ -56,7 +56,7 @@ fi
 
 podman pull docker.io/nginx:latest ;
 
-podman run -d --name nginx                                                                     \
+podman run -d --name nginx  --security-opt label=disable                                       \
     --mount type=bind,source=/home/website/log,target=/home/website/log                        \
     --mount type=bind,source=/home/website/home,target=/home/website/home,ro=true              \
     --mount type=bind,source=/home/website/ssl,target=/home/website/ssl,ro=true                \

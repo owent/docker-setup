@@ -31,7 +31,7 @@ fi
 
 podman pull docker.io/nginx:latest ;
 
-podman run -d --name router-nginx                                                                              \
+podman run -d --name router-nginx  --security-opt label=disable                                                \
        --mount type=bind,source=/home/router/etc/nginx/nginx.conf,target=/etc/nginx/nginx.conf,ro=true         \
        --mount type=bind,source=/home/router/etc/nginx/conf.d,target=/etc/nginx/conf.d,ro=true                 \
        --mount type=bind,source=/home/router/etc/nginx/dhparam.pem,target=/etc/nginx/dhparam.pem,ro=true       \

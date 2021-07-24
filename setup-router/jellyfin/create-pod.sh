@@ -22,6 +22,7 @@ fi
 #    --device /dev/dri:/dev/dri                         \
 
 podman run --network=host --name jellyfin -d         \
+    --security-opt label=disable                     \
     -v /home/router/etc/jellyfin:/config             \
     -v /home/router/jellyfin/cache:/cache            \
     -v /data/samba:/media/samba                      \

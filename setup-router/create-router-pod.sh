@@ -22,7 +22,7 @@ if [ $? -eq 0 ]; then
     podman rm -f router
 fi
 
-podman run -d --name router --systemd true                                                  \
+podman run -d --name router --systemd true  --security-opt label=disable                    \
        --mount type=bind,source=/home/router,target=/home/router                            \
        --mount type=bind,source=/dev/ppp,target=/dev/ppp                                    \
        --cap-add=NET_ADMIN --network=host local-router /lib/systemd/systemd

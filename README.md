@@ -205,3 +205,7 @@ systemctl restart systemd-journald
 + podman启动报 `Error: OCI runtime error: container_linux.go:380: starting container process caused: error adding seccomp filter rule for syscall bdflush: requested action matches default action of filter`
 
 启动时增加 `--security-opt seccomp=unconfined` 参数
+
++ podman启动访问后bind的目录提示 `Permission denied`
+
+启动时增加 `--security-opt label=disable` 参数或关闭 selinux （修改 `/etc/selinux/config` 后重启）

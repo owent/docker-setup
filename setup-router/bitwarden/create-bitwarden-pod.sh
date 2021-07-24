@@ -77,7 +77,7 @@ ADMIN_TOKEN=$(openssl rand -base64 48);
 
 # -e ROCKET_WORKERS=8
 
-podman run -d --name bitwarden                                                          \
+podman run -d --name bitwarden  --security-opt label=disable                            \
        -e SIGNUPS_ALLOWED=false -e WEBSOCKET_ENABLED=true                               \
        -e ROCKET_ADDRESS=127.0.0.1 -e ROCKET_PORT=8381                                  \
        -e WEBSOCKET_ADDRESS=127.0.0.1 -e WEBSOCKET_PORT=8382                            \
