@@ -5,13 +5,13 @@
 #     DenyGroups tools
 # /home/router/create-v2ray-pod.sh
 
-if [ -e "/opt/nftables/sbin" ]; then
+if [[ -e "/opt/nftables/sbin" ]]; then
     export PATH=/opt/nftables/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 else
     export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
-if [[ "x$V2RAY_SSL_DIR" == "x" ]]; then
+if [[ "x$V2RAY_SSL_DIR" == "x" ]] && [[ -e "/home/website/ssl/" ]]; then
     V2RAY_SSL_DIR="/home/website/ssl/";
 fi
 
@@ -50,7 +50,7 @@ fi
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
     systemctl --all | grep -F v2ray-proxy-with-geo.service > /dev/null 2>&1 ;
-    if [ $? -eq 0 ]; then
+    if [[ $? -eq 0 ]]; then
         systemctl stop v2ray-proxy-with-geo.service
         systemctl disable v2ray-proxy-with-geo.service
     fi
