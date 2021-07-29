@@ -6,7 +6,7 @@ After=network-online.target
 [Service]
 Type=oneshot.
 ExecStart=/bin/bash /home/tools/rclone/start-rclone-pod.sh
-RemainAfterExit=yes
+# RemainAfterExit=yes
 
 [Install]
 WantedBy=multi-user.target
