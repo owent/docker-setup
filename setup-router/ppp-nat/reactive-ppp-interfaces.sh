@@ -14,8 +14,8 @@ function check_actived() {
     if [[ "$1" == "$CHECK_INERFACE" ]]; then
       return 0;
     fi
-    return 1;
   done
+  return 1;
 }
 
 echo "All pppoe interfaces: ${ALL_PPP_INERFACES[@]}";
