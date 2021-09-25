@@ -24,7 +24,3 @@ mklink_script /home/router/ppp-nat/setup-ppp-route-ipv6.sh /etc/ppp/ipv6-up.d/99
 
 chmod +x /home/router/ppp-nat/setup-nat-ssh.sh ;
 /bin/bash /home/router/ppp-nat/setup-nat-ssh.sh ;
-
-# mwan
-mklink_script /home/router/ppp-nat/setup-multi-wan-ipv4-up.sh /etc/ppp/ip-up.d/98-setup-multi-wan-ipv4-up.sh ;
-mklink_script /home/router/ppp-nat/setup-multi-wan-ipv4-down.sh /etc/ppp/ip-down.d/98-setup-multi-wan-ipv4-down.sh ;

@@ -19,8 +19,8 @@ else
     export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
-# Using journalctl -t docker-setup-ppp to see this log
-echo "[$(date "+%F %T")]: $0 $@" | systemd-cat -t docker-setup-ppp -p info ;
+# Using journalctl -t router-ppp to see this log
+echo "[$(date "+%F %T")]: $0 $@" | systemd-cat -t router-ppp -p info ;
 
 cd "$(dirname "${BASH_SOURCE[0]}")" ;
 

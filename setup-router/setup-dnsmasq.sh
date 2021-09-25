@@ -147,6 +147,10 @@ fi
 
 echo "
 bind-dynamic
+# Address not available with pppd 2.4.9
+# see https://forum.openwrt.org/t/ppp-and-dnsmasq-issue/91475
+except-interface=ppp0
+except-interface=ppp1
 # ipv4
 dhcp-range=172.18.11.1,172.18.255.254,255.255.0.0,28800s
 dhcp-host=70:85:c2:dc:0c:87,172.18.1.1
