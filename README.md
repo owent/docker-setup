@@ -1,16 +1,18 @@
-# docker setup script
+# Docker Setup Script
 
-ENV:
+## 系统
 
-+ SETUP_INSTALL_PROXY="http proxy"
-+ SETUP_INSTALL_PREFIX
-+ SETUP_WORK_DIR
+```bash
+# 对用户启用systemd支持
+sudo loginctl enable-linger <用户名>
+```
 
 ## 启动命令备注
 
 ```bash
 # 带systemd
 podman run docker run -d --systemd true IMAGE /sbin/init
+
 ## systemd expects to have /run, /run/lock and /tmp on tmpfs
 ## It also expects to be able to write to /sys/fs/cgroup/systemd and /var/log/journal
 ## docker run -d --cap-add=SYS_ADMIN -v /sys/fs/cgroup:/sys/fs/cgroup IMAGE /sbin/init
