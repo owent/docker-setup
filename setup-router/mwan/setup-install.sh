@@ -1,38 +1,45 @@
 #!/bin/bash
 
-SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)";
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 
 if [[ ! -e "/etc/NetworkManager/dispatcher.d/up" ]]; then
- echo '#!/bin/bash
+  echo '#!/bin/bash
 for SCRIPT_FILE in /etc/NetworkManager/dispatcher.d/up.d/* ; do
   bash $SCRIPT_FILE "$@"
 done
 
-' > /etc/NetworkManager/dispatcher.d/up ;
-  chmod +x /etc/NetworkManager/dispatcher.d/up ;
+' >/etc/NetworkManager/dispatcher.d/up
+  chmod +x /etc/NetworkManager/dispatcher.d/up
 fi
 
-mkdir -p "/etc/NetworkManager/dispatcher.d/up.d/" ;
+mkdir -p "/etc/NetworkManager/dispatcher.d/up.d/"
 
-if [[ -e /etc/NetworkManager/dispatcher.d/up.d/setup-multi-wan-up.sh ]] ;then
-  rm -f /etc/NetworkManager/dispatcher.d/up.d/setup-multi-wan-up.sh;
+if [[ -e /etc/NetworkManager/dispatcher.d/up.d/setup-multi-wan-up.sh ]]; then
+  rm -f /etc/NetworkManager/dispatcher.d/up.d/setup-multi-wan-up.sh
 fi
-ln -sf "$SCRIPT_DIR/setup-multi-wan-up.sh" /etc/NetworkManager/dispatcher.d/up.d/setup-multi-wan-up.sh ;
 
+if [[ -e /etc/NetworkManager/dispatcher.d/up.d/99-setup-multi-wan-up.sh ]]; then
+  rm -f /etc/NetworkManager/dispatcher.d/up.d/99-setup-multi-wan-up.sh
+fi
+ln -sf "$SCRIPT_DIR/setup-multi-wan-up.sh" /etc/NetworkManager/dispatcher.d/up.d/99-setup-multi-wan-up.sh
 
 if [[ ! -e "/etc/NetworkManager/dispatcher.d/down" ]]; then
- echo '#!/bin/bash
+  echo '#!/bin/bash
 for SCRIPT_FILE in /etc/NetworkManager/dispatcher.d/down.d/* ; do
   bash $SCRIPT_FILE "$@"
 done
 
-' > /etc/NetworkManager/dispatcher.d/down ;
-  chmod +x /etc/NetworkManager/dispatcher.d/down ;
+' >/etc/NetworkManager/dispatcher.d/down
+  chmod +x /etc/NetworkManager/dispatcher.d/down
 fi
 
-mkdir -p "/etc/NetworkManager/dispatcher.d/down.d/" ;
+mkdir -p "/etc/NetworkManager/dispatcher.d/down.d/"
 
-if [[ -e /etc/NetworkManager/dispatcher.d/down.d/setup-multi-wan-down.sh ]] ;then
-  rm -f /etc/NetworkManager/dispatcher.d/down.d/setup-multi-wan-down.sh;
+if [[ -e /etc/NetworkManager/dispatcher.d/down.d/setup-multi-wan-down.sh ]]; then
+  rm -f /etc/NetworkManager/dispatcher.d/down.d/setup-multi-wan-down.sh
 fi
-ln -sf "$SCRIPT_DIR/setup-multi-wan-down.sh" /etc/NetworkManager/dispatcher.d/down.d/setup-multi-wan-down.sh ;
+
+if [[ -e /etc/NetworkManager/dispatcher.d/down.d/99-setup-multi-wan-down.sh ]]; then
+  rm -f /etc/NetworkManager/dispatcher.d/down.d/99-setup-multi-wan-down.sh
+fi
+ln -sf "$SCRIPT_DIR/setup-multi-wan-down.sh" /etc/NetworkManager/dispatcher.d/down.d/99-setup-multi-wan-down.sh
