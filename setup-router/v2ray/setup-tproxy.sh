@@ -108,9 +108,6 @@ else
 fi
 # ip route show table 100
 
-# Reset local ip address
-source "$(cd "$(dirname "$0")" && cd .. && pwd)/reset-local-address-set.sh"
-
 ### See https://toutyrater.github.io/app/tproxy.html
 
 ### Setup - ipv4
@@ -303,6 +300,7 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   ip6tables -t mangle -A V2RAY -d 2400:3200::1/128,2400:3200:baba::1/128,2400:da00::6666/128 -j RETURN
 
   # ipv6 skip package from outside
+  ip6tables -t mangle -A V2RAY -d ff00::/8 -j RETURN
   ip6tables -t mangle -A V2RAY -m set --match-set V2RAY_BLACKLIST_IPV6 dst -j RETURN
   ip6tables -t mangle -A V2RAY -m set --match-set GEOIP_IPV6_CN dst -j RETURN
   # ip6tables -t mangle -A V2RAY -m set --match-set GEOIP_IPV6_HK dst -j RETURN
@@ -353,6 +351,7 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   # ip6tables -t mangle -A V2RAY_MASK -p udp -m set --match-set V2RAY_LOCAL_IPV6 dst ! --dport 53 -j RETURN
   ### ipv6 - skip CN DNS
   ip6tables -t mangle -A V2RAY_MASK -d 2400:3200::1/128,2400:3200:baba::1/128,2400:da00::6666/128 -j RETURN
+  ip6tables -t mangle -A V2RAY_MASK -d ff00::/8 -j RETURN
   ip6tables -t mangle -A V2RAY_MASK -m set --match-set V2RAY_BLACKLIST_IPV6 dst -j RETURN
   ip6tables -t mangle -A V2RAY_MASK -m set --match-set GEOIP_IPV6_CN dst -j RETURN
   # ip6tables -t mangle -A V2RAY_MASK -m set --match-set GEOIP_IPV6_HK dst -j RETURN
@@ -403,83 +402,9 @@ else
 fi
 
 ## Setup - bridge
-ebtables -t broute -L V2RAY_BRIDGE >/dev/null 2>&1
-if [[ $? -ne 0 ]]; then
-  ebtables -t broute -N V2RAY_BRIDGE
-else
-  ebtables -t broute -F V2RAY_BRIDGE
-fi
+SETUP_TPROXY_EBTABLES_SCRIPT="$(cd "$(dirname "$0")" && pwd)/setup-tproxy.ebtables.sh";
+bash "$SETUP_TPROXY_EBTABLES_SCRIPT"
 
-# for SKIP_PORT in $(echo $SETUP_WITH_INTERNAL_SERVICE_PORT | sed 's/,/ /g'); do
-#     ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-sport $SKIP_PORT -j RETURN
-#     if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
-#         ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-sport $SKIP_PORT -j RETURN
-#     fi
-# done
+ln -sf "$SETUP_TPROXY_EBTABLES_SCRIPT" /etc/NetworkManager/dispatcher.d/up.d/99-setup-tproxy.ebtables.sh
+ln -sf "$SETUP_TPROXY_EBTABLES_SCRIPT" /etc/NetworkManager/dispatcher.d/down.d/99-setup-tproxy.ebtables.sh
 
-for SKIP_PORT in $(echo $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT | sed 's/,/ /g'); do
-  ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-proto udp --ip-dport $SKIP_PORT -j RETURN
-  if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
-    ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-proto udp --ip6-dport $SKIP_PORT -j RETURN
-  fi
-done
-
-### bridge - skip link-local and broadcast address
-ebtables -t broute -A V2RAY_BRIDGE --mark 0x70/0x70 -j RETURN
-
-ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 127.0.0.1/32 -j RETURN
-ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 224.0.0.0/4 -j RETURN
-ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 255.255.255.255/32 -j RETURN
-if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
-  ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst ::1/128 -j RETURN
-  ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst fc00::/7 -j RETURN
-  ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst fe80::/10 -j RETURN
-  ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst ff00::/8 -j RETURN
-fi
-
-### bridge - skip private network and UDP of DNS
-ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 192.168.0.0/16 -j RETURN
-ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 172.16.0.0/12 -j RETURN
-ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 10.0.0.0/8 -j RETURN
-
-### bridge - skip CN DNS
-ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 119.29.29.29/32 -j RETURN
-ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 223.5.5.5/32 -j RETURN
-ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 223.6.6.6/32 -j RETURN
-ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 180.76.76.76/32 -j RETURN
-if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
-  ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst 2400:3200::1/128 -j RETURN
-  ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst 2400:3200:baba::1/128 -j RETURN
-  ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst 2400:da00::6666/128 -j RETURN
-fi
-
-if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
-  ebtables -t broute -A V2RAY_BRIDGE --log-ip --log-level debug --log-prefix "---BRIDGE-DROP: "
-fi
-
-### ipv4 - forward to v2ray's listen address if not marked by v2ray
-# tproxy ip to $V2RAY_HOST_IPV4:$V2RAY_PORT
-ebtables -t broute -A V2RAY_BRIDGE -j redirect --redirect-target DROP
-
-# reset chain
-ebtables -t broute -D BROUTING -p ipv4 --ip-proto tcp -j V2RAY_BRIDGE >/dev/null 2>&1
-while [[ $? -eq 0 ]]; do
-  ebtables -t broute -D BROUTING -p ipv4 --ip-proto tcp -j V2RAY_BRIDGE >/dev/null 2>&1
-done
-ebtables -t broute -D BROUTING -p ipv4 --ip-proto udp -j V2RAY_BRIDGE >/dev/null 2>&1
-while [[ $? -eq 0 ]]; do
-  ebtables -t broute -D BROUTING -p ipv4 --ip-proto udp -j V2RAY_BRIDGE >/dev/null 2>&1
-done
-
-ebtables -t broute -D BROUTING -p ipv6 --ip6-proto tcp -j V2RAY_BRIDGE >/dev/null 2>&1
-while [[ $? -eq 0 ]]; do
-  ebtables -t broute -D BROUTING -p ipv6 --ip6-proto tcp -j V2RAY_BRIDGE >/dev/null 2>&1
-done
-ebtables -t broute -D BROUTING -p ipv6 --ip6-proto udp -j V2RAY_BRIDGE >/dev/null 2>&1
-while [[ $? -eq 0 ]]; do
-  ebtables -t broute -D BROUTING -p ipv6 --ip6-proto udp -j V2RAY_BRIDGE >/dev/null 2>&1
-done
-ebtables -t broute -A BROUTING -p ipv4 --ip-proto tcp -j V2RAY_BRIDGE
-ebtables -t broute -A BROUTING -p ipv4 --ip-proto udp -j V2RAY_BRIDGE
-ebtables -t broute -A BROUTING -p ipv6 --ip6-proto tcp -j V2RAY_BRIDGE
-ebtables -t broute -A BROUTING -p ipv6 --ip6-proto udp -j V2RAY_BRIDGE

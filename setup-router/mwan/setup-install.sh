@@ -14,14 +14,10 @@ fi
 
 mkdir -p "/etc/NetworkManager/dispatcher.d/up.d/"
 
-if [[ -e /etc/NetworkManager/dispatcher.d/up.d/setup-multi-wan-up.sh ]]; then
-  rm -f /etc/NetworkManager/dispatcher.d/up.d/setup-multi-wan-up.sh
+if [[ -e /etc/NetworkManager/dispatcher.d/up.d/98-setup-multi-wan-up.sh ]]; then
+  rm -f /etc/NetworkManager/dispatcher.d/up.d/98-setup-multi-wan-up.sh
 fi
-
-if [[ -e /etc/NetworkManager/dispatcher.d/up.d/99-setup-multi-wan-up.sh ]]; then
-  rm -f /etc/NetworkManager/dispatcher.d/up.d/99-setup-multi-wan-up.sh
-fi
-ln -sf "$SCRIPT_DIR/setup-multi-wan-up.sh" /etc/NetworkManager/dispatcher.d/up.d/99-setup-multi-wan-up.sh
+ln -sf "$SCRIPT_DIR/setup-multi-wan-up.sh" /etc/NetworkManager/dispatcher.d/up.d/98-setup-multi-wan-up.sh
 
 if [[ ! -e "/etc/NetworkManager/dispatcher.d/down" ]]; then
   echo '#!/bin/bash
@@ -35,11 +31,7 @@ fi
 
 mkdir -p "/etc/NetworkManager/dispatcher.d/down.d/"
 
-if [[ -e /etc/NetworkManager/dispatcher.d/down.d/setup-multi-wan-down.sh ]]; then
-  rm -f /etc/NetworkManager/dispatcher.d/down.d/setup-multi-wan-down.sh
+if [[ -e /etc/NetworkManager/dispatcher.d/down.d/98-setup-multi-wan-down.sh ]]; then
+  rm -f /etc/NetworkManager/dispatcher.d/down.d/98-setup-multi-wan-down.sh
 fi
-
-if [[ -e /etc/NetworkManager/dispatcher.d/down.d/99-setup-multi-wan-down.sh ]]; then
-  rm -f /etc/NetworkManager/dispatcher.d/down.d/99-setup-multi-wan-down.sh
-fi
-ln -sf "$SCRIPT_DIR/setup-multi-wan-down.sh" /etc/NetworkManager/dispatcher.d/down.d/99-setup-multi-wan-down.sh
+ln -sf "$SCRIPT_DIR/setup-multi-wan-down.sh" /etc/NetworkManager/dispatcher.d/down.d/98-setup-multi-wan-down.sh

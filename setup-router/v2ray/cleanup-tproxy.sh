@@ -83,3 +83,6 @@ while [[ $? -eq 0 ]]; do
 done
 ebtables -t broute -F V2RAY_BRIDGE > /dev/null 2>&1;
 ebtables -t broute -X V2RAY_BRIDGE > /dev/null 2>&1;
+
+rm -f /etc/NetworkManager/dispatcher.d/up.d/99-setup-tproxy.ebtables.sh > /dev/null 2>&1;
+rm -f "$SETUP_TPROXY_EBTABLES_SCRIPT" /etc/NetworkManager/dispatcher.d/down.d/99-setup-tproxy.ebtables.sh > /dev/null 2>&1;
