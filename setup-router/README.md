@@ -211,6 +211,19 @@ Accept: */*
 
 ## Public DNS
 
+```bash
+# DoH
+kdig @<DNS IP> +tls-hostname=<DNS Domain> +fastopen +https=/dns-query <domain>
+kdig @1.1.1.1 +https=/dns-query <domain>
+kdig @8.8.8.8 +https=/dns-query <domain>
+kdig @223.5.5.5 +https=/dns-query owent.net
+# DoT
+kdig @<DNS IP> +tls <domain>
+kdig @1.1.1.1 +tls <domain>
+kdig @8.8.8.8 +tls <domain>
+kdig @223.5.5.5 +tls <domain>
+```
+
 See https://en.wikipedia.org/wiki/Public_recursive_name_server for more details
 
 + Dnspod
@@ -263,6 +276,7 @@ See https://en.wikipedia.org/wiki/Public_recursive_name_server for more details
   + [DNSCrypt][3] - ipv6 ```sdns://AgcAAAAAAAAAFlsyNjA2OjQ3MDA6NDcwMDo6MTExMV0AIDFkb3QxZG90MWRvdDEuY2xvdWRmbGFyZS1kbnMuY29tCi9kbnMtcXVlcnk``` , ```sdns://AgcAAAAAAAAAFlsyNjA2OjQ3MDA6NDcwMDo6MTAwMV0AIDFkb3QxZG90MWRvdDEuY2xvdWRmbGFyZS1kbnMuY29tCi9kbnMtcXVlcnk```
 
   > DoT/DoH: https://developers.cloudflare.com/1.1.1.1/dns-over-https
+  > `curl -H 'accept: application/dns-json' 'https://cloudflare-dns.com/dns-query?name=example.com'`
 
 + AdGuard
   + 94.140.14.14
