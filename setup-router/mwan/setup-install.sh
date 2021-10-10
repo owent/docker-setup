@@ -35,3 +35,13 @@ if [[ -e /etc/NetworkManager/dispatcher.d/down.d/98-setup-multi-wan-down.sh ]]; 
   rm -f /etc/NetworkManager/dispatcher.d/down.d/98-setup-multi-wan-down.sh
 fi
 ln -sf "$SCRIPT_DIR/setup-multi-wan-down.sh" /etc/NetworkManager/dispatcher.d/down.d/98-setup-multi-wan-down.sh
+
+if [[ ! -e "/etc/NetworkManager/dispatcher.d/connectivity-change.d" ]]; then
+  echo '#!/bin/bash
+for SCRIPT_FILE in /etc/NetworkManager/dispatcher.d/connectivity-change.d/* ; do
+  bash $SCRIPT_FILE "$@"
+done
+
+' >/etc/NetworkManager/dispatcher.d/connectivity-change
+  chmod +x /etc/NetworkManager/dispatcher.d/connectivity-change
+fi

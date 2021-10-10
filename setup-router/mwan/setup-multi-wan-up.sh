@@ -13,7 +13,13 @@ source "$SCRIPT_DIR/setup-multi-wan-conf.sh" ;
 mwan_in_watch_list "$DEVICE_IP_IFACE" || exit 0 ;
 
 # Using journalctl -t router-mwan to see this log
-echo "[$(date "+%F %T")]: $0 $@" | systemd-cat -t router-mwan -p info ;
+echo "[$(date "+%F %T")]: $0 $@
+  CONNECTION_ID=$CONNECTION_ID
+  CONNECTION_UUID=$CONNECTION_UUID
+  NM_DISPATCHER_ACTION=$NM_DISPATCHER_ACTION
+  CONNECTIVITY_STATE=$CONNECTIVITY_STATE
+  DEVICE_IFACE=$DEVICE_IFACE
+  DEVICE_IP_IFACE=$DEVICE_IP_IFACE" | systemd-cat -t router-mwan -p info ;
 
 mkdir -p /run/multi-wan/ ;
 

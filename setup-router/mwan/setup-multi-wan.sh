@@ -152,9 +152,10 @@ fi
 
 nft add rule inet mwan MARK meta mark and 0xff00 != 0x0 return
 # Restore fwmark of last 8 bits into ct mark
-nft add rule inet mwan MARK meta mark and 0xffff != 0x0 ct mark and 0xff00 == 0x0 ct mark set meta mark and 0xffff
+# nft add rule inet mwan MARK meta mark and 0xffff != 0x0 ct mark and 0xff00 == 0x0 ct mark set meta mark and 0xffff
 # And then set last 9-16 bits in conntrack into packet
-nft add rule inet mwan MARK meta mark and 0xff00 == 0x0 ct mark and 0xff00 != 0x0 meta mark set ct mark and 0xffff
+# nft add rule inet mwan MARK meta mark and 0xff00 == 0x0 ct mark and 0xff00 != 0x0 meta mark set ct mark and 0xffff
+nft add rule inet mwan MARK ct mark and 0xff00 != 0x0 meta mark set ct mark and 0xffff
 nft add rule inet mwan MARK meta mark and 0xff00 != 0x0 return
 nft add rule inet mwan MARK ip daddr {224.0.0.0/4, 255.255.255.255/32} return
 nft add rule inet mwan MARK ip daddr @LOCAL_IPV4 return

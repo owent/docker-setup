@@ -15,7 +15,7 @@ source "$SCRIPT_DIR/setup-multi-wan-conf.sh"
 # Remove iface rules
 IP_RULE_LOOPUP_TABLE_IIFACES_IPV4=($(ip -4 rule show | grep -E -o "iif[[:space:]]+([0-9A-Za-z_-]+)" | awk '{print $NF}'))
 for IFACE_IPV4 in ${IP_RULE_LOOPUP_TABLE_IIFACES_IPV4[@]}; do
-  mwan_not_in_watch_list "$IFACE_IPV4" || ip -4 rule delete iif $IFACE_IPV6 lookup main
+  mwan_not_in_watch_list "$IFACE_IPV4" || ip -4 rule delete iif $IFACE_IPV4 lookup main
 done
 
 IP_RULE_LOOPUP_TABLE_IIFACES_IPV6=($(ip -6 rule show | grep -E -o "iif[[:space:]]+([0-9A-Za-z_-]+)" | awk '{print $NF}'))

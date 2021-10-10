@@ -35,6 +35,7 @@ ROUTER_LOCAL_NET_IPV4=(
 
 ROUTER_LOCAL_NET_IPV6=(
   $(ip -o -6 addr | awk 'match($0, /inet6\s+([0-9a-fA-F:]+(\/[0-9]+)?)/, ip) { print ip[1] }')
+  $(ip -o -6 addr | awk 'match($0, /peer\s+([0-9a-fA-F:]+(\/[0-9]+)?)/, ip) { print ip[1] }')
 )
 
 # ipset
