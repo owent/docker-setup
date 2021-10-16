@@ -25,7 +25,7 @@ LABEL maintainer "OWenT <admin@owent.net>"
 
 COPY --from=builder /opt/v2ray/v2ray                      /usr/local/v2ray/bin/
 COPY --from=builder /opt/v2ray/v2ctl                      /usr/local/v2ray/bin/
-COPY --from=builder /opt/v2ray/config.json                /usr/local/v2ray/etc/
+COPY --from=builder /opt/v2ray/etc/config.json            /usr/local/v2ray/etc/
 COPY --from=builder /usr/local/v2ray/share/geo-all.tar.gz /usr/local/v2ray/share/
 COPY --from=builder /usr/local/v2ray/bin/geoip.dat        /usr/local/v2ray/bin/
 COPY --from=builder /usr/local/v2ray/bin/geosite.dat      /usr/local/v2ray/bin/
