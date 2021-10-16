@@ -10,7 +10,7 @@ RUN set -x;                             \
     apt update -y;                                                              \
     apt install curl unzip -y;                                                  \
     if [[ ! -z "$GITHUB_TOKEN" ]]; then GITHUB_TOKEN_ARGS="-H Authorization: token $GITHUB_TOKEN"; fi;                                            \
-    V2RAY_LATEST_VERSION=$(curl -L $GITHUB_TOKEN_ARGS 'https://api.github.com/repos/v2fly/v2ray-core/releases/latest' | awk '{if (match($0, "tag_name[\":[:space:]]+([A-Za-z0-9\\.]+)", r)) { print r[1] } } '); \
+    V2RAY_LATEST_VERSION=$(curl -L $GITHUB_TOKEN_ARGS 'https://api.github.com/repos/v2fly/v2ray-core/releases/latest' | awk '{if (match(\$0, "tag_name[\":[:space:]]+([A-Za-z0-9\\.]+)", r)) { print r[1] } } '); \
     curl -k -qL https://github.com/v2fly/v2ray-core/releases/download/$V2RAY_LATEST_VERSION/v2ray-linux-64.zip -o /tmp/v2ray-linux-64.zip;      \
     mkdir -p /usr/local/v2ray/etc ; mkdir -p /usr/local/v2ray/bin ; mkdir -p /usr/local/v2ray/share ;                                           \
     cd /usr/local/v2ray/bin ; unzip /tmp/v2ray-linux-64.zip; rm -f /tmp/v2ray-linux-64.zip;                                                     \
