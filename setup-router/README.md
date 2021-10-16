@@ -82,12 +82,12 @@ net.ipv4.conf.enp1s0f1.rp_filter=0
 net.ipv4.conf.br0.route_localnet=1
 net.ipv4.conf.enp1s0f0.route_localnet=1
 net.ipv4.conf.enp1s0f1.route_localnet=1
-" > /etc/sysctl.d/91-forwarding.conf ;
+" | sudo tee /etc/sysctl.d/91-forwarding.conf ;
 
 echo "
 kernel.unprivileged_userns_clone=1
 user.max_user_namespaces=28633
-" > /etc/sysctl.d/92-container.conf ;
+" | sudo tee /etc/sysctl.d/92-container.conf ;
 
 sysctl -p ;
 

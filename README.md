@@ -2,6 +2,10 @@
 
 ## 系统
 
+扩展软件源:
+
++ https://software.opensuse.org/
+
 ```bash
 # 对用户启用systemd支持
 sudo loginctl enable-linger <用户名>
