@@ -11,21 +11,23 @@ RUN set -x;                             \
     apt install curl unzip -y;                                                  \
     if [[ ! -z "$GITHUB_TOKEN" ]]; then GITHUB_TOKEN_ARGS="-H Authorization: token $GITHUB_TOKEN"; fi;                                            \
     V2RAY_LATEST_VERSION=$(curl -L $GITHUB_TOKEN_ARGS 'https://api.github.com/repos/v2fly/v2ray-core/releases/latest' | awk '{if (match($0, "tag_name[\":[:space:]]+([A-Za-z0-9\\.]+)", r)) { print r[1] } } '); \
-    curl -k -qL https://github.com/v2fly/v2ray-core/releases/download/$V2RAY_LATEST_VERSION/v2ray-linux-64.zip -o /opt/v2ray-linux-64.zip;      \
-    mkdir /opt/v2ray/ ; cd /opt/v2ray/ ; unzip ../v2ray-linux-64.zip; rm -f ../v2ray-linux-64.zip; mkdir -p /usr/local/v2ray/etc;               \
-    mkdir -p /usr/local/v2ray/share; mkdir -p /usr/local/v2ray/bin; cp -f config.json /usr/local/v2ray/etc;                                     \
+    curl -k -qL https://github.com/v2fly/v2ray-core/releases/download/$V2RAY_LATEST_VERSION/v2ray-linux-64.zip -o /tmp/v2ray-linux-64.zip;      \
+    mkdir -p /usr/local/v2ray/etc ; mkdir -p /usr/local/v2ray/bin ; mkdir -p /usr/local/v2ray/share ;                                           \
+    cd /usr/local/v2ray/bin ; unzip /tmp/v2ray-linux-64.zip; rm -f /tmp/v2ray-linux-64.zip;                                                     \
+    cp -f config.json /usr/local/v2ray/etc;                                                                                                     \
     curl -k -qL "https://github.com/owent/update-geoip-geosite/releases/download/latest/geoip.dat" -o /usr/local/v2ray/bin/geoip.dat ;          \
     curl -k -qL "https://github.com/owent/update-geoip-geosite/releases/download/latest/geosite.dat" -o /usr/local/v2ray/bin/geosite.dat ;      \
     curl -k -qL "https://github.com/owent/update-geoip-geosite/releases/download/latest/all.tar.gz" -o /usr/local/v2ray/share/geo-all.tar.gz ;  \
+    find /usr/local/v2ray -name "*" ;                                                                                                           \
     if [[ -e "/var/lib/apt/lists" ]]; then for APT_CACHE in /var/lib/apt/lists/* ; do rm -rf "$APT_CACHE"; done; fi
 
 FROM docker.io/alpine:latest
 
 LABEL maintainer "OWenT <admin@owent.net>"
 
-COPY --from=builder /opt/v2ray/v2ray                      /usr/local/v2ray/bin/
-COPY --from=builder /opt/v2ray/v2ctl                      /usr/local/v2ray/bin/
-COPY --from=builder /opt/v2ray/etc/config.json            /usr/local/v2ray/etc/
+COPY --from=builder /usr/local/v2ray/bin/v2ray            /usr/local/v2ray/bin/
+COPY --from=builder /usr/local/v2ray/bin/v2ctl            /usr/local/v2ray/bin/
+COPY --from=builder /usr/local/v2ray/etc/config.json      /usr/local/v2ray/etc/
 COPY --from=builder /usr/local/v2ray/share/geo-all.tar.gz /usr/local/v2ray/share/
 COPY --from=builder /usr/local/v2ray/bin/geoip.dat        /usr/local/v2ray/bin/
 COPY --from=builder /usr/local/v2ray/bin/geosite.dat      /usr/local/v2ray/bin/
