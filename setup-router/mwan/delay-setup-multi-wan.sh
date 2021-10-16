@@ -8,10 +8,8 @@ fi
 
 cd "$(dirname "$(readlink -f "$0")")"
 
-# ln -sf "$PWD/reset-local-address-sets.sh" /etc/NetworkManager/dispatcher.d/connectivity-change.d/91-reset-local-address-sets.sh
+# ln -sf "$PWD/delay-setup-multi-wan.sh" /etc/NetworkManager/dispatcher.d/connectivity-change.d/92-delay-setup-multi-wan.sh
 # Ensure /etc/NetworkManager/dispatcher.d/connectivity-change run /etc/NetworkManager/dispatcher.d/connectivity-change.d/*
 
 nohup bash -c \
-"export ROUTER_NET_LOCAL_NFTABLE_NAME=v2ray,nat,mwan ;
-export=ROUTER_NET_LOCAL_IPSET_PREFIX=V2RAY ;
-flock --nonblock -E 0 /run/reset-local-address-sets.lock -c \"sleep 3 || usleep 3000000; /bin/bash $PWD/reset-local-address-set.sh\"" > "$PWD/reset-local-address-set.log" 2>&1 &
+"flock --nonblock -E 0 /run/setup-multi-wan.lock -c \"/bin/bash $PWD/cleanup-multi-wan.sh; sleep 5 || usleep 5000000; /bin/bash $PWD/setup-multi-wan.sh\"" > "$PWD/setup-multi-wan.log" 2>&1 &

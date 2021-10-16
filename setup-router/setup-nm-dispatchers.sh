@@ -11,7 +11,13 @@ echo "[$(date "+%F %T")]: $0 $@
   NM_DISPATCHER_ACTION=$NM_DISPATCHER_ACTION
   CONNECTIVITY_STATE=$CONNECTIVITY_STATE
   DEVICE_IFACE=$DEVICE_IFACE
-  DEVICE_IP_IFACE=$DEVICE_IP_IFACE" | systemd-cat -t router-mwan -p info ;
+  DEVICE_IP_IFACE=$DEVICE_IP_IFACE
+  IP4_GATEWAY=$IP4_GATEWAY
+  IP6_GATEWAY=$IP6_GATEWAY
+============
+$(ip -4 -o addr)
+-----------
+$(ip -6 -o addr)" | systemd-cat -t router-mwan -p info ;
 ' > "$NETWORKMANAGER_DISPATCHER_DIR/$1"
     chmod +x "$NETWORKMANAGER_DISPATCHER_DIR/$1"
   fi

@@ -48,22 +48,43 @@ if [[ "x" == "x$SETUP_MWAN_RULE_PRIORITY" ]]; then
 fi
 MAX_RETRY_TIMES=32
 
-if [[ -e "/run/multi-wan/ipv4" ]]; then
-  MWAN_INTERFACES_DB_IPV4="$(cat /run/multi-wan/ipv4)"
-else
-  MWAN_INTERFACES_DB_IPV4=""
-fi
-MWAN_INTERFACES_IPV4=($(echo "$MWAN_INTERFACES_DB_IPV4" | awk '{print $1}'))
+MWAN_INTERFACES_IPV4=( )
+for MWAN_CHECK_INTERFACE_NAME in $(ip -4 -o addr show scope global | awk '{ print $2 }' | uniq); do
+  MWAN_CHECK_INTERFACE_SUCCESS=0
+  for MWAN_WATCH_INTERFACE_NAME in ${MWAN_WATCH_INERFACES[@]}; do
+    if [[ "$MWAN_CHECK_INTERFACE_NAME" == "$MWAN_WATCH_INTERFACE_NAME" ]]; then
+      MWAN_CHECK_INTERFACE_SUCCESS=1
+      break
+    fi
+  done
+  if [[ $MWAN_CHECK_INTERFACE_SUCCESS -ne 0 ]]; then
+    MWAN_INTERFACES_IPV4=(${MWAN_INTERFACES_IPV4[@]} $MWAN_CHECK_INTERFACE_NAME)
+  fi
+done
 
-if [[ -e "/run/multi-wan/ipv6" ]]; then
-  MWAN_INTERFACES_DB_IPV6="$(cat /run/multi-wan/ipv6)"
-else
-  MWAN_INTERFACES_DB_IPV6=""
-fi
-MWAN_INTERFACES_IPV6=($(echo "$MWAN_INTERFACES_DB_IPV6" | awk '{print $1}'))
+echo "============ ip -4 -o addr show scope global ============"
+ip -4 -o addr show scope global
+echo "MWAN_INTERFACES_IPV4=${MWAN_INTERFACES_IPV4[@]}"
+
+MWAN_INTERFACES_IPV6=( )
+for MWAN_CHECK_INTERFACE_NAME in $(ip -6 -o addr show scope global | awk '{ print $2 }' | uniq); do
+  MWAN_CHECK_INTERFACE_SUCCESS=0
+  for MWAN_WATCH_INTERFACE_NAME in ${MWAN_WATCH_INERFACES[@]}; do
+    if [[ "$MWAN_CHECK_INTERFACE_NAME" == "$MWAN_WATCH_INTERFACE_NAME" ]]; then
+      MWAN_CHECK_INTERFACE_SUCCESS=1
+      break
+    fi
+  done
+  if [[ $MWAN_CHECK_INTERFACE_SUCCESS -ne 0 ]]; then
+    MWAN_INTERFACES_IPV6=(${MWAN_INTERFACES_IPV6[@]} $MWAN_CHECK_INTERFACE_NAME)
+  fi
+done
+echo "============ ip -6 -o addr show scope global ============"
+ip -6 -o addr show scope global
+echo "MWAN_INTERFACES_IPV6=${MWAN_INTERFACES_IPV6[@]}"
 
 bash "$SCRIPT_DIR/cleanup-multi-wan.sh"
-if [[ ${#MWAN_INTERFACES_IPV4[@]} -lt 2 ]] && [[ ${#MWAN_INTERFACES_DB_IPV6[@]} -lt 2 ]]; then
+if [[ ${#MWAN_INTERFACES_IPV4[@]} -lt 2 ]] && [[ ${#MWAN_INTERFACES_IPV6[@]} -lt 2 ]]; then
   exit
 fi
 
@@ -176,13 +197,11 @@ function mwan_setup_policy() {
     MWAN_IPTYPE_PARAM="-4"
     MWAN_NFTABLE_IPTYPE_PARAM="ip"
     MWAN_IP_MATCH="[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+"
-    MWAN_INTERFACES_CURRENT_DB="$MWAN_INTERFACES_DB_IPV4"
     MWAN_INTERFACES_CURRENT_IFACES=(${MWAN_INTERFACES_IPV4[@]})
   elif [[ "x$1" == "xipv6" ]]; then
     MWAN_IPTYPE_PARAM="-6"
     MWAN_NFTABLE_IPTYPE_PARAM="ip6"
     MWAN_IP_MATCH="[0-9a-fA-F:]+"
-    MWAN_INTERFACES_CURRENT_DB="$MWAN_INTERFACES_DB_IPV6"
     MWAN_INTERFACES_CURRENT_IFACES=(${MWAN_INTERFACES_IPV6[@]})
   else
     return
@@ -204,8 +223,8 @@ function mwan_setup_policy() {
   MWAN_INDEX=0
   TABLE_ID=120
   let MWAN_SUM_WEIGHT=0
-  for ((i = 0; i < ${#MWAN_INTERFACES_CURRENT_IFACES[@]}; ++i)); do
-    MWAN_TEST_IF_NAME=${MWAN_INTERFACES_CURRENT_IFACES[$i]}
+  for ((i = 0; i < ${#MWAN_WATCH_INERFACES[@]}; ++i)); do
+    MWAN_TEST_IF_NAME=${MWAN_WATCH_INERFACES[$i]}
     MWAN_TEST_IF_SUCCESS=0
     for MWAN_ACTIVE_IF_NAME in ${MWAN_INTERFACES_CURRENT_IFACES[@]}; do
       if [[ "$MWAN_ACTIVE_IF_NAME" == "$MWAN_TEST_IF_NAME" ]]; then
@@ -215,19 +234,19 @@ function mwan_setup_policy() {
     done
 
     MWAN_CURRENT_IF_WEIGHT=${MWAN_INERFACES_WEIGHT[$i]}
-    TABLE_OPTIONS=($(ip $MWAN_IPTYPE_PARAM route show table main default | grep -E "dev[[:space:]]+$MWAN_IF_NAME"))
+    ip $MWAN_IPTYPE_PARAM route show table main default | grep -E "dev[[:space:]]+$MWAN_TEST_IF_NAME"
+    TABLE_OPTIONS=($(ip $MWAN_IPTYPE_PARAM route show table main default | grep -E "dev[[:space:]]+$MWAN_TEST_IF_NAME"))
     if [[ $MWAN_TEST_IF_SUCCESS -eq 0 ]] || [[ $MWAN_CURRENT_IF_WEIGHT -le 0 ]] || [[ ${#TABLE_OPTIONS[@]} -le 0 ]]; then
       continue
     fi
-    MWAN_CURRENT_IF_WEIGHT=${MWAN_INERFACES_WEIGHT[$i]}
     let MWAN_SUM_WEIGHT=$MWAN_SUM_WEIGHT+$MWAN_CURRENT_IF_WEIGHT
   done
   let MWAN_CURRENT_SUM_WEIGHT=0
-  for ((i = 0; $i < ${#MWAN_INTERFACES_CURRENT_IFACES[@]}; ++i)); do
-    MWAN_IF_NAME=${MWAN_INTERFACES_CURRENT_IFACES[$i]}
+  for ((i = 0; $i < ${#MWAN_WATCH_INERFACES[@]}; ++i)); do
+    MWAN_IF_NAME=${MWAN_WATCH_INERFACES[$i]}
     MWAN_TEST_IF_SUCCESS=0
     for MWAN_ACTIVE_IF_NAME in ${MWAN_INTERFACES_CURRENT_IFACES[@]}; do
-      if [[ "$MWAN_ACTIVE_IF_NAME" == "$MWAN_TEST_IF_NAME" ]]; then
+      if [[ "$MWAN_ACTIVE_IF_NAME" == "$MWAN_IF_NAME" ]]; then
         MWAN_TEST_IF_SUCCESS=1
         break
       fi
@@ -238,8 +257,8 @@ function mwan_setup_policy() {
     if [[ $MWAN_TEST_IF_SUCCESS -eq 0 ]] || [[ $MWAN_CURRENT_IF_WEIGHT -le 0 ]] || [[ ${#TABLE_OPTIONS[@]} -le 0 ]]; then
       continue
     fi
-    EVAL_EXPR="$(echo "$MWAN_INTERFACES_CURRENT_DB" | awk "\$1 == \"$MWAN_IF_NAME\" { print \"IFNAME=\"\$0; }")"
-    eval "$EVAL_EXPR"
+    echo "Select ip $MWAN_IPTYPE_PARAM route for $MWAN_IF_NAME (Weight: $MWAN_CURRENT_IF_WEIGHT/$MWAN_SUM_WEIGHT): ${TABLE_OPTIONS[@]}"
+
     let MWAN_INDEX=$MWAN_INDEX+1
     let MWAN_CURRENT_SUM_WEIGHT=$MWAN_CURRENT_SUM_WEIGHT+$MWAN_CURRENT_IF_WEIGHT
     CURRENT_MWAN_FWMARK="0x$(printf '%x' $MWAN_INDEX)00"
@@ -277,7 +296,7 @@ function mwan_setup_policy() {
 
     # Policy packages already has decision
     LOCAL_IP_ADDR_SET=""
-    for LOCAL_IP_ADDR in $(ip $MWAN_IPTYPE_PARAM -o addr show $MWAN_IF_NAME | grep -E -o "inet[0-9]*[[:space:]]+[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+" | awk '{print $NF}'); do
+    for LOCAL_IP_ADDR in $(ip $MWAN_IPTYPE_PARAM -o addr show $MWAN_IF_NAME | grep -E -o "inet[0-9]*[[:space:]]+$MWAN_IP_MATCH" | awk '{print $NF}'); do
       if [[ -z "$LOCAL_IP_ADDR_SET" ]]; then
         LOCAL_IP_ADDR_SET="{$LOCAL_IP_ADDR"
       else
@@ -336,7 +355,7 @@ if [[ ${#MWAN_INTERFACES_IPV4[@]} -ge 2 ]]; then
   mwan_setup_policy ipv4
 fi
 
-if [[ ${#MWAN_INTERFACES_DB_IPV6[@]} -ge 2 ]]; then
+if [[ ${#MWAN_INTERFACES_IPV6[@]} -ge 2 ]]; then
   mwan_setup_policy ipv6
 fi
 
