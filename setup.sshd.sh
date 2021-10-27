@@ -2,7 +2,6 @@
 
 # setup sshd
 sed -i -r 's/required(\s*)pam_loginuid.so/optional\1pam_loginuid.so/g' /etc/pam.d/ssh* ;
-sed -i -r 's/required(\s*)pam_loginuid.so/optional\1pam_loginuid.so/g' /etc/pam.d/cron* ;
 
 sed -i -r 's/^\s*#?\s*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
 sed -i -r 's/^\s*#?\s*RSAAuthentication.*/RSAAuthentication yes/' /etc/ssh/sshd_config
