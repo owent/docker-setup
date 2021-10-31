@@ -30,45 +30,6 @@ cd "$(dirname "${BASH_SOURCE[0]}")" ;
 # ip -4 route add default via XXX dev $1 ;
 # ip -4 route add 0.0.0.0/0 via $IPREMOTE dev $IFNAME ;
 
-which nft > /dev/null 2>&1 ;
-if [[ $? -eq 0 ]]; then
-    # sync to v2ray BLACKLIST/IPLOCAL
-    nft list table ip v2ray > /dev/null 2>&1 ;
-    if [[ $? -ne 0 ]]; then
-        nft add table ip v2ray ;
-    fi
-    nft list set ip v2ray BLACKLIST > /dev/null 2>&1 ;
-    if [[ $? -ne 0 ]]; then
-        nft add set ip v2ray BLACKLIST { type ipv4_addr\; }
-    fi
-    # nft flush set ip v2ray BLACKLIST ;
-    nft add element ip v2ray BLACKLIST { $IPLOCAL } ;
-
-    nft list set ip nat IPLOCAL > /dev/null 2>&1 ;
-    if [[ $? -ne 0 ]]; then
-        nft add set ip nat IPLOCAL { type ipv4_addr\; }
-    fi
-    # nft flush set ip nat IPLOCAL ;
-    nft add element ip nat IPLOCAL { $IPLOCAL } ;
-fi
-
-which ipset > /dev/null 2>&1 ;
-if [[ $? -eq 0 ]]; then
-    ipset list V2RAY_BLACKLIST_IPV4 > /dev/null 2>&1 ;
-    if [[ $? -ne 0 ]]; then
-        ipset create V2RAY_BLACKLIST_IPV4 hash:ip family inet;
-    fi
-    # ipset flush V2RAY_BLACKLIST_IPV4;
-    ipset add V2RAY_BLACKLIST_IPV4 $IPLOCAL;
-
-    ipset list NAT_IPLOCAL_IPV4 > /dev/null 2>&1 ;
-    if [[ $? -ne 0 ]]; then
-        ipset create NAT_IPLOCAL_IPV4 hash:ip family inet;
-    fi
-    # ipset flush NAT_IPLOCAL_IPV4;
-    ipset add NAT_IPLOCAL_IPV4 $IPLOCAL;
-fi
-
 if [[ -e "/etc/resolv.conf.dnsmasq" ]]; then
     cp -f /etc/resolv.conf.dnsmasq /etc/resolv.conf;
 fi

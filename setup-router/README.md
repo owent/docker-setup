@@ -228,8 +228,9 @@ See https://en.wikipedia.org/wiki/Public_recursive_name_server for more details
 
 + Dnspod
   + 119.29.29.29
-  + [DoH: RFC 8484][1] https://dns.pub/dns-query , https://doh.pub/dns-query
-  + [DoT: RFC 7858][2] dns.pub , doh.pub
+  + 2402:4e00::
+  + [DoH: RFC 8484][1] https://doh.pub/dns-query
+  + [DoT: RFC 7858][2] dot.pub
   + [DNSCrypt][3] ```sdns://AgAAAAAAAAAAACDrdSX4jw2UWPgamVAZv9NMuJzNyVfnsO8xXxD4l2OBGAdkb2gucHViCi9kbnMtcXVlcnk```
 
   > Home: https://www.dnspod.cn/Products/Public.DNS

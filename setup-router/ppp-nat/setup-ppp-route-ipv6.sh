@@ -30,45 +30,6 @@ cd "$(dirname "${BASH_SOURCE[0]}")" ;
 # # ip -6 route add default via XXX dev $1 ;
 # ip -6 route add ::/0 via $IPREMOTE dev $IFNAME ;
 
-which nft > /dev/null 2>&1 ;
-if [[ $? -eq 0 ]]; then
-    # sync to v2ray BLACKLIST/IPLOCAL
-    nft list table ip6 v2ray > /dev/null 2>&1 ;
-    if [[ $? -ne 0 ]]; then
-        nft add table ip6 v2ray ;
-    fi
-    nft list set ip6 v2ray BLACKLIST > /dev/null 2>&1 ;
-    if [[ $? -ne 0 ]]; then
-        nft add set ip6 v2ray BLACKLIST { type ipv6_addr\; }
-    fi
-    # nft flush set ip6 v2ray BLACKLIST ;
-    nft add element ip6 v2ray BLACKLIST { $IPLOCAL } ;
-
-    nft list set ip6 nat IPLOCAL > /dev/null 2>&1 ;
-    if [[ $? -ne 0 ]]; then
-        nft add set ip6 nat IPLOCAL { type ipv6_addr\; }
-    fi
-    # nft flush set ip6 nat IPLOCAL ;
-    nft add element ip6 nat IPLOCAL { $IPLOCAL } ;
-fi
-
-which ipset > /dev/null 2>&1 ;
-if [[ $? -eq 0 ]]; then
-    ipset list V2RAY_BLACKLIST_IPV6 > /dev/null 2>&1 ;
-    if [[ $? -ne 0 ]]; then
-        ipset create V2RAY_BLACKLIST_IPV6 hash:ip family inet6;
-    fi
-    # ipset flush V2RAY_BLACKLIST_IPV6;
-    ipset add V2RAY_BLACKLIST_IPV6 $IPLOCAL;
-
-    ipset list NAT_IPLOCAL_IPV6 > /dev/null 2>&1 ;
-    if [[ $? -ne 0 ]]; then
-        ipset create NAT_IPLOCAL_IPV6 hash:ip family inet6;
-    fi
-    # ipset flush NAT_IPLOCAL_IPV6;
-    ipset add NAT_IPLOCAL_IPV6 $IPLOCAL;
-fi
-
 if [[ -e "/etc/resolv.conf.dnsmasq" ]]; then
     cp -f /etc/resolv.conf.dnsmasq /etc/resolv.conf;
 fi

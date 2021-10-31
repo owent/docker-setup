@@ -58,6 +58,14 @@ if [[ "x" == "x$SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT" ]]; then
   SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT="123"
 fi
 
+if [[ "x" == "x$SETUP_WITH_BLACKLIST_IPV4" ]]; then
+  SETUP_WITH_BLACKLIST_IPV4="119.29.29.29,223.5.5.5,223.6.6.6,180.76.76.76,119.28.22.204,119.28.142.155,43.132.185.197"
+fi
+
+if [[ "x" == "x$SETUP_WITH_BLACKLIST_IPV6" ]]; then
+  SETUP_WITH_BLACKLIST_IPV6="2402:4e00::,2400:3200::1,2400:3200:baba::1,2400:da00::6666"
+fi
+
 if [[ "x" == "x$SETUP_WITH_DEBUG_LOG" ]]; then
   SETUP_WITH_DEBUG_LOG=0
 fi
@@ -115,6 +123,11 @@ ipset list V2RAY_BLACKLIST_IPV4 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   ipset create V2RAY_BLACKLIST_IPV4 hash:ip family inet
 fi
+
+for IP_ADDR in $(echo ${SETUP_WITH_BLACKLIST_IPV4//,/ }); do
+  ipset add V2RAY_BLACKLIST_IPV4 $IP_ADDR -exist
+done
+
 ipset list GEOIP_IPV4_CN >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   ipset create GEOIP_IPV4_CN hash:net family inet
@@ -164,8 +177,6 @@ iptables -t mangle -A V2RAY -d 172.20.1.1/24 -j RETURN # 172.20.1.1/24 is used f
 # if dns service and V2RAY are on different server, use rules below
 # iptables -t mangle -A V2RAY -p tcp -m set --match-set V2RAY_LOCAL_IPV4 dst -j RETURN
 # iptables -t mangle -A V2RAY -p udp -m set --match-set V2RAY_LOCAL_IPV4 dst ! --dport 53 -j RETURN
-### ipv4 - skip CN DNS
-iptables -t mangle -A V2RAY -d 119.29.29.29/32,223.5.5.5/32,223.6.6.6/32,180.76.76.76/32 -j RETURN
 
 # ipv4 skip package from outside
 iptables -t mangle -A V2RAY -m set --match-set V2RAY_BLACKLIST_IPV4 dst -j RETURN
@@ -251,6 +262,9 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   if [ $? -ne 0 ]; then
     ipset create V2RAY_BLACKLIST_IPV6 hash:ip family inet6
   fi
+  for IP_ADDR in $(echo ${SETUP_WITH_BLACKLIST_IPV6//,/ }); do
+    ipset add V2RAY_BLACKLIST_IPV6 $IP_ADDR -exist
+  done
   ipset list GEOIP_IPV6_CN >/dev/null 2>&1
   if [ $? -ne 0 ]; then
     ipset create GEOIP_IPV6_CN hash:net family inet6
@@ -296,8 +310,6 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   # if dns service and V2RAY are on different server, use rules below
   # ip6tables -t mangle -A V2RAY -p tcp -m set --match-set V2RAY_LOCAL_IPV6 dst -j RETURN
   # ip6tables -t mangle -A V2RAY -p udp -m set --match-set V2RAY_LOCAL_IPV6 dst ! --dport 53 -j RETURN
-  ### ipv6 - skip CN DNS
-  ip6tables -t mangle -A V2RAY -d 2400:3200::1/128,2400:3200:baba::1/128,2400:da00::6666/128 -j RETURN
 
   # ipv6 skip package from outside
   ip6tables -t mangle -A V2RAY -d ff00::/8 -j RETURN

@@ -32,11 +32,6 @@ if [[ $? -ne 0 ]]; then
   nft add table ip nat
 fi
 
-nft list set ip nat IPLOCAL >/dev/null 2>&1
-if [[ $? -ne 0 ]]; then
-  nft add set ip nat IPLOCAL { type ipv4_addr\; }
-fi
-
 nft list set ip nat LOCAL_IPV4 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   nft add set ip nat LOCAL_IPV4 '{ type ipv4_addr; flags interval; auto-merge ; }'
@@ -46,11 +41,6 @@ fi
 nft list table ip6 nat >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   nft add table ip6 nat
-fi
-
-nft list set ip6 nat IPLOCAL >/dev/null 2>&1
-if [[ $? -ne 0 ]]; then
-  nft add set ip6 nat IPLOCAL { type ipv6_addr\; }
 fi
 
 nft list set ip6 nat LOCAL_IPV6 >/dev/null 2>&1
@@ -158,7 +148,6 @@ nft flush chain ip nat POSTROUTING
 # nft add rule ip nat POSTROUTING ip saddr 172.18.0.0/16 ip daddr != 172.18.0.0/16 snat to 1.2.3.4
 # nft add rule nat POSTROUTING meta iifname enp1s0f1 counter packets 0 bytes 0 masquerade
 # Skip local address when DSL interface get a local address
-nft add rule ip nat POSTROUTING ip saddr @IPLOCAL return
 nft add rule ip nat POSTROUTING ip saddr @LOCAL_IPV4 ip daddr != @LOCAL_IPV4 counter packets 0 bytes 0 masquerade
 nft add rule ip nat POSTROUTING meta l4proto udp ip saddr @LOCAL_IPV4 ip daddr != @LOCAL_IPV4 counter packets 0 bytes 0 masquerade to :10000-65535
 # 172.20.1.1/24 is used for remote debug
@@ -182,7 +171,6 @@ nft flush chain ip6 nat POSTROUTING
 
 ### Source NAT - ipv6
 # Skip local address when DSL interface get a local address
-nft add rule ip6 nat POSTROUTING ip6 saddr @IPLOCAL return
 nft add rule ip6 nat POSTROUTING ip6 saddr @LOCAL_IPV6 ip6 daddr != @LOCAL_IPV6 ip6 daddr != {ff00::/8} counter packets 0 bytes 0 masquerade
 nft add rule ip6 nat POSTROUTING meta l4proto tcp ip6 saddr @LOCAL_IPV6 ip6 daddr != @LOCAL_IPV6 ip6 daddr != {ff00::/8} counter packets 0 bytes 0 masquerade to :10000-65535
 nft add rule ip6 nat POSTROUTING meta l4proto udp ip6 saddr @LOCAL_IPV6 ip6 daddr != @LOCAL_IPV6 ip6 daddr != {ff00::/8} counter packets 0 bytes 0 masquerade to :10000-65535
