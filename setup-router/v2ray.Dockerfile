@@ -2,14 +2,14 @@
 # docker build --build-arg=GITHUB_TOKEN=$GITHUB_TOKEN --force-rm --tag proxy-with-geo -f v2ray.Dockerfile .
 FROM debian:latest as builder
 
-RUN set -x;                             \
-    if [[ -z "$GITHUB_TOKEN" ]]; then   \
+RUN set -x;                                  \
+    if [[ "x$GITHUB_TOKEN" == "x" ]]; then   \
     sed -i.bak -r 's;#?https?://.*/debian-security/?[[:space:]];http://mirrors.aliyun.com/debian-security/ ;g' /etc/apt/sources.list ;  \
     sed -i -r 's;#?https?://.*/debian/?[[:space:]];http://mirrors.aliyun.com/debian/ ;g' /etc/apt/sources.list ;                        \
     fi;                                                                         \
     apt update -y;                                                              \
     apt install curl unzip -y;                                                  \
-    if [[ ! -z "$GITHUB_TOKEN" ]]; then GITHUB_TOKEN_ARGS="-H Authorization: token $GITHUB_TOKEN"; fi;                                            \
+    if [[ "x$GITHUB_TOKEN" != "x" ]]; then GITHUB_TOKEN_ARGS="-H Authorization: token $GITHUB_TOKEN"; fi;                                            \
     V2RAY_LATEST_VERSION=( $(curl -L $GITHUB_TOKEN_ARGS 'https://api.github.com/repos/v2fly/v2ray-core/releases/latest' | grep tag_name | grep -E -o 'v[0-9]+[0-9\.]+') ); \
     curl -k -qL https://github.com/v2fly/v2ray-core/releases/download/${V2RAY_LATEST_VERSION[1]}/v2ray-linux-64.zip -o /tmp/v2ray-linux-64.zip;      \
     mkdir -p /usr/local/v2ray/etc ; mkdir -p /usr/local/v2ray/bin ; mkdir -p /usr/local/v2ray/share ;                                           \
