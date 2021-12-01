@@ -22,12 +22,12 @@ podman run docker run -d --systemd true IMAGE /sbin/init
 ## docker run -d --cap-add=SYS_ADMIN -v /sys/fs/cgroup:/sys/fs/cgroup IMAGE /sbin/init
 ## Mount list come from setupSystemd@libpod/container_internal_linux.go on https://github.com/containers/libpod
 docker build --tag router-base -f debian10.router.raw.Dockerfile
-docker run -d --name router --cap-add=SYS_ADMIN                                             \
-        --mount type=tmpfs,target=/run,tmpfs-mode=1777,tmpfs-size=67108864                  \
-        --mount type=tmpfs,target=/run/lock,tmpfs-mode=1777,tmpfs-size=67108864             \
-        --mount type=tmpfs,target=/tmp,tmpfs-mode=1777                                      \
-        --mount type=tmpfs,target=/var/log/journal,tmpfs-mode=1777                          \
-        --mount type=bind,source=/sys/fs/cgroup,target=/sys/fs/cgroup                       \
+docker run -d --name router --cap-add=SYS_ADMIN                             \
+        --mount type=tmpfs,target=/run,tmpfs-size=67108864                  \
+        --mount type=tmpfs,target=/run/lock,tmpfs-size=67108864             \
+        --mount type=tmpfs,target=/tmp                                      \
+        --mount type=tmpfs,target=/var/log/journal                          \
+        --mount type=bind,source=/sys/fs/cgroup,target=/sys/fs/cgroup       \
         IMAGE /sbin/init
         # --mount type=bind,source=/sys/fs/cgroup/systemd,target=/sys/fs/cgroup/systemd
 
@@ -211,6 +211,44 @@ systemctl restart systemd-journald
 + podman启动报 `Error: OCI runtime error: container_linux.go:380: starting container process caused: error adding seccomp filter rule for syscall bdflush: requested action matches default action of filter`
 
 启动时增加 `--security-opt seccomp=unconfined` 参数
+
+> 请先确保 `grep CONFIG_SECCOMP= /boot/config-$(uname -r)` 输出 `CONFIG_SECCOMP=y`
+
+*docker-compose.yml*
+
+```yaml
+version: "3.9"  # optional since v1.27.0
+services:
+  samba-pix:
+    image: samba-server:latest
+    security_opt:
+      - seccomp=unconfined
+      - label=disable
+    ports:
+      - "139:139/TCP"
+      - "445:445/TCP"
+      - "137:137/UDP"
+      - "138:138/UDP"
+    volumes:
+      - type: bind
+        source: /home/owent/docker-data/samba
+        target: /data/samba
+      - type: bind
+        source: /sys/fs/cgroup
+        target: /sys/fs/cgroup
+      - type: tmpfs
+        target: /run
+        tmpfs:
+          size: 64m
+      - type: tmpfs
+        target: /run/lock
+        tmpfs:
+          size: 64m
+      - type: tmpfs
+        target: /tmp
+      - type: tmpfs
+        target: /var/log/journal
+```
 
 + podman启动访问后bind的目录提示 `Permission denied`
 
