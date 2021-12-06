@@ -236,20 +236,25 @@ services:
       - type: bind
         source: /sys/fs/cgroup
         target: /sys/fs/cgroup
-      - type: tmpfs
-        target: /run
-        tmpfs:
-          size: 64m
-      - type: tmpfs
-        target: /run/lock
-        tmpfs:
-          size: 64m
-      - type: tmpfs
-        target: /tmp
-      - type: tmpfs
-        target: /var/log/journal
+    tmpfs:
+      - /run:exec,mode=1777,size=67108864
+      - /run/lock:exec,mode=1777,size=67108864
+      - /tmp:exec,mode=1777
+      - /var/log/journal:exec,mode=1777
 ```
 
 + podman启动访问后bind的目录提示 `Permission denied`
 
 启动时增加 `--security-opt label=disable` 参数或关闭 selinux （修改 `/etc/selinux/config` 后重启）
+
++ docker内mount目录提示 `pam_open_session: Permission denied` 和 `policy plugin failed session initialization`
+
+启动时增加 `--cap-add CAP_SYS_RESOURCE` 。
+
+请注意rootless模式下 `~/.config/systemd/user/docker.service` 或其他类似systemd配置内的限制不能大于 `/etc/security/limits.d/` 和 `cat /etc/security/limits.conf` 的配置。
+
++ docker内mount nfs提示 `mount.nfs: Operation not permitted`
+
+启动时增加 `--cap-add CAP_SYS_ADMIN` 。
+
+rootless模式下建议母机mount完共享到子机。编辑 `/etc/fstab` 增加 `NFS_REMOTE:/NFS_REMOTE_PATH /NFS_LOCAL_PATH nfs rw,nolock 0 0` ，然后手动mount一下: `sudo mount -t nfs -o rw,nolock NFS_REMOTE:/NFS_REMOTE_PATH /NFS_LOCAL_PATH`
