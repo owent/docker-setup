@@ -39,7 +39,7 @@ ENV PATH /usr/local/smartdns/bin/:$PATH
 
 VOLUME /var/log/smartdns
 
-CMD ["smartdns", "-p", "/var/run/smartdns.pid", "-c", "/usr/local/smartdns/etc/smartdns.conf"]
+CMD ["smartdns", "-p", "/var/run/smartdns.pid", "-c", "/usr/local/smartdns/etc/smartdns.conf", "-f"]
 
 # podman run -d --name smartdns -v /etc/smartdns:/usr/local/smartdns/etc -v /data/logs/smartdns:/var/log/smartdns --network=host docker.io/owt5008137/smartdns:latest
 # podman generate systemd smartdns | sudo tee /lib/systemd/system/smartdns.service
