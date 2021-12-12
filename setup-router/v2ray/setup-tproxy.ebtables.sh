@@ -67,15 +67,23 @@ for LOCAL_IPV4 in ${ROUTER_LOCAL_NET_IPV4[@]}; do
 done
 
 ### bridge - skip CN DNS
-ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 119.29.29.29/32 -j RETURN
-ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 223.5.5.5/32 -j RETURN
-ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 223.6.6.6/32 -j RETURN
-ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 180.76.76.76/32 -j RETURN
-if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
-  ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst 2400:3200::1/128 -j RETURN
-  ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst 2400:3200:baba::1/128 -j RETURN
-  ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst 2400:da00::6666/128 -j RETURN
-fi
+# ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 119.29.29.29/32 -j RETURN
+# ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 223.5.5.5/32 -j RETURN
+# ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 223.6.6.6/32 -j RETURN
+# ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 180.76.76.76/32 -j RETURN
+# if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
+#   ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst 2400:3200::1/128 -j RETURN
+#   ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst 2400:3200:baba::1/128 -j RETURN
+#   ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst 2400:da00::6666/128 -j RETURN
+# fi
+ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-proto udp --ip-dport 53 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-proto tcp --ip-dport 53 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-proto udp --ip-dport 853 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-proto tcp --ip-dport 853 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-proto udp --ip6-dport 53 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-proto tcp --ip6-dport 53 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-proto udp --ip6-dport 853 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-proto tcp --ip6-dport 853 -j RETURN
 
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
   ebtables -t broute -A V2RAY_BRIDGE --log-ip --log-level debug --log-prefix "---BRIDGE-DROP: "

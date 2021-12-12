@@ -144,6 +144,12 @@ if [[ $? -ne 0 ]]; then
   ipset add V2RAY_LOCAL_IPV4 172.16.0.0/12
   ipset add V2RAY_LOCAL_IPV4 10.0.0.0/8
 fi
+ipset list V2RAY_PROXY_DNS_IPV4 >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  ipset create V2RAY_PROXY_DNS_IPV4 hash:ip family inet
+  ipset add V2RAY_PROXY_DNS_IPV4 8.8.8.8 -exist
+  ipset add V2RAY_PROXY_DNS_IPV4 8.8.4.4 -exist
+fi
 
 iptables -t mangle -L V2RAY >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
@@ -163,6 +169,8 @@ fi
 iptables -t mangle -A V2RAY -p tcp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
 iptables -t mangle -A V2RAY -p udp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
 iptables -t mangle -A V2RAY -p udp -m multiport --dports $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT -j RETURN
+iptables -t mangle -A V2RAY -m set ! --match-set V2RAY_PROXY_DNS_IPV4 dst -p tcp -m multiport --dports "53,853" -j RETURN
+iptables -t mangle -A V2RAY -m set ! --match-set V2RAY_PROXY_DNS_IPV4 dst -p udp -m multiport --dports "53,853" -j RETURN
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
   iptables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_DEBUG_LOG_IGNORE_PORT -j TRACE
   iptables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_DEBUG_LOG_IGNORE_PORT -j LOG --log-level debug --log-prefix "###TCP4#PREROU:"
@@ -217,6 +225,8 @@ iptables -t mangle -A PREROUTING -p udp -j V2RAY # apply rules
 iptables -t mangle -A V2RAY_MASK -p tcp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
 iptables -t mangle -A V2RAY_MASK -p udp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
 iptables -t mangle -A V2RAY_MASK -p udp -m multiport --dports $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT -j RETURN
+iptables -t mangle -A V2RAY_MASK -m set ! --match-set V2RAY_PROXY_DNS_IPV4 dst -p tcp -m multiport --dports "53,853" -j RETURN
+iptables -t mangle -A V2RAY_MASK -m set ! --match-set V2RAY_PROXY_DNS_IPV4 dst -p udp -m multiport --dports "53,853" -j RETURN
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
   iptables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_DEBUG_LOG_IGNORE_PORT -j LOG --log-level debug --log-prefix "###TCP4#OUTPUT:"
 fi
@@ -280,6 +290,12 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
     ipset add V2RAY_LOCAL_IPV6 fc00::/7
     ipset add V2RAY_LOCAL_IPV6 fe80::/10
   fi
+  ipset list V2RAY_PROXY_DNS_IPV6 >/dev/null 2>&1
+  if [[ $? -ne 0 ]]; then
+    ipset create V2RAY_PROXY_DNS_IPV6 hash:ip family inet6
+    ipset add V2RAY_PROXY_DNS_IPV6 '2001:4860:4860::8888' -exist
+    ipset add V2RAY_PROXY_DNS_IPV6 '2001:4860:4860::8844' -exist
+  fi
 
   ip6tables -t mangle -L V2RAY >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
@@ -299,6 +315,8 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   ip6tables -t mangle -A V2RAY -p tcp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
   ip6tables -t mangle -A V2RAY -p udp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
   ip6tables -t mangle -A V2RAY -p udp -m multiport --dports $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT -j RETURN
+  ip6tables -t mangle -A V2RAY -m set ! --match-set V2RAY_PROXY_DNS_IPV6 dst -p tcp -m multiport --dports "53,853" -j RETURN
+  ip6tables -t mangle -A V2RAY -m set ! --match-set V2RAY_PROXY_DNS_IPV6 dst -p udp -m multiport --dports "53,853" -j RETURN
   if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
     ip6tables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_DEBUG_LOG_IGNORE_PORT -j LOG --log-level debug --log-prefix "###TCP6#PREROU:"
   fi
@@ -351,6 +369,8 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
   ip6tables -t mangle -A V2RAY_MASK -p udp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
   ip6tables -t mangle -A V2RAY_MASK -p udp -m multiport --dports $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT -j RETURN
+  ip6tables -t mangle -A V2RAY_MASK -m set ! --match-set V2RAY_PROXY_DNS_IPV6 dst -p tcp -m multiport --dports "53,853" -j RETURN
+  ip6tables -t mangle -A V2RAY_MASK -m set ! --match-set V2RAY_PROXY_DNS_IPV6 dst -p udp -m multiport --dports "53,853" -j RETURN
   if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
     ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_DEBUG_LOG_IGNORE_PORT -j LOG --log-level debug --log-prefix "###TCP6#OUTPUT:"
   fi

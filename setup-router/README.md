@@ -241,8 +241,8 @@ See https://en.wikipedia.org/wiki/Public_recursive_name_server for more details
   + 223.6.6.6
   + 2400:3200::1
   + 2400:3200:baba::1
-  + [DoH: RFC 8484][1] https://dns.alidns.com/dns-query , https://<IP>/dns-query
-  + [DoT: RFC 7858][2] dns.alidns.com , <IP>
+  + [DoH: RFC 8484][1] https://dns.alidns.com/dns-query , https://[IP]/dns-query
+  + [DoT: RFC 7858][2] dns.alidns.com , [IP]
   + [DNSCrypt][3] ```sdns://AgAAAAAAAAAACTIyMy41LjUuNSCoF6cUD2dwqtorNi96I2e3nkHPSJH1ka3xbdOglmOVkQ5kbnMuYWxpZG5zLmNvbQovZG5zLXF1ZXJ5```
 
   > Home: https://alidns.com/
@@ -271,8 +271,8 @@ See https://en.wikipedia.org/wiki/Public_recursive_name_server for more details
   + 1.0.0.1
   + 2606:4700:4700::1111
   + 2606:4700:4700::1001
-  + [DoH: RFC 8484][1] https://one.one.one.one/dns-query , https://<IP>/dns-query
-  + [DoT: RFC 7858][2] one.one.one.one , <IP>
+  + [DoH: RFC 8484][1] https://one.one.one.one/dns-query , https://[IP]/dns-query
+  + [DoT: RFC 7858][2] one.one.one.one , [IP]
   + [DNSCrypt][3] ```sdns://AgcAAAAAAAAABzEuMC4wLjEAEmRucy5jbG91ZGZsYXJlLmNvbQovZG5zLXF1ZXJ5```
   + [DNSCrypt][3] - ipv6 ```sdns://AgcAAAAAAAAAFlsyNjA2OjQ3MDA6NDcwMDo6MTExMV0AIDFkb3QxZG90MWRvdDEuY2xvdWRmbGFyZS1kbnMuY29tCi9kbnMtcXVlcnk``` , ```sdns://AgcAAAAAAAAAFlsyNjA2OjQ3MDA6NDcwMDo6MTAwMV0AIDFkb3QxZG90MWRvdDEuY2xvdWRmbGFyZS1kbnMuY29tCi9kbnMtcXVlcnk```
 
@@ -284,8 +284,8 @@ See https://en.wikipedia.org/wiki/Public_recursive_name_server for more details
   + 94.140.15.15
   + 2a10:50c0::ad1:ff
   + 2a10:50c0::ad2:ff
-  + [DoH: RFC 8484][1] https://dns.adguard.com/dns-query , https://<IP>/dns-query
-  + [DoT: RFC 7858][2] dns.adguard.com , <IP>
+  + [DoH: RFC 8484][1] https://dns.adguard.com/dns-query , https://[IP]/dns-query
+  + [DoT: RFC 7858][2] dns.adguard.com , [IP]
   + [DNSCrypt][3] ```sdns://AQIAAAAAAAAAFDE3Ni4xMDMuMTMwLjEzMDo1NDQzINErR_JS3PLCu_iZEIbq95zkSV2LFsigxDIuUso_OQhzIjIuZG5zY3J5cHQuZGVmYXVsdC5uczEuYWRndWFyZC5jb20```
   + [DoQ][4]
 + Quad9
@@ -294,13 +294,12 @@ See https://en.wikipedia.org/wiki/Public_recursive_name_server for more details
   + 2620:fe::10
   + 2620:fe::fe:10
   + [DoT: RFC 7858][2] dns.quad9.net
-  + [DoT: RFC 7858][2] <IP>
+  + [DoT: RFC 7858][2] [IP]
 + OpenDNS
   + 208.67.222.222
   + 208.67.220.220
   + 2620:119:35::35
   + 2620:119:53::53
-
 
 > [DoT: RFC 7858][2] port: 853
 

@@ -145,6 +145,7 @@ curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geo
 if [[ $? -eq 0 ]]; then
     # ipset
     cp -f dnsmasq-blacklist.conf /etc/dnsmasq.d/10-dnsmasq-blacklist.router.conf
+    # sed -i -E 's;/(1.1.1.1|8.8.8.8)#53;/127.0.0.1#6053;g' /etc/dnsmasq.d/10-dnsmasq-blacklist.router.conf # local smartdns
     ipset list DNSMASQ_GFW_IPV4 > /dev/null 2>&1 ;
     if [[ $? -eq 0 ]]; then
         ipset flush DNSMASQ_GFW_IPV4;

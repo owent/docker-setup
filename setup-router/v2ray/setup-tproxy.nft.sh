@@ -169,6 +169,8 @@ nft add rule ip v2ray PREROUTING meta l4proto != {tcp, udp} return
 nft add rule ip v2ray PREROUTING tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 nft add rule ip v2ray PREROUTING udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 nft add rule ip v2ray PREROUTING udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
+nft add rule ip v2ray PREROUTING ip daddr != '{8.8.8.8, 8.8.4.4}' udp dport '{53, 853}' return
+nft add rule ip v2ray PREROUTING ip daddr != '{8.8.8.8, 8.8.4.4}' tcp dport '{53, 853}' return
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
   nft add rule ip v2ray PREROUTING tcp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"###TCP4#PREROU:"' level debug flags all
   nft add rule ip v2ray PREROUTING udp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"###UDP4#PREROU:"' level debug flags all
@@ -217,6 +219,8 @@ nft add rule ip v2ray OUTPUT meta l4proto != {tcp, udp} return
 nft add rule ip v2ray OUTPUT tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 nft add rule ip v2ray OUTPUT udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 nft add rule ip v2ray OUTPUT udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
+nft add rule ip v2ray OUTPUT ip daddr != '{8.8.8.8, 8.8.4.4}' udp dport '{53, 853}' return
+nft add rule ip v2ray OUTPUT ip daddr != '{8.8.8.8, 8.8.4.4}' tcp dport '{53, 853}' return
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
   nft add rule ip v2ray OUTPUT tcp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"###TCP4#OUTPUT:"' level debug flags all
   nft add rule ip v2ray OUTPUT udp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"###UDP4#OUTPUT:"' level debug flags all
@@ -271,6 +275,8 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   nft add rule ip6 v2ray PREROUTING tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
   nft add rule ip6 v2ray PREROUTING udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
   nft add rule ip6 v2ray PREROUTING udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
+  nft add rule ip6 v2ray PREROUTING ip6 daddr != '{2001:4860:4860::8888, 2001:4860:4860::8844}' udp dport '{53, 853}' return
+  nft add rule ip6 v2ray PREROUTING ip6 daddr != '{2001:4860:4860::8888, 2001:4860:4860::8844}' tcp dport '{53, 853}' return
   nft add rule ip6 v2ray PREROUTING mark and 0x70 == 0x70 return
   if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
     nft add rule ip6 v2ray PREROUTING tcp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"###TCP6#PREROU:"' level debug flags all
@@ -320,6 +326,8 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   nft add rule ip6 v2ray OUTPUT tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
   nft add rule ip6 v2ray OUTPUT udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
   nft add rule ip6 v2ray OUTPUT udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
+  nft add rule ip6 v2ray OUTPUT ip6 daddr != '{2001:4860:4860::8888, 2001:4860:4860::8844}' udp dport '{53, 853}' return
+  nft add rule ip6 v2ray OUTPUT ip6 daddr != '{2001:4860:4860::8888, 2001:4860:4860::8844}' tcp dport '{53, 853}' return
   if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
     nft add rule ip6 v2ray OUTPUT tcp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"###TCP6#OUTPUT:"' level debug flags all
     nft add rule ip6 v2ray OUTPUT udp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"###UDP6#OUTPUT:"' level debug flags all
@@ -372,6 +380,10 @@ nft add rule bridge v2ray PREROUTING meta l4proto != {tcp, udp} return
 # nft add rule bridge v2ray PREROUTING tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 # nft add rule bridge v2ray PREROUTING udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 nft add rule bridge v2ray PREROUTING udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
+nft add rule bridge v2ray PREROUTING ip daddr != '{8.8.8.8, 8.8.4.4}' udp dport '{53, 853}' return
+nft add rule bridge v2ray PREROUTING ip daddr != '{8.8.8.8, 8.8.4.4}' tcp dport '{53, 853}' return
+nft add rule bridge v2ray PREROUTING ip6 daddr != '{2001:4860:4860::8888, 2001:4860:4860::8844}' udp dport '{53, 853}' return
+nft add rule bridge v2ray PREROUTING ip6 daddr != '{2001:4860:4860::8888, 2001:4860:4860::8844}' tcp dport '{53, 853}' return
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
   nft add rule bridge v2ray PREROUTING tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###BRIDGE#PREROU:"' level debug flags all
   nft add rule bridge v2ray PREROUTING udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###BRIDGE#PREROU:"' level debug flags all
@@ -385,7 +397,6 @@ nft add rule bridge v2ray PREROUTING ip daddr {224.0.0.0/4, 255.255.255.255/32, 
 nft add rule bridge v2ray PREROUTING ip daddr @LOCAL_IPV4 return
 # if dns service and V2RAY are on different server, use rules below
 # nft add rule bridge v2ray PREROUTING meta l4proto tcp ip daddr @LOCAL_IPV4 return
-# nft add rule bridge v2ray PREROUTING ip daddr @LOCAL_IPV4 udp dport != 53 return
 
 if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   ### ipv6 - skip multicast

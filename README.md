@@ -9,6 +9,16 @@
 ```bash
 # 对用户启用systemd支持
 sudo loginctl enable-linger <用户名>
+
+# For user session
+export XDG_RUNTIME_DIR="/run/user/$UID"
+export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
+
+# For rootless docker, install uidmap(which contains newuidmap and newgidmap)
+grep ^$(whoami): /etc/subuid # Test subuid
+grep ^$(whoami): /etc/subgid # Test subgid
+export DOCKER_HOST=unix://$XDG_RUNTIME_DIR/docker.sock
+# export DOCKERD_ROOTLESS_ROOTLESSKIT_PORT_DRIVER=slirp4netns
 ```
 
 ## 启动命令备注
@@ -98,7 +108,6 @@ firewall-cmd --list-all ;
 + UDP Specification: https://tools.ietf.org/html/rfc768 , https://en.wikipedia.org/wiki/User_Datagram_Protocol
 + ICMP: https://tools.ietf.org/html/rfc792#page-4 , https://en.wikipedia.org/wiki/Internet_Control_Message_Protocol
 + ICMPv6: https://tools.ietf.org/html/rfc4443#section-2.1 , https://en.wikipedia.org/wiki/Internet_Control_Message_Protocol_for_IPv6
-
 
 ## 更新内核备注
 
