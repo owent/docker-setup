@@ -111,9 +111,6 @@ nameserver 180.76.76.76
 if [[ "x$ROUTER_CONFIG_IPV6_INTERFACE" != "x" ]]; then
     echo '
 # ipv6
-## Cloudflare
-# nameserver 2606:4700:4700::1111
-# nameserver 2606:4700:4700::1001
 ## Google
 # nameserver 2001:4860:4860::8888
 # nameserver 2001:4860:4860::8844
@@ -123,15 +120,15 @@ if [[ "x$ROUTER_CONFIG_IPV6_INTERFACE" != "x" ]]; then
 ## aliyun
 nameserver 2400:3200::1
 nameserver 2400:3200:baba::1
+## Cloudflare
+nameserver 2606:4700:4700::1111
+nameserver 2606:4700:4700::1001
 ## biigroup
-nameserver 240c::6666
+# nameserver 240c::6666
 ' >> /etc/resolv.conf ;
     echo "
 
 # ipv6
-## Cloudflare
-# server=2606:4700:4700::1111
-# server=2606:4700:4700::1001
 ## Google
 # server=2001:4860:4860::8888
 # server=2001:4860:4860::8844
@@ -141,8 +138,11 @@ nameserver 240c::6666
 ## aliyun
 server=2400:3200::1
 server=2400:3200:baba::1
+## Cloudflare
+server=2606:4700:4700::1111
+server=2606:4700:4700::1001
 ## biigroup
-server=240c::6666
+# server=240c::6666
 
 " >> /etc/dnsmasq.d/router.conf
 fi
