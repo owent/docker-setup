@@ -65,8 +65,8 @@ net.ipv4.conf.all.forwarding=1
 net.ipv4.conf.default.forwarding=1
 net.ipv6.conf.all.forwarding=1
 net.ipv6.conf.default.forwarding=1
-net.ipv6.conf.all.accept_ra=1
-net.ipv6.conf.default.accept_ra=1
+net.ipv6.conf.all.accept_ra=2
+net.ipv6.conf.default.accept_ra=2
 # Configures below are used to support tproxy for bridge
 net.bridge.bridge-nf-call-arptables = 1
 net.bridge.bridge-nf-call-ip6tables = 1

@@ -92,7 +92,7 @@ firewall-cmd --list-all ;
 ## 文档地址备注
 
 + kernel latest: https://www.kernel.org/doc/html/latest/ , https://www.kernel.org/doc/Documentation/
-+ kernel 5.3.X: https://www.kernel.org/doc/html/v5.3/ , https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/Documentation?h=v5.3
++ kernel 5.10.X: https://www.kernel.org/doc/html/v5.10/ , https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/tree/Documentation?h=v5.10
 + nftables: https://www.netfilter.org/projects/nftables/manpage.html
 + nftables: https://www.mankier.com/8/nft
 + nftables: https://wiki.nftables.org/wiki-nftables/index.php/Quick_reference-nftables_in_10_minutes

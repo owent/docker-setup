@@ -21,6 +21,17 @@ sed -i -r 's/#?DNSStubListener[[:space:]]*=.*/DNSStubListener=no/g'  /etc/system
 systemctl disable systemd-resolved ;
 systemctl stop systemd-resolved ;
 
+# Test ipv6
+ROUTER_CONFIG_IPV6_INTERFACES=( )
+# TYPE=bridge/ppp/ethernet/loopback
+# for TEST_INERFACE in $(nmcli --fields=DEVICE,TYPE d status | awk '$2 == "bridge" {print $1}'); do
+for TEST_INERFACE in $(nmcli --fields=DEVICE,TYPE d status | awk '$2 == "ppp" {print $1}'); do
+    TEST_IPV6_ADDRESS=($(ip -6 -o addr show scope global dev "$TEST_INERFACE" | awk '{ print $2 }' | uniq) )
+    if [[ ${#TEST_IPV6_ADDRESS[@]} -gt 0 ]]; then
+        ROUTER_CONFIG_IPV6_INTERFACES=(${ROUTER_CONFIG_IPV6_INTERFACES[@]} "$TEST_INERFACE")
+    fi
+done
+
 # Doc: http://www.thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html
 mkdir -p /etc/dnsmasq.d;
 
@@ -108,7 +119,7 @@ nameserver 180.76.76.76
 
 # IPv6 - DHCPv6, it's require to configure a interface manually
 
-if [[ "x$ROUTER_CONFIG_IPV6_INTERFACE" != "x" ]]; then
+if [[ ${#ROUTER_CONFIG_IPV6_INTERFACES[@]} -gt 0 ]]; then
     echo '
 # ipv6
 ## Google
@@ -148,6 +159,7 @@ server=2606:4700:4700::1001
 fi
 
 echo "
+dhcp-fqdn
 bind-dynamic
 # Address not available with pppd 2.4.9
 # see https://forum.openwrt.org/t/ppp-and-dnsmasq-issue/91475
@@ -167,22 +179,32 @@ dhcp-host=18:31:BF:A4:F0:38,172.18.2.4
 # available options can be see by dnsmasq --help dhcp
 # https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol
 # https://www.iana.org/assignments/bootp-dhcp-parameters/bootp-dhcp-parameters.xhtml
-dhcp-option=3,172.18.1.10
-dhcp-option=44,0.0.0.0
+# https://thekelleys.org.uk/gitweb/?p=dnsmasq.git;a=blob_plain;f=src/dhcp-common.c
+dhcp-option=option:router,172.18.1.10
+dhcp-option=option:netbios-ns,0.0.0.0
 " >> /etc/dnsmasq.d/router.conf
 
-if [[ "x$ROUTER_CONFIG_IPV6_INTERFACE" != "x" ]]; then
+if [[ ${#ROUTER_CONFIG_IPV6_INTERFACES[@]} -gt 0 ]]; then
     echo "
 # ipv6
-# dhcp-range=fd27:32d6:ac12::0301,fd27:32d6:ac12::fffe,slaac,64,28800s
-dhcp-range=::,constructor:$ROUTER_CONFIG_IPV6_INTERFACE,ra-names,28800s
 # dhcp-host for DHCPv6 seems not available
-# dhcp-host=70:85:c2:dc:0c:87,[::0101]
+# dhcp-host=a0:36:9f:07:3f:98,[::010a]
+# dhcp-option=option6:dns-server,fd27:32d6:ac12::010a
+# dhcp-option=option6:domain-search,home.shkits.com
 
+# https://listman.redhat.com/archives/libvir-list/2016-June/msg01065.html
+# ra-param=*,0,0
 enable-ra
-quiet-ra
 dhcp-authoritative
 " >> /etc/dnsmasq.d/router.conf
+
+    for IPV6_INTERFACE in ${ROUTER_CONFIG_IPV6_INTERFACES[@]}; do
+        echo "
+# dhcp-range=fd27:32d6:ac12::0003:0301,fd27:32d6:ac12::ffff:fffe,ra-names,ra-stateless,64,28800s
+dhcp-range=::0003:0301,::ffff:fffe,constructor:$ROUTER_CONFIG_IPV6_INTERFACE,ra-names,ra-stateless,64,28800s
+" >> /etc/dnsmasq.d/router.conf
+    done
+
 fi
 
 echo 'conf-dir=/etc/dnsmasq.d/,*.router.conf' >> /etc/dnsmasq.d/router.conf;
