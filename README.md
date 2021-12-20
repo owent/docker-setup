@@ -183,6 +183,31 @@ NO_PROXY=$no_proxy
 
 ```
 
+### 生成Kubernetes secret
+
++ https://kubernetes.io/docs/concepts/configuration/secret/
+
+```bash
+# Generate secret with kubectl
+
+# === docker-registry ===
+# export KUBECONFIG=$HOME/.kube/config
+#  Or add --kubeconfig=PATH_TO_CONFIG_FILE.conf after all kubectl command
+kubectl config view
+kubectl create secret docker-registry my-secret-name --docker-username=USERNAME --docker-password=PASSWORD --docker-email=ci@DOMAIN --docker-server=docker.io \
+  --dry-run -o yaml > my-secret-name.yaml
+kubectl -n NAMESPACE apply -f my-secret-name.yaml # Deploy, optional
+# kubectl -n NAMESPACE get secret # Check
+
+# === generic - kubernetes.io/dockerconfigjson ===
+# export KUBECONFIG=$HOME/.kube/config
+mkdir "$PWD/temporary-docker-config"
+echo "PASSWARD" | docker --config "$PWD/temporary-docker-config" login docker.io -u USERNAME --password-stdin
+kubectl create secret generic NAME --type=kubernetes.io/dockerconfigjson --from-file=.dockerconfigjson=$PWD/temporary-docker-config/config.json
+rm -rf "$PWD/temporary-docker-config" 
+
+```
+
 ## ```systemd/journald``` 备注
 
 ### 日志
