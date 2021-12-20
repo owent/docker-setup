@@ -82,6 +82,13 @@ net.ipv4.conf.enp1s0f1.rp_filter=0
 net.ipv4.conf.br0.route_localnet=1
 net.ipv4.conf.enp1s0f0.route_localnet=1
 net.ipv4.conf.enp1s0f1.route_localnet=1
+## ================= Untest =================
+# Disable local-link address for internal bridge(For IPv6 NAT)
+net.ipv6.conf.br0.autoconf=0
+net.ipv6.conf.br0.accept_ra=1
+# NDP with radvd and dnsmasq enable ipv6 router advisement with ppp interface
+net.ipv6.conf.all.proxy_ndp=1
+net.ipv6.conf.default.proxy_ndp=1
 " | sudo tee /etc/sysctl.d/91-forwarding.conf ;
 
 echo "

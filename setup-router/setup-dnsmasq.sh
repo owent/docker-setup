@@ -1,39 +1,39 @@
 #!/bin/bash
 
 if [[ -e "/opt/nftables/sbin" ]]; then
-    export PATH=/opt/nftables/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
+  export PATH=/opt/nftables/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 else
-    export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
+  export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
-SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")";
+SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
 
 if [[ -e "/lib/systemd/system" ]]; then
-    export SETUP_SYSTEMD_SYSTEM_DIR=/lib/systemd/system;
+  export SETUP_SYSTEMD_SYSTEM_DIR=/lib/systemd/system
 elif [[ -e "/usr/lib/systemd/system" ]]; then
-    export SETUP_SYSTEMD_SYSTEM_DIR=/usr/lib/systemd/system;
+  export SETUP_SYSTEMD_SYSTEM_DIR=/usr/lib/systemd/system
 elif [[ -e "/etc/systemd/system" ]]; then
-    export SETUP_SYSTEMD_SYSTEM_DIR=/etc/systemd/system;
+  export SETUP_SYSTEMD_SYSTEM_DIR=/etc/systemd/system
 fi
 
-sed -i -r 's/#?DNSStubListener[[:space:]]*=.*/DNSStubListener=no/g'  /etc/systemd/resolved.conf ;
+sed -i -r 's/#?DNSStubListener[[:space:]]*=.*/DNSStubListener=no/g' /etc/systemd/resolved.conf
 
-systemctl disable systemd-resolved ;
-systemctl stop systemd-resolved ;
+systemctl disable systemd-resolved
+systemctl stop systemd-resolved
 
 # Test ipv6
-ROUTER_CONFIG_IPV6_INTERFACES=( )
+ROUTER_CONFIG_IPV6_INTERFACES=()
 # TYPE=bridge/ppp/ethernet/loopback
 # for TEST_INERFACE in $(nmcli --fields=DEVICE,TYPE d status | awk '$2 == "bridge" {print $1}'); do
 for TEST_INERFACE in $(nmcli --fields=DEVICE,TYPE d status | awk '$2 == "ppp" {print $1}'); do
-    TEST_IPV6_ADDRESS=($(ip -6 -o addr show scope global dev "$TEST_INERFACE" | awk '{ print $2 }' | uniq) )
-    if [[ ${#TEST_IPV6_ADDRESS[@]} -gt 0 ]]; then
-        ROUTER_CONFIG_IPV6_INTERFACES=(${ROUTER_CONFIG_IPV6_INTERFACES[@]} "$TEST_INERFACE")
-    fi
+  TEST_IPV6_ADDRESS=($(ip -6 -o addr show scope global dev "$TEST_INERFACE" | awk '{ print $2 }' | uniq))
+  if [[ ${#TEST_IPV6_ADDRESS[@]} -gt 0 ]]; then
+    ROUTER_CONFIG_IPV6_INTERFACES=(${ROUTER_CONFIG_IPV6_INTERFACES[@]} "$TEST_INERFACE")
+  fi
 done
 
 # Doc: http://www.thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html
-mkdir -p /etc/dnsmasq.d;
+mkdir -p /etc/dnsmasq.d
 
 echo '
 #domain-needed
@@ -73,7 +73,7 @@ server=119.29.29.29
 ## Baidu
 # server=180.76.76.76
 
-' > /etc/dnsmasq.d/router.conf
+' >/etc/dnsmasq.d/router.conf
 
 # echo '
 # #address=/shkits.com/104.27.145.8
@@ -103,7 +103,7 @@ nameserver 223.6.6.6
 nameserver 119.29.29.29
 ## Baidu
 nameserver 180.76.76.76
-' > /etc/resolv.conf ;
+' >/etc/resolv.conf
 
 # setup dns over https and store into ipset gfwlist/router/white_list/black_list
 # https://dnscrypt.info/
@@ -120,7 +120,7 @@ nameserver 180.76.76.76
 # IPv6 - DHCPv6, it's require to configure a interface manually
 
 if [[ ${#ROUTER_CONFIG_IPV6_INTERFACES[@]} -gt 0 ]]; then
-    echo '
+  echo '
 # ipv6
 ## Google
 # nameserver 2001:4860:4860::8888
@@ -136,8 +136,8 @@ nameserver 2606:4700:4700::1111
 nameserver 2606:4700:4700::1001
 ## biigroup
 # nameserver 240c::6666
-' >> /etc/resolv.conf ;
-    echo "
+' >>/etc/resolv.conf
+  echo "
 
 # ipv6
 ## Google
@@ -155,7 +155,7 @@ server=2606:4700:4700::1001
 ## biigroup
 # server=240c::6666
 
-" >> /etc/dnsmasq.d/router.conf
+" >>/etc/dnsmasq.d/router.conf
 fi
 
 echo "
@@ -182,40 +182,71 @@ dhcp-host=18:31:BF:A4:F0:38,172.18.2.4
 # https://thekelleys.org.uk/gitweb/?p=dnsmasq.git;a=blob_plain;f=src/dhcp-common.c
 dhcp-option=option:router,172.18.1.10
 dhcp-option=option:netbios-ns,0.0.0.0
-" >> /etc/dnsmasq.d/router.conf
+" >>/etc/dnsmasq.d/router.conf
 
 if [[ ${#ROUTER_CONFIG_IPV6_INTERFACES[@]} -gt 0 ]]; then
-    echo "
+  # Do not us fc00::/7 for ipv6 here, some system think unique local address is not reachable from internet
+  # We use dd27:32d6:ac12::/64 here for NAT, just like openwrt
+  echo "
 # ipv6
 # dhcp-host for DHCPv6 seems not available
 # dhcp-host=a0:36:9f:07:3f:98,[::010a]
-# dhcp-option=option6:dns-server,fd27:32d6:ac12::010a
+# dhcp-option=option6:dns-server,dd27:32d6:ac12::010a
 # dhcp-option=option6:domain-search,home.shkits.com
 
 # https://listman.redhat.com/archives/libvir-list/2016-June/msg01065.html
 # ra-param=*,0,0
 enable-ra
 dhcp-authoritative
-" >> /etc/dnsmasq.d/router.conf
+# Using ndppd is a better replacement
+# dhcp-script=/etc/dnsmasq.d/ipv6-ndpp.sh
+" >>/etc/dnsmasq.d/router.conf
 
-    for IPV6_INTERFACE in ${ROUTER_CONFIG_IPV6_INTERFACES[@]}; do
-        echo "
-# dhcp-range=fd27:32d6:ac12::0003:0301,fd27:32d6:ac12::ffff:fffe,ra-names,ra-stateless,64,28800s
-dhcp-range=::0003:0301,::ffff:fffe,constructor:$ROUTER_CONFIG_IPV6_INTERFACE,ra-names,ra-stateless,64,28800s
-" >> /etc/dnsmasq.d/router.conf
+  # Required net.ipv6.conf.all.proxy_ndp=1
+  echo "#!/bin/bash
+ACTION=\"\$1\"
+IP_ADDRESS=\"\$3\"
+ROUTER_CONFIG_IPV6_INTERFACES=(${ROUTER_CONFIG_IPV6_INTERFACES[@]})
+" >/etc/dnsmasq.d/ipv6-ndpp.sh
+  echo '
+case "$IP_ADDRESS" in
+  *:*) ;;
+  *) exit ;; # Skip ipv4
+esac
+
+case "$ACTION" in
+  add|old)
+    for SELECT_INTERFACE in ${ROUTER_CONFIG_IPV6_INTERFACES[@]}; do
+        ip -6 route get "$IP_ADDRESS" oif "$SELECT_INTERFACE" 2>/dev/null && ip -6 neigh add proxy "$IP_ADDRESS" dev "$SELECT_INTERFACE"
     done
+    ;;
+  del)
+    for SELECT_INTERFACE in ${ROUTER_CONFIG_IPV6_INTERFACES[@]}; do
+        ip -6 route get "$IP_ADDRESS" oif "$SELECT_INTERFACE" 2>/dev/null && ip -6 neigh del proxy "$IP_ADDRESS" dev "$SELECT_INTERFACE"
+    done
+    ;;
+esac
+' >>/etc/dnsmasq.d/ipv6-ndpp.sh
+  chmod +x /etc/dnsmasq.d/ipv6-ndpp.sh
+
+  for IPV6_INTERFACE in ${ROUTER_CONFIG_IPV6_INTERFACES[@]}; do
+    echo "
+# dhcp-range=dd27:32d6:ac12::0003:0301,dd27:32d6:ac12::ffff:fffe,ra-names,slaac,64,28800s
+dhcp-range=::0003:0301,::ffff:fffe,constructor:$ROUTER_CONFIG_IPV6_INTERFACE,ra-names,slaac,64,28800s
+" >>/etc/dnsmasq.d/router.conf
+  done
 
 fi
 
-echo 'conf-dir=/etc/dnsmasq.d/,*.router.conf' >> /etc/dnsmasq.d/router.conf;
+echo 'conf-dir=/etc/dnsmasq.d/,*.router.conf' >>/etc/dnsmasq.d/router.conf
 
 # Test: dhclient -n enp1s0f0 enp1s0f1 / dhclient -6 -n enp1s0f0 enp1s0f1
 
 # Some system already has dnsmasq.service
 if [[ -e "$SETUP_SYSTEMD_SYSTEM_DIR/dnsmasq.service" ]] && [[ ! -e "$SETUP_SYSTEMD_SYSTEM_DIR/dnsmasq.service.bak" ]]; then
-    systemctl disbale dnsmasq;
-    systemctl stop dnsmasq;
-    mv $SETUP_SYSTEMD_SYSTEM_DIR/dnsmasq.service $SETUP_SYSTEMD_SYSTEM_DIR/dnsmasq.service.bak;
+  systemctl disbale dnsmasq
+  systemctl stop dnsmasq
+  mv $SETUP_SYSTEMD_SYSTEM_DIR/dnsmasq.service $SETUP_SYSTEMD_SYSTEM_DIR/dnsmasq.service.bak
 fi
 echo "
 [Unit]
@@ -236,24 +267,23 @@ ExecReload=/bin/kill -HUP $MAINPID
 
 [Install]
 WantedBy=multi-user.target
-" > $SETUP_SYSTEMD_SYSTEM_DIR/dnsmasq.service ;
+" >$SETUP_SYSTEMD_SYSTEM_DIR/dnsmasq.service
 
-cp -f /etc/resolv.conf /etc/resolv.conf.dnsmasq ;
+cp -f /etc/resolv.conf /etc/resolv.conf.dnsmasq
 
-which ipset > /dev/null 2>&1 ;
+which ipset >/dev/null 2>&1
 if [[ $? -eq 0 ]]; then
-    ipset list DNSMASQ_GFW_IPV4 > /dev/null 2>&1 ;
-    if [[ $? -ne 0 ]]; then
-        ipset create DNSMASQ_GFW_IPV4 hash:ip family inet;
-    fi
+  ipset list DNSMASQ_GFW_IPV4 >/dev/null 2>&1
+  if [[ $? -ne 0 ]]; then
+    ipset create DNSMASQ_GFW_IPV4 hash:ip family inet
+  fi
 
-    ipset flush DNSMASQ_GFW_IPV4;
+  ipset flush DNSMASQ_GFW_IPV4
 
-    ipset list DNSMASQ_GFW_IPV6 > /dev/null 2>&1 ;
-    if [[ $? -ne 0 ]]; then
-        ipset create DNSMASQ_GFW_IPV6 hash:ip family inet6;
-    fi
+  ipset list DNSMASQ_GFW_IPV6 >/dev/null 2>&1
+  if [[ $? -ne 0 ]]; then
+    ipset create DNSMASQ_GFW_IPV6 hash:ip family inet6
+  fi
 
-    ipset flush DNSMASQ_GFW_IPV6;
+  ipset flush DNSMASQ_GFW_IPV6
 fi
-

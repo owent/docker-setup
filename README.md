@@ -108,6 +108,9 @@ firewall-cmd --list-all ;
 + UDP Specification: https://tools.ietf.org/html/rfc768 , https://en.wikipedia.org/wiki/User_Datagram_Protocol
 + ICMP: https://tools.ietf.org/html/rfc792#page-4 , https://en.wikipedia.org/wiki/Internet_Control_Message_Protocol
 + ICMPv6: https://tools.ietf.org/html/rfc4443#section-2.1 , https://en.wikipedia.org/wiki/Internet_Control_Message_Protocol_for_IPv6
++ IPv6 Address Types: https://www.apnic.net/get-ip/faqs/what-is-an-ip-address/ipv6-address-types/
+  + https://en.wikipedia.org/wiki/IPv6_address
+  + https://en.wikipedia.org/wiki/Reserved_IP_addresses#IPv6
 
 ## 更新内核备注
 
