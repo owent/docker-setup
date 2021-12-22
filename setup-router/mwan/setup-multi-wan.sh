@@ -296,7 +296,7 @@ function mwan_setup_policy() {
 
     # Policy packages already has decision
     LOCAL_IP_ADDR_SET=""
-    for LOCAL_IP_ADDR in $(ip $MWAN_IPTYPE_PARAM -o addr show $MWAN_IF_NAME | grep -E -o "inet[0-9]*[[:space:]]+$MWAN_IP_MATCH" | awk '{print $NF}'); do
+    for LOCAL_IP_ADDR in $(ip $MWAN_IPTYPE_PARAM -o addr show $MWAN_IF_NAME | grep -E -o "inet[0-9]*[[:space:]]+$MWAN_IP_MATCH(/[0-9]+)?" | awk '{print $NF}'); do
       if [[ -z "$LOCAL_IP_ADDR_SET" ]]; then
         LOCAL_IP_ADDR_SET="{$LOCAL_IP_ADDR"
       else
