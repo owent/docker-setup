@@ -12,6 +12,6 @@ cd "$(dirname "$(readlink -f "$0")")"
 # Ensure /etc/NetworkManager/dispatcher.d/connectivity-change run /etc/NetworkManager/dispatcher.d/connectivity-change.d/*
 
 nohup bash -c \
-"export ROUTER_NET_LOCAL_NFTABLE_NAME=v2ray,nat,mwan,security_firewall ;
+"export ROUTER_NET_LOCAL_NFTABLE_NAME=v2ray:ip:ip6:bridge,nat:ip:ip6,mwan:inet,security_firewall:inet ;
 export ROUTER_NET_LOCAL_IPSET_PREFIX=V2RAY ;
 flock --nonblock -E 0 /run/reset-local-address-sets.lock -c \"sleep 3 || usleep 3000000; /bin/bash $PWD/reset-local-address-set.sh\"" > "$PWD/reset-local-address-set.log" 2>&1 &

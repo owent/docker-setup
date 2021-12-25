@@ -25,6 +25,13 @@ if [[ "x" == "x$SETUP_WITH_DEBUG_LOG" ]]; then
   SETUP_WITH_DEBUG_LOG=0
 fi
 
+# Recommand to use NDP instead of NAT6
+if [[ "x$SETUP_WITHOUT_IPV6" != "x0" ]] && [[ "x$SETUP_WITHOUT_IPV6" != "xfalse" ]] && [[ "x$SETUP_WITHOUT_IPV6" != "xno" ]]; then
+  NAT_SETUP_SKIP_IPV6=1
+else
+  NAT_SETUP_SKIP_IPV6=0
+fi
+
 ## NAT
 # just like iptables -t nat
 nft list table ip nat >/dev/null 2>&1
@@ -37,16 +44,30 @@ if [[ $? -ne 0 ]]; then
   nft add set ip nat LOCAL_IPV4 '{ type ipv4_addr; flags interval; auto-merge ; }'
   nft add element ip nat LOCAL_IPV4 {127.0.0.1/32, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8}
 fi
+nft list set ip nat DEFAULT_ROUTE_IPV4 >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add set ip nat DEFAULT_ROUTE_IPV4 '{ type ipv4_addr; flags interval; auto-merge ; }'
+fi
 
 nft list table ip6 nat >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   nft add table ip6 nat
+else
+  if [[ $NAT_SETUP_SKIP_IPV6 -ne 0 ]]; then
+    nft delete table ip6 nat
+  fi
 fi
 
-nft list set ip6 nat LOCAL_IPV6 >/dev/null 2>&1
-if [[ $? -ne 0 ]]; then
-  nft add set ip6 nat LOCAL_IPV6 '{ type ipv6_addr; flags interval; auto-merge ; }'
-  nft add element ip6 nat LOCAL_IPV6 {::1/128, fc00::/7, fe80::/10}
+if [[ $NAT_SETUP_SKIP_IPV6 -ne 0 ]]; then
+  nft list set ip6 nat LOCAL_IPV6 >/dev/null 2>&1
+  if [[ $? -ne 0 ]]; then
+    nft add set ip6 nat LOCAL_IPV6 '{ type ipv6_addr; flags interval; auto-merge ; }'
+    nft add element ip6 nat LOCAL_IPV6 {::1/128, fc00::/7, fe80::/10}
+  fi
+  nft list set ip6 nat DEFAULT_ROUTE_IPV6 >/dev/null 2>&1
+  if [[ $? -ne 0 ]]; then
+    nft add set ip6 nat DEFAULT_ROUTE_IPV6 '{ type ipv6_addr; flags interval; auto-merge ; }'
+  fi
 fi
 
 nft list table inet nat >/dev/null 2>&1
@@ -148,6 +169,7 @@ nft flush chain ip nat POSTROUTING
 # nft add rule ip nat POSTROUTING ip saddr 172.18.0.0/16 ip daddr != 172.18.0.0/16 snat to 1.2.3.4
 # nft add rule nat POSTROUTING meta iifname enp1s0f1 counter packets 0 bytes 0 masquerade
 # Skip local address when DSL interface get a local address
+nft add rule ip nat POSTROUTING ip saddr @DEFAULT_ROUTE_IPV4 return
 nft add rule ip nat POSTROUTING ip saddr @LOCAL_IPV4 ip daddr != @LOCAL_IPV4 counter packets 0 bytes 0 masquerade
 nft add rule ip nat POSTROUTING meta l4proto udp ip saddr @LOCAL_IPV4 ip daddr != @LOCAL_IPV4 counter packets 0 bytes 0 masquerade to :10000-65535
 # 172.20.1.1/24 is used for remote debug
@@ -157,25 +179,28 @@ nft add rule ip nat POSTROUTING meta l4proto tcp ip saddr @LOCAL_IPV4 ip daddr !
 # nft add rule ip nat PREROUTING ip saddr != @LOCAL_IPV4 tcp dport 22 drop
 # nft add rule ip nat PREROUTING ip saddr != @LOCAL_IPV4 tcp dport 36000 dnat to 172.18.1.1 :22
 
-### Setup NAT - ipv6
-nft list chain ip6 nat PREROUTING >/dev/null 2>&1
-if [[ $? -ne 0 ]]; then
-  nft add chain ip6 nat PREROUTING { type nat hook prerouting priority dstnat \; }
-fi
-nft list chain ip6 nat POSTROUTING >/dev/null 2>&1
-if [[ $? -ne 0 ]]; then
-  nft add chain ip6 nat POSTROUTING { type nat hook postrouting priority srcnat \; }
-fi
-nft flush chain ip6 nat PREROUTING
-nft flush chain ip6 nat POSTROUTING
+if [[ $NAT_SETUP_SKIP_IPV6 -eq 0 ]]; then
+  ### Setup NAT - ipv6
+  nft list chain ip6 nat PREROUTING >/dev/null 2>&1
+  if [[ $? -ne 0 ]]; then
+    nft add chain ip6 nat PREROUTING { type nat hook prerouting priority dstnat \; }
+  fi
+  nft list chain ip6 nat POSTROUTING >/dev/null 2>&1
+  if [[ $? -ne 0 ]]; then
+    nft add chain ip6 nat POSTROUTING { type nat hook postrouting priority srcnat \; }
+  fi
+  nft flush chain ip6 nat PREROUTING
+  nft flush chain ip6 nat POSTROUTING
 
-### Source NAT - ipv6
-# Skip local address when DSL interface get a local address
-nft add rule ip6 nat POSTROUTING ip6 saddr @LOCAL_IPV6 ip6 daddr != @LOCAL_IPV6 ip6 daddr != {ff00::/8} counter packets 0 bytes 0 masquerade
-nft add rule ip6 nat POSTROUTING meta l4proto tcp ip6 saddr @LOCAL_IPV6 ip6 daddr != @LOCAL_IPV6 ip6 daddr != {ff00::/8} counter packets 0 bytes 0 masquerade to :10000-65535
-nft add rule ip6 nat POSTROUTING meta l4proto udp ip6 saddr @LOCAL_IPV6 ip6 daddr != @LOCAL_IPV6 ip6 daddr != {ff00::/8} counter packets 0 bytes 0 masquerade to :10000-65535
+  ### Source NAT - ipv6
+  # Skip local address when DSL interface get a local address
+  nft add rule ip nat POSTROUTING ip saddr @DEFAULT_ROUTE_IPV6 return
+  nft add rule ip6 nat POSTROUTING ip6 saddr @LOCAL_IPV6 ip6 daddr != @LOCAL_IPV6 ip6 daddr != {ff00::/8} counter packets 0 bytes 0 masquerade
+  nft add rule ip6 nat POSTROUTING meta l4proto tcp ip6 saddr @LOCAL_IPV6 ip6 daddr != @LOCAL_IPV6 ip6 daddr != {ff00::/8} counter packets 0 bytes 0 masquerade to :10000-65535
+  nft add rule ip6 nat POSTROUTING meta l4proto udp ip6 saddr @LOCAL_IPV6 ip6 daddr != @LOCAL_IPV6 ip6 daddr != {ff00::/8} counter packets 0 bytes 0 masquerade to :10000-65535
 
-### Destination NAT - ipv6
-nft add rule ip6 nat PREROUTING ip6 saddr != @LOCAL_IPV6 tcp dport 22 drop
-# nft add rule ip6 nat PREROUTING ip6 saddr != @LOCAL_IPV6 tcp dport 36000 dnat to fd27:32d6:ac12:18::1 :22
-# nft add rule ip6 nat PREROUTING ip6 saddr != @LOCAL_IPV6 tcp dport 36000 redirect to :22
+  ### Destination NAT - ipv6
+  nft add rule ip6 nat PREROUTING ip6 saddr != @LOCAL_IPV6 tcp dport 22 drop
+  # nft add rule ip6 nat PREROUTING ip6 saddr != @LOCAL_IPV6 tcp dport 36000 dnat to fd27:32d6:ac12:18::1 :22
+  # nft add rule ip6 nat PREROUTING ip6 saddr != @LOCAL_IPV6 tcp dport 36000 redirect to :22
+fi

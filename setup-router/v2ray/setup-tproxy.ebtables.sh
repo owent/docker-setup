@@ -80,10 +80,12 @@ ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-proto udp --ip-dport 53 -j RETUR
 ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-proto tcp --ip-dport 53 -j RETURN
 ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-proto udp --ip-dport 853 -j RETURN
 ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-proto tcp --ip-dport 853 -j RETURN
-ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-proto udp --ip6-dport 53 -j RETURN
-ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-proto tcp --ip6-dport 53 -j RETURN
-ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-proto udp --ip6-dport 853 -j RETURN
-ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-proto tcp --ip6-dport 853 -j RETURN
+if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
+  ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-proto udp --ip6-dport 53 -j RETURN
+  ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-proto tcp --ip6-dport 53 -j RETURN
+  ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-proto udp --ip6-dport 853 -j RETURN
+  ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-proto tcp --ip6-dport 853 -j RETURN
+fi
 
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
   ebtables -t broute -A V2RAY_BRIDGE --log-ip --log-level debug --log-prefix "---BRIDGE-DROP: "
@@ -103,15 +105,19 @@ while [[ $? -eq 0 ]]; do
   ebtables -t broute -D BROUTING -p ipv4 --ip-proto udp -j V2RAY_BRIDGE >/dev/null 2>&1
 done
 
-ebtables -t broute -D BROUTING -p ipv6 --ip6-proto tcp -j V2RAY_BRIDGE >/dev/null 2>&1
-while [[ $? -eq 0 ]]; do
-  ebtables -t broute -D BROUTING -p ipv6 --ip6-proto tcp -j V2RAY_BRIDGE >/dev/null 2>&1
-done
-ebtables -t broute -D BROUTING -p ipv6 --ip6-proto udp -j V2RAY_BRIDGE >/dev/null 2>&1
-while [[ $? -eq 0 ]]; do
-  ebtables -t broute -D BROUTING -p ipv6 --ip6-proto udp -j V2RAY_BRIDGE >/dev/null 2>&1
-done
 ebtables -t broute -A BROUTING -p ipv4 --ip-proto tcp -j V2RAY_BRIDGE
 ebtables -t broute -A BROUTING -p ipv4 --ip-proto udp -j V2RAY_BRIDGE
-ebtables -t broute -A BROUTING -p ipv6 --ip6-proto tcp -j V2RAY_BRIDGE
-ebtables -t broute -A BROUTING -p ipv6 --ip6-proto udp -j V2RAY_BRIDGE
+
+if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
+  ebtables -t broute -D BROUTING -p ipv6 --ip6-proto tcp -j V2RAY_BRIDGE >/dev/null 2>&1
+  while [[ $? -eq 0 ]]; do
+    ebtables -t broute -D BROUTING -p ipv6 --ip6-proto tcp -j V2RAY_BRIDGE >/dev/null 2>&1
+  done
+  ebtables -t broute -D BROUTING -p ipv6 --ip6-proto udp -j V2RAY_BRIDGE >/dev/null 2>&1
+  while [[ $? -eq 0 ]]; do
+    ebtables -t broute -D BROUTING -p ipv6 --ip6-proto udp -j V2RAY_BRIDGE >/dev/null 2>&1
+  done
+
+  ebtables -t broute -A BROUTING -p ipv6 --ip6-proto tcp -j V2RAY_BRIDGE
+  ebtables -t broute -A BROUTING -p ipv6 --ip6-proto udp -j V2RAY_BRIDGE
+fi
