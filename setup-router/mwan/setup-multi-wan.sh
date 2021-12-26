@@ -48,7 +48,7 @@ if [[ "x" == "x$SETUP_MWAN_RULE_PRIORITY" ]]; then
 fi
 MAX_RETRY_TIMES=32
 
-MWAN_INTERFACES_IPV4=( )
+MWAN_INTERFACES_IPV4=()
 for MWAN_CHECK_INTERFACE_NAME in $(ip -4 -o addr show scope global | awk '{ print $2 }' | uniq); do
   MWAN_CHECK_INTERFACE_SUCCESS=0
   for MWAN_WATCH_INTERFACE_NAME in ${MWAN_WATCH_INERFACES[@]}; do
@@ -66,7 +66,7 @@ echo "============ ip -4 -o addr show scope global ============"
 ip -4 -o addr show scope global
 echo "MWAN_INTERFACES_IPV4=${MWAN_INTERFACES_IPV4[@]}"
 
-MWAN_INTERFACES_IPV6=( )
+MWAN_INTERFACES_IPV6=()
 for MWAN_CHECK_INTERFACE_NAME in $(ip -6 -o addr show scope global | awk '{ print $2 }' | uniq); do
   MWAN_CHECK_INTERFACE_SUCCESS=0
   for MWAN_WATCH_INTERFACE_NAME in ${MWAN_WATCH_INERFACES[@]}; do
@@ -151,25 +151,7 @@ else
   nft flush chain inet mwan POLICY_MARK
 fi
 
-nft list set inet mwan LOCAL_IPV4 >/dev/null 2>&1
-if [[ $? -ne 0 ]]; then
-  nft add set inet mwan LOCAL_IPV4 '{ type ipv4_addr; flags interval; auto-merge ; }'
-  nft add element inet mwan LOCAL_IPV4 {127.0.0.1/32, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8}
-fi
-nft list set inet mwan DEFAULT_ROUTE_IPV4 >/dev/null 2>&1
-if [[ $? -ne 0 ]]; then
-  nft add set inet mwan DEFAULT_ROUTE_IPV4 '{ type ipv4_addr; flags interval; auto-merge ; }'
-fi
-
-nft list set inet mwan LOCAL_IPV6 >/dev/null 2>&1
-if [[ $? -ne 0 ]]; then
-  nft add set inet mwan LOCAL_IPV6 '{ type ipv6_addr; flags interval; auto-merge ; }'
-  nft add element inet mwan LOCAL_IPV6 {::1/128, fc00::/7, fe80::/10}
-fi
-nft list set inet mwan DEFAULT_ROUTE_IPV6 >/dev/null 2>&1
-if [[ $? -ne 0 ]]; then
-  nft add set inet mwan DEFAULT_ROUTE_IPV6 '{ type ipv6_addr; flags interval; auto-merge ; }'
-fi
+env ROUTER_NET_LOCAL_NFTABLE_NAME=mwan:inet ROUTER_NET_LOCAL_IPSET_PREFIX= bash "$SCRIPT_DIR/../reset-local-address-set.sh"
 
 # Add rules to skip local address
 nft add rule inet mwan MARK meta l4proto != {tcp, udp} return

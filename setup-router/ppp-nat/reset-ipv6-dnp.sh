@@ -5,6 +5,18 @@ BRIDGE_DEVICE=($(nmcli --fields=DEVICE,TYPE d status | awk '$2 == "bridge"{print
 ETC_DIR="/etc"
 ENABLE_IPV5_NDPP_AND_RA=0
 
+if [[ "x" == "x$ETC_DIR" ]]; then
+  ETC_DIR=250
+fi
+
+if [[ "x" == "x$ROUTE_TABLE_ID" ]]; then
+  ROUTE_TABLE_ID=250
+fi
+
+if [[ "x" == "x$SETUP_NDPP_RULE_PRIORITY" ]]; then
+  SETUP_NDPP_RULE_PRIORITY=5001
+fi
+
 # for CURRENT_BRIDGE_DEVICE in ${BRIDGE_DEVICE[@]}; do
 #   for old_ipv6_address in $(ip -o -6 addr show dev $CURRENT_BRIDGE_DEVICE scope global | awk 'match($0, /inet6\s+([0-9a-fA-F:]+(\/[0-9]+)?)/, ip) { print ip[1] }'); do
 #     ip -6 addr del "$old_ipv6_address" dev $CURRENT_BRIDGE_DEVICE
@@ -13,6 +25,7 @@ ENABLE_IPV5_NDPP_AND_RA=0
 
 NDPPD_CFG=""
 RADVD_CFG=""
+ip -6 route flush table $ROUTE_TABLE_ID
 
 for CURRENT_BRIDGE_DEVICE in ${BRIDGE_DEVICE[@]}; do
   RADVD_CFG="$RADVD_CFG
@@ -22,7 +35,7 @@ interface $CURRENT_BRIDGE_DEVICE
   AdvSendAdvert on;
   #AdvDefaultPreference low;
   #AdvSourceLLAddress off;
-";
+"
   for CURRENT_PPP_DEVICE in ${PPP_DEVICE[@]}; do
     for IPV6_ADDR in $(ip -o -6 addr show dev $CURRENT_PPP_DEVICE scope global | awk 'match($0, /inet6\s+([0-9a-fA-F:]+(\/[0-9]+)?)/, ip) { print ip[1] }'); do
       IPV6_ADDR_SUFFIX=$(echo "$IPV6_ADDR" | grep -o -E '[0-9]+$')
@@ -34,7 +47,7 @@ interface $CURRENT_BRIDGE_DEVICE
       IPV6_ADDR_PREFIX=""
       for IPV6_ADDR_PREFIX_SEGMENT in ${IPV6_ADDR//:/ }; do
         if [[ $IPV6_ADDR_SUFFIX -le 0 ]]; then
-          break;
+          break
         fi
         if [[ -z "$IPV6_ADDR_PREFIX" ]]; then
           IPV6_ADDR_PREFIX="$IPV6_ADDR_PREFIX_SEGMENT"
@@ -58,7 +71,7 @@ interface $CURRENT_BRIDGE_DEVICE
   RDNSS $(ip -o -6 addr show dev $CURRENT_BRIDGE_DEVICE | awk 'match($0, /inet6\s+([0-9a-fA-F:]+)/, ip) { print ip[1] }' | xargs -r echo)
   {
   };
-};";
+};"
 done
 
 for CURRENT_PPP_DEVICE in ${PPP_DEVICE[@]}; do
@@ -72,7 +85,7 @@ for CURRENT_PPP_DEVICE in ${PPP_DEVICE[@]}; do
     IPV6_ADDR_PREFIX=""
     for IPV6_ADDR_PREFIX_SEGMENT in ${IPV6_ADDR//:/ }; do
       if [[ $IPV6_ADDR_SUFFIX -le 0 ]]; then
-        break;
+        break
       fi
       if [[ -z "$IPV6_ADDR_PREFIX" ]]; then
         IPV6_ADDR_PREFIX="$IPV6_ADDR_PREFIX_SEGMENT"
@@ -85,31 +98,18 @@ for CURRENT_PPP_DEVICE in ${PPP_DEVICE[@]}; do
 proxy $CURRENT_PPP_DEVICE {
   autowire yes
   "
-  for CURRENT_BRIDGE_DEVICE in ${BRIDGE_DEVICE[@]}; do
-    NDPPD_CFG="$NDPPD_CFG
+    for CURRENT_BRIDGE_DEVICE in ${BRIDGE_DEVICE[@]}; do
+      NDPPD_CFG="$NDPPD_CFG
   rule $IPV6_ADDR_PREFIX::/$IPV6_ADDR_BR_SUFFIX {
     iface $CURRENT_BRIDGE_DEVICE
   }
-";
+"
       # Add prefix route to route table
-      echo "Ignore: ip -6 route add $IPV6_ADDR_PREFIX::/$IPV6_ADDR_BR_SUFFIX dev $CURRENT_BRIDGE_DEVICE"
+      echo "Run: ip -6 route add $IPV6_ADDR_PREFIX::/$IPV6_ADDR_BR_SUFFIX dev $CURRENT_BRIDGE_DEVICE table $ROUTE_TABLE_ID"
+      ip -6 route add $IPV6_ADDR_PREFIX::/$IPV6_ADDR_BR_SUFFIX dev $CURRENT_BRIDGE_DEVICE table $ROUTE_TABLE_ID
     done
-  NDPPD_CFG="$NDPPD_CFG
-}";
-  done
-done
-
-for CURRENT_PPP_DEVICE in ${PPP_DEVICE[@]}; do
-  # Delete prefix route from route table
-  echo "Please disable temporary address, Ignore automatically obtained routes and Ignore automatically obtained DNS parameters for this $CURRENT_PPP_DEVICE"
-  for OLD_ROUTE in $(ip -6 route | grep -v -E '^(default|[a-zA-Z0-9:]:/0)' | grep -E "dev[[:space:]]+$CURRENT_PPP_DEVICE" | awk '{print $1}'); do
-    echo "Run: ip -6 route delete $OLD_ROUTE dev $CURRENT_PPP_DEVICE"
-    ip -6 route delete $OLD_ROUTE dev $CURRENT_PPP_DEVICE
-  done
-  for IPV6_ADDR in $(ip -o -6 addr show dev $CURRENT_PPP_DEVICE | awk 'match($0, /inet6\s+([0-9a-fA-F:]+(\/[0-9]+)?)/, ip) { print ip[1] }'); do
-    # Add address route to route table
-    echo "Run: ip -6 route add ${IPV6_ADDR%%/*} dev $CURRENT_PPP_DEVICE"
-    ip -6 route add ${IPV6_ADDR%%/*} dev $CURRENT_PPP_DEVICE
+    NDPPD_CFG="$NDPPD_CFG
+}"
   done
 done
 
@@ -118,12 +118,15 @@ echo "$RADVD_CFG" | tee $ETC_DIR/radvd.conf
 echo "====== NDPPD_CFG=$ETC_DIR/ndppd.conf====== "
 echo "$NDPPD_CFG" | tee $ETC_DIR/ndppd.conf
 
-if [[ $ENABLE_IPV5_NDPP_AND_RA -ne 0 ]] ; then
+set -x
+if [[ $ENABLE_IPV5_NDPP_AND_RA -ne 0 ]]; then
+  ip -6 rule add priority $SETUP_NDPP_RULE_PRIORITY lookup $ROUTE_TABLE_ID
   systemctl enable radvd
   systemctl restart radvd
   systemctl enable ndppd
   systemctl restart ndppd
 else
+  ip -6 rule del priority $SETUP_NDPP_RULE_PRIORITY lookup $ROUTE_TABLE_ID
   systemctl disable radvd
   systemctl stop radvd
   systemctl disable ndppd

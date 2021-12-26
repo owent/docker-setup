@@ -40,7 +40,7 @@ ROUTER_LOCAL_NET_IPV6=(
   $(ip -o -6 addr | awk 'match($0, /peer\s+([0-9a-fA-F:]+(\/[0-9]+)?)/, ip) { print ip[1] }')
 )
 
-ROUTER_DEFAULT_ROUTE_IPV4=( )
+ROUTER_DEFAULT_ROUTE_IPV4=()
 ROUTER_DEFAULT_ROUTE_DEVICE=(
   $(ip -o -4 route show exact default | awk 'match($0, /dev\s+([^[:space:]]+)/, ip) { print ip[1] }')
 )
@@ -50,7 +50,7 @@ for IPV4_DEVIDE in ${ROUTER_DEFAULT_ROUTE_DEVICE[@]}; do
     $(ip -o -4 addr show dev $IPV4_DEVIDE | awk 'match($0, /inet\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(\/[0-9]+)?)/, ip) { print ip[1] }')
   )
 done
-ROUTER_DEFAULT_ROUTE_IPV6=( )
+ROUTER_DEFAULT_ROUTE_IPV6=()
 ROUTER_DEFAULT_ROUTE_DEVICE=(
   $(ip -o -6 route show exact default | awk 'match($0, /dev\s+([^[:space:]]+)/, ip) { print ip[1] }')
 )
@@ -177,7 +177,7 @@ function nftables_reset_local_address_ipv6() {
 
 if [[ "x$ROUTER_NET_LOCAL_NFTABLE_NAME" != "x" ]]; then
   for TABLE_NAME_ORIGIN in ${ROUTER_NET_LOCAL_NFTABLE_NAME//,/ }; do
-    TABLE_NAME="${TABLE_NAME_ORIGIN%%:*}";
+    TABLE_NAME="${TABLE_NAME_ORIGIN%%:*}"
     if [[ ! "$TABLE_NAME_ORIGIN" =~ ":" ]]; then
       SELECT_ALL_FAMILY_NAME=1
     else
