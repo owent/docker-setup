@@ -154,13 +154,21 @@ fi
 nft list set inet mwan LOCAL_IPV4 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   nft add set inet mwan LOCAL_IPV4 '{ type ipv4_addr; flags interval; auto-merge ; }'
-  nft add element inet mwan LOCAL_IPV4 {127.0.0.1/32, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8}
+  nft add element inet mwan LOCAL_IPV4 {127.0.0.1/32, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8}
+fi
+nft list set inet mwan DEFAULT_ROUTE_IPV4 >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add set inet mwan DEFAULT_ROUTE_IPV4 '{ type ipv4_addr; flags interval; auto-merge ; }'
 fi
 
 nft list set inet mwan LOCAL_IPV6 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   nft add set inet mwan LOCAL_IPV6 '{ type ipv6_addr; flags interval; auto-merge ; }'
   nft add element inet mwan LOCAL_IPV6 {::1/128, fc00::/7, fe80::/10}
+fi
+nft list set inet mwan DEFAULT_ROUTE_IPV6 >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add set inet mwan DEFAULT_ROUTE_IPV6 '{ type ipv6_addr; flags interval; auto-merge ; }'
 fi
 
 # Add rules to skip local address
@@ -180,11 +188,13 @@ nft add rule inet mwan MARK ct mark and 0xff00 != 0x0 meta mark set ct mark and 
 nft add rule inet mwan MARK meta mark and 0xff00 != 0x0 return
 nft add rule inet mwan MARK ip daddr {224.0.0.0/4, 255.255.255.255/32} return
 nft add rule inet mwan MARK ip daddr @LOCAL_IPV4 return
+nft add rule inet mwan MARK ip daddr @DEFAULT_ROUTE_IPV4 return
 nft add rule inet mwan MARK ip daddr '{ 172.20.1.1/24 }' return # 172.20.1.1/24 is used for remote debug
 nft add rule inet mwan MARK ip daddr {119.29.29.29/32, 223.5.5.5/32, 223.6.6.6/32, 180.76.76.76/32} return
 
 nft add rule inet mwan MARK ip6 daddr {ff00::/8} return
 nft add rule inet mwan MARK ip6 daddr @LOCAL_IPV6 return
+nft add rule inet mwan MARK ip6 daddr @DEFAULT_ROUTE_IPV6 return
 nft add rule inet mwan MARK ip6 daddr {2400:3200::1/128, 2400:3200:baba::1/128, 2400:da00::6666/128} return
 
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
@@ -253,7 +263,11 @@ function mwan_setup_policy() {
     done
 
     MWAN_CURRENT_IF_WEIGHT=${MWAN_INERFACES_WEIGHT[$i]}
-    TABLE_OPTIONS=($(ip $MWAN_IPTYPE_PARAM route show table main default | grep -E "dev[[:space:]]+$MWAN_IF_NAME"))
+    TABLE_OPTIONS_STR="$(ip $MWAN_IPTYPE_PARAM route show table main default)"
+    if [[ "$TABLE_OPTIONS_STR" =~ "metric" ]]; then
+      TABLE_OPTIONS_STR="$(echo "$TABLE_OPTIONS_STR" | grep -o -E '.*metric[[:space:]]+[0-9]+')"
+    fi
+    TABLE_OPTIONS=($(echo "$TABLE_OPTIONS_STR" | grep -E "dev[[:space:]]+$MWAN_IF_NAME"))
     if [[ $MWAN_TEST_IF_SUCCESS -eq 0 ]] || [[ $MWAN_CURRENT_IF_WEIGHT -le 0 ]] || [[ ${#TABLE_OPTIONS[@]} -le 0 ]]; then
       continue
     fi

@@ -140,9 +140,14 @@ ipset list V2RAY_LOCAL_IPV4 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   ipset create V2RAY_LOCAL_IPV4 hash:net family inet
   ipset add V2RAY_LOCAL_IPV4 127.0.0.1/32
+  ipset add V2RAY_LOCAL_IPV4 169.254.0.0/16
   ipset add V2RAY_LOCAL_IPV4 192.168.0.0/16
   ipset add V2RAY_LOCAL_IPV4 172.16.0.0/12
   ipset add V2RAY_LOCAL_IPV4 10.0.0.0/8
+fi
+ipset list V2RAY_DEFAULT_ROUTE_IPV4 >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  ipset create V2RAY_DEFAULT_ROUTE_IPV4 hash:net family inet
 fi
 ipset list V2RAY_PROXY_DNS_IPV4 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
@@ -181,10 +186,13 @@ iptables -t mangle -A V2RAY 224.0.0.0/4,255.255.255.255/32 -j RETURN
 iptables -t mangle -A V2RAY -m mark --mark 0x70/0x70 -j RETURN
 ### ipv4 - skip private network and UDP of DNS
 iptables -t mangle -A V2RAY -m set --match-set V2RAY_LOCAL_IPV4 dst -j RETURN
+iptables -t mangle -A V2RAY -m set --match-set V2RAY_DEFAULT_ROUTE_IPV4 dst -j RETURN
 iptables -t mangle -A V2RAY -d 172.20.1.1/24 -j RETURN # 172.20.1.1/24 is used for remote debug
 # if dns service and V2RAY are on different server, use rules below
 # iptables -t mangle -A V2RAY -p tcp -m set --match-set V2RAY_LOCAL_IPV4 dst -j RETURN
+# iptables -t mangle -A V2RAY -p tcp -m set --match-set V2RAY_DEFAULT_ROUTE_IPV4 dst -j RETURN
 # iptables -t mangle -A V2RAY -p udp -m set --match-set V2RAY_LOCAL_IPV4 dst ! --dport 53 -j RETURN
+# iptables -t mangle -A V2RAY -p udp -m set --match-set V2RAY_DEFAULT_ROUTE_IPV4 dst ! --dport 53 -j RETURN
 
 # ipv4 skip package from outside
 iptables -t mangle -A V2RAY -m set --match-set V2RAY_BLACKLIST_IPV4 dst -j RETURN
@@ -235,10 +243,13 @@ iptables -t mangle -A V2RAY_MASK -d 224.0.0.0/4,255.255.255.255/32 -j RETURN
 iptables -t mangle -A V2RAY_MASK -m mark --mark 0x70/0x70 -j RETURN
 ### ipv4 - skip private network and UDP of DNS
 iptables -t mangle -A V2RAY_MASK -m set --match-set V2RAY_LOCAL_IPV4 dst -j RETURN
+iptables -t mangle -A V2RAY_MASK -m set --match-set V2RAY_DEFAULT_ROUTE_IPV4 dst -j RETURN
 iptables -t mangle -A V2RAY_MASK -d 172.20.1.1/24 -j RETURN # 172.20.1.1/24 is used for remote debug
 # if dns service and V2RAY_MASK are on different server, use rules below
 # iptables -t mangle -A V2RAY_MASK -p tcp -m set --match-set V2RAY_LOCAL_IPV4 dst -j RETURN
+# iptables -t mangle -A V2RAY_MASK -p tcp -m set --match-set V2RAY_DEFAULT_ROUTE_IPV4 dst -j RETURN
 # iptables -t mangle -A V2RAY_MASK -p udp -m set --match-set V2RAY_LOCAL_IPV4 dst ! --dport 53 -j RETURN
+# iptables -t mangle -A V2RAY_MASK -p udp -m set --match-set V2RAY_DEFAULT_ROUTE_IPV4 dst ! --dport 53 -j RETURN
 ### ipv4 - skip CN DNS
 iptables -t mangle -A V2RAY_MASK -d 119.29.29.29/32,223.5.5.5/32,223.6.6.6/32,180.76.76.76/32 -j RETURN
 iptables -t mangle -A V2RAY_MASK -m set --match-set V2RAY_BLACKLIST_IPV4 dst -j RETURN
@@ -290,6 +301,10 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
     ipset add V2RAY_LOCAL_IPV6 fc00::/7
     ipset add V2RAY_LOCAL_IPV6 fe80::/10
   fi
+   ipset list V2RAY_DEFAULT_ROUTE_IPV6 >/dev/null 2>&1
+  if [[ $? -ne 0 ]]; then
+    ipset create V2RAY_DEFAULT_ROUTE_IPV6 hash:net family inet6
+  fi
   ipset list V2RAY_PROXY_DNS_IPV6 >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
     ipset create V2RAY_PROXY_DNS_IPV6 hash:ip family inet6
@@ -323,11 +338,14 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
 
   ### ipv6 - skip link-locak and multicast
   ip6tables -t mangle -A V2RAY -m set --match-set V2RAY_LOCAL_IPV6 dst -j RETURN
+  ip6tables -t mangle -A V2RAY -m set --match-set V2RAY_DEFAULT_ROUTE_IPV6 dst -j RETURN
   ip6tables -t mangle -A V2RAY -m mark --mark 0x70/0x70 -j RETURN
   ### ipv6 - skip private network and UDP of DNS
   # if dns service and V2RAY are on different server, use rules below
   # ip6tables -t mangle -A V2RAY -p tcp -m set --match-set V2RAY_LOCAL_IPV6 dst -j RETURN
+  # ip6tables -t mangle -A V2RAY -p tcp -m set --match-set V2RAY_DEFAULT_ROUTE_IPV6 dst -j RETURN
   # ip6tables -t mangle -A V2RAY -p udp -m set --match-set V2RAY_LOCAL_IPV6 dst ! --dport 53 -j RETURN
+  # ip6tables -t mangle -A V2RAY -p udp -m set --match-set V2RAY_DEFAULT_ROUTE_IPV6 dst ! --dport 53 -j RETURN
 
   # ipv6 skip package from outside
   ip6tables -t mangle -A V2RAY -d ff00::/8 -j RETURN
@@ -376,11 +394,14 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   fi
 
   ip6tables -t mangle -A V2RAY_MASK -m set --match-set V2RAY_LOCAL_IPV6 dst -j RETURN
+  ip6tables -t mangle -A V2RAY_MASK -m set --match-set V2RAY_DEFAULT_ROUTE_IPV6 dst -j RETURN
   ip6tables -t mangle -A V2RAY_MASK -m mark --mark 0x70/0x70 -j RETURN
   ### ipv6 - skip private network and UDP of DNS
   # if dns service and V2RAY_MASK are on different server, use rules below
   # ip6tables -t mangle -A V2RAY_MASK -p tcp -m set --match-set V2RAY_LOCAL_IPV6 dst -j RETURN
+  # ip6tables -t mangle -A V2RAY_MASK -p tcp -m set --match-set V2RAY_DEFAULT_ROUTE_IPV6 dst -j RETURN
   # ip6tables -t mangle -A V2RAY_MASK -p udp -m set --match-set V2RAY_LOCAL_IPV6 dst ! --dport 53 -j RETURN
+  # ip6tables -t mangle -A V2RAY_MASK -p udp -m set --match-set V2RAY_DEFAULT_ROUTE_IPV6 dst ! --dport 53 -j RETURN
   ### ipv6 - skip CN DNS
   ip6tables -t mangle -A V2RAY_MASK -d 2400:3200::1/128,2400:3200:baba::1/128,2400:da00::6666/128 -j RETURN
   ip6tables -t mangle -A V2RAY_MASK -d ff00::/8 -j RETURN

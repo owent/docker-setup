@@ -155,7 +155,11 @@ fi
 nft list set ip v2ray LOCAL_IPV4 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   nft add set ip v2ray LOCAL_IPV4 '{ type ipv4_addr; flags interval; auto-merge ; }'
-  nft add element ip v2ray LOCAL_IPV4 {127.0.0.1/32, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8}
+  nft add element ip v2ray LOCAL_IPV4 {127.0.0.1/32, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8}
+fi
+nft list set ip v2ray DEFAULT_ROUTE_IPV4 >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add set ip v2ray DEFAULT_ROUTE_IPV4 '{ type ipv4_addr; flags interval; auto-merge ; }'
 fi
 
 nft list chain ip v2ray PREROUTING >/dev/null 2>&1
@@ -180,9 +184,12 @@ fi
 nft add rule ip v2ray PREROUTING ip daddr {224.0.0.0/4, 255.255.255.255/32, 172.20.1.1/24} return
 ### ipv4 - skip private network and UDP of DNS
 nft add rule ip v2ray PREROUTING ip daddr @LOCAL_IPV4 return
+nft add rule ip v2ray PREROUTING ip daddr @DEFAULT_ROUTE_IPV4 return
 # if dns service and V2RAY are on different server, use rules below
 # nft add rule ip v2ray PREROUTING meta l4proto tcp ip daddr @LOCAL_IPV4 return
+# nft add rule ip v2ray PREROUTING meta l4proto tcp ip daddr @DEFAULT_ROUTE_IPV4 return
 # nft add rule ip v2ray PREROUTING ip daddr @LOCAL_IPV4 udp dport != 53 return
+# nft add rule ip v2ray PREROUTING ip daddr @DEFAULT_ROUTE_IPV4 udp dport != 53 return
 nft add rule ip v2ray PREROUTING mark and 0x70 == 0x70 return
 
 # ipv4 skip package from outside
@@ -229,11 +236,14 @@ fi
 # 172.20.1.1/24 is used for remote debug
 nft add rule ip v2ray OUTPUT ip daddr {224.0.0.0/4, 255.255.255.255/32, 172.20.1.1/24} return
 nft add rule ip v2ray OUTPUT ip daddr @LOCAL_IPV4 return
+nft add rule ip v2ray OUTPUT ip daddr @DEFAULT_ROUTE_IPV4 return
 nft add rule ip v2ray OUTPUT ip daddr @BLACKLIST return
 nft add rule ip v2ray OUTPUT ip daddr @GEOIP_CN return
 # if dns service and v2ray are on different server, use rules below
 # nft add rule ip v2ray OUTPUT meta l4proto tcp ip daddr @LOCAL_IPV4 return
+# nft add rule ip v2ray OUTPUT meta l4proto tcp ip daddr @DEFAULT_ROUTE_IPV4 return
 # nft add rule ip v2ray OUTPUT ip daddr @LOCAL_IPV4 udp dport != 53 return
+# nft add rule ip v2ray OUTPUT ip daddr @DEFAULT_ROUTE_IPV4 udp dport != 53 return
 nft add rule ip v2ray OUTPUT mark and 0x70 == 0x70 return
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
   nft add rule ip v2ray OUTPUT tcp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT meta nftrace set 1
@@ -263,6 +273,10 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
     nft add set ip6 v2ray LOCAL_IPV6 '{ type ipv6_addr; flags interval; auto-merge ; }'
     nft add element ip6 v2ray LOCAL_IPV6 {::1/128, fc00::/7, fe80::/10}
   fi
+  nft list set ip6 v2ray DEFAULT_ROUTE_IPV6 >/dev/null 2>&1
+  if [[ $? -ne 0 ]]; then
+    nft add set ip6 v2ray DEFAULT_ROUTE_IPV6 '{ type ipv6_addr; flags interval; auto-merge ; }'
+  fi
 
   nft list chain ip6 v2ray PREROUTING >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
@@ -287,6 +301,7 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   nft add rule ip6 v2ray PREROUTING ip6 daddr '{ ff00::/8 }' return
   ### ipv6 - skip link/unique-local fc00::/7,fe80::/10 and ::1/128 are in ip -6 address show scope host/link
   nft add rule ip6 v2ray PREROUTING ip6 daddr @LOCAL_IPV6 return
+  nft add rule ip6 v2ray PREROUTING ip6 daddr @DEFAULT_ROUTE_IPV6 return
 
   ### ipv6 - skip private network and UDP of DNS
   # if dns service and v2ray are on different server, use rules below
@@ -337,6 +352,7 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   nft add rule ip6 v2ray OUTPUT ip6 daddr '{ ff00::/8 }' return
   ### ipv6 - skip link/unique-local fc00::/7,fe80::/10 and  ::1/128 are in ip -6 address show scope host/link
   nft add rule ip6 v2ray OUTPUT ip6 daddr @LOCAL_IPV6 return
+  nft add rule ip6 v2ray OUTPUT ip6 daddr @DEFAULT_ROUTE_IPV6 return
   nft add rule ip6 v2ray OUTPUT ip6 daddr @BLACKLIST return
   nft add rule ip6 v2ray OUTPUT ip6 daddr @GEOIP_CN return
 
@@ -361,17 +377,25 @@ fi
 nft list set bridge v2ray LOCAL_IPV4 >/dev/null 2>&1
 if [ $? -ne 0 ]; then
   nft add set bridge v2ray LOCAL_IPV4 '{ type ipv4_addr; flags interval; auto-merge ; }'
-  nft add element bridge v2ray LOCAL_IPV4 {127.0.0.1/32, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8}
+  nft add element bridge v2ray LOCAL_IPV4 {127.0.0.1/32, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8}
+fi
+nft list set bridge v2ray DEFAULT_ROUTE_IPV4 >/dev/null 2>&1
+if [ $? -ne 0 ]; then
+  nft add set bridge v2ray DEFAULT_ROUTE_IPV4 '{ type ipv4_addr; flags interval; auto-merge ; }'
 fi
 nft list set bridge v2ray LOCAL_IPV6 >/dev/null 2>&1
 if [ $? -ne 0 ]; then
   nft add set bridge v2ray LOCAL_IPV6 '{ type ipv6_addr; flags interval; auto-merge ; }'
   nft add element bridge v2ray LOCAL_IPV6 {::1/128, fc00::/7, fe80::/10}
 fi
+nft list set bridge v2ray DEFAULT_ROUTE_IPV6 >/dev/null 2>&1
+if [ $? -ne 0 ]; then
+  nft add set bridge v2ray DEFAULT_ROUTE_IPV6 '{ type ipv6_addr; flags interval; auto-merge ; }'
+fi
 
 nft list chain bridge v2ray PREROUTING >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
-  nft add chain bridge v2ray PREROUTING { type filter hook prerouting priority -299 \; }
+  nft add chain bridge v2ray PREROUTING { type filter hook prerouting priority -280 \; }
 fi
 nft flush chain bridge v2ray PREROUTING
 
@@ -395,19 +419,24 @@ nft add rule bridge v2ray PREROUTING mark and 0x70 == 0x70 return
 ### bridge - skip private network and UDP of DNS, 172.20.1.1/24 is used for remote debug
 nft add rule bridge v2ray PREROUTING ip daddr {224.0.0.0/4, 255.255.255.255/32, 172.20.1.1/24} return
 nft add rule bridge v2ray PREROUTING ip daddr @LOCAL_IPV4 return
+nft add rule bridge v2ray PREROUTING ip daddr @DEFAULT_ROUTE_IPV4 return
 # if dns service and V2RAY are on different server, use rules below
 # nft add rule bridge v2ray PREROUTING meta l4proto tcp ip daddr @LOCAL_IPV4 return
+# nft add rule bridge v2ray PREROUTING meta l4proto tcp ip daddr @DEFAULT_ROUTE_IPV4 return
 
 if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   ### ipv6 - skip multicast
   nft add rule bridge v2ray PREROUTING ip6 daddr '{ ff00::/8 }' return
   ### ipv6 - skip link/unique-local fc00::/7,fe80::/10 and  ::1/128 are in ip -6 address show scope host/link
   nft add rule bridge v2ray PREROUTING ip6 daddr @LOCAL_IPV6 return
+  nft add rule bridge v2ray PREROUTING ip6 daddr @DEFAULT_ROUTE_IPV6 return
 
   ### ipv6 - skip private network and UDP of DNS
   # if dns service and v2ray are on different server, use rules below
   # nft add rule bridge v2ray PREROUTING meta l4proto tcp ip6 daddr @LOCAL_IPV6 return
+  # nft add rule bridge v2ray PREROUTING meta l4proto tcp ip6 daddr @DEFAULT_ROUTE_IPV6 return
   # nft add rule bridge v2ray PREROUTING ip6 daddr @LOCAL_IPV6 udp dport != 53 return
+  # nft add rule bridge v2ray PREROUTING ip6 daddr @DEFAULT_ROUTE_IPV6 udp dport != 53 return
 fi
 
 ### bridge - skip CN DNS

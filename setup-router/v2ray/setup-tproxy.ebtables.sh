@@ -108,16 +108,16 @@ done
 ebtables -t broute -A BROUTING -p ipv4 --ip-proto tcp -j V2RAY_BRIDGE
 ebtables -t broute -A BROUTING -p ipv4 --ip-proto udp -j V2RAY_BRIDGE
 
-if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
+ebtables -t broute -D BROUTING -p ipv6 --ip6-proto tcp -j V2RAY_BRIDGE >/dev/null 2>&1
+while [[ $? -eq 0 ]]; do
   ebtables -t broute -D BROUTING -p ipv6 --ip6-proto tcp -j V2RAY_BRIDGE >/dev/null 2>&1
-  while [[ $? -eq 0 ]]; do
-    ebtables -t broute -D BROUTING -p ipv6 --ip6-proto tcp -j V2RAY_BRIDGE >/dev/null 2>&1
-  done
+done
+ebtables -t broute -D BROUTING -p ipv6 --ip6-proto udp -j V2RAY_BRIDGE >/dev/null 2>&1
+while [[ $? -eq 0 ]]; do
   ebtables -t broute -D BROUTING -p ipv6 --ip6-proto udp -j V2RAY_BRIDGE >/dev/null 2>&1
-  while [[ $? -eq 0 ]]; do
-    ebtables -t broute -D BROUTING -p ipv6 --ip6-proto udp -j V2RAY_BRIDGE >/dev/null 2>&1
-  done
+done
 
+if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   ebtables -t broute -A BROUTING -p ipv6 --ip6-proto tcp -j V2RAY_BRIDGE
   ebtables -t broute -A BROUTING -p ipv6 --ip6-proto udp -j V2RAY_BRIDGE
 fi

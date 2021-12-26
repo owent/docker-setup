@@ -29,11 +29,13 @@ while getopts "hi:n:" OPTION; do
 done
 
 ROUTER_LOCAL_NET_IPV4=(
+  "169.254.0.0/16" "10.0.0.0/8" "172.16.0.0/12" "192.168.0.0/16"
   $(ip -o -4 addr | awk 'match($0, /inet\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(\/[0-9]+)?)/, ip) { print ip[1] }')
   $(ip -o -4 addr | awk 'match($0, /peer\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(\/[0-9]+)?)/, ip) { print ip[1] }')
 )
 
 ROUTER_LOCAL_NET_IPV6=(
+  "fe80::/10" "fc00::/7"
   $(ip -o -6 addr | awk 'match($0, /inet6\s+([0-9a-fA-F:]+(\/[0-9]+)?)/, ip) { print ip[1] }')
   $(ip -o -6 addr | awk 'match($0, /peer\s+([0-9a-fA-F:]+(\/[0-9]+)?)/, ip) { print ip[1] }')
 )
