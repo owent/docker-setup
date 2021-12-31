@@ -159,7 +159,8 @@ server=2606:4700:4700::1001
 fi
 
 echo "
-dhcp-fqdn
+# domain home.shkits.com
+# dhcp-fqdn # Require domain to enable this
 bind-dynamic
 # Address not available with pppd 2.4.9
 # see https://forum.openwrt.org/t/ppp-and-dnsmasq-issue/91475

@@ -194,8 +194,9 @@ NO_PROXY=$no_proxy
 # export KUBECONFIG=$HOME/.kube/config
 #  Or add --kubeconfig=PATH_TO_CONFIG_FILE.conf after all kubectl command
 kubectl config view
-kubectl create secret docker-registry my-secret-name --docker-username=USERNAME --docker-password=PASSWORD --docker-email=ci@DOMAIN --docker-server=docker.io \
-  --dry-run -o yaml > my-secret-name.yaml
+kubectl create secret docker-registry my-secret-name --docker-server=docker.io    \
+  --docker-username=USERNAME --docker-password=PASSWORD --docker-email=ci@DOMAIN  \
+  --dry-run=client -o yaml > my-secret-name.yaml
 kubectl -n NAMESPACE apply -f my-secret-name.yaml # Deploy, optional
 # kubectl -n NAMESPACE get secret # Check
 
