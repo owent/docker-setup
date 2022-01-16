@@ -156,15 +156,19 @@ else
 fi
 ```
 
-## ip route
+## Get My Ip
 
-```bash
-while [ ! -z "$(ip route show default 2>/dev/null)" ]; do
-    ip route delete default ;
-done
-# ip route add default via XXX dev ppp0 ;
-ip route add default dev ppp0 ;
-```
++ http://ifconfig.me
+  + http://ifconfig.me/ip
++ https://ip.sb/
+  + https://api.ip.sb/ip
++ http://ifconfig.io
+  + http://ifconfig.io/ip
++ http://www.myip.la/
+  + http://api.myip.la
++ http://getip.icu
++ http://myip.biturl.top
++ http://ip.threep.top
 
 ## Test script
 
