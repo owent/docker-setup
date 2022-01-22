@@ -301,7 +301,7 @@ function mwan_setup_policy() {
     done
     if [[ ! -z "$LOCAL_IP_ADDR_SET" ]]; then
       LOCAL_IP_ADDR_SET="$LOCAL_IP_ADDR_SET}"
-      nft add rule inet mwan MARK meta mark and 0xff00 == 0x0 $MWAN_NFTABLE_IPTYPE_PARAM saddr "$LOCAL_IP_ADDR_SET" meta mark set meta mark and 0xffff00ff xor 0xff00
+      nft add rule inet mwan MARK meta mark and 0xff00 == 0x0 $MWAN_NFTABLE_IPTYPE_PARAM saddr "$LOCAL_IP_ADDR_SET" meta mark set meta mark and 0xffff00ff xor $CURRENT_MWAN_FWMARK
     fi
 
     # Policy set fwmark
