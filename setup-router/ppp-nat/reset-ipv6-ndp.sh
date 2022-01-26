@@ -74,7 +74,7 @@ interface $CURRENT_BRIDGE_DEVICE
     let RETRY_TIME=$RETRY_TIME+1
     echo "$CURRENT_BRIDGE_DEVICE : $RETRY_TIME times to get ipv6 address"
     ip -o -6 addr show dev $CURRENT_BRIDGE_DEVICE
-    CURRENT_BRIDGE_IPV6=($(ip -o -6 addr show dev $CURRENT_BRIDGE_DEVICE | awk 'match($0, /inet6\s+([0-9a-fA-F:]+)/, ip) { print ip[1] }'))
+    CURRENT_BRIDGE_IPV6=($(ip -o -6 addr show dev $CURRENT_BRIDGE_DEVICE | awk 'match($0, /inet6\s+([0-9a-fA-F:]+)/, ip) { print ip[1] }' | tail -n 3))
     if [[ ${#CURRENT_BRIDGE_IPV6[@]} -gt 0 ]]; then
       break
     fi
