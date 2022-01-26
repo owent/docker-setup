@@ -67,9 +67,10 @@ log-async=50
 # glibc only use 3 dns server
 ## aliyun
 server=223.5.5.5
-server=223.6.6.6
 ## DNSPod
 server=119.29.29.29
+# Redirect to smartdns, which is the fastest but close AAAA address
+server=127.0.0.1#6053
 ## Baidu
 # server=180.76.76.76
 

@@ -67,8 +67,22 @@ interface $CURRENT_BRIDGE_DEVICE
       ENABLE_IPV5_NDPP_AND_RA=1
     done
   done
+
+  CURRENT_BRIDGE_IPV6=()
+  RETRY_TIME=0
+  while [[ $RETRY_TIME -lt 12 ]]; do
+    let RETRY_TIME=$RETRY_TIME+1
+    echo "$CURRENT_BRIDGE_DEVICE : $RETRY_TIME times to get ipv6 address"
+    ip -o -6 addr show dev $CURRENT_BRIDGE_DEVICE
+    CURRENT_BRIDGE_IPV6=($(ip -o -6 addr show dev $CURRENT_BRIDGE_DEVICE | awk 'match($0, /inet6\s+([0-9a-fA-F:]+)/, ip) { print ip[1] }'))
+    if [[ ${#CURRENT_BRIDGE_IPV6[@]} -gt 0 ]]; then
+      break
+    fi
+    sleep 20 || usleep 20000000
+  done
+
   RADVD_CFG="$RADVD_CFG
-  RDNSS $(ip -o -6 addr show dev $CURRENT_BRIDGE_DEVICE | awk 'match($0, /inet6\s+([0-9a-fA-F:]+)/, ip) { print ip[1] }' | xargs -r echo)
+  RDNSS ${CURRENT_BRIDGE_IPV6[@]}
   {
   };
 };"
