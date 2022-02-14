@@ -417,6 +417,7 @@ fi
 nft add rule bridge v2ray PREROUTING mark and 0x70 == 0x70 return
 
 ### bridge - skip private network and UDP of DNS, 172.20.1.1/24 is used for remote debug
+nft add rule bridge v2ray PREROUTING ip saddr @LOCAL_IPV4 pkttype '{broadcast, multicast}' accept
 nft add rule bridge v2ray PREROUTING ip daddr {224.0.0.0/4, 255.255.255.255/32, 172.20.1.1/24} return
 nft add rule bridge v2ray PREROUTING ip daddr @LOCAL_IPV4 return
 nft add rule bridge v2ray PREROUTING ip daddr @DEFAULT_ROUTE_IPV4 return
@@ -426,6 +427,7 @@ nft add rule bridge v2ray PREROUTING ip daddr @DEFAULT_ROUTE_IPV4 return
 
 if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   ### ipv6 - skip multicast
+  nft add rule bridge v2ray PREROUTING ip6 saddr @LOCAL_IPV6 pkttype '{broadcast, multicast}' accept
   nft add rule bridge v2ray PREROUTING ip6 daddr '{ ff00::/8 }' return
   ### ipv6 - skip link/unique-local fc00::/7,fe80::/10 and  ::1/128 are in ip -6 address show scope host/link
   nft add rule bridge v2ray PREROUTING ip6 daddr @LOCAL_IPV6 return
@@ -463,4 +465,4 @@ fi
 # https://www.mankier.com/8/ebtables-nft
 # ebtables -t broute -A V2RAY_BRIDGE -j redirect --redirect-target DROP
 
-nft add rule bridge v2ray PREROUTING meta pkttype set unicast # ether daddr set 00:00:00:00:00:0
+nft add rule bridge v2ray PREROUTING meta pkttype set unicast ether daddr set ff:ff:ff:ff:ff:ff
