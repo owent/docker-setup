@@ -13,5 +13,5 @@ cd "$(dirname "$(readlink -f "$0")")"
 
 CURRENT_VERSION=$(date +%s)
 nohup bash -c \
-  "flock -w 300 -E 0 /run/reset-local-address-sets.lock -c \"sleep 3 || usleep 3000000; /bin/bash $PWD/reset-local-address-run.sh $CURRENT_VERSION | systemd-cat -t router-reset-local-address-sets -p info\"
+  "flock -w 300 -E 0 /run/reset-local-address-sets.lock -c \"sleep 3 || usleep 3000000; /bin/bash $PWD/reset-local-address-run.sh $CURRENT_VERSION 2>&1 | systemd-cat -t router-reset-local-address-sets -p info\"
 " >"$PWD/reset-local-address-set.log" 2>&1 &
