@@ -362,5 +362,7 @@ nft add rule inet mwan MARK meta mark and 0xff00 == 0x0 jump POLICY_MARK
 nft add rule inet mwan MARK meta mark and 0xff00 == 0x0 meta mark set meta mark and 0xffff00ff xor 0xfe00
 nft add rule inet mwan MARK ct mark set meta mark and 0xffff
 
+nft add rule inet mwan PREROUTING ct state == '{ established, related }' return
 nft add rule inet mwan PREROUTING jump MARK
+nft add rule inet mwan OUTPUT ct state == '{ established, related }' return
 nft add rule inet mwan OUTPUT jump MARK

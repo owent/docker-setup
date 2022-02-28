@@ -171,6 +171,7 @@ else
 fi
 
 ### ipv4 - skip internal services
+iptables -t mangle -A V2RAY -m conntrack --ctstate NEW,RELATED -j RETURN
 iptables -t mangle -A V2RAY -p tcp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
 iptables -t mangle -A V2RAY -p udp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
 iptables -t mangle -A V2RAY -p udp -m multiport --dports $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT -j RETURN
@@ -230,6 +231,7 @@ iptables -t mangle -A PREROUTING -p udp -j V2RAY # apply rules
 
 # Setup - ipv4 local
 ### ipv4 - skip internal services
+iptables -t mangle -A V2RAY_MASK -m conntrack --ctstate NEW,RELATED -j RETURN
 iptables -t mangle -A V2RAY_MASK -p tcp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
 iptables -t mangle -A V2RAY_MASK -p udp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
 iptables -t mangle -A V2RAY_MASK -p udp -m multiport --dports $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT -j RETURN
@@ -301,7 +303,7 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
     ipset add V2RAY_LOCAL_IPV6 fc00::/7
     ipset add V2RAY_LOCAL_IPV6 fe80::/10
   fi
-   ipset list V2RAY_DEFAULT_ROUTE_IPV6 >/dev/null 2>&1
+  ipset list V2RAY_DEFAULT_ROUTE_IPV6 >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
     ipset create V2RAY_DEFAULT_ROUTE_IPV6 hash:net family inet6
   fi
@@ -327,6 +329,7 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   fi
 
   ### ipv6 - skip internal services
+  ip6tables -t mangle -A V2RAY -m conntrack --ctstate NEW,RELATED -j RETURN
   ip6tables -t mangle -A V2RAY -p tcp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
   ip6tables -t mangle -A V2RAY -p udp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
   ip6tables -t mangle -A V2RAY -p udp -m multiport --dports $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT -j RETURN
@@ -384,6 +387,7 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
 
   # Setup - ipv6 local
   ### ipv6 - skip internal services
+  ip6tables -t mangle -A V2RAY_MASK -m conntrack --ctstate NEW,RELATED -j RETURN
   ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
   ip6tables -t mangle -A V2RAY_MASK -p udp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
   ip6tables -t mangle -A V2RAY_MASK -p udp -m multiport --dports $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT -j RETURN
@@ -455,9 +459,8 @@ else
 fi
 
 ## Setup - bridge
-SETUP_TPROXY_EBTABLES_SCRIPT="$(cd "$(dirname "$0")" && pwd)/setup-tproxy.ebtables.sh";
+SETUP_TPROXY_EBTABLES_SCRIPT="$(cd "$(dirname "$0")" && pwd)/setup-tproxy.ebtables.sh"
 bash "$SETUP_TPROXY_EBTABLES_SCRIPT"
 
 ln -sf "$SETUP_TPROXY_EBTABLES_SCRIPT" /etc/NetworkManager/dispatcher.d/up.d/99-setup-tproxy.ebtables.sh
 ln -sf "$SETUP_TPROXY_EBTABLES_SCRIPT" /etc/NetworkManager/dispatcher.d/down.d/99-setup-tproxy.ebtables.sh
-
