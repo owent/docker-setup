@@ -171,7 +171,6 @@ nft flush chain ip v2ray PREROUTING
 ### ipv4 - skip internal services
 nft add rule ip v2ray PREROUTING meta l4proto != {tcp, udp} return
 # DNAT or connect from outside
-nft add rule ip v2ray PREROUTING ct state == '{ established, related }' return
 nft add rule ip v2ray PREROUTING tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 nft add rule ip v2ray PREROUTING udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 nft add rule ip v2ray PREROUTING udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
@@ -225,7 +224,6 @@ nft flush chain ip v2ray OUTPUT
 
 ### ipv4 - skip internal services
 nft add rule ip v2ray OUTPUT meta l4proto != {tcp, udp} return
-nft add rule ip v2ray OUTPUT ct state == '{ established, related }' return
 nft add rule ip v2ray OUTPUT tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 nft add rule ip v2ray OUTPUT udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 nft add rule ip v2ray OUTPUT udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
@@ -289,7 +287,6 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
 
   ### ipv6 - skip internal services
   nft add rule ip6 v2ray PREROUTING meta l4proto != {tcp, udp} return
-  nft add rule ip6 v2ray PREROUTING ct state == '{ established, related }' return
   nft add rule ip6 v2ray PREROUTING tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
   nft add rule ip6 v2ray PREROUTING udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
   nft add rule ip6 v2ray PREROUTING udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
@@ -342,7 +339,6 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
 
   ### ipv6 - skip internal services
   nft add rule ip6 v2ray OUTPUT meta l4proto != {tcp, udp} return
-  nft add rule ip6 v2ray OUTPUT ct state == '{ established, related }' return
   nft add rule ip6 v2ray OUTPUT tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
   nft add rule ip6 v2ray OUTPUT udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
   nft add rule ip6 v2ray OUTPUT udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
