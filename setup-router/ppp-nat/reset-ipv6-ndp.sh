@@ -181,8 +181,8 @@ proxy $CURRENT_PPP_DEVICE {
     NDPPD_CFG="$NDPPD_CFG
 }"
     # Add specify route to route table
-    echo "Run: ip -6 route add $IPV6_ADDR dev $CURRENT_PPP_DEVICE table $LOCAL_ROUTE_TABLE_ID"
-    ip -6 route add $IPV6_ADDR dev $CURRENT_PPP_DEVICE table $LOCAL_ROUTE_TABLE_ID
+    echo "Run: ip -6 route add ${IPV6_ADDR%%/*} dev $CURRENT_PPP_DEVICE table $LOCAL_ROUTE_TABLE_ID"
+    ip -6 route add ${IPV6_ADDR%%/*} dev $CURRENT_PPP_DEVICE table $LOCAL_ROUTE_TABLE_ID
   done
 done
 
