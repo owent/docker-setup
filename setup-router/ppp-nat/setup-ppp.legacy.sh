@@ -8,6 +8,10 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)";
 
+if [[ "x$ROUTER_HOME" == "x" ]]; then
+    source "$SCRIPT_DIR/../configure-router.sh"
+fi
+
 if [[ -e "/lib/systemd/system" ]]; then
     export SETUP_SYSTEMD_SYSTEM_DIR=/lib/systemd/system;
 elif [[ -e "/usr/lib/systemd/system" ]]; then
@@ -66,7 +70,7 @@ Wants=network.target
 Type=forking
 PIDFile=/var/run/ppp-$ROUTER_CONFIG_PPP_LINK_INTERFACE.pid
 ExecStart=/usr/sbin/pppd file /opt/ppp/etc/$ROUTER_CONFIG_PPP_LINK_INTERFACE
-ExecStartPre=/bin/bash /home/router/ppp-nat/setup-ppp-up-down-rule.sh
+ExecStartPre=/bin/bash $ROUTER_HOME/ppp-nat/setup-ppp-up-down-rule.sh
 Restart=on-failure
 # Don't restart in the case of configuration error
 RestartPreventExitStatus=23

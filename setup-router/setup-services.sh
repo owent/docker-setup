@@ -27,7 +27,7 @@ fi
 # export ROUTER_CONFIG_PPP_PASSWORD=<PPPOE USER PASSWORD>
 
 if [[ "x$ROUTER_CONFIG_PPP_LINK_INTERFACE" != "x" ]]; then
-    /bin/bash "$SCRIPT_DIR/setup-ppp.sh" ;
+    /bin/bash "$SCRIPT_DIR/ppp-nat/setup-ppp.legacy.sh" ;
     systemctl daemon-reload ;
     systemctl enable pppd-$ROUTER_CONFIG_PPP_LINK_INTERFACE ;
     systemctl start pppd-$ROUTER_CONFIG_PPP_LINK_INTERFACE ;
@@ -45,10 +45,13 @@ if [[ "x$ROUTER_CONFIG_IPV6_INTERFACE" == "x" ]]; then
     fi
 fi
 
-/bin/bash "$SCRIPT_DIR/setup-dnsmasq.sh" ;
+/bin/bash "$SCRIPT_DIR/dnsmasq/setup-dnsmasq.sh" ;
 
 systemctl daemon-reload ;
 systemctl enable dnsmasq ;
+
+# Smartdns
+su "$SCRIPT_DIR/smartdns/create-smartdns-pod.sh" - tools
 
 
 if [[ "x$ROUTER_CONFIG_ON_FINISH_RUN" == "x" ]]; then

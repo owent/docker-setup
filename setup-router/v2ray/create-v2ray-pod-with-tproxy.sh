@@ -8,8 +8,12 @@ else
     export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
-mkdir -p /home/router/etc/v2ray ;
-cd /home/router/etc/v2ray ;
+if [[ "x$ROUTER_HOME" == "x" ]]; then
+    source "$(cd "$(dirname "$0")" && pwd)/../configure-router.sh"
+fi
+
+mkdir -p $ROUTER_HOME/etc/v2ray ;
+cd $ROUTER_HOME/etc/v2ray ;
 
 systemctl disable v2ray ;
 systemctl stop v2ray ;
@@ -30,9 +34,9 @@ fi
 podman pull docker.io/owt5008137/proxy-with-geo:latest ;
 
 podman run -d --name v2ray --cap-add=NET_ADMIN --network=host --security-opt label=disable  \
-    --mount type=bind,source=/home/router/etc/v2ray,target=/usr/local/v2ray/etc,ro=true     \
+    --mount type=bind,source=$ROUTER_HOME/etc/v2ray,target=/usr/local/v2ray/etc,ro=true     \
     --mount type=bind,source=/data/logs/v2ray,target=/data/logs/v2ray                       \
-    --mount type=bind,source=/home/router/etc/v2ray/ssl,target=/usr/local/v2ray/ssl,ro=true \
+    --mount type=bind,source=$ROUTER_HOME/etc/v2ray/ssl,target=/usr/local/v2ray/ssl,ro=true \
     docker.io/owt5008137/proxy-with-geo:latest v2ray -config=/usr/local/v2ray/etc/config.json ;
 
 podman cp v2ray:/usr/local/v2ray/share/geo-all.tar.gz geo-all.tar.gz ;
@@ -91,10 +95,21 @@ if [[ $? -eq 0 ]]; then
         # TODO Maybe nftable ip set 
     fi
 
-    if [[ $? -eq 0 ]]; then
+    IPSET_FLUSH_GFW_LIST=0
+    if [[ -e "dnsmasq-blacklist.conf" ]]; then
         cp -f dnsmasq-blacklist.conf /etc/dnsmasq.d/10-dnsmasq-blacklist.router.conf
+        IPSET_FLUSH_GFW_LIST=1
+        systemctl restart dnsmasq ;
+    fi
+    if [[ -e "$GEOIP_GEOSITE_ETC_DIR/smartdns-blacklist.conf" ]] && [[ -e "$ROUTER_HOME/smartdns/merge-configure.sh" ]]; then
+        bash "$ROUTER_HOME/smartdns/merge-configure.sh"
+        IPSET_FLUSH_GFW_LIST=1
+        su -c 'env DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$UID/bus systemctl restart --user smartdns' - $RUN_USER
+    fi
+
+    if [[ $IPSET_FLUSH_GFW_LIST -ne 0 ]]; then
         ipset list DNSMASQ_GFW_IPV4 > /dev/null 2>&1 ;
-        if [[ $? -eq 0 ]]; then
+        if [ $? -eq 0 ]; then
             ipset flush DNSMASQ_GFW_IPV4;
         else
             ipset create DNSMASQ_GFW_IPV4 hash:ip family inet;
@@ -106,14 +121,12 @@ if [[ $? -eq 0 ]]; then
         else
             ipset create DNSMASQ_GFW_IPV6 hash:ip family inet6;
         fi
-
-        systemctl restart dnsmasq ;
     fi
 fi
 
 podman generate systemd v2ray | \
-sed "/ExecStart=/a ExecStartPost=/home/router/v2ray/setup-tproxy.sh" | \
-sed "/ExecStop=/a ExecStopPost=/home/router/v2ray/cleanup-tproxy.sh" | \
+sed "/ExecStart=/a ExecStartPost=$ROUTER_HOME/v2ray/setup-tproxy.sh" | \
+sed "/ExecStop=/a ExecStopPost=$ROUTER_HOME/v2ray/cleanup-tproxy.sh" | \
 tee /lib/systemd/system/v2ray.service
 
 podman container stop v2ray ;

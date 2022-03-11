@@ -3,9 +3,8 @@
 # Maybe need in /etc/ssh/sshd_config
 #     DenyUsers tools
 #     DenyGroups tools
-# /home/router/create-aria2-pod.sh
 
-if [ -e "/opt/nftables/sbin" ]; then
+if [[ -e "/opt/nftables/sbin" ]]; then
     export PATH=/opt/nftables/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 else
     export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
@@ -186,7 +185,7 @@ podman --log-level debug run -d --name aria2 --user $RUN_USER                   
     -p 6800:6800/tcp -p 6881-6883:6881-6883/tcp -p 6881-6883:6881-6883/udp            \
     local-aria2 bash /usr/bin/aria2c_with_session.sh --conf-path=/etc/aria2/aria2.conf
 
-podman generate systemd aria2 | tee mkdir -p "$SYSTEMD_SERVICE_DIR/aria2.service"
+podman generate systemd aria2 | tee "$SYSTEMD_SERVICE_DIR/aria2.service"
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
     systemctl daemon-reload

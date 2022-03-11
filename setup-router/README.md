@@ -113,7 +113,7 @@ net.ipv4.tcp_congestion_control = bbr" >> /etc/sysctl.d/91-forwarding.conf ;
     fi
 fi
 
-# systemd-resolved will listen 53 and will conflict with our dnsmasq.service
+# systemd-resolved will listen 53 and will conflict with our dnsmasq.service/smartdns.service
 sed -i -r 's/#?DNSStubListener[[:space:]]*=.*/DNSStubListener=no/g'  /etc/systemd/resolved.conf ;
 
 systemctl disable systemd-resolved ;

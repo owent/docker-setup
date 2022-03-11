@@ -193,14 +193,16 @@ if [[ $NAT_SETUP_SKIP_IPV6 -eq 0 ]]; then
   nft flush chain ip6 nat POSTROUTING
 
   ### Source NAT - ipv6
-  # Skip local address when DSL interface get a local address
-  nft add rule ip nat POSTROUTING ip saddr @DEFAULT_ROUTE_IPV6 return
-  nft add rule ip6 nat POSTROUTING ip6 saddr @LOCAL_IPV6 ip6 daddr != @LOCAL_IPV6 ip6 daddr != '{ff00::/8}' counter packets 0 bytes 0 masquerade
-  nft add rule ip6 nat POSTROUTING meta l4proto tcp ip6 saddr @LOCAL_IPV6 ip6 daddr != @LOCAL_IPV6 ip6 daddr != '{ff00::/8}' counter packets 0 bytes 0 masquerade to :10000-65535
-  nft add rule ip6 nat POSTROUTING meta l4proto udp ip6 saddr @LOCAL_IPV6 ip6 daddr != @LOCAL_IPV6 ip6 daddr != '{ff00::/8}' counter packets 0 bytes 0 masquerade to :10000-65535
+  if [[ $NAT_SETUP_SKIP_IPV6 -ne 0 ]]; then
+    # Skip local address when DSL interface get a local address
+    nft add rule ip nat POSTROUTING ip saddr @DEFAULT_ROUTE_IPV6 return
+    nft add rule ip6 nat POSTROUTING ip6 saddr @LOCAL_IPV6 ip6 daddr != @LOCAL_IPV6 ip6 daddr != '{ff00::/8}' counter packets 0 bytes 0 masquerade
+    nft add rule ip6 nat POSTROUTING meta l4proto tcp ip6 saddr @LOCAL_IPV6 ip6 daddr != @LOCAL_IPV6 ip6 daddr != '{ff00::/8}' counter packets 0 bytes 0 masquerade to :10000-65535
+    nft add rule ip6 nat POSTROUTING meta l4proto udp ip6 saddr @LOCAL_IPV6 ip6 daddr != @LOCAL_IPV6 ip6 daddr != '{ff00::/8}' counter packets 0 bytes 0 masquerade to :10000-65535
 
-  ### Destination NAT - ipv6
-  nft add rule ip6 nat PREROUTING ip6 saddr != @LOCAL_IPV6 tcp dport 22 drop
-  # nft add rule ip6 nat PREROUTING ip6 saddr != @LOCAL_IPV6 tcp dport 36000 dnat to fd27:32d6:ac12:18::1 :22
-  # nft add rule ip6 nat PREROUTING ip6 saddr != @LOCAL_IPV6 tcp dport 36000 redirect to :22
+    ### Destination NAT - ipv6
+    # nft add rule ip6 nat PREROUTING ip6 saddr != @LOCAL_IPV6 tcp dport 22 drop
+    # nft add rule ip6 nat PREROUTING ip6 saddr != @LOCAL_IPV6 tcp dport 36000 dnat to fd27:32d6:ac12:18::1 :22
+    # nft add rule ip6 nat PREROUTING ip6 saddr != @LOCAL_IPV6 tcp dport 36000 redirect to :22
+  fi
 fi

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# /home/router/etc/v2ray/update-geoip-geosite.sh
+# GEOIP_GEOSITE_ETC_DIR/update-geoip-geosite.sh
 
 if [[ -e "/opt/podman" ]]; then
     export PATH=/opt/podman/bin:/opt/podman/libexec:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
@@ -8,9 +8,16 @@ else
     export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
-mkdir -p /home/router/etc/v2ray ;
-cd /home/router/etc/v2ray ;
+if [[ "x$ROUTER_HOME" == "x" ]]; then
+    source "$(cd "$(dirname "$0")" && pwd)/../configure-router.sh"
+fi
 
+mkdir -p "$GEOIP_GEOSITE_ETC_DIR" ;
+cd "$GEOIP_GEOSITE_ETC_DIR" ;
+
+if [[ "x$RUN_USER" == "x" ]]; then
+    RUN_USER=tools;
+fi
 
 # patch for podman 1.6.3 restart BUG
 #   @see https://bbs.archlinux.org/viewtopic.php?id=251410
@@ -40,8 +47,8 @@ if [[ $? -eq 0 ]]; then
     systemctl enable v2ray ;
     systemctl start v2ray ;
 else
-    chmod +x /home/router/v2ray/create-v2ray-pod.sh;
-    /home/router/v2ray/create-v2ray-pod.sh ;
+    chmod +x $ROUTER_HOME/v2ray/create-v2ray-pod.sh;
+    $ROUTER_HOME/v2ray/create-v2ray-pod.sh ;
 fi
 
 curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/ipv4_cn.ipset" -o ipv4_cn.ipset
@@ -141,13 +148,26 @@ if [[ $? -eq 0 ]]; then
     # cat ipv4_cn.ipset | awk '{print $NF}' | xargs -r -I IPADDR nft add element ip6 v2ray GEOIP_HK { IPADDR } ;
 fi
 
+IPSET_FLUSH_GFW_LIST=0
 curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/dnsmasq-blacklist.conf" -o dnsmasq-blacklist.conf
 if [[ $? -eq 0 ]]; then
     # ipset
     cp -f dnsmasq-blacklist.conf /etc/dnsmasq.d/10-dnsmasq-blacklist.router.conf
     # sed -i -E 's;/(1.1.1.1|8.8.8.8)#53;/127.0.0.1#6053;g' /etc/dnsmasq.d/10-dnsmasq-blacklist.router.conf # local smartdns
+    IPSET_FLUSH_GFW_LIST=1
+    systemctl restart dnsmasq
+fi
+
+curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/smartdns-blacklist.conf" -o smartdns-blacklist.conf
+if [[ $? -eq 0 ]] && [[ -e "$ROUTER_HOME/smartdns/merge-configure.sh" ]]; then
+    bash "$ROUTER_HOME/smartdns/merge-configure.sh"
+    IPSET_FLUSH_GFW_LIST=1
+    su -c 'env DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$UID/bus systemctl restart --user smartdns' - $RUN_USER
+fi
+
+if [[ $IPSET_FLUSH_GFW_LIST -ne 0 ]]; then
     ipset list DNSMASQ_GFW_IPV4 > /dev/null 2>&1 ;
-    if [[ $? -eq 0 ]]; then
+    if [ $? -eq 0 ]; then
         ipset flush DNSMASQ_GFW_IPV4;
     else
         ipset create DNSMASQ_GFW_IPV4 hash:ip family inet;
@@ -159,7 +179,4 @@ if [[ $? -eq 0 ]]; then
     else
         ipset create DNSMASQ_GFW_IPV6 hash:ip family inet6;
     fi
-
-    systemctl restart dnsmasq ;
 fi
-

@@ -24,7 +24,7 @@ if [[ "root" == "$(whoami)" ]]; then
   exit 1
 fi
 
-"/home/tools/.acme.sh"/acme.sh --cron --home "/home/tools/.acme.sh"
+"$HOME/.acme.sh"/acme.sh --cron --home "$HOME/.acme.sh"
 
 cp -f ~/.acme.sh/${DOMAIN_NAME}*/* $INSTALL_CERT_DIR;
 

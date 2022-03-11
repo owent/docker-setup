@@ -6,7 +6,11 @@ else
   export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
-SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(cd "$(dirname "$0")"; pwd)"
+
+if [[ "x$ROUTER_HOME" == "x" ]]; then
+    source "$SCRIPT_DIR/../configure-router.sh"
+fi
 
 if [[ -e "/lib/systemd/system" ]]; then
   export SETUP_SYSTEMD_SYSTEM_DIR=/lib/systemd/system
@@ -14,6 +18,10 @@ elif [[ -e "/usr/lib/systemd/system" ]]; then
   export SETUP_SYSTEMD_SYSTEM_DIR=/usr/lib/systemd/system
 elif [[ -e "/etc/systemd/system" ]]; then
   export SETUP_SYSTEMD_SYSTEM_DIR=/etc/systemd/system
+fi
+
+if [[ "x$DNSMASQ_DNS_PORT" == "x" ]]; then
+  DNSMASQ_DNS_PORT=53
 fi
 
 sed -i -r 's/#?DNSStubListener[[:space:]]*=.*/DNSStubListener=no/g' /etc/systemd/resolved.conf
@@ -43,17 +51,26 @@ echo '
 # bogus-priv
 # dnssec
 
-strict-order
+# strict-order
 expand-hosts
 
 no-poll
 no-resolv
 
 log-queries
-#log-dhcp
+log-dhcp
 log-async=50
 #log-facility=/var/log/dnsmasq-debug.log
 
+' >/etc/dnsmasq.d/router.conf
+
+echo "
+port=$DNSMASQ_DNS_PORT
+# Redirect to smartdns, which is the fastest but close AAAA address
+server=127.0.0.1#$SMARTDNS_DNS_PORT
+">>/etc/dnsmasq.d/router.conf
+
+echo '
 # see https://www.dnsperf.com/#!dns-resolvers for DNS ranking
 # ipv4
 ## Cloudflare
@@ -69,12 +86,11 @@ log-async=50
 server=223.5.5.5
 ## DNSPod
 server=119.29.29.29
-# Redirect to smartdns, which is the fastest but close AAAA address
-server=127.0.0.1#6053
+
 ## Baidu
 # server=180.76.76.76
 
-' >/etc/dnsmasq.d/router.conf
+' >>/etc/dnsmasq.d/router.conf
 
 # echo '
 # #address=/shkits.com/104.27.145.8
@@ -104,6 +120,8 @@ nameserver 223.6.6.6
 nameserver 119.29.29.29
 ## Baidu
 nameserver 180.76.76.76
+
+options timeout:3
 ' >/etc/resolv.conf
 
 # setup dns over https and store into ipset gfwlist/router/white_list/black_list
@@ -147,6 +165,8 @@ nameserver 2606:4700:4700::1001
 ## Quad9
 # server=2620:fe::fe
 # server=2620:fe::9
+## DNSPod
+2402:4e00::
 ## aliyun
 server=2400:3200::1
 server=2400:3200:baba::1

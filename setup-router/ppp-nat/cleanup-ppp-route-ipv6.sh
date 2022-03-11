@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# /home/router/ppp-nat/cleanup-ppp-route-ipv6.sh
 # @see https://linux.die.net/man/8/pppd
 #
 # When the ppp link comes up, this script is called with the following

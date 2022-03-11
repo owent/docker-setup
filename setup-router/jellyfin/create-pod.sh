@@ -3,6 +3,10 @@
 # @see https://hub.docker.com/r/jellyfin/jellyfin
 # https://jellyfin.org/docs/general/administration/hardware-acceleration.html
 
+if [[ "x$ROUTER_HOME" == "x" ]]; then
+    source "$(cd "$(dirname "$0")" && pwd)/../configure-router.sh"
+fi
+
 systemctl disable jellyfin ;
 systemctl stop jellyfin ;
 
@@ -23,8 +27,8 @@ fi
 
 podman run --network=host --name jellyfin -d         \
     --security-opt label=disable                     \
-    -v /home/router/etc/jellyfin:/config             \
-    -v /home/router/jellyfin/cache:/cache            \
+    -v $ROUTER_HOME/etc/jellyfin:/config             \
+    -v $ROUTER_HOME/jellyfin/cache:/cache            \
     -v /data/samba:/media/samba                      \
     -v /data/aria2/download:/media/download          \
     --device /dev/dri/renderD128:/dev/dri/renderD128 \
