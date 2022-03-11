@@ -1,6 +1,6 @@
 #!/bin/bash
 
-INSTALL_CERT_DIR=/home/router/bitwarden/ssl ;
+INSTALL_CERT_DIR=/home/tools/bitwarden/ssl
 REMOTE_DEPLOY_KEY=<path of id_ed25519>
 REMOTE_DEPLOY_SSL_PATH=/home/website/ssl/
 

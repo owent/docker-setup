@@ -5,7 +5,8 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/bin/bash /home/router/v2ray/update-geoip-geosite.sh
+Environment=ROUTER_HOME=/home/router
+ExecStart=/bin/bash $ROUTER_HOME/v2ray/update-geoip-geosite.sh
 # RemainAfterExit=yes
 
 [Install]

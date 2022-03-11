@@ -21,6 +21,10 @@ fi
 #            http://inai.de/images/nf-packet-flow.svg
 # Monitor: nft monitor
 
+if [[ "x$ROUTER_HOME" == "x" ]]; then
+  source "$(cd "$(dirname "$0")" && pwd)/../configure-router.sh"
+fi
+
 if [[ "x" == "x$SETUP_WITH_DEBUG_LOG" ]]; then
   SETUP_WITH_DEBUG_LOG=0
 fi

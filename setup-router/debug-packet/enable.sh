@@ -2,8 +2,8 @@
 
 #### ========== debug ==========
 #### Use nft monitor trace to see the packet trace
-DEBUG_WATCH_IPV4_DADDR=( )
-DEBUG_WATCH_IPV4_SADDR=( )
+DEBUG_WATCH_IPV4_DADDR=()
+DEBUG_WATCH_IPV4_SADDR=()
 
 DEBUG_WATCH_IPV6_DADDR=(2402:4e00:: 2400:3200:baba::1)
 DEBUG_WATCH_IPV6_SADDR=(${DEBUG_WATCH_IP6_DADDR[@]})

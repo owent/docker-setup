@@ -41,8 +41,8 @@ VOLUME /var/log/smartdns
 
 CMD ["smartdns", "-p", "/var/run/smartdns.pid", "-c", "/usr/local/smartdns/etc/smartdns.conf", "-f"]
 
-# podman run -d --name smartdns -v /home/router/etc/smartdns:/usr/local/smartdns/etc -v /data/logs/smartdns:/var/log/smartdns -p 6053:6053/tcp -p 6053:6053/udp docker.io/owt5008137/smartdns:latest
-# podman generate systemd --name smartdns | tee /home/router/etc/smartdns/smartdns.service
-# systemctl --user enable /home/router/etc/smartdns/smartdns.service
+# podman run -d --name smartdns -v $SMARTDNS_ETC_DIR:/usr/local/smartdns/etc -v /data/logs/smartdns:/var/log/smartdns -p 6053:6053/tcp -p 6053:6053/udp docker.io/owt5008137/smartdns:latest
+# podman generate systemd --name smartdns | tee $SMARTDNS_ETC_DIR/smartdns.service
+# systemctl --user enable $SMARTDNS_ETC_DIR/smartdns.service
 # systemctl --user  daemon-reload
 # systemctl --user restart smartdns

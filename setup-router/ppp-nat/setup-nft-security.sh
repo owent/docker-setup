@@ -2,11 +2,11 @@
 
 LOCAL_LAN_INTERFACE='{ lo, br0, enp1s0f0, enp1s0f1, enp5s0 }'
 
-nft list table inet security_firewall > /dev/null 2>&1 ;
+nft list table inet security_firewall >/dev/null 2>&1
 if [[ $? -eq 0 ]]; then
-    nft delete table inet security_firewall ;
+  nft delete table inet security_firewall
 fi
-nft add table inet security_firewall ;
+nft add table inet security_firewall
 
 nft list set inet security_firewall LOCAL_IPV4 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
@@ -35,19 +35,18 @@ nft add rule inet security_firewall INPUT meta l4proto { icmp, ipv6-icmp } accep
 nft add rule inet security_firewall INPUT ct state { invalid } drop
 nft add rule inet security_firewall INPUT reject with icmpx type admin-prohibited
 
-
 nft add chain inet security_firewall OUTPUT '{ type filter hook output priority filter + 10; policy accept; }'
-nft add rule inet security_firewall OUTPUT  oifname "lo" accept
-nft add rule inet security_firewall OUTPUT  ip6 daddr { ::/96, ::ffff:0.0.0.0/96, 2002::/24, 2002:a00::/24, 2002:7f00::/24, 2002:a9fe::/32, 2002:ac10::/28, 2002:c0a8::/32, 2002:e000::/19 } reject with icmpv6 type addr-unreachable
+nft add rule inet security_firewall OUTPUT oifname "lo" accept
+nft add rule inet security_firewall OUTPUT ip6 daddr { ::/96, ::ffff:0.0.0.0/96, 2002::/24, 2002:a00::/24, 2002:7f00::/24, 2002:a9fe::/32, 2002:ac10::/28, 2002:c0a8::/32, 2002:e000::/19 } reject with icmpv6 type addr-unreachable
 
 nft add chain inet security_firewall FORWARD '{ type filter hook forward priority filter + 10; policy accept; }'
-nft add rule inet security_firewall FORWARD  ct state { established, related } accept
-nft add rule inet security_firewall FORWARD  ct status dnat accept
-nft add rule inet security_firewall FORWARD  iifname "$LOCAL_LAN_INTERFACE" accept
-nft add rule inet security_firewall FORWARD  ip6 daddr { ::/96, ::ffff:0.0.0.0/96, 2002::/24, 2002:a00::/24, 2002:7f00::/24, 2002:a9fe::/32, 2002:ac10::/28, 2002:c0a8::/32, 2002:e000::/19 } reject with icmpv6 type addr-unreachable
+nft add rule inet security_firewall FORWARD ct state { established, related } accept
+nft add rule inet security_firewall FORWARD ct status dnat accept
+nft add rule inet security_firewall FORWARD iifname "$LOCAL_LAN_INTERFACE" accept
+nft add rule inet security_firewall FORWARD ip6 daddr { ::/96, ::ffff:0.0.0.0/96, 2002::/24, 2002:a00::/24, 2002:7f00::/24, 2002:a9fe::/32, 2002:ac10::/28, 2002:c0a8::/32, 2002:e000::/19 } reject with icmpv6 type addr-unreachable
 #
-nft add rule inet security_firewall FORWARD  meta l4proto { icmp, ipv6-icmp } accept
-nft add rule inet security_firewall FORWARD  ct state { new, untracked } accept
+nft add rule inet security_firewall FORWARD meta l4proto { icmp, ipv6-icmp } accept
+nft add rule inet security_firewall FORWARD ct state { new, untracked } accept
 #
-nft add rule inet security_firewall FORWARD  ct state { invalid } drop
-nft add rule inet security_firewall FORWARD  reject with icmpx type admin-prohibited
+nft add rule inet security_firewall FORWARD ct state { invalid } drop
+nft add rule inet security_firewall FORWARD reject with icmpx type admin-prohibited

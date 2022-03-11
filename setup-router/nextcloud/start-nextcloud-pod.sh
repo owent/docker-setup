@@ -9,42 +9,42 @@ fi
 export XDG_RUNTIME_DIR="/run/user/$UID"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
 
-RUN_USER=$(whoami);
+RUN_USER=$(whoami)
 # sudo loginctl enable-linger $RUN_USER
 
 if [[ "x$RUN_USER" == "x" ]] || [[ "x$RUN_USER" == "xroot" ]]; then
-  echo -e "\033[1;32m$0 can not run with\033[0;m \033[1;31m$RUN_USER\033[0;m" ;
-  exit 1;
+  echo -e "\033[1;32m$0 can not run with\033[0;m \033[1;31m$RUN_USER\033[0;m"
+  exit 1
 fi
 
 RUN_HOME=$(cat /etc/passwd | awk "BEGIN{FS=\":\"} \$1 == \"$RUN_USER\" { print \$6 }")
 
 if [[ "x$RUN_HOME" == "x" ]]; then
-  RUN_HOME="$HOME";
+  RUN_HOME="$HOME"
 fi
 
 if [[ "x$NEXTCLOUD_LISTEN_PORT" == "x" ]]; then
-  NEXTCLOUD_LISTEN_PORT=6783;
+  NEXTCLOUD_LISTEN_PORT=6783
 fi
 
 mkdir -p "$RUN_HOME/nextcloud"
 if [[ "x$NEXTCLOUD_ETC_DIR" == "x" ]]; then
-  NEXTCLOUD_ETC_DIR="$RUN_HOME/nextcloud/etc";
+  NEXTCLOUD_ETC_DIR="$RUN_HOME/nextcloud/etc"
 fi
-mkdir -p "$NEXTCLOUD_ETC_DIR";
+mkdir -p "$NEXTCLOUD_ETC_DIR"
 
 if [[ "x$NEXTCLOUD_DATA_DIR" == "x" ]]; then
-  NEXTCLOUD_DATA_DIR="$RUN_HOME/nextcloud/data";
+  NEXTCLOUD_DATA_DIR="$RUN_HOME/nextcloud/data"
 fi
 if [[ ! -e "$NEXTCLOUD_DATA_DIR" ]]; then
-  mkdir -p "$NEXTCLOUD_DATA_DIR";
+  mkdir -p "$NEXTCLOUD_DATA_DIR"
   chmod 770 -R "$NEXTCLOUD_DATA_DIR"
 fi
 
 if [[ "x$NEXTCLOUD_APPS_DIR" == "x" ]]; then
-  NEXTCLOUD_APPS_DIR="$RUN_HOME/nextcloud/apps";
+  NEXTCLOUD_APPS_DIR="$RUN_HOME/nextcloud/apps"
 fi
-mkdir -p "$NEXTCLOUD_APPS_DIR";
+mkdir -p "$NEXTCLOUD_APPS_DIR"
 
 systemctl --user --all | grep -F container-nextcloud.service
 
@@ -61,13 +61,13 @@ if [[ $? -eq 0 ]]; then
 fi
 
 if [[ "x$NEXTCLOUD_UPDATE" != "x" ]]; then
-  podman image inspect docker.io/nextcloud:latest > /dev/null 2>&1
+  podman image inspect docker.io/nextcloud:latest >/dev/null 2>&1
   if [[ $? -eq 0 ]]; then
-    podman image rm -f docker.io/nextcloud:latest ;
+    podman image rm -f docker.io/nextcloud:latest
   fi
 fi
 
-podman pull docker.io/nextcloud:latest ;
+podman pull docker.io/nextcloud:latest
 
 if [[ "x" == "x$ADMIN_USENAME" ]]; then
   ADMIN_USENAME=owent
@@ -89,16 +89,16 @@ echo "$ADMIN_USENAME $ADMIN_TOKEN" | tee "$RUN_HOME/nextcloud/admin-access.log"
 #     -v theme:/var/www/html/themes/<YOUR_CUSTOM_THEME> \
 #     nextcloud
 
-podman run -d --name nextcloud --security-opt seccomp=unconfined         \
-     -e NEXTCLOUD_TRUSTED_DOMAINS="home-router.x-ha.com local.x-ha.com 127.0.0.1 172.18.1.10" \
-     -e OVERWRITEHOST=home-router.x-ha.com:6883 -e OVERWRITEPROTOCOL=https                \
-     -e NEXTCLOUD_ADMIN_USER=$ADMIN_USENAME -e NEXTCLOUD_ADMIN_PASSWORD=$ADMIN_TOKEN      \
-     -e APACHE_DISABLE_REWRITE_IP=1 -e TRUSTED_PROXIES=0.0.0.0/32                         \
-     --mount type=bind,source=$NEXTCLOUD_ETC_DIR,target=/var/www/html/config              \
-     --mount type=bind,source=$NEXTCLOUD_DATA_DIR,target=/var/www/html/data               \
-     --mount type=bind,source=$NEXTCLOUD_APPS_DIR,target=/var/www/html/custom_apps        \
-     -p $NEXTCLOUD_LISTEN_PORT:80                                                         \
-     docker.io/nextcloud:latest
+podman run -d --name nextcloud --security-opt seccomp=unconfined \
+  -e NEXTCLOUD_TRUSTED_DOMAINS="home-router.x-ha.com local.x-ha.com 127.0.0.1 172.18.1.10" \
+  -e OVERWRITEHOST=home-router.x-ha.com:6883 -e OVERWRITEPROTOCOL=https \
+  -e NEXTCLOUD_ADMIN_USER=$ADMIN_USENAME -e NEXTCLOUD_ADMIN_PASSWORD=$ADMIN_TOKEN \
+  -e APACHE_DISABLE_REWRITE_IP=1 -e TRUSTED_PROXIES=0.0.0.0/32 \
+  --mount type=bind,source=$NEXTCLOUD_ETC_DIR,target=/var/www/html/config \
+  --mount type=bind,source=$NEXTCLOUD_DATA_DIR,target=/var/www/html/data \
+  --mount type=bind,source=$NEXTCLOUD_APPS_DIR,target=/var/www/html/custom_apps \
+  -p $NEXTCLOUD_LISTEN_PORT:80 \
+  docker.io/nextcloud:latest
 # --copy-links
 
 podman exec nextcloud ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime

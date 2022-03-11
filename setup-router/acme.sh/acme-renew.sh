@@ -5,8 +5,8 @@
 
 # curl https://get.acme.sh | sh
 
-DOMAIN_NAME=owent.net ;
-INSTALL_CERT_DIR=/home/router/bitwarden/ssl ;
+DOMAIN_NAME=owent.net
+INSTALL_CERT_DIR=/home/tools/bitwarden/ssl
 REMOTE_DEPLOY_KEY=<path of id_ed25519>
 
 # using a custom port

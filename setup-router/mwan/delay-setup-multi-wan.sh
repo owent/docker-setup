@@ -12,4 +12,4 @@ cd "$(dirname "$(readlink -f "$0")")"
 # Ensure /etc/NetworkManager/dispatcher.d/connectivity-change run /etc/NetworkManager/dispatcher.d/connectivity-change.d/*
 
 nohup bash -c \
-"flock --nonblock -E 0 /run/setup-multi-wan.lock -c \"/bin/bash $PWD/cleanup-multi-wan.sh; sleep 5 || usleep 5000000; /bin/bash $PWD/setup-multi-wan.sh\"" > "$PWD/setup-multi-wan.log" 2>&1 &
+  "flock --nonblock -E 0 /run/setup-multi-wan.lock -c \"/bin/bash $PWD/cleanup-multi-wan.sh; sleep 5 || usleep 5000000; /bin/bash $PWD/setup-multi-wan.sh\"" >"$PWD/setup-multi-wan.log" 2>&1 &

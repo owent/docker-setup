@@ -18,7 +18,7 @@ echo "[$(date "+%F %T")]: $0 $@
 $(ip -4 -o addr)
 -----------
 $(ip -6 -o addr)" | systemd-cat -t router-mwan -p info ;
-' > "$NETWORKMANAGER_DISPATCHER_DIR/$1"
+' >"$NETWORKMANAGER_DISPATCHER_DIR/$1"
     chmod +x "$NETWORKMANAGER_DISPATCHER_DIR/$1"
   fi
 
@@ -26,7 +26,7 @@ $(ip -6 -o addr)" | systemd-cat -t router-mwan -p info ;
 for SCRIPT_FILE in $NETWORKMANAGER_DISPATCHER_DIR/$1.d/* ; do
   bash $SCRIPT_FILE "$@"
 done
-" >> "$NETWORKMANAGER_DISPATCHER_DIR/$1"
+" >>"$NETWORKMANAGER_DISPATCHER_DIR/$1"
   mkdir -p "$NETWORKMANAGER_DISPATCHER_DIR/$1.d/"
 }
 

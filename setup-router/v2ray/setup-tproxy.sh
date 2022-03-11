@@ -22,7 +22,7 @@ else
 fi
 
 ### ==================================== v2ray nftables rules begin ====================================
-### ----------------------------------- /home/router/v2ray/setup-tproxy.sh -----------------------------------
+### ----------------------------------- $ROUTER_HOME/v2ray/setup-tproxy.sh -----------------------------------
 
 ### Setup v2ray xtable rule and policy routing
 ### ip rule { add | del } SELECTOR ACTION

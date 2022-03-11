@@ -13,12 +13,12 @@
 #
 
 if [[ -e "/opt/nftables/sbin" ]]; then
-    export PATH=/opt/nftables/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
+  export PATH=/opt/nftables/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 else
-    export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
+  export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
 # Using journalctl -t router-ppp to see this log
-echo "[$(date "+%F %T")]: $0 $@" | systemd-cat -t router-ppp -p info ;
+echo "[$(date "+%F %T")]: $0 $@" | systemd-cat -t router-ppp -p info
 
-ip -4 route delete 0.0.0.0/0 via $IPREMOTE dev $IFNAME ;
+ip -4 route delete 0.0.0.0/0 via $IPREMOTE dev $IFNAME

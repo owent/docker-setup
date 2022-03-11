@@ -6,10 +6,13 @@ else
   export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
-SCRIPT_DIR="$(cd "$(dirname "$0")"; pwd)"
+SCRIPT_DIR="$(
+  cd "$(dirname "$0")"
+  pwd
+)"
 
 if [[ "x$ROUTER_HOME" == "x" ]]; then
-    source "$SCRIPT_DIR/../configure-router.sh"
+  source "$SCRIPT_DIR/../configure-router.sh"
 fi
 
 if [[ -e "/lib/systemd/system" ]]; then
@@ -68,7 +71,7 @@ echo "
 port=$DNSMASQ_DNS_PORT
 # Redirect to smartdns, which is the fastest but close AAAA address
 server=127.0.0.1#$SMARTDNS_DNS_PORT
-">>/etc/dnsmasq.d/router.conf
+" >>/etc/dnsmasq.d/router.conf
 
 echo '
 # see https://www.dnsperf.com/#!dns-resolvers for DNS ranking
