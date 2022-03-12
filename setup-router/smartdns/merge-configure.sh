@@ -10,6 +10,10 @@ bind-tcp [::]:$SMARTDNS_DNS_PORT" >"$SMARTDNS_ETC_DIR/smartdns.conf"
 
 cat "$SCRIPT_DIR/smartdns.origin.conf" >>"$SMARTDNS_ETC_DIR/smartdns.conf"
 
+if [[ "x$SMARTDNS_APPEND_CONFIGURE" != "x" ]]; then
+  echo "$SMARTDNS_APPEND_CONFIGURE" >>"$SMARTDNS_ETC_DIR/smartdns.conf"
+fi
+
 if [[ "x$GEOIP_GEOSITE_ETC_DIR" != "x" ]] && [[ -e "$GEOIP_GEOSITE_ETC_DIR/smartdns-blacklist.conf" ]]; then
   cat "$GEOIP_GEOSITE_ETC_DIR/smartdns-blacklist.conf" >>"$SMARTDNS_ETC_DIR/smartdns.conf"
 fi
