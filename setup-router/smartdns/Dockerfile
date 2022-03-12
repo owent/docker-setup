@@ -32,6 +32,7 @@ RUN set -ex ;                                                                   
     sed -i -r 's#dl-cdn.alpinelinux.org#mirrors.aliyun.com#g' /etc/apk/repositories ;   \
     apk --no-cache add ca-certificates tzdata ;                                         \
     ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                           \
+    apk --no-cache add bash iproute2 knot-utils bind-tools busybox-extras;              \
     mkdir -p /var/log/smartdns/ ;                                                       \
     chmod +x /usr/local/smartdns/bin/smartdns ;
 
