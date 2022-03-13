@@ -2,19 +2,22 @@
 # docker build --build-arg=GITHUB_TOKEN=$GITHUB_TOKEN --force-rm --tag smartdns -f Dockerfile .
 FROM debian:latest as builder
 
+# We should build from git source because some release do not support separeted ipset rules
+
 RUN set -x;                                  \
-    if [[ "x$GITHUB_TOKEN" == "x" ]]; then   \
+    if [ "x$GITHUB_TOKEN" == "x" ]; then   \
     sed -i.bak -r 's;#?https?://.*/debian-security/?[[:space:]];http://mirrors.aliyun.com/debian-security/ ;g' /etc/apt/sources.list ;  \
     sed -i -r 's;#?https?://.*/debian/?[[:space:]];http://mirrors.aliyun.com/debian/ ;g' /etc/apt/sources.list ;                        \
     fi;                                                                         \
     apt update -y;                                                              \
-    apt install curl unzip -y;                                                  \
-    if [[ "x$GITHUB_TOKEN" != "x" ]]; then GITHUB_TOKEN_ARGS="-H Authorization: token $GITHUB_TOKEN"; fi;                                            \
-    SMARTDNS_LATEST_VERSION=$(curl -L https://api.github.com/repos/pymumu/smartdns/releases/latest | grep -i -o -E 'https://[^"]+\.x86_64-linux-all\.tar.gz' | head -n 1); \
-    curl -k -qL "$SMARTDNS_LATEST_VERSION" -o /tmp/smartdns.x86_64-linux-all.tar.gz;        \
-    cd /usr/local/ ; tar -axvf /tmp/smartdns.x86_64-linux-all.tar.gz ;                      \
+    apt install -y curl unzip bash git git-lfs build-essential g++ libssl-dev musl musl-tools ; \
+    git clone --depth 1 https://github.com/pymumu/smartdns.git ~/smartdns ;     \
+    cd ~/smartdns/package ;                                                     \
+    bash ./build-pkg.sh bash ./build-pkg.sh --platform linux --arch x86-64 --static ; \
+    mv -f smartdns.*.tar.gz /tmp/smartdns.x86_64-linux-all.tar.gz;              \
+    cd /usr/local/ ; tar -axvf /tmp/smartdns.x86_64-linux-all.tar.gz ;          \
     find /usr/local/smartdns -type f ;                                                                                                             \
-    if [[ -e "/var/lib/apt/lists" ]]; then for APT_CACHE in /var/lib/apt/lists/* ; do rm -rf "$APT_CACHE"; done; fi
+    if [ -e "/var/lib/apt/lists" ]; then for APT_CACHE in /var/lib/apt/lists/* ; do rm -rf "$APT_CACHE"; done; fi
 
 FROM docker.io/alpine:latest
 
@@ -25,14 +28,14 @@ COPY --from=builder /usr/local/smartdns/systemd/smartdns.service /usr/local/smar
 COPY --from=builder /usr/local/smartdns/LICENSE                  /usr/local/smartdns/share/
 COPY --from=builder /usr/local/smartdns/ReadMe.md                /usr/local/smartdns/share/
 COPY --from=builder /usr/local/smartdns/ReadMe_en.md             /usr/local/smartdns/share/
-COPY ./smartdns.conf                                             /usr/local/smartdns/etc/
+COPY ./smartdns.origin.conf                                      /usr/local/smartdns/etc/smartdns.conf
 
 # sed -i -r 's#dl-cdn.alpinelinux.org#mirrors.tencent.com#g' /etc/apk/repositories ;    \
 RUN set -ex ;                                                                           \
     sed -i -r 's#dl-cdn.alpinelinux.org#mirrors.aliyun.com#g' /etc/apk/repositories ;   \
     apk --no-cache add ca-certificates tzdata ;                                         \
     ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                           \
-    apk --no-cache add bash iproute2 knot-utils bind-tools busybox-extras;              \
+    apk --no-cache add bash iproute2 knot-utils bind-tools busybox-extras ipset ;       \
     mkdir -p /var/log/smartdns/ ;                                                       \
     chmod +x /usr/local/smartdns/bin/smartdns ;
 
