@@ -5,7 +5,7 @@ FROM debian:latest as builder
 # We should build from git source because some release do not support separeted ipset rules
 
 RUN set -x;                                  \
-    if [ -z "$GITHUB_TOKEN" ]; then          \
+    if [ -z "$GITHUB_TOKEN" ] && [ -z "$GITHUB_ACTION" ]; then          \
     sed -i.bak -r 's;#?https?://.*/debian-security/?[[:space:]];http://mirrors.aliyun.com/debian-security/ ;g' /etc/apt/sources.list ;  \
     sed -i -r 's;#?https?://.*/debian/?[[:space:]];http://mirrors.aliyun.com/debian/ ;g' /etc/apt/sources.list ;                        \
     fi;                                                                         \
@@ -32,7 +32,7 @@ COPY ./smartdns.origin.conf                                      /usr/local/smar
 
 # sed -i -r 's#dl-cdn.alpinelinux.org#mirrors.tencent.com#g' /etc/apk/repositories ;    \
 RUN set -ex ;                                                                           \
-    if [ -z "$GITHUB_TOKEN" ]; then                                                     \
+    if [ -z "$GITHUB_TOKEN" ] && [ -z "$GITHUB_ACTION" ]; then                                                     \
     sed -i -r 's#dl-cdn.alpinelinux.org#mirrors.aliyun.com#g' /etc/apk/repositories ;   \
     fi;                                                                                 \
     apk --no-cache add ca-certificates tzdata ;                                         \
