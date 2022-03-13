@@ -1,5 +1,5 @@
-# podman build --build-arg=GITHUB_TOKEN=$GITHUB_TOKEN --layers --force-rm --tag smartdns -f Dockerfile .
-# docker build --build-arg=GITHUB_TOKEN=$GITHUB_TOKEN --force-rm --tag smartdns -f Dockerfile .
+# podman build --build-arg=GITHUB_TOKEN=$GITHUB_TOKEN --layers --force-rm --tag smartdns -f smartdns.Dockerfile .
+# docker build --build-arg=GITHUB_TOKEN=$GITHUB_TOKEN --force-rm --tag smartdns -f smartdns.Dockerfile .
 FROM debian:latest as builder
 
 # We should build from git source because some release do not support separeted ipset rules
@@ -45,7 +45,8 @@ VOLUME /var/log/smartdns
 
 CMD ["smartdns", "-p", "/var/run/smartdns.pid", "-c", "/usr/local/smartdns/etc/smartdns.conf", "-f"]
 
-# podman run -d --name smartdns -v $SMARTDNS_ETC_DIR:/usr/local/smartdns/etc -v /data/logs/smartdns:/var/log/smartdns -p 6053:6053/tcp -p 6053:6053/udp docker.io/owt5008137/smartdns:latest
+# podman run -d --name smartdns -v $SMARTDNS_ETC_DIR:/usr/local/smartdns/etc -v /data/logs/smartdns:/var/log/smartdns -p 53:53/tcp -p 53:53/udp docker.io/owt5008137/smartdns:latest
+# podman run -d --name smartdns -v $SMARTDNS_ETC_DIR:/usr/local/smartdns/etc -v /data/logs/smartdns:/var/log/smartdns --cap-add=NET_ADMIN --network=host docker.io/owt5008137/smartdns:latest
 # podman generate systemd --name smartdns | tee $SMARTDNS_ETC_DIR/smartdns.service
 # systemctl --user enable $SMARTDNS_ETC_DIR/smartdns.service
 # systemctl --user  daemon-reload
