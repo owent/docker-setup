@@ -15,13 +15,12 @@ if [[ "x$V2RAY_SSL_DIR" == "x" ]] && [[ -e "/home/website/ssl/" ]]; then
 fi
 
 if [[ "x$RUN_USER" == "x" ]]; then
-  RUN_USER=tools
+  RUN_USER=$(id -un)
 fi
 RUN_HOME=$(cat /etc/passwd | awk "BEGIN{FS=\":\"} \$1 == \"$RUN_USER\" { print \$6 }")
 
 if [[ "x$RUN_HOME" == "x" ]]; then
   RUN_HOME="$HOME"
-  RUN_USER=$(whoami)
 fi
 
 if [[ "x$V2RAY_ETC_DIR" == "x" ]]; then
@@ -39,7 +38,7 @@ mkdir -p "$V2RAY_SSL_DIR"
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-if [[ "root" == "$(whoami)" ]]; then
+if [[ "root" == "$(id -un)" ]]; then
   SYSTEMD_SERVICE_DIR=/lib/systemd/system
 else
   SYSTEMD_SERVICE_DIR="$HOME/.config/systemd/user"

@@ -6,7 +6,7 @@ else
   export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
-if [[ "root" == "$(whoami)" ]]; then
+if [[ "root" == "$(id -un)" ]]; then
   SYSTEMD_SERVICE_DIR=/lib/systemd/system
 else
   SYSTEMD_SERVICE_DIR="$HOME/.config/systemd/user"

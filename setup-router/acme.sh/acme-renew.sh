@@ -19,7 +19,7 @@ REMOTE_DEPLOY_KEY=<path of id_ed25519>
 # firewall-cmd --add-port=tcp/$ACME_SH_TLS_PROT/tcp;
 # firewall-cmd --reload;
 
-if [[ "root" == "$(whoami)" ]]; then
+if [[ "root" == "$(id -un)" ]]; then
   echo "$0 should not be run with root"
   exit 1
 fi

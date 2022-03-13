@@ -4,7 +4,7 @@
 #     DenyUsers tools
 #     DenyGroups tools
 
-if [ -e "/opt/nftables/sbin" ]; then
+if [[ -e "/opt/nftables/sbin" ]]; then
   export PATH=/opt/nftables/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 else
   export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
@@ -20,18 +20,20 @@ if [[ "x$ROUTER_HOME" == "x" ]]; then
 fi
 
 if [[ "x$RUN_USER" == "x" ]]; then
-  RUN_USER=tools
+  RUN_USER=$(id -un)
 fi
 RUN_HOME=$(cat /etc/passwd | awk "BEGIN{FS=\":\"} \$1 == \"$RUN_USER\" { print \$6 }")
 
 if [[ "x$RUN_HOME" == "x" ]]; then
   RUN_HOME="$HOME"
-  RUN_USER=$(whoami)
 fi
 
-if [[ "root" == "$(whoami)" ]]; then
+# root and NET_ADMIN is required to access ipset and nftables
+if [[ "root" == "$(id -un)" ]]; then
+  SMARTDNS_NETWORK_OPTIONS=(--cap-add=NET_ADMIN --network=host)
   SYSTEMD_SERVICE_DIR=/lib/systemd/system
 else
+  SMARTDNS_NETWORK_OPTIONS=(-p $SMARTDNS_DNS_PORT:$SMARTDNS_DNS_PORT/tcp -p $SMARTDNS_DNS_PORT:$SMARTDNS_DNS_PORT/udp)
   SYSTEMD_SERVICE_DIR="$HOME/.config/systemd/user"
   mkdir -p "$SYSTEMD_SERVICE_DIR"
 fi
@@ -88,8 +90,7 @@ bash "$SCRIPT_DIR/merge-configure.sh"
 podman run -d --name smartdns \
   --mount type=bind,source=$SMARTDNS_ETC_DIR,target=/usr/local/smartdns/etc \
   --mount type=bind,source=$SMARTDNS_LOG_DIR,target=/var/log/smartdns \
-  -p $SMARTDNS_DNS_PORT:$SMARTDNS_DNS_PORT/tcp \
-  -p $SMARTDNS_DNS_PORT:$SMARTDNS_DNS_PORT/udp \
+  ${SMARTDNS_NETWORK_OPTIONS[@]} \
   docker.io/owt5008137/smartdns:latest
 
 podman generate systemd smartdns | tee "$SYSTEMD_SERVICE_DIR/smartdns.service"

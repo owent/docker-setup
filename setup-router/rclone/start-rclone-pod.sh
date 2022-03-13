@@ -9,7 +9,7 @@ fi
 export XDG_RUNTIME_DIR="/run/user/$UID"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
 
-RUN_USER=$(whoami)
+RUN_USER=$(id -un)
 # sudo loginctl enable-linger $RUN_USER
 
 if [[ "x$RUN_USER" == "x" ]] || [[ "x$RUN_USER" == "xroot" ]]; then
