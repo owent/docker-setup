@@ -104,7 +104,7 @@ if [[ $? -eq 0 ]]; then
   if [[ -e "$GEOIP_GEOSITE_ETC_DIR/smartdns-blacklist.conf" ]] && [[ -e "$ROUTER_HOME/smartdns/merge-configure.sh" ]]; then
     bash "$ROUTER_HOME/smartdns/merge-configure.sh"
     IPSET_FLUSH_GFW_LIST=1
-    su -c 'env DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$UID/bus systemctl restart --user smartdns' - $RUN_USER
+    systemctl restart smartdns
   fi
 
   if [[ $IPSET_FLUSH_GFW_LIST -ne 0 ]]; then

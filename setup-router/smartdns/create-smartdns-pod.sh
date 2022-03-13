@@ -30,7 +30,7 @@ fi
 
 # root and NET_ADMIN is required to access ipset and nftables
 if [[ "root" == "$(id -un)" ]]; then
-  SMARTDNS_NETWORK_OPTIONS=(--cap-add=NET_ADMIN --network=host)
+  SMARTDNS_NETWORK_OPTIONS=(--cap-add=NET_ADMIN --cap-add=NET_RAW --network=host)
   SYSTEMD_SERVICE_DIR=/lib/systemd/system
 else
   SMARTDNS_NETWORK_OPTIONS=(-p $SMARTDNS_DNS_PORT:$SMARTDNS_DNS_PORT/tcp -p $SMARTDNS_DNS_PORT:$SMARTDNS_DNS_PORT/udp)
@@ -88,6 +88,7 @@ fi
 bash "$SCRIPT_DIR/merge-configure.sh"
 
 podman run -d --name smartdns \
+  --security-opt seccomp=unconfined \
   --mount type=bind,source=$SMARTDNS_ETC_DIR,target=/usr/local/smartdns/etc \
   --mount type=bind,source=$SMARTDNS_LOG_DIR,target=/var/log/smartdns \
   ${SMARTDNS_NETWORK_OPTIONS[@]} \

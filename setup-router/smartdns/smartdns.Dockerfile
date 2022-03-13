@@ -1,25 +1,25 @@
-# podman build --build-arg=GITHUB_TOKEN=$GITHUB_TOKEN --layers --force-rm --tag smartdns -f smartdns.Dockerfile .
-# docker build --build-arg=GITHUB_TOKEN=$GITHUB_TOKEN --force-rm --tag smartdns -f smartdns.Dockerfile .
+# podman build --build-arg GITHUB_TOKEN=$GITHUB_TOKEN --layers --force-rm --tag smartdns -f smartdns.Dockerfile .
+# docker build --build-arg GITHUB_TOKEN=$GITHUB_TOKEN --force-rm --tag smartdns -f smartdns.Dockerfile .
 FROM debian:latest as builder
 
 # We should build from git source because some release do not support separeted ipset rules
 
 RUN set -x;                                  \
-    if [ "x$GITHUB_TOKEN" == "x" ]; then   \
+    if [ -z "$GITHUB_TOKEN" ]; then          \
     sed -i.bak -r 's;#?https?://.*/debian-security/?[[:space:]];http://mirrors.aliyun.com/debian-security/ ;g' /etc/apt/sources.list ;  \
     sed -i -r 's;#?https?://.*/debian/?[[:space:]];http://mirrors.aliyun.com/debian/ ;g' /etc/apt/sources.list ;                        \
     fi;                                                                         \
-    apt update -y ;                                                             \
-    apt install -y curl unzip bash git git-lfs build-essential g++ libssl-dev ; \
+    apt update -y;                                                              \
+    apt install -y curl unzip bash git git-lfs build-essential g++ libssl-dev musl musl-tools ; \
     git clone --depth 1 https://github.com/pymumu/smartdns.git ~/smartdns ;     \
     cd ~/smartdns/package ;                                                     \
-    bash ./build-pkg.sh bash ./build-pkg.sh --platform linux --arch x86-64 ;    \
+    bash ./build-pkg.sh bash ./build-pkg.sh --platform linux --arch x86-64 --static ; \
     mv -f smartdns.*.tar.gz /tmp/smartdns.x86_64-linux-all.tar.gz;              \
     cd /usr/local/ ; tar -axvf /tmp/smartdns.x86_64-linux-all.tar.gz ;          \
     find /usr/local/smartdns -type f ;                                                                                                             \
-    for APT_CACHE in /var/lib/apt/lists/* ; do rm -rf "$APT_CACHE"; done;
+    if [ -e "/var/lib/apt/lists" ]; then for APT_CACHE in /var/lib/apt/lists/* ; do rm -rf "$APT_CACHE"; done; fi
 
-FROM debian:latest
+FROM docker.io/alpine:latest
 
 LABEL maintainer "OWenT <admin@owent.net>"
 
@@ -32,16 +32,14 @@ COPY ./smartdns.origin.conf                                      /usr/local/smar
 
 # sed -i -r 's#dl-cdn.alpinelinux.org#mirrors.tencent.com#g' /etc/apk/repositories ;    \
 RUN set -ex ;                                                                           \
-    if [ "x$GITHUB_TOKEN" == "x" ]; then   \
-    sed -i.bak -r 's;#?https?://.*/debian-security/?[[:space:]];http://mirrors.aliyun.com/debian-security/ ;g' /etc/apt/sources.list ;  \
-    sed -i -r 's;#?https?://.*/debian/?[[:space:]];http://mirrors.aliyun.com/debian/ ;g' /etc/apt/sources.list ;                        \
-    fi; \
-    apt update -y ;                                                             \
-    apt install -y ca-certificates tzdata bash iproute2 knot-dnsutils dnsutils procps ipset nftables; \
+    if [ -z "$GITHUB_TOKEN" ]; then                                                     \
+    sed -i -r 's#dl-cdn.alpinelinux.org#mirrors.aliyun.com#g' /etc/apk/repositories ;   \
+    fi;                                                                                 \
+    apk --no-cache add ca-certificates tzdata ;                                         \
     ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                           \
+    apk --no-cache add bash iproute2 knot-utils bind-tools busybox-extras ipset ;       \
     mkdir -p /var/log/smartdns/ ;                                                       \
-    chmod +x /usr/local/smartdns/bin/smartdns ;                                         \
-    for APT_CACHE in /var/lib/apt/lists/* ; do rm -rf "$APT_CACHE"; done;
+    chmod +x /usr/local/smartdns/bin/smartdns ;
 
 ENV PATH /usr/local/smartdns/bin/:$PATH
 

@@ -162,7 +162,7 @@ curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geo
 if [[ $? -eq 0 ]] && [[ -e "$ROUTER_HOME/smartdns/merge-configure.sh" ]]; then
   bash "$ROUTER_HOME/smartdns/merge-configure.sh"
   IPSET_FLUSH_GFW_LIST=1
-  su -c 'env DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$UID/bus systemctl restart --user smartdns' - $RUN_USER
+  systemctl restart smartdns
 fi
 
 if [[ $IPSET_FLUSH_GFW_LIST -ne 0 ]]; then
