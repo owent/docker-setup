@@ -169,7 +169,7 @@ nameserver 2606:4700:4700::1001
 # server=2620:fe::fe
 # server=2620:fe::9
 ## DNSPod
-2402:4e00::
+server=2402:4e00::
 ## aliyun
 server=2400:3200::1
 server=2400:3200:baba::1
@@ -206,6 +206,7 @@ dhcp-host=18:31:BF:A4:F0:38,172.18.2.4
 # https://www.iana.org/assignments/bootp-dhcp-parameters/bootp-dhcp-parameters.xhtml
 # https://thekelleys.org.uk/gitweb/?p=dnsmasq.git;a=blob_plain;f=src/dhcp-common.c
 dhcp-option=option:router,172.18.1.10
+dhcp-option=option:dns-server,172.18.1.10
 dhcp-option=option:netbios-ns,0.0.0.0
 " >>/etc/dnsmasq.d/router.conf
 
