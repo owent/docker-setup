@@ -28,35 +28,30 @@ if [[ "x$RUN_HOME" == "x" ]]; then
   RUN_HOME="$HOME"
 fi
 
-if [[ "x$SMARTDNS_DNS_PORT" == "x" ]]; then
-  SMARTDNS_DNS_PORT=53
+if [[ "x$COREDNS_DNS_PORT" == "x" ]]; then
+  COREDNS_DNS_PORT=53
 fi
 
 # root and NET_ADMIN is required to access ipset and nftables
 if [[ "root" == "$(id -un)" ]]; then
-  SMARTDNS_NETWORK_OPTIONS=(--cap-add=NET_ADMIN --cap-add=NET_RAW --network=host)
+  COREDNS_NETWORK_OPTIONS=(--cap-add=NET_ADMIN --cap-add=NET_RAW --network=host)
   SYSTEMD_SERVICE_DIR=/lib/systemd/system
 else
-  SMARTDNS_NETWORK_OPTIONS=(-p $SMARTDNS_DNS_PORT:$SMARTDNS_DNS_PORT/tcp -p $SMARTDNS_DNS_PORT:$SMARTDNS_DNS_PORT/udp)
+  COREDNS_NETWORK_OPTIONS=(-p $COREDNS_DNS_PORT:$COREDNS_DNS_PORT/tcp -p $COREDNS_DNS_PORT:$COREDNS_DNS_PORT/udp)
   SYSTEMD_SERVICE_DIR="$HOME/.config/systemd/user"
   mkdir -p "$SYSTEMD_SERVICE_DIR"
 fi
 
-if [[ "x$SMARTDNS_ETC_DIR" == "x" ]]; then
-  export SMARTDNS_ETC_DIR="$RUN_HOME/smartdns/etc"
+if [[ "x$COREDNS_ETC_DIR" == "x" ]]; then
+  export COREDNS_ETC_DIR="$RUN_HOME/coredns/etc"
 fi
-mkdir -p "$SMARTDNS_ETC_DIR"
-
-if [[ "x$SMARTDNS_LOG_DIR" == "x" ]]; then
-  export SMARTDNS_LOG_DIR="$RUN_HOME/smartdns/log"
-fi
-mkdir -p "$SMARTDNS_LOG_DIR"
+mkdir -p "$COREDNS_ETC_DIR"
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
-  systemctl --all | grep -F smartdns.service >/dev/null 2>&1
+  systemctl --all | grep -F coredns.service >/dev/null 2>&1
   if [ $? -eq 0 ]; then
-    systemctl stop smartdns.service
-    systemctl disable smartdns.service
+    systemctl stop coredns.service
+    systemctl disable coredns.service
   fi
 else
   export XDG_RUNTIME_DIR="/run/user/$UID"
@@ -65,43 +60,44 @@ else
   # Maybe need run from host: loginctl enable-linger tools
   # see https://wiki.archlinux.org/index.php/Systemd/User
   # sudo loginctl enable-linger $RUN_USER
-  systemctl --user --all | grep -F smartdns.service >/dev/null 2>&1
+  systemctl --user --all | grep -F coredns.service >/dev/null 2>&1
   if [ $? -eq 0 ]; then
-    systemctl --user stop smartdns.service
-    systemctl --user disable smartdns.service
+    systemctl --user stop coredns.service
+    systemctl --user disable coredns.service
   fi
 fi
 
-podman container inspect smartdns >/dev/null 2>&1
+podman container inspect coredns >/dev/null 2>&1
 if [[ $? -eq 0 ]]; then
-  podman stop smartdns
-  podman rm -f smartdns
+  podman stop coredns
+  podman rm -f coredns
 fi
 
 if [[ "x$V2RAY_UPDATE" != "x" ]]; then
-  podman image inspect docker.io/owt5008137/smartdns:latest >/dev/null 2>&1
+  podman image inspect docker.io/coredns/coredns:latest >/dev/null 2>&1
   if [[ $? -eq 0 ]]; then
-    podman image rm -f docker.io/owt5008137/smartdns:latest
+    podman image rm -f docker.io/coredns/coredns:latest
   fi
 fi
 
 bash "$SCRIPT_DIR/merge-configure.sh"
 
-podman run -d --name smartdns \
+podman run -d --name coredns \
   --security-opt seccomp=unconfined \
-  --mount type=bind,source=$SMARTDNS_ETC_DIR,target=/usr/local/smartdns/etc \
-  --mount type=bind,source=$SMARTDNS_LOG_DIR,target=/var/log/smartdns \
-  ${SMARTDNS_NETWORK_OPTIONS[@]} \
-  docker.io/owt5008137/smartdns:latest
+  --mount type=bind,source=$COREDNS_ETC_DIR,target=/etc/coredns/ \
+  ${COREDNS_NETWORK_OPTIONS[@]} \
+  docker.io/coredns/coredns:latest \
+  -dns.port=$COREDNS_DNS_PORT \
+  -conf /etc/coredns/Corefile
 
-podman generate systemd smartdns | tee "$SYSTEMD_SERVICE_DIR/smartdns.service"
+podman generate systemd coredns | tee "$SYSTEMD_SERVICE_DIR/coredns.service"
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
   systemctl daemon-reload
-  systemctl enable smartdns.service
-  systemctl start smartdns.service
+  systemctl enable coredns.service
+  systemctl start coredns.service
 else
   systemctl --user daemon-reload
-  systemctl --user enable "$SYSTEMD_SERVICE_DIR/smartdns.service"
-  systemctl --user start smartdns.service
+  systemctl --user enable "$SYSTEMD_SERVICE_DIR/coredns.service"
+  systemctl --user start coredns.service
 fi

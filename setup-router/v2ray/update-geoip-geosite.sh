@@ -23,24 +23,22 @@ fi
 #   @see https://bbs.archlinux.org/viewtopic.php?id=251410
 #   @see https://github.com/containers/libpod/issues/4522
 
+if [[ -e "all.geo.tar.gz.download" ]]; then
+  rm -f all.geo.tar.gz.download
+fi
+curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/all.tar.gz" -o all.geo.tar.gz.download
+if [[ $? -eq 0 ]]; then
+  mv -f all.geo.tar.gz.download all.geo.tar.gz
+  tar -axvf all.geo.tar.gz
+else
+  exit 1
+fi
+
 podman container inspect v2ray >/dev/null 2>&1
 if [[ $? -eq 0 ]]; then
 
-  if [[ -e "geoip.dat" ]]; then
-    rm -f "geoip.dat"
-  fi
-  curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/geoip.dat" -o geoip.dat
-  if [[ $? -eq 0 ]]; then
-    podman cp geoip.dat v2ray:/usr/local/v2ray/bin/geoip.dat
-  fi
-
-  if [[ -e "geosite.dat" ]]; then
-    rm -f "geosite.dat"
-  fi
-  curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/geosite.dat" -o geosite.dat
-  if [[ $? -eq 0 ]]; then
-    podman cp geosite.dat v2ray:/usr/local/v2ray/bin/geosite.dat
-  fi
+  podman cp geoip.dat v2ray:/usr/local/v2ray/bin/geoip.dat
+  podman cp geosite.dat v2ray:/usr/local/v2ray/bin/geosite.dat
 
   systemctl disable v2ray
   systemctl stop v2ray
@@ -51,8 +49,7 @@ else
   $ROUTER_HOME/v2ray/create-v2ray-pod.sh
 fi
 
-curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/ipv4_cn.ipset" -o ipv4_cn.ipset
-if [[ $? -eq 0 ]]; then
+if [[ -e "ipv4_cn.ipset" ]]; then
   # ipset
   ipset list GEOIP_IPV4_CN >/dev/null 2>&1
   if [[ $? -eq 0 ]]; then
@@ -75,8 +72,7 @@ if [[ $? -eq 0 ]]; then
   # cat ipv4_cn.ipset | awk '{print $NF}' | xargs -r -I IPADDR nft add element ip v2ray GEOIP_CN { IPADDR } ;
 fi
 
-curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/ipv4_hk.ipset" -o ipv4_hk.ipset
-if [[ $? -eq 0 ]]; then
+if [[ -e "ipv4_hk.ipset" ]]; then
   # ipset
   ipset list GEOIP_IPV4_HK >/dev/null 2>&1
   if [[ $? -eq 0 ]]; then
@@ -99,8 +95,7 @@ if [[ $? -eq 0 ]]; then
   # cat ipv4_cn.ipset | awk '{print $NF}' | xargs -r -I IPADDR nft add element ip v2ray GEOIP_HK { IPADDR } ;
 fi
 
-curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/ipv6_cn.ipset" -o ipv6_cn.ipset
-if [[ $? -eq 0 ]]; then
+if [[ -e "ipv6_cn.ipset" ]]; then
   # ipset
   ipset list GEOIP_IPV6_CN >/dev/null 2>&1
   if [[ $? -eq 0 ]]; then
@@ -123,8 +118,7 @@ if [[ $? -eq 0 ]]; then
   # cat ipv4_cn.ipset | awk '{print $NF}' | xargs -r -I IPADDR nft add element ip6 v2ray GEOIP_CN { IPADDR } ;
 fi
 
-curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/ipv6_hk.ipset" -o ipv6_hk.ipset
-if [[ $? -eq 0 ]]; then
+if [[ -e "ipv6_hk.ipset" ]]; then
   # ipset
   ipset list GEOIP_IPV6_HK >/dev/null 2>&1
   if [[ $? -eq 0 ]]; then
@@ -149,8 +143,7 @@ if [[ $? -eq 0 ]]; then
 fi
 
 IPSET_FLUSH_GFW_LIST=0
-curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/dnsmasq-blacklist.conf" -o dnsmasq-blacklist.conf
-if [[ $? -eq 0 ]]; then
+if [[ -e "dnsmasq-blacklist.conf" ]]; then
   # ipset
   cp -f dnsmasq-blacklist.conf /etc/dnsmasq.d/10-dnsmasq-blacklist.router.conf
   # sed -i -E 's;/(1.1.1.1|8.8.8.8)#53;/127.0.0.1#6053;g' /etc/dnsmasq.d/10-dnsmasq-blacklist.router.conf # local smartdns
@@ -158,11 +151,16 @@ if [[ $? -eq 0 ]]; then
   systemctl restart dnsmasq
 fi
 
-curl -k -L --retry 10 --retry-max-time 1800 "https://github.com/owent/update-geoip-geosite/releases/download/latest/smartdns-blacklist.conf" -o smartdns-blacklist.conf
-if [[ $? -eq 0 ]] && [[ -e "$ROUTER_HOME/smartdns/merge-configure.sh" ]]; then
+if [[ -e "smartdns-blacklist.conf" ]] && [[ -e "$ROUTER_HOME/smartdns/merge-configure.sh" ]]; then
   bash "$ROUTER_HOME/smartdns/merge-configure.sh"
   IPSET_FLUSH_GFW_LIST=1
   systemctl restart smartdns
+fi
+
+if [[ -e "coredns-blacklist.conf" ]] && [[ -e "$ROUTER_HOME/coredns/merge-configure.sh" ]]; then
+  sudo -u $RUN_USER bash "$ROUTER_HOME/coredns/merge-configure.sh"
+  # IPSET_FLUSH_GFW_LIST=1
+  su -c 'env DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$UID/bus systemctl restart --user coredns' - $RUN_USER
 fi
 
 if [[ $IPSET_FLUSH_GFW_LIST -ne 0 ]]; then

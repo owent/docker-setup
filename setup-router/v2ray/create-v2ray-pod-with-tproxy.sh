@@ -106,6 +106,11 @@ if [[ $? -eq 0 ]]; then
     IPSET_FLUSH_GFW_LIST=1
     systemctl restart smartdns
   fi
+  if [[ -e "$GEOIP_GEOSITE_ETC_DIR/coredns-blacklist.conf" ]] && [[ -e "$ROUTER_HOME/coredns/merge-configure.sh" ]]; then
+    sudo -u $RUN_USER bash "$ROUTER_HOME/coredns/merge-configure.sh"
+    # IPSET_FLUSH_GFW_LIST=1
+    su -c 'env DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$UID/bus systemctl restart --user coredns' - $RUN_USER
+  fi
 
   if [[ $IPSET_FLUSH_GFW_LIST -ne 0 ]]; then
     ipset list DNSMASQ_GFW_IPV4 >/dev/null 2>&1

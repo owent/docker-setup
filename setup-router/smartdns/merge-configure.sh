@@ -5,6 +5,11 @@ SCRIPT_DIR="$(
   pwd
 )"
 
+if [[ "x$SMARTDNS_ETC_DIR" == "x" ]]; then
+  export SMARTDNS_ETC_DIR="$RUN_HOME/smartdns/etc"
+fi
+mkdir -p "$SMARTDNS_ETC_DIR"
+
 echo "bind [::]:$SMARTDNS_DNS_PORT
 bind-tcp [::]:$SMARTDNS_DNS_PORT" >"$SMARTDNS_ETC_DIR/smartdns.conf"
 
