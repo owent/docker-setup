@@ -17,4 +17,6 @@ export COREDNS_DNS_PORT=53
 # Use radvd and ndp and disable NAT6
 export NAT_SETUP_SKIP_IPV6=1
 
+export NEXTCLOUD_DATA_DIR=/data/samba/nextcloud
+
 "$@"
