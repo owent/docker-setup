@@ -310,8 +310,7 @@ function mwan_setup_policy() {
         # By hash fwmark: 0x100
         if [[ $MWAN_SUM_WEIGHT -gt $MWAN_CURRENT_SUM_WEIGHT ]]; then
           # nft add rule inet mwan POLICY_MARK meta mark and 0xff00 == 0x0 symhash mod $MWAN_SUM_WEIGHT "<" $MWAN_CURRENT_SUM_WEIGHT meta mark set meta mark and 0xffff00ff xor $CURRENT_MWAN_FWMARK "return"
-          nft add rule inet mwan POLICY_MARK meta mark and 0xff00 == 0x0 jhash ip daddr mod $MWAN_SUM_WEIGHT "<" $MWAN_CURRENT_SUM_WEIGHT meta mark set meta mark and 0xffff00ff xor $CURRENT_MWAN_FWMARK "return"
-          nft add rule inet mwan POLICY_MARK meta mark and 0xff00 == 0x0 jhash ip6 daddr mod $MWAN_SUM_WEIGHT "<" $MWAN_CURRENT_SUM_WEIGHT meta mark set meta mark and 0xffff00ff xor $CURRENT_MWAN_FWMARK "return"
+          nft add rule inet mwan POLICY_MARK meta mark and 0xff00 == 0x0 jhash $MWAN_NFTABLE_IPTYPE_PARAM daddr mod $MWAN_SUM_WEIGHT "<" $MWAN_CURRENT_SUM_WEIGHT meta mark set meta mark and 0xffff00ff xor $CURRENT_MWAN_FWMARK "return"
         else
           nft add rule inet mwan POLICY_MARK meta mark and 0xff00 == 0x0 meta mark set meta mark and 0xffff00ff xor $CURRENT_MWAN_FWMARK "return"
         fi
