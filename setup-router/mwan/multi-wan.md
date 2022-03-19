@@ -54,9 +54,9 @@ table inet mwan {
     meta mark & 0x0000ff00 != 0x00000000 return
     ip daddr { 127.0.0.1, 224.0.0.0/4, 255.255.255.255 } return
     ip daddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } return
-    ip daddr { 119.29.29.29, 180.76.76.76, 223.5.5.5, 223.6.6.6 } return
+    ip daddr { 119.29.29.29, 180.76.76.76, 223.5.5.5, 223.6.6.6, 1.12.12.12, 120.53.53.53, 1.1.1.1, 1.0.0.1, 8.8.8.8, 8.8.4.4 } return
     ip6 daddr { ::1, fc00::/7, fe80::/10, ff00::-ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff } return
-    ip6 daddr { 2400:3200::1, 2400:3200:baba::1, 2400:da00::6666 } return
+    ip6 daddr { 2400:3200::1, 2400:3200:baba::1, 2400:da00::6666, 2402:4e00::, 2606:4700:4700::1111, 2606:4700:4700::1001, 2606:4700:4700::1111, 2606:4700:4700::1001 } return
     meta mark & 0x0000ff00 == 0x00000000 ip saddr 192.168.1.3 meta mark set meta mark | 0x0000ff00
     meta mark & 0x0000ff00 == 0x00000000 ip saddr 100.65.1.219 meta mark set meta mark | 0x0000ff00
     meta mark & 0x0000ff00 == 0x00000000 jump POLICY_MARK

@@ -13,6 +13,7 @@ export SMARTDNS_LOG_DIR=/data/logs/smartdns
 export SMARTDNS_APPEND_CONFIGURE=""
 
 export COREDNS_DNS_PORT=53
+# export COREDNS_LOG_DIR=/data/logs/coredns
 
 # Use radvd and ndp and disable NAT6
 export NAT_SETUP_SKIP_IPV6=1

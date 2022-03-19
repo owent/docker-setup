@@ -47,6 +47,11 @@ if [[ "x$COREDNS_ETC_DIR" == "x" ]]; then
 fi
 mkdir -p "$COREDNS_ETC_DIR"
 
+if [[ "x$COREDNS_LOG_DIR" == "x" ]]; then
+  export COREDNS_LOG_DIR="$RUN_HOME/coredns/log"
+fi
+mkdir -p "$COREDNS_LOG_DIR"
+
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
   systemctl --all | grep -F coredns.service >/dev/null 2>&1
   if [ $? -eq 0 ]; then
@@ -85,10 +90,12 @@ bash "$SCRIPT_DIR/merge-configure.sh"
 podman run -d --name coredns \
   --security-opt seccomp=unconfined \
   --mount type=bind,source=$COREDNS_ETC_DIR,target=/etc/coredns/ \
+  --mount type=bind,source=$COREDNS_LOG_DIR,target=/var/log/coredns/ \
   ${COREDNS_NETWORK_OPTIONS[@]} \
   docker.io/coredns/coredns:latest \
   -dns.port=$COREDNS_DNS_PORT \
-  -conf /etc/coredns/Corefile
+  -conf /etc/coredns/Corefile \
+  -log_dir /var/log/coredns
 
 podman generate systemd coredns | tee "$SYSTEMD_SERVICE_DIR/coredns.service"
 

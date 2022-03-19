@@ -71,10 +71,17 @@ done
 # ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 223.5.5.5/32 -j RETURN
 # ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 223.6.6.6/32 -j RETURN
 # ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 180.76.76.76/32 -j RETURN
+# ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 1.12.12.12/32 -j RETURN
+# ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 120.53.53.53/32 -j RETURN
+# ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 1.1.1.1/32 -j RETURN
+# ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 1.0.0.1/32 -j RETURN
 # if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
 #   ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst 2400:3200::1/128 -j RETURN
 #   ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst 2400:3200:baba::1/128 -j RETURN
 #   ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst 2400:da00::6666/128 -j RETURN
+#   ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst 2402:4e00::/128 -j RETURN
+#   ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst 2606:4700:4700::1111/128 -j RETURN
+#   ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst 2606:4700:4700::1001/128 -j RETURN
 # fi
 ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-proto udp --ip-dport 53 -j RETURN
 ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-proto tcp --ip-dport 53 -j RETURN
