@@ -25,6 +25,7 @@ source "$SCRIPT_DIR/setup-multi-wan-conf.sh"
 #     require kernel module: nft_nat, nft_chain_nat, xt_nat, nf_nat_ftp, nf_nat_tftp
 # Netfilter: https://en.wikipedia.org/wiki/Netfilter
 #            http://inai.de/images/nf-packet-flow.svg
+# Policy Routing: See RPDB in https://www.man7.org/linux/man-pages/man8/ip-rule.8.html
 # Monitor: nft monitor
 #
 # See https://openwrt.org/docs/guide-user/network/wan/multiwan/mwan3#overview_of_how_routing_with_mwan3_works

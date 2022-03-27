@@ -14,6 +14,7 @@ set -x
 #    ipv6 <prefix> <bits> => ipv6 2407:c380:: 32
 # Netfilter: https://en.wikipedia.org/wiki/Netfilter
 #            http://inai.de/images/nf-packet-flow.svg
+# Policy Routing: See RPDB in https://www.man7.org/linux/man-pages/man8/ip-rule.8.html
 
 if [[ -e "/opt/nftables/sbin" ]]; then
   export PATH=/opt/nftables/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
@@ -27,7 +28,7 @@ fi
 ### Setup v2ray xtable rule and policy routing
 ### ip rule { add | del } SELECTOR ACTION
 ### default table/rule-> local(ID: 255)/Priority: 0 , main(ID: 254)/Priority: 32766 , default(ID: 253)/Priority: 32766
-### 策略路由(占用mark的后8位):
+### 策略路由(占用mark的后8位,RPDB变化均会触发重路由):
 ###   OUTPUT 链约定    : 判定需要重路由设置 设置 fwmark = 0x0e/0x0f (00001110)
 ###   PREROUTING链约定 : 跳过tproxy fwmark = 0x70/0x70 (01110000)
 ###   所有 fwmark = 0x0e/0x0f 的包走 table 100
@@ -255,7 +256,7 @@ iptables -t mangle -A V2RAY_MASK -d 119.29.29.29/32,223.5.5.5/32,223.6.6.6/32,18
 iptables -t mangle -A V2RAY_MASK -m set --match-set V2RAY_BLACKLIST_IPV4 dst -j RETURN
 iptables -t mangle -A V2RAY_MASK -m set --match-set GEOIP_IPV4_CN dst -j RETURN
 # iptables -t mangle -A V2RAY_MASK -m set --match-set GEOIP_IPV4_HK dst -j RETURN
-# iptables -t mangle -A V2RAY_MASK -m set --match-set DNSMASQ_GFW_IPV4 dst -j RETURN
+# iptables -t mangle -A V2RAY_MASK -m set ! --match-set DNSMASQ_GFW_IPV4 dst -j RETURN
 
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
   # iptables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_DEBUG_LOG_IGNORE_PORT -j TRACE
@@ -408,7 +409,7 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   ip6tables -t mangle -A V2RAY_MASK -m set --match-set V2RAY_BLACKLIST_IPV6 dst -j RETURN
   ip6tables -t mangle -A V2RAY_MASK -m set --match-set GEOIP_IPV6_CN dst -j RETURN
   # ip6tables -t mangle -A V2RAY_MASK -m set --match-set GEOIP_IPV6_HK dst -j RETURN
-  # ip6tables -t mangle -A V2RAY_MASK -m set --match-set DNSMASQ_GFW_IPV6 dst -j RETURN
+  # ip6tables -t mangle -A V2RAY_MASK -m set ! --match-set DNSMASQ_GFW_IPV6 dst -j RETURN
 
   if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
     # ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_DEBUG_LOG_IGNORE_PORT -j TRACE

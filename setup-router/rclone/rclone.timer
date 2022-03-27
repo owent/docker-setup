@@ -4,9 +4,9 @@ Requires=rclone.service
 After=network-online.target
 
 [Timer]
-OnCalendar=*-*-* 03:17:00
-AccuracySec=1h
-RandomizedDelaySec=6000
+OnCalendar=*-*-* 03:17:23
+AccuracySec=20m
+RandomizedDelaySec=300
 
 [Install]
 WantedBy=timers.target

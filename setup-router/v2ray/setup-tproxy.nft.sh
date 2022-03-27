@@ -14,6 +14,7 @@ set -x
 #    ipv6 <prefix> <bits> => ipv6 2407:c380:: 32
 # Netfilter: https://en.wikipedia.org/wiki/Netfilter
 #            http://inai.de/images/nf-packet-flow.svg
+# Policy Routing: See RPDB in https://www.man7.org/linux/man-pages/man8/ip-rule.8.html
 # Monitor: nft monitor
 
 if [[ -e "/opt/nftables/sbin" ]]; then
@@ -28,7 +29,7 @@ fi
 ### Setup v2ray xtable rule and policy routing
 ### ip rule { add | del } SELECTOR ACTION
 ### default table/rule-> local(ID: 255)/Priority: 0 , main(ID: 254)/Priority: 32766 , default(ID: 253)/Priority: 32766
-### 策略路由(占用mark的后8位):
+### 策略路由(占用mark的后8位,RPDB变化均会触发重路由):
 ###   OUTPUT 链约定    : 判定需要重路由设置 设置 fwmark = 0x0e/0x0f (00001110)
 ###   PREROUTING链约定 : 跳过tproxy fwmark = 0x70/0x70 (01110000)
 ###   所有 fwmark = 0x0e/0x0f 的包走 table 100
@@ -443,7 +444,7 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
 fi
 
 ### bridge - skip CN DNS
-nft add rule bridge v2ray PREROUTING ip daddr {119.29.29.29/32, 223.5.5.5/32, 223.6.6.6/32, 180.76.76.76/32} return
+nft add rule bridge v2ray PREROUTING ip daddr "{ $SETUP_WITH_BLACKLIST_IPV4 }" return
 if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   nft add rule bridge v2ray PREROUTING ip6 daddr "{ $SETUP_WITH_BLACKLIST_IPV6 }" return
 fi
@@ -464,6 +465,7 @@ fi
 
 # https://www.mankier.com/8/ebtables-legacy#Description-Tables
 # https://www.mankier.com/8/ebtables-nft
+# Mac Address Assignments: https://www.iana.org/assignments/ethernet-numbers/ethernet-numbers.xml
 # ebtables -t broute -A V2RAY_BRIDGE -j redirect --redirect-target DROP
 
 nft add rule bridge v2ray PREROUTING meta pkttype set unicast ether daddr set ff:ff:ff:ff:ff:ff
