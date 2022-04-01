@@ -50,8 +50,8 @@ if [[ "x" == "x$SETUP_WITH_INTERNAL_SERVICE_PORT" ]]; then
   SETUP_WITH_INTERNAL_SERVICE_PORT="22,53,6881,6882,6883,8371,8372,8373,8381,8382,36000"
 fi
 
-if [[ "x" == "x$SETUP_WITH_DEBUG_LOG_IGNORE_PORT" ]]; then
-  SETUP_WITH_DEBUG_LOG_IGNORE_PORT="22,53,6881,6882,6883,8382,36000"
+if [[ "x" == "x$SETUP_WITH_DEBUG_LOG_RULE" ]]; then
+  SETUP_WITH_DEBUG_LOG_RULE="-m multiport ! --dports 22,53,6881,6882,6883,8382,36000"
 fi
 
 if [[ "x" == "x$SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT" ]]; then
@@ -178,12 +178,12 @@ iptables -t mangle -A V2RAY -p udp -m multiport --dports $SETUP_WITH_DIRECTLY_VI
 iptables -t mangle -A V2RAY -m set ! --match-set V2RAY_PROXY_DNS_IPV4 dst -p tcp -m multiport --dports "53,853" -j RETURN
 iptables -t mangle -A V2RAY -m set ! --match-set V2RAY_PROXY_DNS_IPV4 dst -p udp -m multiport --dports "53,853" -j RETURN
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
-  iptables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_DEBUG_LOG_IGNORE_PORT -j TRACE
-  iptables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_DEBUG_LOG_IGNORE_PORT -j LOG --log-level debug --log-prefix "###TCP4#PREROU:"
+  iptables -t mangle -A V2RAY -p tcp $SETUP_WITH_DEBUG_LOG_RULE -j TRACE
+  iptables -t mangle -A V2RAY -p tcp $SETUP_WITH_DEBUG_LOG_RULE -j LOG --log-level debug --log-prefix "###TCP4#PREROU:"
 fi
 
 ### ipv4 - skip link-local and broadcast address
-iptables -t mangle -A V2RAY 224.0.0.0/4,255.255.255.255/32 -j RETURN
+iptables -t mangle -A V2RAY -d 224.0.0.0/4,255.255.255.255/32 -j RETURN
 iptables -t mangle -A V2RAY -m mark --mark 0x70/0x70 -j RETURN
 ### ipv4 - skip private network and UDP of DNS
 iptables -t mangle -A V2RAY -m set --match-set V2RAY_LOCAL_IPV4 dst -j RETURN
@@ -203,16 +203,16 @@ iptables -t mangle -A V2RAY -m set --match-set GEOIP_IPV4_CN dst -j RETURN
 ### ipv4 - forward to v2ray's listen address if not marked by v2ray
 # tproxy ip to $V2RAY_HOST_IPV4:$V2RAY_PORT
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
-  # iptables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_DEBUG_LOG_IGNORE_PORT -j TRACE
-  iptables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_DEBUG_LOG_IGNORE_PORT -j LOG --log-level debug --log-prefix ">>>TCP4>tproxy:"
+  # iptables -t mangle -A V2RAY -p tcp $SETUP_WITH_DEBUG_LOG_RULE -j TRACE
+  iptables -t mangle -A V2RAY -p tcp $SETUP_WITH_DEBUG_LOG_RULE -j LOG --log-level debug --log-prefix ">>>TCP4>tproxy:"
 fi
 
 # --tproxy-mark here must match: ip rule list lookup 100
 iptables -t mangle -A V2RAY -p tcp -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 0x7e/0x7f # mark tcp package with 1 and forward to $V2RAY_PORT
 iptables -t mangle -A V2RAY -p udp -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 0x7e/0x7f # mark tcp package with 1 and forward to $V2RAY_PORT
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
-  # iptables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_DEBUG_LOG_IGNORE_PORT -j TRACE
-  iptables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_DEBUG_LOG_IGNORE_PORT -j LOG --log-level debug --log-prefix ">>>TCP4>mark:0x70"
+  # iptables -t mangle -A V2RAY -p tcp -m multiport $SETUP_WITH_DEBUG_LOG_RULE -j TRACE
+  iptables -t mangle -A V2RAY -p tcp -m multiport $SETUP_WITH_DEBUG_LOG_RULE -j LOG --log-level debug --log-prefix ">>>TCP4>mark:0x70"
 fi
 iptables -t mangle -A V2RAY -m mark ! --mark 0x70/0x70 -j MARK --set-xmark 0x70/0x70
 iptables -t mangle -A V2RAY -j CONNMARK --save-mark --mask 0xffff
@@ -237,7 +237,7 @@ iptables -t mangle -A V2RAY_MASK -p udp -m multiport --dports $SETUP_WITH_DIRECT
 iptables -t mangle -A V2RAY_MASK -m set ! --match-set V2RAY_PROXY_DNS_IPV4 dst -p tcp -m multiport --dports "53,853" -j RETURN
 iptables -t mangle -A V2RAY_MASK -m set ! --match-set V2RAY_PROXY_DNS_IPV4 dst -p udp -m multiport --dports "53,853" -j RETURN
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
-  iptables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_DEBUG_LOG_IGNORE_PORT -j LOG --log-level debug --log-prefix "###TCP4#OUTPUT:"
+  iptables -t mangle -A V2RAY_MASK -p tcp $SETUP_WITH_DEBUG_LOG_RULE -j LOG --log-level debug --log-prefix "###TCP4#OUTPUT:"
 fi
 
 iptables -t mangle -A V2RAY_MASK -d 224.0.0.0/4,255.255.255.255/32 -j RETURN
@@ -252,15 +252,14 @@ iptables -t mangle -A V2RAY_MASK -d 172.20.1.1/24 -j RETURN # 172.20.1.1/24 is u
 # iptables -t mangle -A V2RAY_MASK -p udp -m set --match-set V2RAY_LOCAL_IPV4 dst ! --dport 53 -j RETURN
 # iptables -t mangle -A V2RAY_MASK -p udp -m set --match-set V2RAY_DEFAULT_ROUTE_IPV4 dst ! --dport 53 -j RETURN
 ### ipv4 - skip CN DNS
-iptables -t mangle -A V2RAY_MASK -d 119.29.29.29/32,223.5.5.5/32,223.6.6.6/32,180.76.76.76/32 -j RETURN
 iptables -t mangle -A V2RAY_MASK -m set --match-set V2RAY_BLACKLIST_IPV4 dst -j RETURN
 iptables -t mangle -A V2RAY_MASK -m set --match-set GEOIP_IPV4_CN dst -j RETURN
 # iptables -t mangle -A V2RAY_MASK -m set --match-set GEOIP_IPV4_HK dst -j RETURN
 # iptables -t mangle -A V2RAY_MASK -m set ! --match-set DNSMASQ_GFW_IPV4 dst -j RETURN
 
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
-  # iptables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_DEBUG_LOG_IGNORE_PORT -j TRACE
-  iptables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_DEBUG_LOG_IGNORE_PORT -j LOG --log-level debug --log-prefix "+++TCP4+mark 1:"
+  # iptables -t mangle -A V2RAY_MASK -p tcp $SETUP_WITH_DEBUG_LOG_RULE -j TRACE
+  iptables -t mangle -A V2RAY_MASK -p tcp $SETUP_WITH_DEBUG_LOG_RULE -j LOG --log-level debug --log-prefix "+++TCP4+mark 1:"
 fi
 # ipv4 skip package from outside
 iptables -t mangle -A V2RAY_MASK -m mark ! --mark 0x0e/0x0f -j MARK --set-xmark 0x0e/0x0f
@@ -334,7 +333,7 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   ip6tables -t mangle -A V2RAY -m set ! --match-set V2RAY_PROXY_DNS_IPV6 dst -p tcp -m multiport --dports "53,853" -j RETURN
   ip6tables -t mangle -A V2RAY -m set ! --match-set V2RAY_PROXY_DNS_IPV6 dst -p udp -m multiport --dports "53,853" -j RETURN
   if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
-    ip6tables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_DEBUG_LOG_IGNORE_PORT -j LOG --log-level debug --log-prefix "###TCP6#PREROU:"
+    ip6tables -t mangle -A V2RAY -p tcp $SETUP_WITH_DEBUG_LOG_RULE -j LOG --log-level debug --log-prefix "###TCP6#PREROU:"
   fi
 
   ### ipv6 - skip link-locak and multicast
@@ -357,8 +356,8 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   ### ipv6 - forward to v2ray's listen address if not marked by v2ray
   # tproxy ip to $V2RAY_HOST_IPV4:$V2RAY_PORT
   if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
-    # ip6tables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_DEBUG_LOG_IGNORE_PORT -j TRACE
-    ip6tables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_DEBUG_LOG_IGNORE_PORT -j LOG --log-level debug --log-prefix ">>>TCP6>tproxy:"
+    # ip6tables -t mangle -A V2RAY -p tcp $SETUP_WITH_DEBUG_LOG_RULE -j TRACE
+    ip6tables -t mangle -A V2RAY -p tcp $SETUP_WITH_DEBUG_LOG_RULE -j LOG --log-level debug --log-prefix ">>>TCP6>tproxy:"
   fi
 
   # --tproxy-mark here must match: ip rule list lookup 100
@@ -391,7 +390,7 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   ip6tables -t mangle -A V2RAY_MASK -m set ! --match-set V2RAY_PROXY_DNS_IPV6 dst -p tcp -m multiport --dports "53,853" -j RETURN
   ip6tables -t mangle -A V2RAY_MASK -m set ! --match-set V2RAY_PROXY_DNS_IPV6 dst -p udp -m multiport --dports "53,853" -j RETURN
   if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
-    ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_DEBUG_LOG_IGNORE_PORT -j LOG --log-level debug --log-prefix "###TCP6#OUTPUT:"
+    ip6tables -t mangle -A V2RAY_MASK -p tcp $SETUP_WITH_DEBUG_LOG_RULE -j LOG --log-level debug --log-prefix "###TCP6#OUTPUT:"
   fi
 
   ip6tables -t mangle -A V2RAY_MASK -m set --match-set V2RAY_LOCAL_IPV6 dst -j RETURN
@@ -412,8 +411,8 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   # ip6tables -t mangle -A V2RAY_MASK -m set ! --match-set DNSMASQ_GFW_IPV6 dst -j RETURN
 
   if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
-    # ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_DEBUG_LOG_IGNORE_PORT -j TRACE
-    ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport ! --dports $SETUP_WITH_DEBUG_LOG_IGNORE_PORT -j LOG --log-level debug --log-prefix "+++TCP6+mark 1:"
+    # ip6tables -t mangle -A V2RAY_MASK -p tcp $SETUP_WITH_DEBUG_LOG_RULE -j TRACE
+    ip6tables -t mangle -A V2RAY_MASK -p tcp $SETUP_WITH_DEBUG_LOG_RULE -j LOG --log-level debug --log-prefix "+++TCP6+mark 1:"
   fi
   # ipv6 skip package from outside
   ip6tables -t mangle -A V2RAY_MASK -m mark ! --mark 0x0e/0x0f -j MARK --set-xmark 0x0e/0x0f
