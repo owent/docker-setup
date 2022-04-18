@@ -292,10 +292,18 @@ See https://en.wikipedia.org/wiki/Public_recursive_name_server for more details
   > `curl -H 'accept: application/dns-json' 'https://cloudflare-dns.com/dns-query?name=example.com'`
 
 + AdGuard
-  + 94.140.14.14
-  + 94.140.15.15
-  + 2a10:50c0::ad1:ff
-  + 2a10:50c0::ad2:ff
+  + (拦截广告) 94.140.14.14
+  + (拦截广告) 94.140.15.15
+  + (拦截广告) 2a10:50c0::ad1:ff
+  + (拦截广告) 2a10:50c0::ad2:ff
+  + (无过滤) 94.140.14.140
+  + (无过滤) 94.140.14.141
+  + (无过滤) 2a10:50c0::1:ff
+  + (无过滤) 2a10:50c0::2:ff
+  + (家庭保护) 94.140.14.15
+  + (家庭保护) 94.140.15.16
+  + (家庭保护) 2a10:50c0::bad1:ff
+  + (家庭保护) 2a10:50c0::bad2:ff
   + [DoH: RFC 8484][1] https://dns.adguard.com/dns-query , https://[IP]/dns-query
   + [DoT: RFC 7858][2] dns.adguard.com , [IP]
   + [DNSCrypt][3] ```sdns://AQIAAAAAAAAAFDE3Ni4xMDMuMTMwLjEzMDo1NDQzINErR_JS3PLCu_iZEIbq95zkSV2LFsigxDIuUso_OQhzIjIuZG5zY3J5cHQuZGVmYXVsdC5uczEuYWRndWFyZC5jb20```
