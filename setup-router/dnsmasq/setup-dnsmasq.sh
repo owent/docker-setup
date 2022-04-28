@@ -301,17 +301,6 @@ cp -f /etc/resolv.conf /etc/resolv.conf.dnsmasq
 
 which ipset >/dev/null 2>&1
 if [[ $? -eq 0 ]]; then
-  ipset list DNSMASQ_GFW_IPV4 >/dev/null 2>&1
-  if [[ $? -ne 0 ]]; then
-    ipset create DNSMASQ_GFW_IPV4 hash:ip family inet
-  fi
-
-  ipset flush DNSMASQ_GFW_IPV4
-
-  ipset list DNSMASQ_GFW_IPV6 >/dev/null 2>&1
-  if [[ $? -ne 0 ]]; then
-    ipset create DNSMASQ_GFW_IPV6 hash:ip family inet6
-  fi
-
-  ipset flush DNSMASQ_GFW_IPV6
+  bash "$ROUTER_HOME/gfw_ipv4_init.sh" DNSMASQ_GFW_IPV4
+  bash "$ROUTER_HOME/gfw_ipv6_init.sh" DNSMASQ_GFW_IPV6
 fi
