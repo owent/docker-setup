@@ -37,7 +37,7 @@ if [[ "root" == "$(id -un)" ]]; then
   COREDNS_NETWORK_OPTIONS=(--cap-add=NET_ADMIN --cap-add=NET_RAW --network=host)
   SYSTEMD_SERVICE_DIR=/lib/systemd/system
 else
-  COREDNS_NETWORK_OPTIONS=(-p $COREDNS_DNS_PORT:$COREDNS_DNS_PORT/tcp -p $COREDNS_DNS_PORT:$COREDNS_DNS_PORT/udp)
+  COREDNS_NETWORK_OPTIONS=(--cap-add=NET_BIND_SERVICE -p $COREDNS_DNS_PORT:$COREDNS_DNS_PORT/tcp -p $COREDNS_DNS_PORT:$COREDNS_DNS_PORT/udp -p 9153:9153/tcp)
   SYSTEMD_SERVICE_DIR="$HOME/.config/systemd/user"
   mkdir -p "$SYSTEMD_SERVICE_DIR"
 fi
@@ -46,11 +46,6 @@ if [[ "x$COREDNS_ETC_DIR" == "x" ]]; then
   export COREDNS_ETC_DIR="$RUN_HOME/coredns/etc"
 fi
 mkdir -p "$COREDNS_ETC_DIR"
-
-if [[ "x$COREDNS_LOG_DIR" == "x" ]]; then
-  export COREDNS_LOG_DIR="$RUN_HOME/coredns/log"
-fi
-mkdir -p "$COREDNS_LOG_DIR"
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
   systemctl --all | grep -F coredns.service >/dev/null 2>&1
@@ -90,12 +85,10 @@ bash "$SCRIPT_DIR/merge-configure.sh"
 podman run -d --name coredns \
   --security-opt seccomp=unconfined \
   --mount type=bind,source=$COREDNS_ETC_DIR,target=/etc/coredns/ \
-  --mount type=bind,source=$COREDNS_LOG_DIR,target=/var/log/coredns/ \
   ${COREDNS_NETWORK_OPTIONS[@]} \
   docker.io/coredns/coredns:latest \
   -dns.port=$COREDNS_DNS_PORT \
-  -conf /etc/coredns/Corefile \
-  -log_dir /var/log/coredns
+  -conf /etc/coredns/Corefile
 
 podman generate systemd coredns | tee "$SYSTEMD_SERVICE_DIR/coredns.service"
 
