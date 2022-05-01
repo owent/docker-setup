@@ -258,7 +258,7 @@ See https://en.wikipedia.org/wiki/Public_recursive_name_server for more details
   + [DNSCrypt][3] ```sdns://AgAAAAAAAAAACTIyMy41LjUuNSCoF6cUD2dwqtorNi96I2e3nkHPSJH1ka3xbdOglmOVkQ5kbnMuYWxpZG5zLmNvbQovZG5zLXF1ZXJ5```
 
   > Home: https://alidns.com/
-  > DoT/DoH: https://www.alidns.com/faqs/?spm=a2chw.13814944.0.0.783a1760ibr9Md#dns-safe
+  > DoT/DoH: https://alidns.com/knowledge?type=SETTING_DOCS
 
 + biigroup(天地互联)
   + 240c::6666
@@ -304,10 +304,39 @@ See https://en.wikipedia.org/wiki/Public_recursive_name_server for more details
   + (家庭保护) 94.140.15.16
   + (家庭保护) 2a10:50c0::bad1:ff
   + (家庭保护) 2a10:50c0::bad2:ff
-  + [DoH: RFC 8484][1] https://dns.adguard.com/dns-query , https://[IP]/dns-query
-  + [DoT: RFC 7858][2] dns.adguard.com , [IP]
-  + [DNSCrypt][3] ```sdns://AQIAAAAAAAAAFDE3Ni4xMDMuMTMwLjEzMDo1NDQzINErR_JS3PLCu_iZEIbq95zkSV2LFsigxDIuUso_OQhzIjIuZG5zY3J5cHQuZGVmYXVsdC5uczEuYWRndWFyZC5jb20```
-  + [DoQ][4]
+  + [DoH: RFC 8484][1]
+    + (拦截广告) https://dns.adguard.com/dns-query
+    + (无过滤) https://dns-unfiltered.adguard.com/dns-query
+    + (家庭保护) https://dns-family.adguard.com/dns-query
+    + `https://[IP]/dns-query`
+  + [DoT: RFC 7858][2]
+    + (拦截广告) dns.adguard.com
+    + (无过滤) dns-unfiltered.adguard.com
+    + (家庭保护) dns-family.adguard.com
+    + `[IP]`
+  + [DoQ: Draft][4]
+    + (拦截广告) quic://dns.adguard.com
+    + (无过滤) quic://dns-unfiltered.adguard.com
+    + (家庭保护) quic://dns-family.adguard.com
+  + [DNSCrypt][3]
+    + (拦截广告) sdns://AQMAAAAAAAAAETk0LjE0MC4xNC4xNDo1NDQzINErR_JS3PLCu_iZEIbq95zkSV2LFsigxDIuUso_OQhzIjIuZG5zY3J5cHQuZGVmYXVsdC5uczEuYWRndWFyZC5jb20
+    + (无过滤) sdns://AQMAAAAAAAAAEjk0LjE0MC4xNC4xNDA6NTQ0MyC16ETWuDo-PhJo62gfvqcN48X6aNvWiBQdvy7AZrLa-iUyLmRuc2NyeXB0LnVuZmlsdGVyZWQubnMxLmFkZ3VhcmQuY29t
+    + (家庭保护) sdns://AQMAAAAAAAAAETk0LjE0MC4xNC4xNTo1NDQzILgxXdexS27jIKRw3C7Wsao5jMnlhvhdRUXWuMm1AFq6ITIuZG5zY3J5cHQuZmFtaWx5Lm5zMS5hZGd1YXJkLmNvbQ
+
+  > https://adguard-dns.io/zh_cn/public-dns.html
+  > https://adguard-dns.io/en/public-dns.html
+
++ NextDNS(需要注册账号) - https://my.nextdns.io/
+  + IP(需绑定白名单):
+    + 45.90.28.71
+    + 45.90.30.71
+    + 2a07:a8c0::d1:bc18
+    + 2a07:a8c1::d1:bc18
+  + [DoT: RFC 7858][2] / [DoQ: Draft][4]
+    + `<租户ID>.dns.nextdns.io`
+  + [DoH: RFC 8484][1]
+    + (拦截广告) https://dns.nextdns.io/<租户ID>
+
 + Quad9
   + 9.9.9.9
   + 149.112.112.112
@@ -323,7 +352,17 @@ See https://en.wikipedia.org/wiki/Public_recursive_name_server for more details
 
 > [DoT: RFC 7858][2] port: 853
 
+## China Domain List
+
++ https://github.com/felixonmars/dnsmasq-china-list
++ CDN:
+  + https://cdn.jsdelivr.net/gh/felixonmars/dnsmasq-china-list/accelerated-domains.china.conf
+  + https://cdn.jsdelivr.net/gh/felixonmars/dnsmasq-china-list/apple.china.conf
+  + https://cdn.jsdelivr.net/gh/felixonmars/dnsmasq-china-list/bogus-nxdomain.china.conf
+  + https://cdn.jsdelivr.net/gh/felixonmars/dnsmasq-china-list/google.china.conf
+
 [1]: https://tools.ietf.org/html/rfc8484 "RFC 8484"
 [2]: https://tools.ietf.org/html/rfc7858 "RFC 7858"
 [3]: https://dnscrypt.info/ "DNSCrypt"
-[4]: https://tools.ietf.org/html/draft-huitema-quic-dnsoquic-07 "DNS over Quic"
+[4]: https://datatracker.ietf.org/doc/draft-ietf-dprive-dnsoquic/ "DNS over Dedicated QUIC Connections(Draft)"
+
