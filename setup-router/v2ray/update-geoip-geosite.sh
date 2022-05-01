@@ -164,6 +164,6 @@ if [[ -e "coredns-blacklist.conf" ]] && [[ -e "$ROUTER_HOME/coredns/merge-config
 fi
 
 if [[ $IPSET_FLUSH_GFW_LIST -ne 0 ]]; then
-  bash "$ROUTER_HOME/gfw_ipv4_init.sh" DNSMASQ_GFW_IPV4
-  bash "$ROUTER_HOME/gfw_ipv6_init.sh" DNSMASQ_GFW_IPV6
+  bash "$ROUTER_HOME/ipset/gfw_ipv4_init.sh" DNSMASQ_GFW_IPV4
+  bash "$ROUTER_HOME/ipset/gfw_ipv6_init.sh" DNSMASQ_GFW_IPV6
 fi
