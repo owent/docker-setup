@@ -96,17 +96,25 @@ if [[ $? -eq 0 ]]; then
   fi
 
   IPSET_FLUSH_GFW_LIST=0
-  if [[ -e "dnsmasq-blacklist.conf" ]]; then
-    cp -f dnsmasq-blacklist.conf /etc/dnsmasq.d/10-dnsmasq-blacklist.router.conf
+  if [[ -e "dnsmasq-blacklist.conf" ]] || [[ -e "dnsmasq-accelerated-cn.conf" ]] || [[ -e "dnsmasq-special-cn.conf" ]]; then
+    if [[ -e "dnsmasq-blacklist.conf" ]]; then
+      cp -f dnsmasq-blacklist.conf /etc/dnsmasq.d/10-dnsmasq-blacklist.router.conf
+    fi
+    if [[ -e "dnsmasq-accelerated-cn.conf" ]]; then
+      cp -f dnsmasq-accelerated-cn.conf /etc/dnsmasq.d/11-dnsmasq-accelerated-cn.router.conf
+    fi
+    if [[ -e "dnsmasq-special-cn.conf" ]]; then
+      cp -f dnsmasq-special-cn.conf /etc/dnsmasq.d/12-dnsmasq-special-cn.router.conf
+    fi
     IPSET_FLUSH_GFW_LIST=1
     systemctl restart dnsmasq
   fi
-  if [[ -e "$GEOIP_GEOSITE_ETC_DIR/smartdns-blacklist.conf" ]] && [[ -e "$ROUTER_HOME/smartdns/merge-configure.sh" ]]; then
+  if [[ -e "$ROUTER_HOME/smartdns/merge-configure.sh" ]]; then
     bash "$ROUTER_HOME/smartdns/merge-configure.sh"
     IPSET_FLUSH_GFW_LIST=1
     systemctl restart smartdns
   fi
-  if [[ -e "$GEOIP_GEOSITE_ETC_DIR/coredns-blacklist.conf" ]] && [[ -e "$ROUTER_HOME/coredns/merge-configure.sh" ]]; then
+  if [[ -e "$ROUTER_HOME/coredns/merge-configure.sh" ]]; then
     sudo -u $RUN_USER bash "$ROUTER_HOME/coredns/merge-configure.sh"
     # IPSET_FLUSH_GFW_LIST=1
     su -c 'env DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$UID/bus systemctl restart --user coredns' - $RUN_USER

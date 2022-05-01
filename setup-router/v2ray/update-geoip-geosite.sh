@@ -143,9 +143,17 @@ if [[ -e "ipv6_hk.ipset" ]]; then
 fi
 
 IPSET_FLUSH_GFW_LIST=0
-if [[ -e "dnsmasq-blacklist.conf" ]]; then
+if [[ -e "dnsmasq-blacklist.conf" ]] || [[ -e "dnsmasq-accelerated-cn.conf" ]] || [[ -e "dnsmasq-special-cn.conf" ]]; then
+  if [[ -e "dnsmasq-blacklist.conf" ]]; then
+    cp -f dnsmasq-blacklist.conf /etc/dnsmasq.d/10-dnsmasq-blacklist.router.conf
+  fi
+  if [[ -e "dnsmasq-accelerated-cn.conf" ]]; then
+    cp -f dnsmasq-accelerated-cn.conf /etc/dnsmasq.d/11-dnsmasq-accelerated-cn.router.conf
+  fi
+  if [[ -e "dnsmasq-special-cn.conf" ]]; then
+    cp -f dnsmasq-special-cn.conf /etc/dnsmasq.d/12-dnsmasq-special-cn.router.conf
+  fi
   # ipset
-  cp -f dnsmasq-blacklist.conf /etc/dnsmasq.d/10-dnsmasq-blacklist.router.conf
   # sed -i -E 's;/(1.1.1.1|8.8.8.8)#53;/127.0.0.1#6053;g' /etc/dnsmasq.d/10-dnsmasq-blacklist.router.conf # local smartdns
   IPSET_FLUSH_GFW_LIST=1
   systemctl restart dnsmasq
