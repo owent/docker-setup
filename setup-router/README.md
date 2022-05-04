@@ -241,8 +241,8 @@ See https://en.wikipedia.org/wiki/Public_recursive_name_server for more details
 + Dnspod
   + 119.29.29.29
   + 2402:4e00::
-  + [DoH: RFC 8484][1] https://doh.pub/dns-query , 1.12.12.12 , 120.53.53.53
-  + [DoT: RFC 7858][2] dot.pub , 1.12.12.12 , 120.53.53.53
+  + [DoH: RFC 8484][1] https://doh.pub/dns-query , 1.12.12.12 , 120.53.53.53 (不允许指定doh.pub为IP)
+  + [DoT: RFC 7858][2] dot.pub , 1.12.12.12 , 120.53.53.53 (不允许指定dot.pub为IP)
   + [DNSCrypt][3] ```sdns://AgAAAAAAAAAAACDrdSX4jw2UWPgamVAZv9NMuJzNyVfnsO8xXxD4l2OBGAdkb2gucHViCi9kbnMtcXVlcnk```
 
   > Home: https://www.dnspod.cn/Products/Public.DNS

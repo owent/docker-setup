@@ -15,6 +15,10 @@ fi
 mkdir -p "$GEOIP_GEOSITE_ETC_DIR"
 cd "$GEOIP_GEOSITE_ETC_DIR"
 
+if [[ "x$V2RAY_UPDATE" != "x" ]] || [[ "x$HOME_ROUTER_UPDATE" != "x" ]]; then
+  podman pull docker.io/owt5008137/proxy-with-geo:latest
+fi
+
 systemctl disable v2ray
 systemctl stop v2ray
 
@@ -24,14 +28,9 @@ if [[ $? -eq 0 ]]; then
   podman rm -f v2ray
 fi
 
-if [[ "x$V2RAY_UPDATE" != "x" ]]; then
-  podman image inspect docker.io/owt5008137/proxy-with-geo:latest >/dev/null 2>&1
-  if [[ $? -eq 0 ]]; then
-    podman image rm -f docker.io/owt5008137/proxy-with-geo:latest
-  fi
+if [[ "x$V2RAY_UPDATE" != "x" ]] || [[ "x$HOME_ROUTER_UPDATE" != "x" ]]; then
+  podman image prune -a -f --filter "until=240h"
 fi
-
-podman pull docker.io/owt5008137/proxy-with-geo:latest
 
 podman run -d --name v2ray --cap-add=NET_ADMIN --network=host --security-opt label=disable \
   --mount type=bind,source=$GEOIP_GEOSITE_ETC_DIR,target=/usr/local/v2ray/etc,ro=true \

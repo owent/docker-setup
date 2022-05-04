@@ -33,12 +33,12 @@ if [[ "x$GEOIP_GEOSITE_ETC_DIR" != "x" ]] && [[ -e "$GEOIP_GEOSITE_ETC_DIR/cored
   cat "$GEOIP_GEOSITE_ETC_DIR/coredns-blacklist.conf" >>"$COREDNS_ETC_DIR/Corefile"
 fi
 
-if [[ "x$GEOIP_GEOSITE_ETC_DIR" != "x" ]] && [[ -e "$GEOIP_GEOSITE_ETC_DIR/coredns-accelerated-cn.conf" ]]; then
-  cat "$GEOIP_GEOSITE_ETC_DIR/coredns-accelerated-cn.conf" >>"$COREDNS_ETC_DIR/Corefile"
-fi
-
-if [[ "x$GEOIP_GEOSITE_ETC_DIR" != "x" ]] && [[ -e "$GEOIP_GEOSITE_ETC_DIR/coredns-special-cn.conf" ]]; then
-  cat "$GEOIP_GEOSITE_ETC_DIR/coredns-special-cn.conf" >>"$COREDNS_ETC_DIR/Corefile"
-fi
+# if [[ "x$GEOIP_GEOSITE_ETC_DIR" != "x" ]] && [[ -e "$GEOIP_GEOSITE_ETC_DIR/coredns-accelerated-cn.conf" ]]; then
+#   cat "$GEOIP_GEOSITE_ETC_DIR/coredns-accelerated-cn.conf" >>"$COREDNS_ETC_DIR/Corefile"
+# fi
+#
+# if [[ "x$GEOIP_GEOSITE_ETC_DIR" != "x" ]] && [[ -e "$GEOIP_GEOSITE_ETC_DIR/coredns-special-cn.conf" ]]; then
+#   cat "$GEOIP_GEOSITE_ETC_DIR/coredns-special-cn.conf" >>"$COREDNS_ETC_DIR/Corefile"
+# fi
 
 python3 "$SCRIPT_DIR/merge-service-block.py" "$COREDNS_ETC_DIR/Corefile" "$COREDNS_ETC_DIR/Corefile"

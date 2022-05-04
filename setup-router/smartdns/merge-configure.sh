@@ -27,10 +27,10 @@ if [[ "x$GEOIP_GEOSITE_ETC_DIR" != "x" ]] && [[ -e "$GEOIP_GEOSITE_ETC_DIR/smart
   cat "$GEOIP_GEOSITE_ETC_DIR/smartdns-blacklist.conf" >>"$SMARTDNS_ETC_DIR/smartdns.conf"
 fi
 
-if [[ "x$GEOIP_GEOSITE_ETC_DIR" != "x" ]] && [[ -e "$GEOIP_GEOSITE_ETC_DIR/smartdns-accelerated-cn.conf" ]]; then
-  cat "$GEOIP_GEOSITE_ETC_DIR/smartdns-accelerated-cn.conf" >>"$SMARTDNS_ETC_DIR/smartdns.conf"
-fi
-
-if [[ "x$GEOIP_GEOSITE_ETC_DIR" != "x" ]] && [[ -e "$GEOIP_GEOSITE_ETC_DIR/smartdns-special-cn.conf" ]]; then
-  cat "$GEOIP_GEOSITE_ETC_DIR/smartdns-special-cn.conf" >>"$SMARTDNS_ETC_DIR/smartdns.conf"
-fi
+# if [[ "x$GEOIP_GEOSITE_ETC_DIR" != "x" ]] && [[ -e "$GEOIP_GEOSITE_ETC_DIR/smartdns-accelerated-cn.conf" ]]; then
+#   cat "$GEOIP_GEOSITE_ETC_DIR/smartdns-accelerated-cn.conf" >>"$SMARTDNS_ETC_DIR/smartdns.conf"
+# fi
+#
+# if [[ "x$GEOIP_GEOSITE_ETC_DIR" != "x" ]] && [[ -e "$GEOIP_GEOSITE_ETC_DIR/smartdns-special-cn.conf" ]]; then
+#   cat "$GEOIP_GEOSITE_ETC_DIR/smartdns-special-cn.conf" >>"$SMARTDNS_ETC_DIR/smartdns.conf"
+# fi

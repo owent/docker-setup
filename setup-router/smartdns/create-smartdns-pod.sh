@@ -52,6 +52,10 @@ if [[ "x$SMARTDNS_LOG_DIR" == "x" ]]; then
 fi
 mkdir -p "$SMARTDNS_LOG_DIR"
 
+if [[ "x$SMARTDNS_UPDATE" != "x" ]] || [[ "x$HOME_ROUTER_UPDATE" != "x" ]]; then
+  podman pull docker.io/owt5008137/smartdns:latest
+fi
+
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
   systemctl --all | grep -F smartdns.service >/dev/null 2>&1
   if [ $? -eq 0 ]; then
@@ -78,11 +82,8 @@ if [[ $? -eq 0 ]]; then
   podman rm -f smartdns
 fi
 
-if [[ "x$V2RAY_UPDATE" != "x" ]]; then
-  podman image inspect docker.io/owt5008137/smartdns:latest >/dev/null 2>&1
-  if [[ $? -eq 0 ]]; then
-    podman image rm -f docker.io/owt5008137/smartdns:latest
-  fi
+if [[ "x$SMARTDNS_UPDATE" != "x" ]] || [[ "x$HOME_ROUTER_UPDATE" != "x" ]]; then
+  podman image prune -a -f --filter "until=240h"
 fi
 
 bash "$SCRIPT_DIR/merge-configure.sh"

@@ -47,6 +47,10 @@ if [[ "x$COREDNS_ETC_DIR" == "x" ]]; then
 fi
 mkdir -p "$COREDNS_ETC_DIR"
 
+if [[ "x$COREDNS_UPDATE" != "x" ]] || [[ "x$HOME_ROUTER_UPDATE" != "x" ]]; then
+  podman pull docker.io/owt5008137/coredns:latest
+fi
+
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
   systemctl --all | grep -F coredns.service >/dev/null 2>&1
   if [ $? -eq 0 ]; then
@@ -73,11 +77,8 @@ if [[ $? -eq 0 ]]; then
   podman rm -f coredns
 fi
 
-if [[ "x$V2RAY_UPDATE" != "x" ]]; then
-  podman image inspect docker.io/coredns/coredns:latest >/dev/null 2>&1
-  if [[ $? -eq 0 ]]; then
-    podman image rm -f docker.io/coredns/coredns:latest
-  fi
+if [[ "x$COREDNS_UPDATE" != "x" ]] || [[ "x$HOME_ROUTER_UPDATE" != "x" ]]; then
+  podman image prune -a -f --filter "until=240h"
 fi
 
 bash "$SCRIPT_DIR/merge-configure.sh"
@@ -86,7 +87,7 @@ podman run -d --name coredns \
   --security-opt seccomp=unconfined \
   --mount type=bind,source=$COREDNS_ETC_DIR,target=/etc/coredns/ \
   ${COREDNS_NETWORK_OPTIONS[@]} \
-  docker.io/coredns/coredns:latest \
+  docker.io/owt5008137/coredns:latest \
   -dns.port=$COREDNS_DNS_PORT \
   -conf /etc/coredns/Corefile
 

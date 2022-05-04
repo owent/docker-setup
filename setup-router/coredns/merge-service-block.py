@@ -21,9 +21,9 @@ if __name__ == "__main__":
     from_file = sys.argv[1]
     to_file = sys.argv[2]
 
-    SERVER_CONFIGURE_RULE = re.compile('[^\\s\\{\\}]+')
+    SERVER_CONFIGURE_RULE = re.compile('[^\\s,\\{\\}]+')
     SERVER_CONFIGURE_VALID_DOMAIN = re.compile(
-        '[\\w\\d\\-_\\.:]+|\\(\\s*[\\w\\d\\-_\\.:\\$]+\\s*\\)')
+        '(\\s*,?([\\w\\d\\-_\\.:]+|\\(\\s*[\\w\\d\\-_\\.:\\$]+\\s*\\)))+\\s*')
     output_content = []
     from_file_fd = codecs.open(from_file, "r", encoding='utf-8')
     server_block_level = 0
@@ -52,7 +52,7 @@ if __name__ == "__main__":
             last_domain_rules.append(line)
             if server_block_level <= 0:
                 if last_domain_blocks:
-                    output_content.append(' '.join(last_domain_blocks) +
+                    output_content.append('\n,'.join(last_domain_blocks) +
                                           ' {\n')
                     output_content.append(''.join(last_domain_rules))
                 last_domain_blocks = []
