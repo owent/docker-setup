@@ -1,0 +1,16 @@
+[Unit]
+Description=update ddns
+Wants=network.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /home/router/update-ddns/update-ddns.sh
+# RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+
+# systemctl enable --user /home/router/update-ddns/update-ddns.service
+# systemctl start --user rclone.service
+# systemctl status --user rclone.service

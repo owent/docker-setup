@@ -44,14 +44,14 @@ net.core.rmem_max = 16777216
 net.core.wmem_default = 1048576
 net.core.wmem_max = 16777216
 net.core.optmem_max = 65536
-net.ipv4.tcp_rmem = 4096 262144 2097152
+net.ipv4.tcp_rmem = 4096 262144 33554432
 net.ipv4.tcp_wmem = 4096 65536 16777216
 net.ipv4.udp_rmem_min = 8192
 net.ipv4.udp_wmem_min = 8192
 net.ipv4.tcp_mtu_probing=1
 net.ipv4.tcp_syncookies=1
 net.ipv4.tcp_tw_reuse=1
-net.ipv4.tcp_fin_timeout=10
+net.ipv4.tcp_fin_timeout=30
 net.ipv4.tcp_fastopen=3
 net.ipv4.tcp_max_syn_backlog=65536
 net.ipv4.tcp_max_tw_buckets=65536
@@ -148,7 +148,7 @@ if [ $? -eq 0 ]; then
     # firewall-cmd --query-masquerade ;
 fi
 
-if [ -e  "/etc/security/limits.d" ]; then
+if [[ -e  "/etc/security/limits.d" ]]; then
     echo "*          hard    nofile     1000000" | tee cat /etc/security/limits.d/99-nofile.conf
 else
     sed -i '/hard    nofile     1000000/d' /etc/security/limits.conf

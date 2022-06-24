@@ -19,4 +19,6 @@ export NAT_SETUP_SKIP_IPV6=1
 
 export NEXTCLOUD_DATA_DIR=/data/samba/nextcloud
 
+export ACMESH_SSL_DIR=$ROUTER_HOME/acme.sh/ssl
+
 "$@"

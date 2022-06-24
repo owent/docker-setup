@@ -1,6 +1,7 @@
 #!/bin/bash
 
-LOCAL_LAN_INTERFACE='{ lo, br0, enp1s0f0, enp1s0f1, enp5s0 }'
+# LOCAL_LAN_INTERFACE='{ lo, br0, enp1s0f0, enp1s0f1, enp5s0 }'
+LOCAL_LAN_INTERFACE='{ lo, br0, enp2s0 }'
 
 nft list table inet security_firewall >/dev/null 2>&1
 if [[ $? -eq 0 ]]; then
@@ -19,6 +20,10 @@ if [[ $? -ne 0 ]]; then
   nft add set inet security_firewall LOCAL_IPV6 '{ type ipv6_addr; flags interval; auto-merge ; }'
   nft add element inet security_firewall LOCAL_IPV6 {::1/128, fc00::/7, fe80::/10}
 fi
+
+nft add chain inet security_firewall PREROUTING '{ type filter hook prerouting priority filter + 10; policy accept; }'
+nft add rule inet security_firewall PREROUTING icmpv6 type '{ nd-router-advert, nd-neighbor-solicit }' accept
+nft add rule inet security_firewall PREROUTING meta nfproto ipv6 fib saddr . mark . iif oif missing drop
 
 nft add chain inet security_firewall INPUT '{ type filter hook input priority filter + 10; policy accept; }'
 nft add rule inet security_firewall INPUT ct state { established, related } accept
