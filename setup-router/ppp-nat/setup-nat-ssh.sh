@@ -6,6 +6,9 @@ else
   export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
+# LOCAL_LAN_INTERFACE='{ lo, br0, enp1s0f0, enp1s0f1, enp5s0 }'
+LOCAL_LAN_INTERFACE='{ lo, br0, enp2s0 }'
+
 # nftables
 # Quick: https://wiki.nftables.org/wiki-nftables/index.php/Performing_Network_Address_Translation_(NAT)
 # Quick(CN): https://wiki.archlinux.org/index.php/Nftables_(%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87)#Masquerading
@@ -151,7 +154,7 @@ nft add rule inet nat FORWARD tcp flags syn counter tcp option maxseg size set r
 nft add rule inet nat FORWARD ct state { related, established } counter packets 0 bytes 0 accept
 nft add rule inet nat FORWARD ct status dnat accept
 # accept all but the interface binded to ppp(enp1s0f3)
-nft add rule inet nat FORWARD iifname { lo, br0, enp1s0f0, enp1s0f1, enp5s0 } accept
+nft add rule inet nat FORWARD iifname $LOCAL_LAN_INTERFACE accept
 # These rules will conflict with other firewall services such firewalld
 # nft add rule inet nat FORWARD ip6 daddr { ::/96, ::ffff:0.0.0.0/96, 2002::/24, 2002:a00::/24, 2002:7f00::/24, 2002:a9fe::/32, 2002:ac10::/28, 2002:c0a8::/32, 2002:e000::/19 } reject with icmpv6 type addr-unreachable
 # nft add rule inet nat FORWARD ct state { invalid } drop

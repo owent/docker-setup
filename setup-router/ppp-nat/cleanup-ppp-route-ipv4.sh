@@ -21,4 +21,4 @@ fi
 # Using journalctl -t router-ppp to see this log
 echo "[$(date "+%F %T")]: $0 $@" | systemd-cat -t router-ppp -p info
 
-ip -4 route delete 0.0.0.0/0 via $IPREMOTE dev $IFNAME
+# ip -4 route delete 0.0.0.0/0 via $IPREMOTE dev $IFNAME

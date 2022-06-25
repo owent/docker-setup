@@ -156,11 +156,16 @@ fi
 nft list set ip v2ray LOCAL_IPV4 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   nft add set ip v2ray LOCAL_IPV4 '{ type ipv4_addr; flags interval; auto-merge ; }'
-  nft add element ip v2ray LOCAL_IPV4 {127.0.0.1/32, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8}
+  nft add element ip v2ray LOCAL_IPV4 '{127.0.0.1/32, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8}'
 fi
 nft list set ip v2ray DEFAULT_ROUTE_IPV4 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   nft add set ip v2ray DEFAULT_ROUTE_IPV4 '{ type ipv4_addr; flags interval; auto-merge ; }'
+fi
+nft list set ip v2ray PROXY_DNS_IPV4 >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add set ip v2ray PROXY_DNS_IPV4 '{ type ipv4_addr;  auto-merge ; }'
+  nft add element ip v2ray PROXY_DNS_IPV4 '{8.8.8.8, 8.8.4.4}'
 fi
 
 nft list chain ip v2ray PREROUTING >/dev/null 2>&1
@@ -175,8 +180,8 @@ nft add rule ip v2ray PREROUTING meta l4proto != {tcp, udp} return
 nft add rule ip v2ray PREROUTING tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 nft add rule ip v2ray PREROUTING udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 nft add rule ip v2ray PREROUTING udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
-nft add rule ip v2ray PREROUTING ip daddr != '{8.8.8.8, 8.8.4.4}' udp dport '{53, 853}' return
-nft add rule ip v2ray PREROUTING ip daddr != '{8.8.8.8, 8.8.4.4}' tcp dport '{53, 853}' return
+nft add rule ip v2ray PREROUTING ip daddr != @PROXY_DNS_IPV4 udp dport '{53, 853}' return
+nft add rule ip v2ray PREROUTING ip daddr != @PROXY_DNS_IPV4 tcp dport '{53, 853}' return
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
   nft add rule ip v2ray PREROUTING tcp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"###TCP4#PREROU:"' level debug flags all
   nft add rule ip v2ray PREROUTING udp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"###UDP4#PREROU:"' level debug flags all
@@ -228,8 +233,8 @@ nft add rule ip v2ray OUTPUT meta l4proto != {tcp, udp} return
 nft add rule ip v2ray OUTPUT tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 nft add rule ip v2ray OUTPUT udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 nft add rule ip v2ray OUTPUT udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
-nft add rule ip v2ray OUTPUT ip daddr != '{8.8.8.8, 8.8.4.4}' udp dport '{53, 853}' return
-nft add rule ip v2ray OUTPUT ip daddr != '{8.8.8.8, 8.8.4.4}' tcp dport '{53, 853}' return
+nft add rule ip v2ray OUTPUT ip daddr != @PROXY_DNS_IPV4 udp dport '{53, 853}' return
+nft add rule ip v2ray OUTPUT ip daddr != @PROXY_DNS_IPV4 tcp dport '{53, 853}' return
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
   nft add rule ip v2ray OUTPUT tcp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"###TCP4#OUTPUT:"' level debug flags all
   nft add rule ip v2ray OUTPUT udp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"###UDP4#OUTPUT:"' level debug flags all
@@ -273,11 +278,16 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   nft list set ip6 v2ray LOCAL_IPV6 >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
     nft add set ip6 v2ray LOCAL_IPV6 '{ type ipv6_addr; flags interval; auto-merge ; }'
-    nft add element ip6 v2ray LOCAL_IPV6 {::1/128, fc00::/7, fe80::/10}
+    nft add element ip6 v2ray LOCAL_IPV6 '{::1/128, fc00::/7, fe80::/10}'
   fi
   nft list set ip6 v2ray DEFAULT_ROUTE_IPV6 >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
     nft add set ip6 v2ray DEFAULT_ROUTE_IPV6 '{ type ipv6_addr; flags interval; auto-merge ; }'
+  fi
+  nft list set ip6 v2ray PROXY_DNS_IPV6 >/dev/null 2>&1
+  if [[ $? -ne 0 ]]; then
+    nft add set ip6 v2ray PROXY_DNS_IPV6 '{ type ipv6_addr; auto-merge ; }'
+    nft add element ip6 v2ray PROXY_DNS_IPV6 '{2001:4860:4860::8888, 2001:4860:4860::8844}'
   fi
 
   nft list chain ip6 v2ray PREROUTING >/dev/null 2>&1
@@ -291,8 +301,8 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   nft add rule ip6 v2ray PREROUTING tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
   nft add rule ip6 v2ray PREROUTING udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
   nft add rule ip6 v2ray PREROUTING udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
-  nft add rule ip6 v2ray PREROUTING ip6 daddr != '{2001:4860:4860::8888, 2001:4860:4860::8844}' udp dport '{53, 853}' return
-  nft add rule ip6 v2ray PREROUTING ip6 daddr != '{2001:4860:4860::8888, 2001:4860:4860::8844}' tcp dport '{53, 853}' return
+  nft add rule ip6 v2ray PREROUTING ip6 daddr != @PROXY_DNS_IPV6 udp dport '{53, 853}' return
+  nft add rule ip6 v2ray PREROUTING ip6 daddr != @PROXY_DNS_IPV6 tcp dport '{53, 853}' return
   nft add rule ip6 v2ray PREROUTING mark and 0x70 == 0x70 return
   if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
     nft add rule ip6 v2ray PREROUTING tcp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"###TCP6#PREROU:"' level debug flags all
@@ -343,8 +353,8 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   nft add rule ip6 v2ray OUTPUT tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
   nft add rule ip6 v2ray OUTPUT udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
   nft add rule ip6 v2ray OUTPUT udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
-  nft add rule ip6 v2ray OUTPUT ip6 daddr != '{2001:4860:4860::8888, 2001:4860:4860::8844}' udp dport '{53, 853}' return
-  nft add rule ip6 v2ray OUTPUT ip6 daddr != '{2001:4860:4860::8888, 2001:4860:4860::8844}' tcp dport '{53, 853}' return
+  nft add rule ip6 v2ray OUTPUT ip6 daddr != @PROXY_DNS_IPV6 udp dport '{53, 853}' return
+  nft add rule ip6 v2ray OUTPUT ip6 daddr != @PROXY_DNS_IPV6 tcp dport '{53, 853}' return
   if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
     nft add rule ip6 v2ray OUTPUT tcp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"###TCP6#OUTPUT:"' level debug flags all
     nft add rule ip6 v2ray OUTPUT udp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"###UDP6#OUTPUT:"' level debug flags all
@@ -379,20 +389,31 @@ fi
 nft list set bridge v2ray LOCAL_IPV4 >/dev/null 2>&1
 if [ $? -ne 0 ]; then
   nft add set bridge v2ray LOCAL_IPV4 '{ type ipv4_addr; flags interval; auto-merge ; }'
-  nft add element bridge v2ray LOCAL_IPV4 {127.0.0.1/32, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8}
+  nft add element bridge v2ray LOCAL_IPV4 '{127.0.0.1/32, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8}'
 fi
 nft list set bridge v2ray DEFAULT_ROUTE_IPV4 >/dev/null 2>&1
 if [ $? -ne 0 ]; then
   nft add set bridge v2ray DEFAULT_ROUTE_IPV4 '{ type ipv4_addr; flags interval; auto-merge ; }'
 fi
+nft list set bridge v2ray PROXY_DNS_IPV4 >/dev/null 2>&1
+if [ $? -ne 0 ]; then
+  nft add set bridge v2ray PROXY_DNS_IPV4 '{ type ipv4_addr; auto-merge ; }'
+  nft add element bridge v2ray PROXY_DNS_IPV4 '{8.8.8.8, 8.8.4.4}'
+fi
+
 nft list set bridge v2ray LOCAL_IPV6 >/dev/null 2>&1
 if [ $? -ne 0 ]; then
   nft add set bridge v2ray LOCAL_IPV6 '{ type ipv6_addr; flags interval; auto-merge ; }'
-  nft add element bridge v2ray LOCAL_IPV6 {::1/128, fc00::/7, fe80::/10}
+  nft add element bridge v2ray LOCAL_IPV6 '{::1/128, fc00::/7, fe80::/10}'
 fi
 nft list set bridge v2ray DEFAULT_ROUTE_IPV6 >/dev/null 2>&1
 if [ $? -ne 0 ]; then
   nft add set bridge v2ray DEFAULT_ROUTE_IPV6 '{ type ipv6_addr; flags interval; auto-merge ; }'
+fi
+nft list set bridge v2ray PROXY_DNS_IPV6 >/dev/null 2>&1
+if [ $? -ne 0 ]; then
+  nft add set bridge v2ray PROXY_DNS_IPV6 '{ type ipv6_addr; auto-merge ; }'
+  nft add element bridge v2ray PROXY_DNS_IPV6 '{2001:4860:4860::8888, 2001:4860:4860::8844}'
 fi
 
 nft list chain bridge v2ray PREROUTING >/dev/null 2>&1
@@ -406,10 +427,10 @@ nft add rule bridge v2ray PREROUTING meta l4proto != {tcp, udp} return
 # nft add rule bridge v2ray PREROUTING tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 # nft add rule bridge v2ray PREROUTING udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
 nft add rule bridge v2ray PREROUTING udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
-nft add rule bridge v2ray PREROUTING ip daddr != '{8.8.8.8, 8.8.4.4}' udp dport '{53, 853}' return
-nft add rule bridge v2ray PREROUTING ip daddr != '{8.8.8.8, 8.8.4.4}' tcp dport '{53, 853}' return
-nft add rule bridge v2ray PREROUTING ip6 daddr != '{2001:4860:4860::8888, 2001:4860:4860::8844}' udp dport '{53, 853}' return
-nft add rule bridge v2ray PREROUTING ip6 daddr != '{2001:4860:4860::8888, 2001:4860:4860::8844}' tcp dport '{53, 853}' return
+nft add rule bridge v2ray PREROUTING ip daddr != @PROXY_DNS_IPV4 udp dport '{53, 853}' return
+nft add rule bridge v2ray PREROUTING ip daddr != @PROXY_DNS_IPV4 tcp dport '{53, 853}' return
+nft add rule bridge v2ray PREROUTING ip6 daddr != @PROXY_DNS_IPV6 udp dport '{53, 853}' return
+nft add rule bridge v2ray PREROUTING ip6 daddr != @PROXY_DNS_IPV6 tcp dport '{53, 853}' return
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
   nft add rule bridge v2ray PREROUTING tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###BRIDGE#PREROU:"' level debug flags all
   nft add rule bridge v2ray PREROUTING udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###BRIDGE#PREROU:"' level debug flags all
