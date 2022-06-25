@@ -6,10 +6,7 @@ else
   export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
-SCRIPT_DIR="$(
-  cd "$(dirname "$0")"
-  pwd
-)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 if [[ "x$ROUTER_HOME" == "x" ]] && [[ -e "$SCRIPT_DIR/../configure-router.sh" ]]; then
   source "$SCRIPT_DIR/../configure-router.sh"

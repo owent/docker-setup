@@ -40,31 +40,5 @@ if [[ "x$ACMESH_SSL_DIR" == "x" ]]; then
 fi
 mkdir -p "$ACMESH_SSL_DIR"
 
-# podman exec acme.sh acme.sh --register-account -m $CF_Email
-
-podman exec \
-  -e CF_Email=$CF_Email \
-  -e CF_Account_ID=$CF_Account_ID \
-  -e CF_Token=$CF_Token \
-  acme.sh acme.sh --force --issue \
-  -d $DOMAIN_NAME \
-  -d "*.$DOMAIN_NAME" \
-  -d "atframe.work" \
-  -d "*.atframe.work" \
-  -d "r-ci.com" \
-  -d "*.r-ci.com" \
-  -d "w-oa.com" \
-  -d "*.w-oa.com" \
-  -d "f-ha.com" \
-  -d "*.f-ha.com" \
-  -d "x-ha.com" \
-  -d "*.x-ha.com" \
-  -d "g-ha.com" \
-  -d "*.g-ha.com" \
-  --dns dns_cf \
-  --keylength 4096 # 2048, 3072, 4096, 8192 or ec-256, ec-384, ec-521
-
-cp -f $ACMESH_SSL_DIR/${DOMAIN_NAME}*/* $INSTALL_CERT_DIR
-
-# sudo -u tools crontab -e
-# 32 4 * * * /bin/bash /data/setup/acme.sh/acme-renew.sh > /dev/null
+# systemctl restart router-nginx
+# systemctl restart v2ray

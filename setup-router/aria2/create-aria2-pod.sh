@@ -10,9 +10,21 @@ else
   export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
-if [[ "x$ARIA2_DATA_ROOT" == "x" ]]; then
-  ARIA2_DATA_ROOT="/data/aria2"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [[ "x$ROUTER_HOME" == "x" ]] && [[ -e "$SCRIPT_DIR/../configure-router.sh" ]]; then
+  source "$SCRIPT_DIR/../configure-router.sh"
 fi
+
+if [[ "x$ARIA2_DATA_ROOT" == "x" ]]; then
+  if [[ ! -z "$SAMBA_DATA_DIR" ]]; then
+    ARIA2_DATA_ROOT="$SAMBA_DATA_DIR/download"
+  elif [[ ! -z "$ROUTER_DATA_ROOT_DIR" ]]; then
+    ARIA2_DATA_ROOT="$ROUTER_DATA_ROOT_DIR/aria2/download"
+  else
+    ARIA2_DATA_ROOT="$HOME/aria2/download"
+  fi
+fi
+mkdir -p "$ARIA2_DATA_ROOT"
 
 if [[ "x$RUN_USER" == "x" ]]; then
   RUN_USER=$(id -un)

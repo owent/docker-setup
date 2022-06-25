@@ -12,6 +12,7 @@ if [[ "x$ROUTER_HOME" == "x" ]]; then
   source "$(cd "$(dirname "$0")" && pwd)/../configure-router.sh"
 fi
 
+mkdir -p "$ROUTER_LOG_ROOT_DIR/v2ray"
 mkdir -p "$GEOIP_GEOSITE_ETC_DIR"
 cd "$GEOIP_GEOSITE_ETC_DIR"
 
@@ -34,8 +35,8 @@ fi
 
 podman run -d --name v2ray --cap-add=NET_ADMIN --network=host --security-opt label=disable \
   --mount type=bind,source=$GEOIP_GEOSITE_ETC_DIR,target=/usr/local/v2ray/etc,ro=true \
-  --mount type=bind,source=/data/logs/v2ray,target=/data/logs/v2ray \
-  --mount type=bind,source=$GEOIP_GEOSITE_ETC_DIR/ssl,target=/usr/local/v2ray/ssl,ro=true \
+  --mount type=bind,source=$ROUTER_LOG_ROOT_DIR/v2ray,target=/data/logs/v2ray \
+  --mount type=bind,source=$ACMESH_SSL_DIR,target=/usr/local/v2ray/ssl,ro=true \
   docker.io/owt5008137/proxy-with-geo:latest v2ray -config=/usr/local/v2ray/etc/config.json
 
 podman cp v2ray:/usr/local/v2ray/share/geo-all.tar.gz geo-all.tar.gz

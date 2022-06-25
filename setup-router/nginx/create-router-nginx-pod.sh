@@ -6,9 +6,23 @@ else
   export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
-if [[ "x$ROUTER_HOME" == "x" ]]; then
-  source "$(cd "$(dirname "$0")" && pwd)/../configure-router.sh"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [[ "x$ROUTER_HOME" == "x" ]] && [[ -e "$SCRIPT_DIR/../configure-router.sh" ]]; then
+  source "$SCRIPT_DIR/../configure-router.sh"
 fi
+
+if [[ "x$ROUTER_HOME" == "x" ]]; then
+  ROUTER_HOME="$HOME"
+fi
+
+if [[ "x$ACMESH_SSL_DIR" == "x" ]]; then
+  if [[ "x$ROUTER_HOME" != "x" ]]; then
+    ACMESH_SSL_DIR=$ROUTER_HOME/acme.sh/ssl
+  else
+    ACMESH_SSL_DIR="$HOME/acme.sh/ssl"
+  fi
+fi
+mkdir -p "$ROUTER_LOG_ROOT_DIR/nginx"
 
 systemctl --all | grep -F router-nginx.service >/dev/null 2>&1
 
@@ -39,8 +53,9 @@ podman run -d --name router-nginx --security-opt label=disable \
   --mount type=bind,source=$ROUTER_HOME/etc/nginx/nginx.conf,target=/etc/nginx/nginx.conf,ro=true \
   --mount type=bind,source=$ROUTER_HOME/etc/nginx/conf.d,target=/etc/nginx/conf.d,ro=true \
   --mount type=bind,source=$ROUTER_HOME/etc/nginx/dhparam.pem,target=/etc/nginx/dhparam.pem,ro=true \
-  --mount type=bind,source=/data/logs/nginx,target=/var/log/nginx \
-  --mount type=bind,source=/data/aria2/download,target=/usr/share/nginx/html/downloads \
+  --mount type=bind,source=$ACMESH_SSL_DIR,target=/etc/nginx/ssl,ro=true \
+  --mount type=bind,source=$ROUTER_LOG_ROOT_DIR/nginx,target=/var/log/nginx \
+  --mount type=bind,source=$SAMBA_DATA_DIR/download,target=/usr/share/nginx/html/downloads \
   --network=host docker.io/nginx:latest nginx -c /etc/nginx/nginx.conf
 
 podman generate systemd router-nginx | tee /lib/systemd/system/router-nginx.service

@@ -6,10 +6,7 @@ else
   export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
-SCRIPT_DIR="$(
-  cd "$(dirname "$0")"
-  pwd
-)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 if [[ "x$ROUTER_HOME" == "x" ]]; then
   source "$SCRIPT_DIR/../configure-router.sh"
@@ -193,22 +190,15 @@ bind-dynamic
 except-interface=ppp0
 except-interface=ppp1
 # ipv4
-dhcp-range=172.18.11.1,172.18.255.254,255.255.0.0,28800s
-dhcp-host=70:85:c2:dc:0c:87,172.18.1.1
-dhcp-host=a0:36:9f:07:3f:98,172.18.1.10
-dhcp-host=a0:36:9f:07:3f:99,172.18.1.11
-dhcp-host=a0:36:9f:07:3f:9a,172.18.1.12
-dhcp-host=a0:36:9f:07:3f:9b,172.18.1.13
-dhcp-host=18:31:BF:A4:F0:30,172.18.2.1
-dhcp-host=18:31:BF:A4:F0:31,172.18.2.2
-dhcp-host=18:31:BF:A4:F0:34,172.18.2.3
-dhcp-host=18:31:BF:A4:F0:38,172.18.2.4
+dhcp-range=172.23.11.1,172.23.255.254,255.255.0.0,28800s
+# dhcp-host=70:85:c2:dc:0c:87,172.23.2.1
+# dhcp-host=a0:36:9f:07:3f:98,172.23.2.10
 # available options can be see by dnsmasq --help dhcp
 # https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol
 # https://www.iana.org/assignments/bootp-dhcp-parameters/bootp-dhcp-parameters.xhtml
 # https://thekelleys.org.uk/gitweb/?p=dnsmasq.git;a=blob_plain;f=src/dhcp-common.c
-dhcp-option=option:router,172.18.1.10
-dhcp-option=option:dns-server,172.18.1.10
+dhcp-option=option:router,172.23.1.10
+dhcp-option=option:dns-server,172.23.1.10
 dhcp-option=option:netbios-ns,0.0.0.0
 " >>/etc/dnsmasq.d/router.conf
 
