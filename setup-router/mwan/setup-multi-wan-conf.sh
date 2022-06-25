@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # These interfaces can not be used as inner bridge or local network
-MWAN_WATCH_INERFACES=(enp1s0f2 ppp0 ppp1)
-MWAN_INERFACES_WEIGHT=(5 1 1)
+MWAN_WATCH_INERFACES=(ppp0 ppp1)
+MWAN_INERFACES_WEIGHT=(10 10)
 
 function mwan_in_watch_list() {
   for CHECK_INERFACE in ${MWAN_WATCH_INERFACES[@]}; do

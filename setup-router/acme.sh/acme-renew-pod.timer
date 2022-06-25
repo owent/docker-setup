@@ -1,0 +1,17 @@
+[Unit]
+Description=Update ssl certificates for acme.sh
+Requires=acme-renew-pod.service
+After=network-online.target
+
+[Timer]
+OnCalendar=Mon,Thu *-*-*/4 04:11:13
+AccuracySec=60m
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target
+
+# sudo systemctl disable acme-renew-pod.timer
+# sudo systemctl enable $PWD/acme-renew-pod.timer
+# sudo systemctl start acme-renew-pod.timer
+# sudo systemctl status acme-renew-pod.timer
