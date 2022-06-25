@@ -1,0 +1,31 @@
+version: "3.9"  # optional since v1.27.0
+services:
+  router-samba:
+    image: router-samba
+    security_opt:
+      - seccomp=unconfined
+      - label=disable
+    ports:
+      - "139:139/TCP"
+      - "445:445/TCP"
+      - "137:137/UDP"
+      - "138:138/UDP"
+    volumes:
+      - type: bind
+        source: /data/samba
+        target: /data/
+      - type: bind
+        source: /sys/fs/cgroup
+        target: /sys/fs/cgroup
+      - type: tmpfs
+        target: /run
+        tmpfs:
+          size: 64m
+      - type: tmpfs
+        target: /run/lock
+        tmpfs:
+          size: 64m
+      - type: tmpfs
+        target: /tmp
+      - type: tmpfs
+        target: /var/log/journal
