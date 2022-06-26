@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ -e "/opt/nftables/sbin" ]; then
+if [[ -e "/opt/nftables/sbin" ]]; then
   export PATH=/opt/nftables/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 else
   export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
@@ -57,7 +57,7 @@ if [[ $? -eq 0 ]]; then
   podman rm -f acme.sh
 fi
 
-if [[ "x$ACMESH_UPDATE" != "x" ]]; then
+if [[ "x$ACMESH_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman image inspect docker.io/neilpang/acme.sh:latest >/dev/null 2>&1
   if [[ $? -eq 0 ]]; then
     podman image rm -f docker.io/neilpang/acme.sh:latest

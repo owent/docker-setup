@@ -64,7 +64,7 @@ if [[ $? -eq 0 ]]; then
   podman rm -f nextcloud
 fi
 
-if [[ "x$NEXTCLOUD_UPDATE" != "x" ]]; then
+if [[ "x$NEXTCLOUD_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman image inspect docker.io/nextcloud:latest >/dev/null 2>&1
   if [[ $? -eq 0 ]]; then
     podman image rm -f docker.io/nextcloud:latest

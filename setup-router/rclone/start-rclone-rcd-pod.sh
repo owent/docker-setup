@@ -59,7 +59,7 @@ if [[ $? -eq 0 ]]; then
   podman rm -f rclone-rcd
 fi
 
-if [[ "x$RCLONE_UPDATE" != "x" ]]; then
+if [[ "x$RCLONE_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman image prune -f
   podman pull docker.io/rclone/rclone:latest
 fi

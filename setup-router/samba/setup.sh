@@ -1,10 +1,8 @@
 #!/bin/bash
 
-sed -i.bak -r 's#dl-cdn.alpinelinux.org#mirrors.tencent.com#g' /etc/apk/repositories
-
 SMB_USER_NAME='owent'
 SMB_USER_PASSWORD='PASSWORD'
-SMB_DATA_DIR='/data'
+SMB_DATA_DIR='/data/content'
 set -x
 apk add --no-cache samba samba-client nfs-utils
 useradd -M -s /sbin/nologin $SMB_USER_NAME

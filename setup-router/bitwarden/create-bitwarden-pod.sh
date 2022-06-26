@@ -52,7 +52,7 @@ if [[ $? -eq 0 ]]; then
   podman rm -f bitwarden
 fi
 
-if [[ "x$BITWARDEN_UPDATE" != "x" ]]; then
+if [[ "x$BITWARDEN_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman image inspect docker.io/vaultwarden/server:latest >/dev/null 2>&1
   if [[ $? -eq 0 ]]; then
     podman image rm -f docker.io/vaultwarden/server:latest

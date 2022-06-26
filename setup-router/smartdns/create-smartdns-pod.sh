@@ -49,7 +49,7 @@ if [[ "x$SMARTDNS_LOG_DIR" == "x" ]]; then
 fi
 mkdir -p "$SMARTDNS_LOG_DIR"
 
-if [[ "x$SMARTDNS_UPDATE" != "x" ]] || [[ "x$HOME_ROUTER_UPDATE" != "x" ]]; then
+if [[ "x$SMARTDNS_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman pull docker.io/owt5008137/smartdns:latest
 fi
 
@@ -79,7 +79,7 @@ if [[ $? -eq 0 ]]; then
   podman rm -f smartdns
 fi
 
-if [[ "x$SMARTDNS_UPDATE" != "x" ]] || [[ "x$HOME_ROUTER_UPDATE" != "x" ]]; then
+if [[ "x$SMARTDNS_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman image prune -a -f --filter "until=240h"
 fi
 

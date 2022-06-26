@@ -16,7 +16,7 @@ if [[ $? -eq 0 ]]; then
   podman rm -f jellyfin
 fi
 
-if [[ "x$JELLYFIN_UPDATE" != "x" ]]; then
+if [[ "x$JELLYFIN_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman image inspect docker.io/jellyfin/jellyfin:latest >/dev/null 2>&1
   if [[ $? -eq 0 ]]; then
     podman image rm -f docker.io/jellyfin/jellyfin:latest

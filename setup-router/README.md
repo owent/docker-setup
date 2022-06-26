@@ -60,7 +60,7 @@ net.ipv4.tcp_keepalive_intvl = 75
 net.ipv4.tcp_keepalive_probes = 6
 net.ipv4.ip_forward=1
 net.ipv4.ip_forward_use_pmtu=1
-net.ipv4.ip_local_port_range=\"10240 65000\"
+net.ipv4.ip_local_port_range=10240 65000
 net.ipv4.conf.all.forwarding=1
 net.ipv4.conf.default.forwarding=1
 net.ipv6.conf.all.forwarding=1
@@ -92,7 +92,7 @@ net.ipv6.conf.br0.autoconf=0
 net.ipv6.conf.br0.accept_ra=2
 " | sudo tee /etc/sysctl.d/91-forwarding.conf ;
 
-echo "
+echo "net.ipv4.ip_unprivileged_port_start=80
 kernel.unprivileged_userns_clone=1
 user.max_user_namespaces=28633
 " | sudo tee /etc/sysctl.d/92-container.conf ;

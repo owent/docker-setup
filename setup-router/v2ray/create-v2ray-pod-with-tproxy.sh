@@ -16,7 +16,7 @@ mkdir -p "$ROUTER_LOG_ROOT_DIR/v2ray"
 mkdir -p "$GEOIP_GEOSITE_ETC_DIR"
 cd "$GEOIP_GEOSITE_ETC_DIR"
 
-if [[ "x$V2RAY_UPDATE" != "x" ]] || [[ "x$HOME_ROUTER_UPDATE" != "x" ]]; then
+if [[ "x$V2RAY_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman pull docker.io/owt5008137/proxy-with-geo:latest
 fi
 
@@ -29,7 +29,7 @@ if [[ $? -eq 0 ]]; then
   podman rm -f v2ray
 fi
 
-if [[ "x$V2RAY_UPDATE" != "x" ]] || [[ "x$HOME_ROUTER_UPDATE" != "x" ]]; then
+if [[ "x$V2RAY_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman image prune -a -f --filter "until=240h"
 fi
 

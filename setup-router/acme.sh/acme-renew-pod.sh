@@ -15,5 +15,5 @@ if [[ "x$ACMESH_SSL_DIR" == "x" ]]; then
 fi
 mkdir -p "$ACMESH_SSL_DIR"
 
-# systemctl restart router-nginx
+# sudo -u tools bash -c 'source ~/.bashrc; systemctl restart --user router-nginx'
 # systemctl restart v2ray

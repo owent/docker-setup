@@ -33,7 +33,7 @@ if [[ "x$RCLONE_DATA_DIR" == "x" ]]; then
 fi
 mkdir -p "$RCLONE_DATA_DIR"
 
-if [[ "x$RCLONE_UPDATE" != "x" ]]; then
+if [[ "x$RCLONE_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman image prune -f
   podman pull docker.io/rclone/rclone:latest
 fi

@@ -44,7 +44,7 @@ if [[ "x$COREDNS_ETC_DIR" == "x" ]]; then
 fi
 mkdir -p "$COREDNS_ETC_DIR"
 
-if [[ "x$COREDNS_UPDATE" != "x" ]] || [[ "x$HOME_ROUTER_UPDATE" != "x" ]]; then
+if [[ "x$COREDNS_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman pull docker.io/owt5008137/coredns:latest
 fi
 
@@ -74,7 +74,7 @@ if [[ $? -eq 0 ]]; then
   podman rm -f coredns
 fi
 
-if [[ "x$COREDNS_UPDATE" != "x" ]] || [[ "x$HOME_ROUTER_UPDATE" != "x" ]]; then
+if [[ "x$COREDNS_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman image prune -a -f --filter "until=240h"
 fi
 

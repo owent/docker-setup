@@ -45,7 +45,7 @@ else
   mkdir -p "$SYSTEMD_SERVICE_DIR"
 fi
 
-if [[ "x$V2RAY_UPDATE" != "x" ]] || [[ "x$HOME_ROUTER_UPDATE" != "x" ]]; then
+if [[ "x$V2RAY_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman pull docker.io/caddy:latest
   podman pull docker.io/owt5008137/proxy-with-geo:latest
 fi
@@ -129,7 +129,7 @@ fi
 podman generate systemd v2ray-proxy-with-geo | tee -p "$SYSTEMD_SERVICE_DIR/v2ray-proxy-with-geo.service"
 podman container stop v2ray-proxy-with-geo
 
-if [[ "x$V2RAY_UPDATE" != "x" ]] || [[ "x$HOME_ROUTER_UPDATE" != "x" ]]; then
+if [[ "x$V2RAY_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman image prune -a -f --filter "until=240h"
 fi
 

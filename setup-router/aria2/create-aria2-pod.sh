@@ -68,6 +68,13 @@ if [[ $? -eq 0 ]]; then
   podman rm -f aria2
 fi
 
+if [[ "x$ARIA2_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman image inspect local-aria2 >/dev/null 2>&1
+  if [[ $? -eq 0 ]]; then
+    podman image rm -f local-aria2
+  fi
+fi
+
 mkdir -p "$RUN_HOME/aria2/etc"
 mkdir -p "$RUN_HOME/aria2/log"
 mkdir -p "$ARIA2_DATA_ROOT/download"
@@ -152,12 +159,13 @@ pause=false
 rpc-listen-all=true 
 rpc-allow-origin-all=true 
 rpc-listen-port=6800 
-# client secret => token:mypassword
-rpc-secret=mypassword 
+# client secret => token:MYPASSWORD
+rpc-secret=MYPASSWORD 
 rpc-max-request-size=2M
 
 rpc-secure=false
 # rpc-certificate=<FILE>
+# rpc-private-key=<FILE>
 ' >>$RUN_HOME/aria2/etc/aria2.conf
 
 chmod 775 "$RUN_HOME/aria2/etc"
@@ -186,7 +194,7 @@ chown $RUN_USER aria2c_with_session.sh
 
 podman build --layers --force-rm --tag local-aria2 -f aria2.Dockerfile .
 
-podman --log-level debug run -d --name aria2 --user $RUN_USER \
+podman --log-level debug run -d --name aria2 \
   --security-opt label=disable \
   --mount type=bind,source=$RUN_HOME/aria2/etc,target=/etc/aria2 \
   --mount type=bind,source=$RUN_HOME/aria2/log,target=/var/log/aria2 \
@@ -195,6 +203,7 @@ podman --log-level debug run -d --name aria2 --user $RUN_USER \
   local-aria2 bash /usr/bin/aria2c_with_session.sh --conf-path=/etc/aria2/aria2.conf
 
 podman generate systemd aria2 | tee "$SYSTEMD_SERVICE_DIR/aria2.service"
+podman container stop aria2
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
   systemctl daemon-reload
