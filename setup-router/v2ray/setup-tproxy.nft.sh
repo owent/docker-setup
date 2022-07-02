@@ -66,6 +66,12 @@ fi
 if [[ "x" == "x$SETUP_WITH_BLACKLIST_IPV6" ]]; then
   SETUP_WITH_BLACKLIST_IPV6="2402:4e00::,2400:3200::1,2400:3200:baba::1,2400:da00::6666,2402:4e00::,2606:4700:4700::1111,2606:4700:4700::1001,2606:4700:4700::1111,2606:4700:4700::1001"
 fi
+if [[ "x" == "x$SETUP_WITH_WHITELIST_IPV4" ]]; then
+  SETUP_WITH_WHITELIST_IPV4="91.108.56.0/22,95.161.64.0/20,91.108.4.0/22,91.108.8.0/22,149.154.160.0/22,149.154.164.0/22,8.8.8.8,8.8.4.4"
+fi
+if [[ "x" == "x$SETUP_WITH_WHITELIST_IPV6" ]]; then
+  SETUP_WITH_WHITELIST_IPV6="2001:4860:4860::8888,2001:4860:4860::8844"
+fi
 
 if [[ "x" == "x$SETUP_WITH_DEBUG_LOG" ]]; then
   SETUP_WITH_DEBUG_LOG=0
@@ -145,13 +151,22 @@ if [[ $? -ne 0 ]]; then
   nft add set ip v2ray BLACKLIST { type ipv4_addr\; }
 fi
 nft add element ip v2ray BLACKLIST "{ $SETUP_WITH_BLACKLIST_IPV4 }"
+nft list set ip v2ray TEMPORARY_WHITELIST >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add set ip v2ray TEMPORARY_WHITELIST '{ type ipv4_addr; timeout 2d; }'
+fi
+nft list set ip v2ray PERMANENT_WHITELIST >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add set ip v2ray PERMANENT_WHITELIST '{ type ipv4_addr; flags interval; }'
+fi
+nft add element ip v2ray PERMANENT_WHITELIST "{ $SETUP_WITH_WHITELIST_IPV4 }"
 nft list set ip v2ray GEOIP_CN >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
-  nft add set ip v2ray GEOIP_CN { type ipv4_addr\; flags interval\; }
+  nft add set ip v2ray GEOIP_CN '{ type ipv4_addr; flags interval; }'
 fi
 nft list set ip v2ray GEOIP_HK >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
-  nft add set ip v2ray GEOIP_HK { type ipv4_addr\; flags interval\; }
+  nft add set ip v2ray GEOIP_HK '{ type ipv4_addr; flags interval; }'
 fi
 nft list set ip v2ray LOCAL_IPV4 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
@@ -205,7 +220,8 @@ nft add rule ip v2ray PREROUTING ip daddr @BLACKLIST return
 nft add rule ip v2ray PREROUTING ip daddr @GEOIP_CN return
 ## GEOIP_HK
 #nft add rule ip v2ray PREROUTING ip daddr @GEOIP_HK return
-## TODO DNSMASQ_GFW_IPV4
+## Alternative: using whitlist
+## nft add rule ip v2ray PREROUTING ip daddr != @TEMPORARY_WHITELIST ip daddr != @PERMANENT_WHITELIST return
 
 ### ipv4 - forward to v2ray's listen address if not marked by v2ray
 # tproxy ip to $V2RAY_HOST_IPV4:$V2RAY_PORT
@@ -246,6 +262,8 @@ nft add rule ip v2ray OUTPUT ip daddr @LOCAL_IPV4 return
 nft add rule ip v2ray OUTPUT ip daddr @DEFAULT_ROUTE_IPV4 return
 nft add rule ip v2ray OUTPUT ip daddr @BLACKLIST return
 nft add rule ip v2ray OUTPUT ip daddr @GEOIP_CN return
+## Alternative: using whitlist
+## nft add rule ip v2ray OUTPUT ip daddr != @TEMPORARY_WHITELIST ip daddr != @PERMANENT_WHITELIST return
 # if dns service and v2ray are on different server, use rules below
 # nft add rule ip v2ray OUTPUT meta l4proto tcp ip daddr @LOCAL_IPV4 return
 # nft add rule ip v2ray OUTPUT meta l4proto tcp ip daddr @DEFAULT_ROUTE_IPV4 return
@@ -264,16 +282,25 @@ nft add rule ip v2ray OUTPUT ct mark set mark and 0xffff
 if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   nft list set ip6 v2ray BLACKLIST >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
-    nft add set ip6 v2ray BLACKLIST { type ipv6_addr\; }
+    nft add set ip6 v2ray BLACKLIST '{ type ipv6_addr; }'
   fi
   nft add element ip6 v2ray BLACKLIST "{ $SETUP_WITH_BLACKLIST_IPV6 }"
+  nft list set ip6 v2ray TEMPORARY_WHITELIST >/dev/null 2>&1
+  if [[ $? -ne 0 ]]; then
+    nft add set ip6 v2ray TEMPORARY_WHITELIST '{ type ipv6_addr; timeout 2d; }'
+  fi
+  nft list set ip6 v2ray PERMANENT_WHITELIST >/dev/null 2>&1
+  if [[ $? -ne 0 ]]; then
+    nft add set ip6 v2ray PERMANENT_WHITELIST '{ type ipv6_addr; flags interval; }'
+  fi
+  nft add element ip6 v2ray PERMANENT_WHITELIST "{ $SETUP_WITH_WHITELIST_IPV6 }"
   nft list set ip6 v2ray GEOIP_CN >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
-    nft add set ip6 v2ray GEOIP_CN { type ipv6_addr\; flags interval\; }
+    nft add set ip6 v2ray GEOIP_CN '{ type ipv6_addr; flags interval; }'
   fi
   nft list set ip6 v2ray GEOIP_HK >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
-    nft add set ip6 v2ray GEOIP_HK { type ipv6_addr\; flags interval\; }
+    nft add set ip6 v2ray GEOIP_HK '{ type ipv6_addr; flags interval; }'
   fi
   nft list set ip6 v2ray LOCAL_IPV6 >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
@@ -316,17 +343,14 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   nft add rule ip6 v2ray PREROUTING ip6 daddr @DEFAULT_ROUTE_IPV6 return
 
   ### ipv6 - skip private network and UDP of DNS
-  # if dns service and v2ray are on different server, use rules below
-  # nft add rule ip6 v2ray PREROUTING meta l4proto tcp ip6 daddr fd00::/8 return
-  # nft add rule ip6 v2ray PREROUTING ip6 daddr fd00::/8 udp dport != 53 return
-
   # ipv6 skip package from outside
   nft add rule ip6 v2ray PREROUTING ip6 daddr @BLACKLIST return
   # GEOIP_CN
   nft add rule ip6 v2ray PREROUTING ip6 daddr @GEOIP_CN return
   ## GEOIP_HK
   #nft add rule ip6 v2ray PREROUTING ip6 daddr @GEOIP_HK return
-  ## TODO DNSMASQ_GFW_IPV6
+  ## Alternative: using whitlist
+  ## nft add rule ip6 v2ray PREROUTING ip6 daddr != @TEMPORARY_WHITELIST ip6 daddr != @PERMANENT_WHITELIST return
 
   ### ipv6 - forward to v2ray's listen address if not marked by v2ray
   if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
@@ -367,11 +391,8 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   nft add rule ip6 v2ray OUTPUT ip6 daddr @DEFAULT_ROUTE_IPV6 return
   nft add rule ip6 v2ray OUTPUT ip6 daddr @BLACKLIST return
   nft add rule ip6 v2ray OUTPUT ip6 daddr @GEOIP_CN return
-
-  nft add rule ip6 v2ray OUTPUT ip6 daddr fd00::/8 return
-  # if dns service and v2ray are on different server, use rules below
-  # nft add rule ip6 v2ray OUTPUT meta l4proto tcp ip6 daddr fd00::/8 return
-  # nft add rule ip6 v2ray OUTPUT ip6 daddr fd00::/8 udp dport != 53 return
+  ## Alternative: using whitlist
+  ## nft add rule ip6 v2ray PREROUTING ip6 daddr != @TEMPORARY_WHITELIST ip6 daddr != @PERMANENT_WHITELIST return
   nft add rule ip6 v2ray OUTPUT mark and 0x70 == 0x70 return # make sure v2ray's outbounds.*.streamSettings.sockopt.mark = 255
   if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
     nft add rule ip6 v2ray OUTPUT tcp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT meta nftrace set 1
