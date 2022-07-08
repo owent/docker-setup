@@ -1,7 +1,7 @@
 [Unit]
 Description=Update ssl certificates for acme.sh
-Wants=network.target
-After=network-online.target
+After=network.target network-online.target
+Wants=network-online.target
 
 [Service]
 Type=oneshot
@@ -9,7 +9,7 @@ ExecStart=/bin/bash /home/router/acme.sh/acme-renew-pod.sh
 # RemainAfterExit=yes
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
 
 # sudo systemctl enable /home/router/acme.sh/acme-renew-pod.service
 # sudo systemctl start acme-renew-pod.service

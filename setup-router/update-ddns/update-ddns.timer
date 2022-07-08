@@ -1,7 +1,6 @@
 [Unit]
 Description=Update ddns
 Requires=update-ddns.service
-After=network-online.target
 
 [Timer]
 OnCalendar=*-*-* *:02/10:13

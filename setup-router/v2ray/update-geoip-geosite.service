@@ -1,7 +1,7 @@
 [Unit]
 Description=Update geoip geosite
 Wants=network-online.target
-After=network-online.target
+After=network.target network-online.target
 
 [Service]
 Type=oneshot
@@ -10,4 +10,4 @@ ExecStart=/bin/bash $ROUTER_HOME/v2ray/update-geoip-geosite.sh
 # RemainAfterExit=yes
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target

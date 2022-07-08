@@ -1,6 +1,7 @@
 [Unit]
 Description=Setup router
-After=network.target
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=oneshot
@@ -8,4 +9,4 @@ ExecStart=/bin/bash /home/router/setup-services.sh
 RemainAfterExit=yes
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target

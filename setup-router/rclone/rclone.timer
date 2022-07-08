@@ -1,7 +1,8 @@
 [Unit]
 Description=Run rclone sync
 Requires=rclone.service
-After=network-online.target
+After=network.target network-online.target
+Wants=network-online.target
 
 [Timer]
 OnCalendar=*-*-* 03:17:23

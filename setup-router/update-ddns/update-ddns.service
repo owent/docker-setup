@@ -1,7 +1,7 @@
 [Unit]
 Description=update ddns
-Wants=network.target
-After=network-online.target
+After=network.target network-online.target
+Wants=network-online.target
 
 [Service]
 Type=oneshot
@@ -9,7 +9,7 @@ ExecStart=/bin/bash /home/router/update-ddns/update-ddns.sh
 # RemainAfterExit=yes
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
 
 # systemctl enable --user /home/router/update-ddns/update-ddns.service
 # systemctl start --user update-ddns.service

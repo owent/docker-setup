@@ -1,29 +1,29 @@
 #!/bin/bash
 
 if [[ -e "/opt/nftables/sbin" ]]; then
-    export PATH=/opt/nftables/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
+  export PATH=/opt/nftables/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 else
-    export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
+  export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)";
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 if [[ "x$ROUTER_HOME" == "x" ]]; then
-    source "$SCRIPT_DIR/../configure-router.sh"
+  source "$SCRIPT_DIR/../configure-router.sh"
 fi
 
 if [[ -e "/lib/systemd/system" ]]; then
-    export SETUP_SYSTEMD_SYSTEM_DIR=/lib/systemd/system;
+  export SETUP_SYSTEMD_SYSTEM_DIR=/lib/systemd/system
 elif [[ -e "/usr/lib/systemd/system" ]]; then
-    export SETUP_SYSTEMD_SYSTEM_DIR=/usr/lib/systemd/system;
+  export SETUP_SYSTEMD_SYSTEM_DIR=/usr/lib/systemd/system
 elif [[ -e "/etc/systemd/system" ]]; then
-    export SETUP_SYSTEMD_SYSTEM_DIR=/etc/systemd/system;
+  export SETUP_SYSTEMD_SYSTEM_DIR=/etc/systemd/system
 fi
 
 if [[ "x$ROUTER_CONFIG_PPP_LINK_INTERFACE" != "x" ]]; then
-mkdir -p /opt/ppp/etc ;
+  mkdir -p /opt/ppp/etc
 
-echo "
+  echo "
 ppp_async
 ppp_deflate
 ppp_generic
@@ -33,8 +33,8 @@ pppox
 ppp_synctty
 " | sudo tee /etc/modules-load.d/ppp.conf
 
-# It recommand to setup pppd with NetworkManager
-echo "
+  # It recommand to setup pppd with NetworkManager
+  echo "
 noauth
 refuse-eap
 user '$ROUTER_CONFIG_PPP_USERNAME'
@@ -56,13 +56,13 @@ lcp-echo-failure 3
 unit 0
 linkname $ROUTER_CONFIG_PPP_LINK_INTERFACE
 +ipv6
-" > /opt/ppp/etc/$ROUTER_CONFIG_PPP_LINK_INTERFACE ;
+" >/opt/ppp/etc/$ROUTER_CONFIG_PPP_LINK_INTERFACE
 
-echo "
+  echo "
 [Unit]
 Description=ppp-$ROUTER_CONFIG_PPP_LINK_INTERFACE Service
-After=network.target
-Wants=network.target
+After=network.target network-online.target
+Wants=network-online.target
 
 [Service]
 # User=ppp
@@ -76,7 +76,7 @@ Restart=on-failure
 RestartPreventExitStatus=23
 
 [Install]
-WantedBy=multi-user.target
-" > $SETUP_SYSTEMD_SYSTEM_DIR/pppd-$ROUTER_CONFIG_PPP_LINK_INTERFACE.service ;
+WantedBy=default.target
+" >$SETUP_SYSTEMD_SYSTEM_DIR/pppd-$ROUTER_CONFIG_PPP_LINK_INTERFACE.service
 
 fi

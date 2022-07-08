@@ -1,7 +1,6 @@
 [Unit]
 Description=Run Reactive ppp interfaces
 Requires=reactive-ppp-interfaces.service
-After=network-online.target
 
 [Timer]
 OnBootSec=1min

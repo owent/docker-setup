@@ -38,8 +38,8 @@ systemctl start router
 
 echo "[Unit]
 Description=Setup router
-Requires=network.target
-After=network.target
+After=network.target network-online.target
+Wants=network-online.target
 
 [Service]
 Type=oneshot
@@ -47,7 +47,7 @@ ExecStart=/bin/bash $ROUTER_HOME/setup-services.sh
 RemainAfterExit=yes
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
 " >"$ROUTER_HOME/router-on-startup.service"
 
 podman cp $ROUTER_HOME/router-on-startup.service router:/lib/systemd/system/router-on-startup.service

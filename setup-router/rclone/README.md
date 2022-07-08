@@ -7,8 +7,8 @@
 ```systemd
 [Unit]
 Description=rclone gui service
-Wants=network.target
-After=network-online.target
+After=network.target network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
@@ -20,8 +20,8 @@ ExecStart=/usr/bin/rclone rcd --log-systemd --rc-web-gui --rc-web-gui-no-open-br
 ```systemd
 [Unit]
 Description=rclone gui service
-Wants=network.target
-After=network-online.target
+After=network.target network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple

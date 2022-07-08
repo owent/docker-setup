@@ -1,7 +1,8 @@
 [Unit]
 Description=Update ssl certificates for acme.sh
 Requires=acme-renew-pod.service
-After=network-online.target
+After=network.target network-online.target
+Wants=network-online.target
 
 [Timer]
 OnCalendar=Mon,Thu *-*-*/4 04:11:13

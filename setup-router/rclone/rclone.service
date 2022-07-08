@@ -1,7 +1,7 @@
 [Unit]
 Description=rclone sync
-Wants=network.target
-After=network-online.target
+After=network.target network-online.target
+Wants=network-online.target
 
 [Service]
 Type=oneshot
@@ -9,7 +9,7 @@ ExecStart=/bin/bash /home/tools/rclone/start-rclone-sync.sh
 # RemainAfterExit=yes
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
 
 # ln /home/tools/rclone/rclone.service ~/.config/systemd/user/rclone.service
 # systemctl status --user rclone.service

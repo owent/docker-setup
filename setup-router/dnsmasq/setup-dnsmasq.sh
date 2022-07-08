@@ -269,10 +269,9 @@ fi
 echo "
 [Unit]
 Description=dnsmasq - A lightweight DHCP and caching DNS server
-Requires=network.target
-Wants=nss-lookup.target
-Before=nss-lookup.target
 After=network.target
+Before=network-online.target nss-lookup.target
+Wants=nss-lookup.target
 
 [Service]
 Type=forking
@@ -284,7 +283,7 @@ ExecStart=/usr/sbin/dnsmasq -R -C /etc/dnsmasq.d/router.conf -x /var/run/dnsmasq
 ExecReload=/bin/kill -HUP $MAINPID
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
 " >$SETUP_SYSTEMD_SYSTEM_DIR/dnsmasq.service
 
 cp -f /etc/resolv.conf /etc/resolv.conf.dnsmasq
