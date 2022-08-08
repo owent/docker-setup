@@ -14,7 +14,15 @@ fi
 
 echo "============ Start to sync from onedrive ... ============"
 
-/bin/bash $SCRIPT_DIR/start-rclone-sync.sh &
+/bin/bash $SCRIPT_DIR/start-rclone-sync-server.sh &
+
+CHECK_RUNNING_PID=$!
+
+echo "$CHECK_RUNNING_PID" >"$SCRIPT_DIR/pidfile"
+
+wait $CHECK_RUNNING_PID
+
+/bin/bash $SCRIPT_DIR/start-rclone-sync-client.sh &
 
 CHECK_RUNNING_PID=$!
 
