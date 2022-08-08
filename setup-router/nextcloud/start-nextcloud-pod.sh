@@ -93,21 +93,48 @@ echo "$ADMIN_USENAME $ADMIN_TOKEN" | tee "$RUN_HOME/nextcloud/admin-access.log"
 #     -v theme:/var/www/html/themes/<YOUR_CUSTOM_THEME> \
 #     nextcloud
 
-podman run -d --name nextcloud --security-opt seccomp=unconfined \
-  -e NEXTCLOUD_TRUSTED_DOMAINS="home-router.x-ha.com local.x-ha.com 127.0.0.1 172.18.1.10" \
+echo "Rebuild docker image ..."
+echo "FROM docker.io/nextcloud:latest
+
+LABEL maintainer \"OWenT <admin@owent.net>\"
+
+RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ; \\
+    usermod -g root www-data; \\
+    usermod -a -G www-data www-data; \\
+    chown -R www-data:root /var/www/html/config /var/www/html/data /var/www/html/custom_apps; \\
+    chmod -R 770 /var/www/html/config /var/www/html/data /var/www/html/custom_apps
+" >nextcloud.Dockerfile
+
+podman rmi local_nextcloud || true
+podman build \
+  --security-opt seccomp=unconfined \
+  --security-opt label=disable \
+  -v "$NEXTCLOUD_ETC_DIR:/var/www/html/config" \
+  -v "$NEXTCLOUD_DATA_DIR:/var/www/html/data" \
+  -v "$NEXTCLOUD_APPS_DIR:/var/www/html/custom_apps" \
+  -t local_nextcloud -f nextcloud.Dockerfile
+
+podman run -d --name nextcloud \
+  --security-opt seccomp=unconfined \
+  --security-opt label=disable \
+  -e NEXTCLOUD_TRUSTED_DOMAINS="$NEXTCLOUD_TRUSTED_DOMAINS" \
   -e OVERWRITEHOST=home-router.x-ha.com:6883 -e OVERWRITEPROTOCOL=https \
   -e NEXTCLOUD_ADMIN_USER=$ADMIN_USENAME -e NEXTCLOUD_ADMIN_PASSWORD=$ADMIN_TOKEN \
   -e APACHE_DISABLE_REWRITE_IP=1 -e TRUSTED_PROXIES=0.0.0.0/32 \
   --mount type=bind,source=$NEXTCLOUD_ETC_DIR,target=/var/www/html/config \
   --mount type=bind,source=$NEXTCLOUD_DATA_DIR,target=/var/www/html/data \
   --mount type=bind,source=$NEXTCLOUD_APPS_DIR,target=/var/www/html/custom_apps \
+  --mount type=tmpfs,target=/run,tmpfs-mode=1777,tmpfs-size=67108864 \
+  --mount type=tmpfs,target=/run/lock,tmpfs-mode=1777,tmpfs-size=67108864 \
+  --mount type=tmpfs,target=/tmp,tmpfs-mode=1777 \
+  --mount type=tmpfs,target=/var/log/journal,tmpfs-mode=1777 \
   -p $NEXTCLOUD_LISTEN_PORT:80 \
-  docker.io/nextcloud:latest
+  local_nextcloud
 # --copy-links
 
-podman exec nextcloud ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
-
 podman generate systemd --name nextcloud | tee "$RUN_HOME/nextcloud/container-nextcloud.service"
+
+podman stop nextcloud
 
 systemctl --user enable "$RUN_HOME/nextcloud/container-nextcloud.service"
 systemctl --user restart container-nextcloud
