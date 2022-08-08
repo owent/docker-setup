@@ -24,5 +24,6 @@ export SAMBA_DATA_DIR=$ROUTER_DATA_ROOT_DIR/samba
 export NEXTCLOUD_DATA_DIR=$SAMBA_DATA_DIR/nextcloud/data
 export NEXTCLOUD_APPS_DIR=$SAMBA_DATA_DIR/nextcloud/apps
 export NEXTCLOUD_ETC_DIR=$SAMBA_DATA_DIR/nextcloud/etc
+export NEXTCLOUD_TRUSTED_DOMAINS="" # nextcloud domains and IPs
 
 "$@"

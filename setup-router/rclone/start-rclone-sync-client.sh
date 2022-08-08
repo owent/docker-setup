@@ -22,11 +22,11 @@ mkdir -p "$RCLONE_DATA_DIR"
 
 echo "============ Start to check from onedrive ... ============"
 
-rclone --log-file $SCRIPT_DIR/rclone-sync-onedrive.log --ignore-size \
+rclone --log-file $SCRIPT_DIR/rclone-sync-onedrive.log --ignore-size --onedrive-chunk-size 2560k \
   sync --dry-run onedrive-live_com:/ $RCLONE_DATA_DIR
 
 echo "============ Start to sync from onedrive ... ============"
-rclone --log-file $SCRIPT_DIR/rclone-sync-onedrive.log --ignore-size \
+rclone --log-file $SCRIPT_DIR/rclone-sync-onedrive.log --ignore-size --onedrive-chunk-size 2560k \
   sync --progress onedrive-live_com:/ $RCLONE_DATA_DIR
 
 if [[ $? -ne 0 ]]; then
@@ -46,27 +46,35 @@ echo "============ Start to sync to onedrive ... ============"
 for SYNC_TARGET in "onedrive-live_com" "onedrive-x-ha_com" "onedrive-r-ci_com"; do
   SYNC_NEXTCLOUD_HAS_ERROR=0
   if [[ -e "$NEXTCLOUD_DATA_DIR" ]]; then
-    rclone --log-file $SCRIPT_DIR/rclone-sync-onedrive.log --ignore-size \
+    rclone --log-file $SCRIPT_DIR/rclone-sync-onedrive.log --ignore-size --onedrive-chunk-size 2560k \
       sync --progress $NEXTCLOUD_DATA_DIR "$SYNC_TARGET:/Apps/nextcloud/$(basename $NEXTCLOUD_DATA_DIR)" || SYNC_NEXTCLOUD_HAS_ERROR=1
   fi
   if [[ -e "$NEXTCLOUD_ETC_DIR" ]]; then
-    rclone --log-file $SCRIPT_DIR/rclone-sync-onedrive.log --ignore-size \
+    rclone --log-file $SCRIPT_DIR/rclone-sync-onedrive.log --ignore-size --onedrive-chunk-size 2560k \
       sync --progress $NEXTCLOUD_ETC_DIR "$SYNC_TARGET:/Apps/nextcloud/$(basename $NEXTCLOUD_ETC_DIR)" || SYNC_NEXTCLOUD_HAS_ERROR=1
   fi
   if [[ $SYNC_NEXTCLOUD_HAS_ERROR -ne 0 ]]; then
-    echo "[ERROR]: Sync to onedrive-$SYNC_TARGET failed"
+    echo "[ERROR]: Sync to onedrive-$SYNC_TARGET failed" >>$SCRIPT_DIR/rclone-sync-onedrive.log
     break
   fi
 done
 
-rclone --log-file $SCRIPT_DIR/rclone-sync-onedrive.log --ignore-size \
+if [[ $SYNC_NEXTCLOUD_HAS_ERROR -eq 0 ]]; then
+  if [[ -e "$SCRIPT_DIR/warning-sync-apps-has-error.txt" ]]; then
+    rm -f "$SCRIPT_DIR/warning-sync-apps-has-error.txt"
+  fi
+else
+  echo "$(date +%Y-%m-%dT%H:%M:%S) [ERROR]: Sync apps to onedrive-live_com failed" >>"$SCRIPT_DIR/warning-sync-apps-has-error.txt"
+fi
+
+rclone --log-file $SCRIPT_DIR/rclone-sync-onedrive.log --ignore-size --onedrive-chunk-size 2560k \
   sync --progress $RCLONE_DATA_DIR/多媒体归档 onedrive-x-ha_com:/多媒体归档
 
 for SYNC_DIR in "多媒体归档" "Apps" "Documents" "OneNote 上传" "存档" "作品"; do
   # rclone --log-file $SCRIPT_DIR/rclone-sync-onedrive.log --ignore-size \
   #        sync --progress "$RCLONE_DATA_DIR/$SYNC_DIR" "onedrive-live_com:/$SYNC_DIR"
 
-  rclone --log-file $SCRIPT_DIR/rclone-sync-onedrive.log --ignore-size \
+  rclone --log-file $SCRIPT_DIR/rclone-sync-onedrive.log --ignore-size --onedrive-chunk-size 2560k \
     sync --progress "$RCLONE_DATA_DIR/$SYNC_DIR" "onedrive-r-ci_com:/$SYNC_DIR"
 
 done

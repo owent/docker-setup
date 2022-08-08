@@ -65,6 +65,6 @@ podman run --rm --security-opt seccomp=unconfined \
   --mount type=bind,source=$RUN_HOME/bitwarden/data,target=/data/bitwarden/data \
   --device /dev/fuse --cap-add SYS_ADMIN --network=host \
   docker.io/rclone/rclone:latest \
-  --log-file /data/rclone-sync-onedrive.log --ignore-size \
+  --log-file /data/rclone-sync-onedrive.log --ignore-size --onedrive-chunk-size 2560k \
   sync --progress /data remote-onedrive:/Apps/OWenT.Home.rclone
 # --copy-links
