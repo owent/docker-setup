@@ -13,8 +13,8 @@ RUN sed -i -r '/Server\s*=\s*.*tencent.com/d' /etc/pacman.d/mirrorlist;         
     pacman -Syyu --noconfirm ;                                                                                  \
     yes y | pacman -S iptables nftables ebtables ipset ;                                                        \
     pacman -Syy --noconfirm ca-certificates tzdata bash vim ipset man-db;                                       \
-    timedatectl set-timezone Asia/Shanghai;                                                                     \
-    timedatectl set-ntp true;                                                                                   \
+    timedatectl set-timezone Asia/Shanghai || true;                                                             \
+    timedatectl set-ntp true || true;                                                                           \
     systemctl enable systemd-timesyncd.service || true ;                                                        \
     systemctl start systemd-timesyncd.service || true ;                                                         \
     # hwclock -w;                                                                                                 \
