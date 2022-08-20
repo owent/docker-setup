@@ -14,8 +14,8 @@ RUN set -ex ;                                                                   
     yes y | pacman -S iptables nftables ebtables ipset chrony;                                                  \
     pacman -Syy --noconfirm ca-certificates tzdata bash vim dnsmasq ppp networkmanager;                         \
     pacman -Syy --noconfirm rp-pppoe;                                                                           \
-    timedatectl set-timezone Asia/Shanghai;                                                                     \
-    timedatectl set-ntp true;                                                                                   \
+    timedatectl set-timezone Asia/Shanghai || true;                                                             \
+    timedatectl set-ntp true || true;                                                                           \
     systemctl enable systemd-timesyncd.service || true ;                                                        \
     systemctl start systemd-timesyncd.service || true ;                                                         \
     # hwclock -w;                                                                                               \
