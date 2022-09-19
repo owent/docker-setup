@@ -20,6 +20,15 @@ if [[ "x$RCLONE_DATA_DIR" == "x" ]]; then
 fi
 mkdir -p "$RCLONE_DATA_DIR"
 
+# Truncate the log file
+if [[ -e rclone-sync-onedrive.log ]]; then
+  if [[ $(stat -c %s rclone-sync-onedrive.log) -gt 12582912 ]]; then # 12582912 = 12MB
+    tail -c 8m rclone-sync-onedrive.log >rclone-sync-onedrive.log.bak
+    rm -f rclone-sync-onedrive.log
+    mv rclone-sync-onedrive.log.bak rclone-sync-onedrive.log
+  fi
+fi
+
 echo "============ Start to check from onedrive ... ============"
 
 rclone --log-file $SCRIPT_DIR/rclone-sync-onedrive.log --ignore-size --onedrive-chunk-size 2560k \
