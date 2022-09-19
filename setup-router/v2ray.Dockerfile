@@ -19,7 +19,7 @@ RUN set -x;                                  \
     curl -k -qL "https://github.com/owent/update-geoip-geosite/releases/download/latest/geosite.dat" -o /usr/local/v2ray/bin/geosite.dat ;      \
     curl -k -qL "https://github.com/owent/update-geoip-geosite/releases/download/latest/all.tar.gz" -o /usr/local/v2ray/share/geo-all.tar.gz ;  \
     find /usr/local/v2ray -type f ;                                                                                                             \
-    [ -e "/var/lib/apt/lists" ] || for APT_CACHE in /var/lib/apt/lists/* ; do rm -rf "$APT_CACHE"; done; fi
+    [ -e "/var/lib/apt/lists" ] || for APT_CACHE in /var/lib/apt/lists/* ; do rm -rf "$APT_CACHE"; done;
 
 FROM docker.io/alpine:latest
 
