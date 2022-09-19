@@ -38,7 +38,6 @@ RUN set -ex ;                                                                   
     apk --no-cache add ca-certificates tzdata ;                                         \
     ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                           \
     mkdir -p /var/log/v2ray/ ;                                                          \
-    chmod +x /usr/local/v2ray/bin/v2ctl ;                                               \
     chmod +x /usr/local/v2ray/bin/v2ray ;
 
 ENV PATH /usr/local/v2ray/bin/:$PATH
