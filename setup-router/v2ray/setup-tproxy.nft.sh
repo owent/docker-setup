@@ -421,6 +421,14 @@ if [ $? -ne 0 ]; then
   nft add set bridge v2ray PROXY_DNS_IPV4 '{ type ipv4_addr; auto-merge ; }'
   nft add element bridge v2ray PROXY_DNS_IPV4 '{8.8.8.8, 8.8.4.4}'
 fi
+nft list set bridge v2ray TEMPORARY_WHITELIST_IPV4 >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add set bridge v2ray TEMPORARY_WHITELIST_IPV4 '{ type ipv4_addr; timeout 2d; }'
+fi
+nft list set bridge v2ray PERMANENT_WHITELIST_IPV4 >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add set bridge v2ray PERMANENT_WHITELIST_IPV4 '{ type ipv4_addr; flags interval; }'
+fi
 
 nft list set bridge v2ray LOCAL_IPV6 >/dev/null 2>&1
 if [ $? -ne 0 ]; then
@@ -435,6 +443,14 @@ nft list set bridge v2ray PROXY_DNS_IPV6 >/dev/null 2>&1
 if [ $? -ne 0 ]; then
   nft add set bridge v2ray PROXY_DNS_IPV6 '{ type ipv6_addr; auto-merge ; }'
   nft add element bridge v2ray PROXY_DNS_IPV6 '{2001:4860:4860::8888, 2001:4860:4860::8844}'
+fi
+nft list set bridge v2ray TEMPORARY_WHITELIST_IPV6 >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add set bridge v2ray TEMPORARY_WHITELIST_IPV6 '{ type ipv6_addr; timeout 2d; }'
+fi
+nft list set bridge v2ray PERMANENT_WHITELIST_IPV6 >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add set bridge v2ray PERMANENT_WHITELIST_IPV6 '{ type ipv6_addr; flags interval; }'
 fi
 
 nft list chain bridge v2ray PREROUTING >/dev/null 2>&1
@@ -497,6 +513,12 @@ fi
 #     nft add rule bridge v2ray PREROUTING ip6 daddr @BLACKLIST return
 # fi
 # nft add rule bridge v2ray PREROUTING ip daddr @GEOIP_CN return
+
+## Alternative: using whitlist
+## if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
+##   nft add rule bridge v2ray PREROUTING ip6 daddr != @TEMPORARY_WHITELIST_IPV6 ip6 daddr != @PERMANENT_WHITELIST_IPV6 return
+## fi
+## nft add rule bridge v2ray PREROUTING ip daddr != @TEMPORARY_WHITELIST_IPV4 ip daddr != @PERMANENT_WHITELIST_IPV4 return
 
 ### bridge - meta pkttype set unicast
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
