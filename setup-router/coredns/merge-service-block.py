@@ -52,7 +52,7 @@ if __name__ == "__main__":
             last_domain_rules.append(line)
             if server_block_level <= 0:
                 if last_domain_blocks:
-                    output_content.append('\n,'.join(last_domain_blocks) +
+                    output_content.append(',\n'.join(last_domain_blocks) +
                                           ' {\n')
                     output_content.append(''.join(last_domain_rules))
                 last_domain_blocks = []
