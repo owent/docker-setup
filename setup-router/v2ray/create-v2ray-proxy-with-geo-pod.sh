@@ -120,7 +120,7 @@ podman run -d --name v2ray-proxy-with-geo --security-opt label=disable \
   --mount type=bind,source=$V2RAY_LOG_DIR,target=/usr/local/v2ray/log \
   --mount type=bind,source=$V2RAY_SSL_DIR,target=/home/website/ssl,ro=true \
   --network=host \
-  docker.io/owt5008137/proxy-with-geo:latest v2ray "-config=/usr/local/v2ray/etc/config.json"
+  docker.io/owt5008137/proxy-with-geo:latest v2ray run "-c" "/usr/local/v2ray/etc/config.json"
 
 if [[ $? -ne 0 ]]; then
   exit $?

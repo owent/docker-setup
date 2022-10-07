@@ -22,6 +22,12 @@ else
   export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+if [[ "x$ROUTER_HOME" == "x" ]]; then
+  source "$SCRIPT_DIR/../configure-router.sh"
+fi
+
 ### ==================================== v2ray nftables rules begin ====================================
 ### ----------------------------------- $ROUTER_HOME/v2ray/setup-tproxy.sh -----------------------------------
 
@@ -71,12 +77,6 @@ if [[ "x" == "x$SETUP_WITH_DEBUG_LOG" ]]; then
   SETUP_WITH_DEBUG_LOG=0
 fi
 
-if [[ "x$SETUP_WITHOUT_IPV6" != "x" ]] && [[ "x$SETUP_WITHOUT_IPV6" != "x0" ]] && [[ "x$SETUP_WITHOUT_IPV6" != "xfalse" ]] && [[ "x$SETUP_WITHOUT_IPV6" != "xno" ]]; then
-  V2RAY_SETUP_SKIP_IPV6=1
-else
-  V2RAY_SETUP_SKIP_IPV6=0
-fi
-
 if [[ $(ip -4 route list 0.0.0.0/0 dev lo table 100 | wc -l) -eq 0 ]]; then
   ip -4 route add local 0.0.0.0/0 dev lo table 100
 fi
@@ -93,7 +93,7 @@ while [[ $? -ne 0 ]] && [[ $SETUP_FWMARK_RULE_RETRY_TIMES -lt 1000 ]]; do
   ip -4 rule add fwmark 0x0e/0x0f priority $SETUP_FWMARK_RULE_PRIORITY lookup 100
 done
 
-if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
+if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   ip -6 route add local ::/0 dev lo table 100
   FWMARK_LOOPUP_TABLE_100=$(ip -6 rule show fwmark 0x0e/0x0f lookup 100 | awk 'END {print NF}')
   while [[ 0 -ne $FWMARK_LOOPUP_TABLE_100 ]]; do
@@ -278,7 +278,7 @@ iptables -t mangle -A OUTPUT -p tcp -j V2RAY_MASK # apply rules
 iptables -t mangle -A OUTPUT -p udp -j V2RAY_MASK # apply rules
 
 ## Setup - ipv6
-if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
+if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   ipset list V2RAY_BLACKLIST_IPV6 >/dev/null 2>&1
   if [ $? -ne 0 ]; then
     ipset create V2RAY_BLACKLIST_IPV6 hash:ip family inet6

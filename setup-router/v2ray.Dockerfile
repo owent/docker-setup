@@ -44,7 +44,7 @@ ENV PATH /usr/local/v2ray/bin/:$PATH
 
 VOLUME /var/log/v2ray
 
-CMD ["v2ray", "-config=/usr/local/v2ray/etc/config.json"]
+CMD ["v2ray", "run" "-c", "/usr/local/v2ray/etc/config.json"]
 
 # podman run -d --name v2ray -v /etc/v2ray:/usr/local/v2ray/etc -v /data/logs/v2ray:/var/log/v2ray --cap-add=NET_ADMIN --network=host docker.io/owt5008137/proxy-with-geo v2ray -config=/usr/local/v2ray/etc/config.json
 # podman generate systemd v2ray | sudo tee /lib/systemd/system/v2ray.service

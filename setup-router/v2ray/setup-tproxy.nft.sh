@@ -23,6 +23,12 @@ else
   export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+if [[ "x$ROUTER_HOME" == "x" ]]; then
+  source "$SCRIPT_DIR/../configure-router.sh"
+fi
+
 ### ==================================== v2ray nftables rules begin ====================================
 ### ----------------------------------- $ROUTER_HOME/v2ray/setup-tproxy.sh -----------------------------------
 
@@ -71,12 +77,6 @@ if [[ "x" == "x$SETUP_WITH_DEBUG_LOG" ]]; then
   SETUP_WITH_DEBUG_LOG=0
 fi
 
-if [[ "x$SETUP_WITHOUT_IPV6" != "x" ]] && [[ "x$SETUP_WITHOUT_IPV6" != "x0" ]] && [[ "x$SETUP_WITHOUT_IPV6" != "xfalse" ]] && [[ "x$SETUP_WITHOUT_IPV6" != "xno" ]]; then
-  V2RAY_SETUP_SKIP_IPV6=1
-else
-  V2RAY_SETUP_SKIP_IPV6=0
-fi
-
 if [[ $(ip -4 route list 0.0.0.0/0 dev lo table 100 | wc -l) -eq 0 ]]; then
   ip -4 route add local 0.0.0.0/0 dev lo table 100
 fi
@@ -94,7 +94,7 @@ while [[ $? -ne 0 ]] && [[ $SETUP_FWMARK_RULE_RETRY_TIMES -lt 1000 ]]; do
   ip -4 rule add fwmark 0x0e/0x0f priority $SETUP_FWMARK_RULE_PRIORITY lookup 100
 done
 
-if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
+if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   if [[ $(ip -6 route list ::/0 dev lo table 100 | wc -l) -eq 0 ]]; then
     ip -6 route add local ::/0 dev lo table 100
   fi
@@ -125,7 +125,7 @@ if [[ $? -ne 0 ]]; then
   nft add table ip v2ray
 fi
 
-if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
+if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   nft list table ip6 v2ray >/dev/null 2>&1
   if [ $? -ne 0 ]; then
     nft add table ip6 v2ray
@@ -147,13 +147,16 @@ fi
 nft add element ip v2ray BLACKLIST "{ $SETUP_WITH_BLACKLIST_IPV4 }"
 nft list set ip v2ray TEMPORARY_WHITELIST >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
-  nft add set ip v2ray TEMPORARY_WHITELIST '{ type ipv4_addr; timeout 2d; auto-merge; }'
+  nft add set ip v2ray TEMPORARY_WHITELIST '{ type ipv4_addr; timeout 2d; }'
 fi
 nft list set ip v2ray PERMANENT_WHITELIST >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   nft add set ip v2ray PERMANENT_WHITELIST '{ type ipv4_addr; flags interval; auto-merge; }'
 fi
-nft add element ip v2ray PERMANENT_WHITELIST "{$(echo "${TPROXY_WHITELIST_IPV4[@]}" | sed -E 's;[[:space:]]+;,;g')}"
+if [ ${#TPROXY_WHITELIST_IPV4[@]} -gt 0 ]; then
+  nft add element ip v2ray PERMANENT_WHITELIST "{$(echo "${TPROXY_WHITELIST_IPV4[@]}" | sed -E 's;[[:space:]]+;,;g')}"
+fi
+
 nft list set ip v2ray GEOIP_CN >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   nft add set ip v2ray GEOIP_CN '{ type ipv4_addr; flags interval; }'
@@ -173,7 +176,7 @@ if [[ $? -ne 0 ]]; then
 fi
 nft list set ip v2ray PROXY_DNS_IPV4 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
-  nft add set ip v2ray PROXY_DNS_IPV4 '{ type ipv4_addr;  auto-merge ; }'
+  nft add set ip v2ray PROXY_DNS_IPV4 '{ type ipv4_addr; }'
   nft add element ip v2ray PROXY_DNS_IPV4 '{8.8.8.8, 8.8.4.4}'
 fi
 
@@ -273,7 +276,7 @@ nft add rule ip v2ray OUTPUT mark and 0x0f != 0x0e meta l4proto {tcp, udp} mark 
 nft add rule ip v2ray OUTPUT ct mark set mark and 0xffff
 
 ## Setup - ipv6
-if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
+if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   nft list set ip6 v2ray BLACKLIST >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
     nft add set ip6 v2ray BLACKLIST '{ type ipv6_addr; }'
@@ -281,13 +284,15 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   nft add element ip6 v2ray BLACKLIST "{ $SETUP_WITH_BLACKLIST_IPV6 }"
   nft list set ip6 v2ray TEMPORARY_WHITELIST >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
-    nft add set ip6 v2ray TEMPORARY_WHITELIST '{ type ipv6_addr; timeout 2d; auto-merge; }'
+    nft add set ip6 v2ray TEMPORARY_WHITELIST '{ type ipv6_addr; timeout 2d; }'
   fi
   nft list set ip6 v2ray PERMANENT_WHITELIST >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
     nft add set ip6 v2ray PERMANENT_WHITELIST '{ type ipv6_addr; flags interval; auto-merge; }'
   fi
-  nft add element ip6 v2ray PERMANENT_WHITELIST "{$(echo "${SETUP_WITH_WHITELIST_IPV6[@]}" | sed -E 's;[[:space:]]+;,;g')}"
+  if [ ${#TPROXY_WHITELIST_IPV6[@]} -gt 0 ]; then
+    nft add element ip6 v2ray PERMANENT_WHITELIST "{$(echo "${TPROXY_WHITELIST_IPV6[@]}" | sed -E 's;[[:space:]]+;,;g')}"
+  fi
   nft list set ip6 v2ray GEOIP_CN >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
     nft add set ip6 v2ray GEOIP_CN '{ type ipv6_addr; flags interval; }'
@@ -307,7 +312,7 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   fi
   nft list set ip6 v2ray PROXY_DNS_IPV6 >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
-    nft add set ip6 v2ray PROXY_DNS_IPV6 '{ type ipv6_addr; auto-merge ; }'
+    nft add set ip6 v2ray PROXY_DNS_IPV6 '{ type ipv6_addr; }'
     nft add element ip6 v2ray PROXY_DNS_IPV6 '{2001:4860:4860::8888, 2001:4860:4860::8844}'
   fi
 
@@ -412,18 +417,20 @@ if [ $? -ne 0 ]; then
 fi
 nft list set bridge v2ray PROXY_DNS_IPV4 >/dev/null 2>&1
 if [ $? -ne 0 ]; then
-  nft add set bridge v2ray PROXY_DNS_IPV4 '{ type ipv4_addr; auto-merge ; }'
+  nft add set bridge v2ray PROXY_DNS_IPV4 '{ type ipv4_addr; }'
   nft add element bridge v2ray PROXY_DNS_IPV4 '{8.8.8.8, 8.8.4.4}'
 fi
 nft list set bridge v2ray TEMPORARY_WHITELIST_IPV4 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
-  nft add set bridge v2ray TEMPORARY_WHITELIST_IPV4 '{ type ipv4_addr; timeout 2d; auto-merge; }'
+  nft add set bridge v2ray TEMPORARY_WHITELIST_IPV4 '{ type ipv4_addr; timeout 2d; }'
 fi
 nft list set bridge v2ray PERMANENT_WHITELIST_IPV4 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   nft add set bridge v2ray PERMANENT_WHITELIST_IPV4 '{ type ipv4_addr; flags interval; auto-merge; }'
 fi
-nft add element bridge v2ray PERMANENT_WHITELIST_IPV4 "{$(echo "${TPROXY_WHITELIST_IPV4[@]}" | sed -E 's;[[:space:]]+;,;g')}"
+if [ ${#TPROXY_WHITELIST_IPV4[@]} -gt 0 ]; then
+  nft add element bridge v2ray PERMANENT_WHITELIST_IPV4 "{$(echo "${TPROXY_WHITELIST_IPV4[@]}" | sed -E 's;[[:space:]]+;,;g')}"
+fi
 
 nft list set bridge v2ray LOCAL_IPV6 >/dev/null 2>&1
 if [ $? -ne 0 ]; then
@@ -436,18 +443,20 @@ if [ $? -ne 0 ]; then
 fi
 nft list set bridge v2ray PROXY_DNS_IPV6 >/dev/null 2>&1
 if [ $? -ne 0 ]; then
-  nft add set bridge v2ray PROXY_DNS_IPV6 '{ type ipv6_addr; auto-merge; }'
+  nft add set bridge v2ray PROXY_DNS_IPV6 '{ type ipv6_addr; }'
   nft add element bridge v2ray PROXY_DNS_IPV6 '{2001:4860:4860::8888, 2001:4860:4860::8844}'
 fi
 nft list set bridge v2ray TEMPORARY_WHITELIST_IPV6 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
-  nft add set bridge v2ray TEMPORARY_WHITELIST_IPV6 '{ type ipv6_addr; timeout 2d; auto-merge; }'
+  nft add set bridge v2ray TEMPORARY_WHITELIST_IPV6 '{ type ipv6_addr; timeout 2d; }'
 fi
 nft list set bridge v2ray PERMANENT_WHITELIST_IPV6 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   nft add set bridge v2ray PERMANENT_WHITELIST_IPV6 '{ type ipv6_addr; flags interval; auto-merge; }'
 fi
-nft add element bridge v2ray PERMANENT_WHITELIST_IPV6 "{$(echo "${SETUP_WITH_WHITELIST_IPV6[@]}" | sed -E 's;[[:space:]]+;,;g')}"
+if [ ${#TPROXY_WHITELIST_IPV6[@]} -gt 0 ]; then
+  nft add element bridge v2ray PERMANENT_WHITELIST_IPV6 "{$(echo "${TPROXY_WHITELIST_IPV6[@]}" | sed -E 's;[[:space:]]+;,;g')}"
+fi
 
 nft list chain bridge v2ray PREROUTING >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
@@ -481,7 +490,7 @@ nft add rule bridge v2ray PREROUTING ip daddr @DEFAULT_ROUTE_IPV4 return
 # nft add rule bridge v2ray PREROUTING meta l4proto tcp ip daddr @LOCAL_IPV4 return
 # nft add rule bridge v2ray PREROUTING meta l4proto tcp ip daddr @DEFAULT_ROUTE_IPV4 return
 
-if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
+if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   ### ipv6 - skip multicast
   nft add rule bridge v2ray PREROUTING ip6 saddr @LOCAL_IPV6 pkttype '{broadcast, multicast}' accept
   nft add rule bridge v2ray PREROUTING ip6 daddr '{ ff00::/8 }' return
@@ -499,19 +508,19 @@ fi
 
 ### bridge - skip CN DNS
 nft add rule bridge v2ray PREROUTING ip daddr "{ $SETUP_WITH_BLACKLIST_IPV4 }" return
-if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
+if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   nft add rule bridge v2ray PREROUTING ip6 daddr "{ $SETUP_WITH_BLACKLIST_IPV6 }" return
 fi
 
 # bridge skip package from outside
 # nft add rule bridge v2ray PREROUTING ip daddr @BLACKLIST return
-# if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
+# if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
 #     nft add rule bridge v2ray PREROUTING ip6 daddr @BLACKLIST return
 # fi
 # nft add rule bridge v2ray PREROUTING ip daddr @GEOIP_CN return
 
 ## Alternative: using whitlist
-## if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
+## if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
 ##   nft add rule bridge v2ray PREROUTING ip6 daddr != @TEMPORARY_WHITELIST_IPV6 ip6 daddr != @PERMANENT_WHITELIST_IPV6 return
 ## fi
 ## nft add rule bridge v2ray PREROUTING ip daddr != @TEMPORARY_WHITELIST_IPV4 ip daddr != @PERMANENT_WHITELIST_IPV4 return

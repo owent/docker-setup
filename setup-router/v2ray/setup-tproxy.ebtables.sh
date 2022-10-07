@@ -13,12 +13,6 @@ if [[ "x" == "x$SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT" ]]; then
   SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT="123"
 fi
 
-if [[ "x$SETUP_WITHOUT_IPV6" != "x" ]] && [[ "x$SETUP_WITHOUT_IPV6" != "x0" ]] && [[ "x$SETUP_WITHOUT_IPV6" != "xfalse" ]] && [[ "x$SETUP_WITHOUT_IPV6" != "xno" ]]; then
-  V2RAY_SETUP_SKIP_IPV6=1
-else
-  V2RAY_SETUP_SKIP_IPV6=0
-fi
-
 if [[ "x" == "x$SETUP_WITH_DEBUG_LOG" ]]; then
   SETUP_WITH_DEBUG_LOG=0
 fi
@@ -36,14 +30,14 @@ fi
 
 # for SKIP_PORT in $(echo $SETUP_WITH_INTERNAL_SERVICE_PORT | sed 's/,/ /g'); do
 #     ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-sport $SKIP_PORT -j RETURN
-#     if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
+#     if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
 #         ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-sport $SKIP_PORT -j RETURN
 #     fi
 # done
 
 for SKIP_PORT in $(echo $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT | sed 's/,/ /g'); do
   ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-proto udp --ip-dport $SKIP_PORT -j RETURN
-  if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
+  if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
     ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-proto udp --ip6-dport $SKIP_PORT -j RETURN
   fi
 done
@@ -54,7 +48,7 @@ ebtables -t broute -A V2RAY_BRIDGE --mark 0x70/0x70 -j RETURN
 ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 127.0.0.1/32 -j RETURN
 ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 224.0.0.0/4 -j RETURN
 ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 255.255.255.255/32 -j RETURN
-if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
+if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   for LOCAL_IPV6 in ${ROUTER_LOCAL_NET_IPV6[@]}; do
     ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst "$LOCAL_IPV6" -j RETURN
   done
@@ -75,7 +69,7 @@ done
 # ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 120.53.53.53/32 -j RETURN
 # ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 1.1.1.1/32 -j RETURN
 # ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 1.0.0.1/32 -j RETURN
-# if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
+# if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
 #   ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst 2400:3200::1/128 -j RETURN
 #   ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst 2400:3200:baba::1/128 -j RETURN
 #   ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst 2400:da00::6666/128 -j RETURN
@@ -87,7 +81,7 @@ ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-proto udp --ip-dport 53 -j RETUR
 ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-proto tcp --ip-dport 53 -j RETURN
 ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-proto udp --ip-dport 853 -j RETURN
 ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-proto tcp --ip-dport 853 -j RETURN
-if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
+if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-proto udp --ip6-dport 53 -j RETURN
   ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-proto tcp --ip6-dport 53 -j RETURN
   ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-proto udp --ip6-dport 853 -j RETURN
@@ -124,7 +118,7 @@ while [[ $? -eq 0 ]]; do
   ebtables -t broute -D BROUTING -p ipv6 --ip6-proto udp -j V2RAY_BRIDGE >/dev/null 2>&1
 done
 
-if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
+if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   ebtables -t broute -A BROUTING -p ipv6 --ip6-proto tcp -j V2RAY_BRIDGE
   ebtables -t broute -A BROUTING -p ipv6 --ip6-proto udp -j V2RAY_BRIDGE
 fi

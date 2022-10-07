@@ -24,27 +24,27 @@ done
 
 # Cleanup ipv4
 nft list chain ip v2ray PREROUTING >/dev/null 2>&1
-if [[ $? -eq 0 ]]; then
+if [ $? -eq 0 ]; then
   nft delete chain ip v2ray PREROUTING
 fi
 nft list chain ip v2ray OUTPUT >/dev/null 2>&1
-if [[ $? -eq 0 ]]; then
+if [ $? -eq 0 ]; then
   nft delete chain ip v2ray OUTPUT
 fi
 
 # Cleanup ipv6
 nft list chain ip6 v2ray PREROUTING >/dev/null 2>&1
-if [[ $? -eq 0 ]]; then
+if [ $? -eq 0 ]; then
   nft delete chain ip6 v2ray PREROUTING
 fi
 
 nft list chain ip6 v2ray OUTPUT >/dev/null 2>&1
-if [[ $? -eq 0 ]]; then
+if [ $? -eq 0 ]; then
   nft delete chain ip6 v2ray OUTPUT
 fi
 
 # Cleanup bridge
 nft list chain bridge v2ray PREROUTING >/dev/null 2>&1
-if [[ $? -eq 0 ]]; then
+if [ $? -eq 0 ]; then
   nft delete chain bridge v2ray PREROUTING
 fi

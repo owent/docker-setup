@@ -33,11 +33,7 @@ if [[ "x" == "x$SETUP_WITH_DEBUG_LOG" ]]; then
 fi
 
 # Recommand to use NDP instead of NAT6
-if [[ "x$SETUP_WITHOUT_IPV6" != "x0" ]] && [[ "x$SETUP_WITHOUT_IPV6" != "xfalse" ]] && [[ "x$SETUP_WITHOUT_IPV6" != "xno" ]]; then
-  NAT_SETUP_SKIP_IPV6=1
-else
-  NAT_SETUP_SKIP_IPV6=0
-fi
+# NAT_SETUP_SKIP_IPV6=1
 
 ## NAT
 # just like iptables -t nat
