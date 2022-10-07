@@ -290,6 +290,23 @@ cp -f /etc/resolv.conf /etc/resolv.conf.dnsmasq
 
 which ipset >/dev/null 2>&1
 if [[ $? -eq 0 ]]; then
-  bash "$ROUTER_HOME/ipset/gfw_ipv4_init.sh" DNSMASQ_GFW_IPV4
-  bash "$ROUTER_HOME/ipset/gfw_ipv6_init.sh" DNSMASQ_GFW_IPV6
+  ipset list DNSMASQ_GFW_IPV4 >/dev/null 2>&1
+  if [[ $? -eq 0 ]]; then
+    ipset flush DNSMASQ_GFW_IPV4
+  else
+    ipset create DNSMASQ_GFW_IPV4 hash:ip family inet
+  fi
+  for TPROXY_WHITELIST_IPV4_ADDR in ${TPROXY_WHITELIST_IPV4[@]}; do
+    ipset add DNSMASQ_GFW_IPV4 "$TPROXY_WHITELIST_IPV4_ADDR"
+  done
+
+  ipset list DNSMASQ_GFW_IPV6 >/dev/null 2>&1
+  if [[ $? -eq 0 ]]; then
+    ipset flush DNSMASQ_GFW_IPV6
+  else
+    ipset create DNSMASQ_GFW_IPV6 hash:ip family inet6
+  fi
+  for TPROXY_WHITELIST_IPV6_ADDR in ${TPROXY_WHITELIST_IPV6[@]}; do
+    ipset add DNSMASQ_GFW_IPV6 "$TPROXY_WHITELIST_IPV6_ADDR"
+  done
 fi

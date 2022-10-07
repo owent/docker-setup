@@ -19,10 +19,13 @@ fi
 if [[ "x$RUN_USER" == "x" ]]; then
   RUN_USER=$(id -un)
 fi
-RUN_HOME=$(cat /etc/passwd | awk "BEGIN{FS=\":\"} \$1 == \"$RUN_USER\" { print \$6 }")
 
 if [[ "x$RUN_HOME" == "x" ]]; then
   RUN_HOME="$HOME"
+fi
+
+if [[ "x$RUN_HOME" == "x" ]]; then
+  RUN_HOME=$(cat /etc/passwd | awk "BEGIN{FS=\":\"} \$1 == \"$RUN_USER\" { print \$6 }")
 fi
 
 if [[ "x$COREDNS_DNS_PORT" == "x" ]]; then

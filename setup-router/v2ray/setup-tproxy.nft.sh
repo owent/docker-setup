@@ -66,12 +66,6 @@ fi
 if [[ "x" == "x$SETUP_WITH_BLACKLIST_IPV6" ]]; then
   SETUP_WITH_BLACKLIST_IPV6="2402:4e00::,2400:3200::1,2400:3200:baba::1,2400:da00::6666,2402:4e00::,2606:4700:4700::1111,2606:4700:4700::1001,2606:4700:4700::1111,2606:4700:4700::1001"
 fi
-if [[ "x" == "x$SETUP_WITH_WHITELIST_IPV4" ]]; then
-  SETUP_WITH_WHITELIST_IPV4="91.108.56.0/22,95.161.64.0/20,91.108.4.0/22,91.108.8.0/22,149.154.160.0/22,149.154.164.0/22,8.8.8.8,8.8.4.4"
-fi
-if [[ "x" == "x$SETUP_WITH_WHITELIST_IPV6" ]]; then
-  SETUP_WITH_WHITELIST_IPV6="2001:4860:4860::8888,2001:4860:4860::8844"
-fi
 
 if [[ "x" == "x$SETUP_WITH_DEBUG_LOG" ]]; then
   SETUP_WITH_DEBUG_LOG=0
@@ -153,13 +147,13 @@ fi
 nft add element ip v2ray BLACKLIST "{ $SETUP_WITH_BLACKLIST_IPV4 }"
 nft list set ip v2ray TEMPORARY_WHITELIST >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
-  nft add set ip v2ray TEMPORARY_WHITELIST '{ type ipv4_addr; timeout 2d; }'
+  nft add set ip v2ray TEMPORARY_WHITELIST '{ type ipv4_addr; timeout 2d; auto-merge; }'
 fi
 nft list set ip v2ray PERMANENT_WHITELIST >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
-  nft add set ip v2ray PERMANENT_WHITELIST '{ type ipv4_addr; flags interval; }'
+  nft add set ip v2ray PERMANENT_WHITELIST '{ type ipv4_addr; flags interval; auto-merge; }'
 fi
-nft add element ip v2ray PERMANENT_WHITELIST "{ $SETUP_WITH_WHITELIST_IPV4 }"
+nft add element ip v2ray PERMANENT_WHITELIST "{$(echo "${TPROXY_WHITELIST_IPV4[@]}" | sed -E 's;[[:space:]]+;,;g')}"
 nft list set ip v2ray GEOIP_CN >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   nft add set ip v2ray GEOIP_CN '{ type ipv4_addr; flags interval; }'
@@ -287,13 +281,13 @@ if [[ $V2RAY_SETUP_SKIP_IPV6 -eq 0 ]]; then
   nft add element ip6 v2ray BLACKLIST "{ $SETUP_WITH_BLACKLIST_IPV6 }"
   nft list set ip6 v2ray TEMPORARY_WHITELIST >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
-    nft add set ip6 v2ray TEMPORARY_WHITELIST '{ type ipv6_addr; timeout 2d; }'
+    nft add set ip6 v2ray TEMPORARY_WHITELIST '{ type ipv6_addr; timeout 2d; auto-merge; }'
   fi
   nft list set ip6 v2ray PERMANENT_WHITELIST >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
-    nft add set ip6 v2ray PERMANENT_WHITELIST '{ type ipv6_addr; flags interval; }'
+    nft add set ip6 v2ray PERMANENT_WHITELIST '{ type ipv6_addr; flags interval; auto-merge; }'
   fi
-  nft add element ip6 v2ray PERMANENT_WHITELIST "{ $SETUP_WITH_WHITELIST_IPV6 }"
+  nft add element ip6 v2ray PERMANENT_WHITELIST "{$(echo "${SETUP_WITH_WHITELIST_IPV6[@]}" | sed -E 's;[[:space:]]+;,;g')}"
   nft list set ip6 v2ray GEOIP_CN >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
     nft add set ip6 v2ray GEOIP_CN '{ type ipv6_addr; flags interval; }'
@@ -414,7 +408,7 @@ if [ $? -ne 0 ]; then
 fi
 nft list set bridge v2ray DEFAULT_ROUTE_IPV4 >/dev/null 2>&1
 if [ $? -ne 0 ]; then
-  nft add set bridge v2ray DEFAULT_ROUTE_IPV4 '{ type ipv4_addr; flags interval; auto-merge ; }'
+  nft add set bridge v2ray DEFAULT_ROUTE_IPV4 '{ type ipv4_addr; flags interval; auto-merge; }'
 fi
 nft list set bridge v2ray PROXY_DNS_IPV4 >/dev/null 2>&1
 if [ $? -ne 0 ]; then
@@ -423,16 +417,17 @@ if [ $? -ne 0 ]; then
 fi
 nft list set bridge v2ray TEMPORARY_WHITELIST_IPV4 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
-  nft add set bridge v2ray TEMPORARY_WHITELIST_IPV4 '{ type ipv4_addr; timeout 2d; }'
+  nft add set bridge v2ray TEMPORARY_WHITELIST_IPV4 '{ type ipv4_addr; timeout 2d; auto-merge; }'
 fi
 nft list set bridge v2ray PERMANENT_WHITELIST_IPV4 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
-  nft add set bridge v2ray PERMANENT_WHITELIST_IPV4 '{ type ipv4_addr; flags interval; }'
+  nft add set bridge v2ray PERMANENT_WHITELIST_IPV4 '{ type ipv4_addr; flags interval; auto-merge; }'
 fi
+nft add element bridge v2ray PERMANENT_WHITELIST_IPV4 "{$(echo "${TPROXY_WHITELIST_IPV4[@]}" | sed -E 's;[[:space:]]+;,;g')}"
 
 nft list set bridge v2ray LOCAL_IPV6 >/dev/null 2>&1
 if [ $? -ne 0 ]; then
-  nft add set bridge v2ray LOCAL_IPV6 '{ type ipv6_addr; flags interval; auto-merge ; }'
+  nft add set bridge v2ray LOCAL_IPV6 '{ type ipv6_addr; flags interval; auto-merge; }'
   nft add element bridge v2ray LOCAL_IPV6 '{::1/128, fc00::/7, fe80::/10}'
 fi
 nft list set bridge v2ray DEFAULT_ROUTE_IPV6 >/dev/null 2>&1
@@ -441,17 +436,18 @@ if [ $? -ne 0 ]; then
 fi
 nft list set bridge v2ray PROXY_DNS_IPV6 >/dev/null 2>&1
 if [ $? -ne 0 ]; then
-  nft add set bridge v2ray PROXY_DNS_IPV6 '{ type ipv6_addr; auto-merge ; }'
+  nft add set bridge v2ray PROXY_DNS_IPV6 '{ type ipv6_addr; auto-merge; }'
   nft add element bridge v2ray PROXY_DNS_IPV6 '{2001:4860:4860::8888, 2001:4860:4860::8844}'
 fi
 nft list set bridge v2ray TEMPORARY_WHITELIST_IPV6 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
-  nft add set bridge v2ray TEMPORARY_WHITELIST_IPV6 '{ type ipv6_addr; timeout 2d; }'
+  nft add set bridge v2ray TEMPORARY_WHITELIST_IPV6 '{ type ipv6_addr; timeout 2d; auto-merge; }'
 fi
 nft list set bridge v2ray PERMANENT_WHITELIST_IPV6 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
-  nft add set bridge v2ray PERMANENT_WHITELIST_IPV6 '{ type ipv6_addr; flags interval; }'
+  nft add set bridge v2ray PERMANENT_WHITELIST_IPV6 '{ type ipv6_addr; flags interval; auto-merge; }'
 fi
+nft add element bridge v2ray PERMANENT_WHITELIST_IPV6 "{$(echo "${SETUP_WITH_WHITELIST_IPV6[@]}" | sed -E 's;[[:space:]]+;,;g')}"
 
 nft list chain bridge v2ray PREROUTING >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then

@@ -39,3 +39,5 @@ fi
 # fi
 
 python3 "$SCRIPT_DIR/merge-service-block.py" "$COREDNS_ETC_DIR/Corefile" "$COREDNS_ETC_DIR/Corefile"
+
+bash "$SCRIPT_DIR/replace-nextdns-ips.sh"
