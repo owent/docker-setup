@@ -91,7 +91,10 @@ podman run -d --name coredns \
   -dns.port=$COREDNS_DNS_PORT \
   -conf /etc/coredns/Corefile
 
-podman generate systemd coredns | tee "$SYSTEMD_SERVICE_DIR/coredns.service"
+podman generate systemd coredns \
+  | sed "/ExecStart=/a ExecStartPost=$SCRIPT_DIR/setup-resolv.sh" \
+  | sed "/ExecStop=/a ExecStopPost=$SCRIPT_DIR/restore-resolv.sh" \
+  | tee "$SYSTEMD_SERVICE_DIR/coredns.service"
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
   systemctl daemon-reload

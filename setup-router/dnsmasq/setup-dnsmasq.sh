@@ -24,11 +24,6 @@ if [[ "x$DNSMASQ_DNS_PORT" == "x" ]]; then
   DNSMASQ_DNS_PORT=53
 fi
 
-sed -i -r 's/#?DNSStubListener[[:space:]]*=.*/DNSStubListener=no/g' /etc/systemd/resolved.conf
-
-systemctl disable systemd-resolved
-systemctl stop systemd-resolved
-
 # Test ipv6
 ROUTER_CONFIG_IPV6_INTERFACES=()
 # TYPE=bridge/ppp/ethernet/loopback

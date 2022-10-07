@@ -75,7 +75,7 @@ function update_geo_services() {
     if [[ $? -ne 0 ]]; then
       nft add set bridge v2ray PERMANENT_WHITELIST_IPV4 '{ type ipv4_addr; flags interval; auto-merge; }'
     else
-      nft add flush bridge v2ray PERMANENT_WHITELIST_IPV4
+      nft flush set bridge v2ray PERMANENT_WHITELIST_IPV4
     fi
     nft add element bridge v2ray PERMANENT_WHITELIST_IPV4 "{$(echo "${TPROXY_WHITELIST_IPV4[@]}" | sed -E 's;[[:space:]]+;,;g')}"
 
@@ -195,4 +195,7 @@ function update_geo_services() {
 if [ ! -e "ipv4_cn.ipset" ]; then
   cd "$GEOIP_GEOSITE_ETC_DIR"
 fi
-update_geo_services
+
+if [ -e "ipv4_cn.ipset" ]; then
+  update_geo_services
+fi

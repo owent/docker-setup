@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -x
-
 # nftables
 # Quick: https://wiki.nftables.org/wiki-nftables/index.php/Performing_Network_Address_Translation_(NAT)
 # Quick(CN): https://wiki.archlinux.org/index.php/Nftables_(%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87)#Masquerading
@@ -28,6 +26,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 if [[ "x$ROUTER_HOME" == "x" ]]; then
   source "$SCRIPT_DIR/../configure-router.sh"
 fi
+
+set -x
 
 ### ==================================== v2ray nftables rules begin ====================================
 ### ----------------------------------- $ROUTER_HOME/v2ray/setup-tproxy.sh -----------------------------------
