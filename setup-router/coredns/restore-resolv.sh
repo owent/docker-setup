@@ -1,5 +1,5 @@
 #!/bin/bash
 
-if [ -e /etc/resolv.conf.bak ]; then
-  cp -f /etc/resolv.conf.bak /etc/resolv.conf
+if [ -e /etc/resolv.conf.coredns ]; then
+  cp -f /etc/resolv.conf.coredns /etc/resolv.conf
 fi

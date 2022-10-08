@@ -35,7 +35,17 @@ function resolve_dns_ips() {
   fi
 
   let DEEP=$2-1
-  NEXTDNS_IP_LOOKUP="$(dig $1)"
+  NEXTDNS_IP_LOOKUP="$(dig $1 @119.29.29.29)"
+  if [ $? -ne 0 ]; then
+    NEXTDNS_IP_LOOKUP="$(dig $1 @223.5.5.5)"
+  fi
+  if [ $? -ne 0 ]; then
+    NEXTDNS_IP_LOOKUP="$(dig $1 @1.0.0.1)"
+  fi
+  if [ $? -ne 0 ]; then
+    NEXTDNS_IP_LOOKUP="$(dig $1 @94.140.14.141)"
+  fi
+
   for CNAME in $(echo "$NEXTDNS_IP_LOOKUP" | awk '/IN\s*CNAME/ {print $5}'); do
     resolve_dns_ips $CNAME $DEEP
   done
@@ -46,7 +56,7 @@ $IP"
   done
 }
 
-resolve_dns_ips "steering.nextdns.io" 3
+resolve_dns_ips "$NEXTDNS_PRIVATE_TLS_DOMAIN" 3
 
 FINAL_FORWARD_ARGUMENTS="forward ."
 HAS_ADDRESS=0

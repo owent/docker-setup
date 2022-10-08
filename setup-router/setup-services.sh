@@ -52,13 +52,20 @@ sed -i -r 's/#?DNSStubListener[[:space:]]*=.*/DNSStubListener=no/g' /etc/systemd
 systemctl disable systemd-resolved
 systemctl stop systemd-resolved
 
-/bin/bash "$SCRIPT_DIR/dnsmasq/setup-dnsmasq.sh"
+if [ $DNSMASQ_ENABLE_DNS -ne 0 ] || [ $DNSMASQ_ENABLE_DHCP -ne 0 ] || [ $DNSMASQ_ENABLE_IPV6_NDP -ne 0 ]; then
+  /bin/bash "$SCRIPT_DIR/dnsmasq/setup-dnsmasq.sh"
 
-systemctl daemon-reload
-systemctl enable dnsmasq
+  systemctl daemon-reload
+  systemctl enable dnsmasq
+else
+  systemctl disable dnsmasq
+  systemctl stop dnsmasq
+fi
 
 # Smartdns
-su "$SCRIPT_DIR/smartdns/create-smartdns-pod.sh" - tools
+if [ $SMARTDNS_ENABLE -ne 0 ]; then
+  su "$SCRIPT_DIR/smartdns/create-smartdns-pod.sh" - tools
+fi
 
 if [[ "x$ROUTER_CONFIG_ON_FINISH_RUN" == "x" ]]; then
   chmod +x "$ROUTER_CONFIG_ON_FINISH_RUN"
