@@ -1,17 +1,18 @@
 #!/bin/bash
 
-set -x
-
 if [[ -e "/opt/nftables/sbin" ]]; then
   export PATH=/opt/nftables/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 else
   export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
-if [[ "x" == "x$SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT" ]]; then
-  # NTP Port: 123
-  SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT="123"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+if [ "x$ROUTER_HOME" == "x" ]; then
+  source "$SCRIPT_DIR/../configure-router.sh"
 fi
+
+set -x
 
 if [[ "x" == "x$SETUP_WITH_DEBUG_LOG" ]]; then
   SETUP_WITH_DEBUG_LOG=0
@@ -35,7 +36,7 @@ fi
 #     fi
 # done
 
-for SKIP_PORT in $(echo $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT | sed 's/,/ /g'); do
+for SKIP_PORT in $(echo $ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT | sed 's/,/ /g'); do
   ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-proto udp --ip-dport $SKIP_PORT -j RETURN
   if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
     ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-proto udp --ip6-dport $SKIP_PORT -j RETURN

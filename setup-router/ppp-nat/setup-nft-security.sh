@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [[ "x$ROUTER_HOME" == "x" ]]; then
+  source "$(cd "$(dirname "$0")" && pwd)/../configure-router.sh"
+fi
+
 # LOCAL_LAN_INTERFACE='{ lo, br0, enp1s0f0, enp1s0f1, enp5s0 }'
 LOCAL_LAN_INTERFACE='{ lo, br0, enp2s0 }'
 
@@ -33,8 +37,8 @@ nft add rule inet security_firewall INPUT iifname "$LOCAL_LAN_INTERFACE" accept
 nft add rule inet security_firewall INPUT ip saddr @LOCAL_IPV4 tcp dport 22 ct state { new, untracked } accept
 nft add rule inet security_firewall INPUT ip6 saddr @LOCAL_IPV6 tcp dport 22 ct state { new, untracked } accept
 nft add rule inet security_firewall INPUT ip6 daddr fe80::/64 udp dport 546 ct state { new, untracked } accept
-nft add rule inet security_firewall INPUT tcp dport "{53, 853, 6881, 6882, 6883, 8371, 8372, 8373, 36000}" ct state { new, untracked } accept
-nft add rule inet security_firewall INPUT udp dport "{53, 67, 547, 6881, 6882, 6883, 8371, 8372, 8373}" ct state { new, untracked } accept
+nft add rule inet security_firewall INPUT tcp dport "{$ROUTER_INTERNAL_SERVICE_PORT_TCP}" ct state { new, untracked } accept
+nft add rule inet security_firewall INPUT udp dport "{$ROUTER_INTERNAL_SERVICE_PORT_UDP}" ct state { new, untracked } accept
 # Internal services -- end
 nft add rule inet security_firewall INPUT meta l4proto { icmp, ipv6-icmp } accept
 nft add rule inet security_firewall INPUT ct state { invalid } drop

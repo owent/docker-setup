@@ -53,19 +53,6 @@ if [[ "x" == "x$SETUP_FWMARK_RULE_PRIORITY" ]]; then
   SETUP_FWMARK_RULE_PRIORITY=17995
 fi
 
-if [[ "x" == "x$SETUP_WITH_INTERNAL_SERVICE_PORT" ]]; then
-  SETUP_WITH_INTERNAL_SERVICE_PORT="{22, 53, 6881, 6882, 6883, 8371, 8372, 8373, 8381, 8382, 36000}"
-fi
-
-if [[ "x" == "x$SETUP_WITH_DEBUG_LOG_IGNORE_PORT" ]]; then
-  SETUP_WITH_DEBUG_LOG_IGNORE_PORT="{22,53,6881,6882,6883,36000}"
-fi
-
-if [[ "x" == "x$SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT" ]]; then
-  # NTP Port: 123
-  SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT="{123}"
-fi
-
 if [[ "x" == "x$SETUP_WITH_BLACKLIST_IPV4" ]]; then
   SETUP_WITH_BLACKLIST_IPV4="119.29.29.29,223.5.5.5,223.6.6.6,180.76.76.76,119.28.22.204,119.28.142.155,43.132.185.197,1.12.12.12,120.53.53.53,1.1.1.1,1.0.0.1"
 fi
@@ -189,14 +176,14 @@ nft flush chain ip v2ray PREROUTING
 ### ipv4 - skip internal services
 nft add rule ip v2ray PREROUTING meta l4proto != {tcp, udp} return
 # DNAT or connect from outside
-nft add rule ip v2ray PREROUTING tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
-nft add rule ip v2ray PREROUTING udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
-nft add rule ip v2ray PREROUTING udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
+nft add rule ip v2ray PREROUTING tcp sport "{$ROUTER_INTERNAL_SERVICE_PORT_TCP}" return
+nft add rule ip v2ray PREROUTING udp sport "{$ROUTER_INTERNAL_SERVICE_PORT_UDP}" return
+nft add rule ip v2ray PREROUTING udp dport "{$ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT}" return
 nft add rule ip v2ray PREROUTING ip daddr != @PROXY_DNS_IPV4 udp dport '{53, 853}' return
 nft add rule ip v2ray PREROUTING ip daddr != @PROXY_DNS_IPV4 tcp dport '{53, 853}' return
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
-  nft add rule ip v2ray PREROUTING tcp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"###TCP4#PREROU:"' level debug flags all
-  nft add rule ip v2ray PREROUTING udp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"###UDP4#PREROU:"' level debug flags all
+  nft add rule ip v2ray PREROUTING tcp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" log prefix '"###TCP4#PREROU:"' level debug flags all
+  nft add rule ip v2ray PREROUTING udp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" log prefix '"###UDP4#PREROU:"' level debug flags all
 fi
 
 ### ipv4 - skip link-local and broadcast address, 172.20.1.1/24 is used for remote debug
@@ -223,9 +210,9 @@ nft add rule ip v2ray PREROUTING ip daddr @GEOIP_CN return
 ### ipv4 - forward to v2ray's listen address if not marked by v2ray
 # tproxy ip to $V2RAY_HOST_IPV4:$V2RAY_PORT
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
-  nft add rule ip v2ray PREROUTING tcp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT meta nftrace set 1
-  nft add rule ip v2ray PREROUTING tcp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '">>>TCP4>tproxy:"' level debug flags all
-  nft add rule ip v2ray PREROUTING udp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '">>>UDP4>tproxy:"' level debug flags all
+  nft add rule ip v2ray PREROUTING tcp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" meta nftrace set 1
+  nft add rule ip v2ray PREROUTING tcp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" log prefix '">>>TCP4>tproxy:"' level debug flags all
+  nft add rule ip v2ray PREROUTING udp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" log prefix '">>>UDP4>tproxy:"' level debug flags all
 fi
 
 # fwmark here must match: ip rule list lookup 100
@@ -243,14 +230,14 @@ nft flush chain ip v2ray OUTPUT
 
 ### ipv4 - skip internal services
 nft add rule ip v2ray OUTPUT meta l4proto != {tcp, udp} return
-nft add rule ip v2ray OUTPUT tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
-nft add rule ip v2ray OUTPUT udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
-nft add rule ip v2ray OUTPUT udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
+nft add rule ip v2ray OUTPUT tcp sport "{$ROUTER_INTERNAL_SERVICE_PORT_TCP}" return
+nft add rule ip v2ray OUTPUT udp sport "{$ROUTER_INTERNAL_SERVICE_PORT_UDP}" return
+nft add rule ip v2ray OUTPUT udp dport "{$ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT}" return
 nft add rule ip v2ray OUTPUT ip daddr != @PROXY_DNS_IPV4 udp dport '{53, 853}' return
 nft add rule ip v2ray OUTPUT ip daddr != @PROXY_DNS_IPV4 tcp dport '{53, 853}' return
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
-  nft add rule ip v2ray OUTPUT tcp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"###TCP4#OUTPUT:"' level debug flags all
-  nft add rule ip v2ray OUTPUT udp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"###UDP4#OUTPUT:"' level debug flags all
+  nft add rule ip v2ray OUTPUT tcp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" log prefix '"###TCP4#OUTPUT:"' level debug flags all
+  nft add rule ip v2ray OUTPUT udp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" log prefix '"###UDP4#OUTPUT:"' level debug flags all
 fi
 
 # 172.20.1.1/24 is used for remote debug
@@ -268,9 +255,9 @@ nft add rule ip v2ray OUTPUT ip daddr @GEOIP_CN return
 # nft add rule ip v2ray OUTPUT ip daddr @DEFAULT_ROUTE_IPV4 udp dport != 53 return
 nft add rule ip v2ray OUTPUT mark and 0x70 == 0x70 return
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
-  nft add rule ip v2ray OUTPUT tcp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT meta nftrace set 1
-  nft add rule ip v2ray OUTPUT tcp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"+++TCP4+mark 1:"' level debug flags all
-  nft add rule ip v2ray OUTPUT udp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"+++UDP4+mark 1:"' level debug flags all
+  nft add rule ip v2ray OUTPUT tcp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" meta nftrace set 1
+  nft add rule ip v2ray OUTPUT tcp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" log prefix '"+++TCP4+mark 1:"' level debug flags all
+  nft add rule ip v2ray OUTPUT udp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" log prefix '"+++UDP4+mark 1:"' level debug flags all
 fi
 nft add rule ip v2ray OUTPUT mark and 0x0f != 0x0e meta l4proto {tcp, udp} mark set mark and 0xfffffff0 xor 0x0e return
 nft add rule ip v2ray OUTPUT ct mark set mark and 0xffff
@@ -324,15 +311,15 @@ if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
 
   ### ipv6 - skip internal services
   nft add rule ip6 v2ray PREROUTING meta l4proto != {tcp, udp} return
-  nft add rule ip6 v2ray PREROUTING tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
-  nft add rule ip6 v2ray PREROUTING udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
-  nft add rule ip6 v2ray PREROUTING udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
+  nft add rule ip6 v2ray PREROUTING tcp sport "{$ROUTER_INTERNAL_SERVICE_PORT_TCP}" return
+  nft add rule ip6 v2ray PREROUTING udp sport "{$ROUTER_INTERNAL_SERVICE_PORT_UDP}" return
+  nft add rule ip6 v2ray PREROUTING udp dport "{$ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT}" return
   nft add rule ip6 v2ray PREROUTING ip6 daddr != @PROXY_DNS_IPV6 udp dport '{53, 853}' return
   nft add rule ip6 v2ray PREROUTING ip6 daddr != @PROXY_DNS_IPV6 tcp dport '{53, 853}' return
   nft add rule ip6 v2ray PREROUTING mark and 0x70 == 0x70 return
   if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
-    nft add rule ip6 v2ray PREROUTING tcp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"###TCP6#PREROU:"' level debug flags all
-    nft add rule ip6 v2ray PREROUTING udp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"###UDP6#PREROU:"' level debug flags all
+    nft add rule ip6 v2ray PREROUTING tcp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" log prefix '"###TCP6#PREROU:"' level debug flags all
+    nft add rule ip6 v2ray PREROUTING udp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" log prefix '"###UDP6#PREROU:"' level debug flags all
   fi
 
   ### ipv6 - skip multicast
@@ -353,9 +340,9 @@ if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
 
   ### ipv6 - forward to v2ray's listen address if not marked by v2ray
   if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
-    nft add rule ip6 v2ray PREROUTING tcp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT meta nftrace set 1
-    nft add rule ip6 v2ray PREROUTING tcp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '">>>TCP6>tproxy:"' level debug flags all
-    nft add rule ip6 v2ray PREROUTING udp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '">>>UDP6>tproxy:"' level debug flags all
+    nft add rule ip6 v2ray PREROUTING tcp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" meta nftrace set 1
+    nft add rule ip6 v2ray PREROUTING tcp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" log prefix '">>>TCP6>tproxy:"' level debug flags all
+    nft add rule ip6 v2ray PREROUTING udp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" log prefix '">>>UDP6>tproxy:"' level debug flags all
   fi
   # tproxy ip6 to $V2RAY_HOST_IPV6:$V2RAY_PORT
   # fwmark here must match: ip -6 rule list lookup 100
@@ -373,14 +360,14 @@ if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
 
   ### ipv6 - skip internal services
   nft add rule ip6 v2ray OUTPUT meta l4proto != {tcp, udp} return
-  nft add rule ip6 v2ray OUTPUT tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
-  nft add rule ip6 v2ray OUTPUT udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
-  nft add rule ip6 v2ray OUTPUT udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
+  nft add rule ip6 v2ray OUTPUT tcp sport "{$ROUTER_INTERNAL_SERVICE_PORT_TCP}" return
+  nft add rule ip6 v2ray OUTPUT udp sport "{$ROUTER_INTERNAL_SERVICE_PORT_UDP}" return
+  nft add rule ip6 v2ray OUTPUT udp dport "{$ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT}" return
   nft add rule ip6 v2ray OUTPUT ip6 daddr != @PROXY_DNS_IPV6 udp dport '{53, 853}' return
   nft add rule ip6 v2ray OUTPUT ip6 daddr != @PROXY_DNS_IPV6 tcp dport '{53, 853}' return
   if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
-    nft add rule ip6 v2ray OUTPUT tcp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"###TCP6#OUTPUT:"' level debug flags all
-    nft add rule ip6 v2ray OUTPUT udp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"###UDP6#OUTPUT:"' level debug flags all
+    nft add rule ip6 v2ray OUTPUT tcp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" log prefix '"###TCP6#OUTPUT:"' level debug flags all
+    nft add rule ip6 v2ray OUTPUT udp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" log prefix '"###UDP6#OUTPUT:"' level debug flags all
   fi
 
   ### ipv6 - skip multicast
@@ -394,9 +381,9 @@ if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   ## nft add rule ip6 v2ray PREROUTING ip6 daddr != @TEMPORARY_WHITELIST ip6 daddr != @PERMANENT_WHITELIST return
   nft add rule ip6 v2ray OUTPUT mark and 0x70 == 0x70 return # make sure v2ray's outbounds.*.streamSettings.sockopt.mark = 255
   if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
-    nft add rule ip6 v2ray OUTPUT tcp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT meta nftrace set 1
-    nft add rule ip6 v2ray OUTPUT tcp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"+++TCP6+mark 1:"' level debug flags all
-    nft add rule ip6 v2ray OUTPUT udp dport != $SETUP_WITH_DEBUG_LOG_IGNORE_PORT log prefix '"+++UDP6+mark 1:"' level debug flags all
+    nft add rule ip6 v2ray OUTPUT tcp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" meta nftrace set 1
+    nft add rule ip6 v2ray OUTPUT tcp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" log prefix '"+++TCP6+mark 1:"' level debug flags all
+    nft add rule ip6 v2ray OUTPUT udp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" log prefix '"+++UDP6+mark 1:"' level debug flags all
   fi
   nft add rule ip6 v2ray OUTPUT mark and 0x0f != 0x0e meta l4proto {tcp, udp} mark set mark and 0xfffffff0 xor 0x0e return
   nft add rule ip6 v2ray OUTPUT ct mark set mark and 0xffff
@@ -466,16 +453,16 @@ nft flush chain bridge v2ray PREROUTING
 
 ### bridge - skip internal services
 nft add rule bridge v2ray PREROUTING meta l4proto != {tcp, udp} return
-# nft add rule bridge v2ray PREROUTING tcp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
-# nft add rule bridge v2ray PREROUTING udp sport $SETUP_WITH_INTERNAL_SERVICE_PORT return
-nft add rule bridge v2ray PREROUTING udp dport $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT return
+# nft add rule bridge v2ray PREROUTING tcp sport "{$ROUTER_INTERNAL_SERVICE_PORT_TCP}" return
+# nft add rule bridge v2ray PREROUTING udp sport "{$ROUTER_INTERNAL_SERVICE_PORT_UDP}" return
+nft add rule bridge v2ray PREROUTING udp dport "{$ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT}" return
 nft add rule bridge v2ray PREROUTING ip daddr != @PROXY_DNS_IPV4 udp dport '{53, 853}' return
 nft add rule bridge v2ray PREROUTING ip daddr != @PROXY_DNS_IPV4 tcp dport '{53, 853}' return
 nft add rule bridge v2ray PREROUTING ip6 daddr != @PROXY_DNS_IPV6 udp dport '{53, 853}' return
 nft add rule bridge v2ray PREROUTING ip6 daddr != @PROXY_DNS_IPV6 tcp dport '{53, 853}' return
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
-  nft add rule bridge v2ray PREROUTING tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###BRIDGE#PREROU:"' level debug flags all
-  nft add rule bridge v2ray PREROUTING udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '"###BRIDGE#PREROU:"' level debug flags all
+  nft add rule bridge v2ray PREROUTING tcp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_TCP}" log prefix '"###BRIDGE#PREROU:"' level debug flags all
+  nft add rule bridge v2ray PREROUTING udp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_UDP}" log prefix '"###BRIDGE#PREROU:"' level debug flags all
 fi
 
 ### bridge - skip link-local and broadcast address
@@ -527,9 +514,9 @@ fi
 
 ### bridge - meta pkttype set unicast
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
-  nft add rule bridge v2ray PREROUTING tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT meta nftrace set 1
-  nft add rule bridge v2ray PREROUTING tcp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '">>>BR TCP>pkttype:"' level debug flags all
-  nft add rule bridge v2ray PREROUTING udp dport != $SETUP_WITH_INTERNAL_SERVICE_PORT log prefix '">>>BR UDP>pkttype:"' level debug flags all
+  nft add rule bridge v2ray PREROUTING tcp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_TCP}" meta nftrace set 1
+  nft add rule bridge v2ray PREROUTING tcp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_TCP}" log prefix '">>>BR TCP>pkttype:"' level debug flags all
+  nft add rule bridge v2ray PREROUTING udp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_UDP}" log prefix '">>>BR UDP>pkttype:"' level debug flags all
 fi
 
 # https://www.mankier.com/8/ebtables-legacy#Description-Tables

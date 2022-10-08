@@ -52,17 +52,8 @@ if [[ "x" == "x$SETUP_FWMARK_RULE_PRIORITY" ]]; then
   SETUP_FWMARK_RULE_PRIORITY=17995
 fi
 
-if [[ "x" == "x$SETUP_WITH_INTERNAL_SERVICE_PORT" ]]; then
-  SETUP_WITH_INTERNAL_SERVICE_PORT="22,53,6881,6882,6883,8371,8372,8373,8381,8382,36000"
-fi
-
 if [[ "x" == "x$SETUP_WITH_DEBUG_LOG_RULE" ]]; then
-  SETUP_WITH_DEBUG_LOG_RULE="-m multiport ! --dports 22,53,6881,6882,6883,8382,36000"
-fi
-
-if [[ "x" == "x$SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT" ]]; then
-  # NTP Port: 123
-  SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT="123"
+  SETUP_WITH_DEBUG_LOG_RULE="-m multiport ! --dports $ROUTER_INTERNAL_SERVICE_PORT_ALL"
 fi
 
 if [[ "x" == "x$SETUP_WITH_BLACKLIST_IPV4" ]]; then
@@ -172,9 +163,9 @@ else
 fi
 
 ### ipv4 - skip internal services
-iptables -t mangle -A V2RAY -p tcp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
-iptables -t mangle -A V2RAY -p udp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
-iptables -t mangle -A V2RAY -p udp -m multiport --dports $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT -j RETURN
+iptables -t mangle -A V2RAY -p tcp -m multiport --sports $ROUTER_INTERNAL_SERVICE_PORT_TCP -j RETURN
+iptables -t mangle -A V2RAY -p udp -m multiport --sports $ROUTER_INTERNAL_SERVICE_PORT_UDP -j RETURN
+iptables -t mangle -A V2RAY -p udp -m multiport --dports $ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT -j RETURN
 iptables -t mangle -A V2RAY -m set ! --match-set V2RAY_PROXY_DNS_IPV4 dst -p tcp -m multiport --dports "53,853" -j RETURN
 iptables -t mangle -A V2RAY -m set ! --match-set V2RAY_PROXY_DNS_IPV4 dst -p udp -m multiport --dports "53,853" -j RETURN
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
@@ -231,9 +222,9 @@ iptables -t mangle -A PREROUTING -p udp -j V2RAY # apply rules
 
 # Setup - ipv4 local
 ### ipv4 - skip internal services
-iptables -t mangle -A V2RAY_MASK -p tcp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
-iptables -t mangle -A V2RAY_MASK -p udp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
-iptables -t mangle -A V2RAY_MASK -p udp -m multiport --dports $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT -j RETURN
+iptables -t mangle -A V2RAY_MASK -p tcp -m multiport --sports $ROUTER_INTERNAL_SERVICE_PORT_TCP -j RETURN
+iptables -t mangle -A V2RAY_MASK -p udp -m multiport --sports $ROUTER_INTERNAL_SERVICE_PORT_UDP -j RETURN
+iptables -t mangle -A V2RAY_MASK -p udp -m multiport --dports $ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT -j RETURN
 iptables -t mangle -A V2RAY_MASK -m set ! --match-set V2RAY_PROXY_DNS_IPV4 dst -p tcp -m multiport --dports "53,853" -j RETURN
 iptables -t mangle -A V2RAY_MASK -m set ! --match-set V2RAY_PROXY_DNS_IPV4 dst -p udp -m multiport --dports "53,853" -j RETURN
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
@@ -327,9 +318,9 @@ if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   fi
 
   ### ipv6 - skip internal services
-  ip6tables -t mangle -A V2RAY -p tcp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
-  ip6tables -t mangle -A V2RAY -p udp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
-  ip6tables -t mangle -A V2RAY -p udp -m multiport --dports $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT -j RETURN
+  ip6tables -t mangle -A V2RAY -p tcp -m multiport --sports $ROUTER_INTERNAL_SERVICE_PORT_TCP -j RETURN
+  ip6tables -t mangle -A V2RAY -p udp -m multiport --sports $ROUTER_INTERNAL_SERVICE_PORT_UDP -j RETURN
+  ip6tables -t mangle -A V2RAY -p udp -m multiport --dports $ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT -j RETURN
   ip6tables -t mangle -A V2RAY -m set ! --match-set V2RAY_PROXY_DNS_IPV6 dst -p tcp -m multiport --dports "53,853" -j RETURN
   ip6tables -t mangle -A V2RAY -m set ! --match-set V2RAY_PROXY_DNS_IPV6 dst -p udp -m multiport --dports "53,853" -j RETURN
   if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
@@ -364,8 +355,8 @@ if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   ip6tables -t mangle -A V2RAY -p tcp -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 0x7e/0x7f # mark tcp package with 1 and forward to $V2RAY_PORT
   ip6tables -t mangle -A V2RAY -p udp -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 0x7e/0x7f # mark tcp package with 1 and forward to $V2RAY_PORT
   if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
-    # ip6tables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j TRACE
-    ip6tables -t mangle -A V2RAY -p tcp -m multiport ! --dports $SETUP_WITH_INTERNAL_SERVICE_PORT -j LOG --log-level debug --log-prefix ">>>TCP6>mark:0x70"
+    # ip6tables -t mangle -A V2RAY -p tcp -m multiport ! --dports $ROUTER_INTERNAL_SERVICE_PORT_TCP -j TRACE
+    ip6tables -t mangle -A V2RAY -p tcp -m multiport ! --dports $ROUTER_INTERNAL_SERVICE_PORT_TCP -j LOG --log-level debug --log-prefix ">>>TCP6>mark:0x70"
   fi
   ip6tables -t mangle -A V2RAY -m mark ! --mark 0x70/0x70 -j MARK --set-xmark 0x70/0x70
   ip6tables -t mangle -A V2RAY -j CONNMARK --save-mark --mask 0xffff
@@ -384,9 +375,9 @@ if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
 
   # Setup - ipv6 local
   ### ipv6 - skip internal services
-  ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
-  ip6tables -t mangle -A V2RAY_MASK -p udp -m multiport --sports $SETUP_WITH_INTERNAL_SERVICE_PORT -j RETURN
-  ip6tables -t mangle -A V2RAY_MASK -p udp -m multiport --dports $SETUP_WITH_DIRECTLY_VISIT_UDP_DPORT -j RETURN
+  ip6tables -t mangle -A V2RAY_MASK -p tcp -m multiport --sports $ROUTER_INTERNAL_SERVICE_PORT_TCP -j RETURN
+  ip6tables -t mangle -A V2RAY_MASK -p udp -m multiport --sports $ROUTER_INTERNAL_SERVICE_PORT_UDP -j RETURN
+  ip6tables -t mangle -A V2RAY_MASK -p udp -m multiport --dports $ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT -j RETURN
   ip6tables -t mangle -A V2RAY_MASK -m set ! --match-set V2RAY_PROXY_DNS_IPV6 dst -p tcp -m multiport --dports "53,853" -j RETURN
   ip6tables -t mangle -A V2RAY_MASK -m set ! --match-set V2RAY_PROXY_DNS_IPV6 dst -p udp -m multiport --dports "53,853" -j RETURN
   if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
