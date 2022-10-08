@@ -35,22 +35,26 @@ function resolve_dns_ips() {
   fi
 
   let DEEP=$2-1
-  NEXTDNS_IP_LOOKUP="$(dig $1 @119.29.29.29)"
-  if [ $? -ne 0 ]; then
-    NEXTDNS_IP_LOOKUP="$(dig $1 @223.5.5.5)"
-  fi
-  if [ $? -ne 0 ]; then
+  echo "Looking up $1 at 94.140.14.141"
+  NEXTDNS_IP_LOOKUP="$(dig $1 @94.140.14.141)"
+  if [ $? -ne 0 ] || [ $(echo "$NEXTDNS_IP_LOOKUP" | awk '/IN\s*(A|AAAA|CNAME)\s*[^\s]+/ {print $5}' | wc -l) -le 0 ]; then
+    echo "Looking up $1 at 1.0.0.1"
     NEXTDNS_IP_LOOKUP="$(dig $1 @1.0.0.1)"
   fi
-  if [ $? -ne 0 ]; then
-    NEXTDNS_IP_LOOKUP="$(dig $1 @94.140.14.141)"
+  if [ $? -ne 0 ] || [ $(echo "$NEXTDNS_IP_LOOKUP" | awk '/IN\s*(A|AAAA|CNAME)\s*[^\s]+/ {print $5}' | wc -l) -le 0 ]; then
+    echo "Looking up $1 at 119.29.29.29"
+    NEXTDNS_IP_LOOKUP="$(dig $1 @119.29.29.29)"
+  fi
+  if [ $? -ne 0 ] || [ $(echo "$NEXTDNS_IP_LOOKUP" | awk '/IN\s*(A|AAAA|CNAME)\s*[^\s]+/ {print $5}' | wc -l) -le 0 ]; then
+    echo "Looking up $1 at 223.5.5.5"
+    NEXTDNS_IP_LOOKUP="$(dig $1 @223.5.5.5)"
   fi
 
-  for CNAME in $(echo "$NEXTDNS_IP_LOOKUP" | awk '/IN\s*CNAME/ {print $5}'); do
+  for CNAME in $(echo "$NEXTDNS_IP_LOOKUP" | awk '/IN\s*CNAME\s*[^\s]+/ {print $5}'); do
     resolve_dns_ips $CNAME $DEEP
   done
 
-  for IP in $(echo "$NEXTDNS_IP_LOOKUP" | awk '/IN\s*(A|AAAA)/ {print $5}'); do
+  for IP in $(echo "$NEXTDNS_IP_LOOKUP" | awk '/IN\s*(A|AAAA)\s*[^\s]+/ {print $5}'); do
     NEXTDNS_IPS="$NEXTDNS_IPS
 $IP"
   done
@@ -69,4 +73,5 @@ if [[ $HAS_ADDRESS -eq 0 ]]; then
   exit 0
 fi
 
+echo "FINAL_FORWARD_ARGUMENTS=$FINAL_FORWARD_ARGUMENTS"
 sed -i.bak -E "s;forward.*PLACEHOLDER_NEXTDNS_IP\$;$FINAL_FORWARD_ARGUMENTS;g" "$COREDNS_ETC_DIR/Corefile"

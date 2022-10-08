@@ -40,4 +40,7 @@ fi
 
 python3 "$SCRIPT_DIR/merge-service-block.py" "$COREDNS_ETC_DIR/Corefile" "$COREDNS_ETC_DIR/Corefile"
 
-bash "$SCRIPT_DIR/replace-nextdns-ips.sh"
+nmcli --fields NAME,TYPE connection show | grep 'pppoe'
+if [ $? -ne 0 ]; then
+  bash "$SCRIPT_DIR/replace-nextdns-ips.sh"
+fi
