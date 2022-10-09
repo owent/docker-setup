@@ -53,7 +53,10 @@ if [[ "x" == "x$SETUP_FWMARK_RULE_PRIORITY" ]]; then
 fi
 
 if [[ "x" == "x$SETUP_WITH_DEBUG_LOG_RULE" ]]; then
-  SETUP_WITH_DEBUG_LOG_RULE="-m multiport ! --dports $ROUTER_INTERNAL_SERVICE_PORT_ALL"
+  SETUP_WITH_DEBUG_LOG_RULE="-m set ! --match-set V2RAY_LOCAL_IPV4"
+  if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
+    SETUP_WITH_DEBUG_LOG_RULE="$SETUP_WITH_DEBUG_LOG_RULE -m set ! --match-set V2RAY_LOCAL_IPV6"
+  fi
 fi
 
 if [[ "x" == "x$SETUP_WITH_BLACKLIST_IPV4" ]]; then
