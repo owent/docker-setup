@@ -181,10 +181,6 @@ nft add rule ip v2ray PREROUTING udp sport "{$ROUTER_INTERNAL_SERVICE_PORT_UDP}"
 nft add rule ip v2ray PREROUTING udp dport "{$ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT}" return
 nft add rule ip v2ray PREROUTING ip daddr != @PROXY_DNS_IPV4 udp dport '{53, 853}' return
 nft add rule ip v2ray PREROUTING ip daddr != @PROXY_DNS_IPV4 tcp dport '{53, 853}' return
-if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
-  nft add rule ip v2ray PREROUTING tcp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" log prefix '"###TCP4#PREROU:"' level debug flags all
-  nft add rule ip v2ray PREROUTING udp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" log prefix '"###UDP4#PREROU:"' level debug flags all
-fi
 
 ### ipv4 - skip link-local and broadcast address, 172.20.1.1/24 is used for remote debug
 nft add rule ip v2ray PREROUTING ip daddr {224.0.0.0/4, 255.255.255.255/32, 172.20.1.1/24} return
@@ -210,9 +206,8 @@ nft add rule ip v2ray PREROUTING ip daddr @GEOIP_CN return
 ### ipv4 - forward to v2ray's listen address if not marked by v2ray
 # tproxy ip to $V2RAY_HOST_IPV4:$V2RAY_PORT
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
-  nft add rule ip v2ray PREROUTING tcp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" meta nftrace set 1
-  nft add rule ip v2ray PREROUTING tcp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" log prefix '">>>TCP4>tproxy:"' level debug flags all
-  nft add rule ip v2ray PREROUTING udp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" log prefix '">>>UDP4>tproxy:"' level debug flags all
+  nft add rule ip v2ray PREROUTING meta nftrace set 1
+  nft add rule ip v2ray PREROUTING log prefix '">>>TCP4>tproxy:"' level debug flags all
 fi
 
 # fwmark here must match: ip rule list lookup 100
@@ -235,10 +230,6 @@ nft add rule ip v2ray OUTPUT udp sport "{$ROUTER_INTERNAL_SERVICE_PORT_UDP}" ret
 nft add rule ip v2ray OUTPUT udp dport "{$ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT}" return
 nft add rule ip v2ray OUTPUT ip daddr != @PROXY_DNS_IPV4 udp dport '{53, 853}' return
 nft add rule ip v2ray OUTPUT ip daddr != @PROXY_DNS_IPV4 tcp dport '{53, 853}' return
-if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
-  nft add rule ip v2ray OUTPUT tcp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" log prefix '"###TCP4#OUTPUT:"' level debug flags all
-  nft add rule ip v2ray OUTPUT udp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" log prefix '"###UDP4#OUTPUT:"' level debug flags all
-fi
 
 # 172.20.1.1/24 is used for remote debug
 nft add rule ip v2ray OUTPUT ip daddr {224.0.0.0/4, 255.255.255.255/32, 172.20.1.1/24} return
@@ -255,9 +246,8 @@ nft add rule ip v2ray OUTPUT ip daddr @GEOIP_CN return
 # nft add rule ip v2ray OUTPUT ip daddr @DEFAULT_ROUTE_IPV4 udp dport != 53 return
 nft add rule ip v2ray OUTPUT mark and 0x70 == 0x70 return
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
-  nft add rule ip v2ray OUTPUT tcp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" meta nftrace set 1
-  nft add rule ip v2ray OUTPUT tcp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" log prefix '"+++TCP4+mark 1:"' level debug flags all
-  nft add rule ip v2ray OUTPUT udp dport != "{$ROUTER_INTERNAL_SERVICE_PORT_ALL}" log prefix '"+++UDP4+mark 1:"' level debug flags all
+  nft add rule ip v2ray OUTPUT meta nftrace set 1
+  nft add rule ip v2ray OUTPUT log prefix '"+++TCP4+mark 1:"' level debug flags all
 fi
 nft add rule ip v2ray OUTPUT mark and 0x0f != 0x0e meta l4proto {tcp, udp} mark set mark and 0xfffffff0 xor 0x0e return
 nft add rule ip v2ray OUTPUT ct mark set mark and 0xffff
