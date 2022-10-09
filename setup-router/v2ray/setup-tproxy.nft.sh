@@ -388,8 +388,8 @@ if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   nft add rule ip6 v2ray OUTPUT mark and 0x0f != 0x0e meta l4proto {tcp, udp} mark set mark and 0xfffffff0 xor 0x0e return
   nft add rule ip6 v2ray OUTPUT ct mark set mark and 0xffff
 else
-  nft delete chain ip6 v2ray PREROUTING
-  nft delete chain ip6 v2ray OUTPUT
+  nft delete chain ip6 v2ray PREROUTING >/dev/null 2>&1
+  nft delete chain ip6 v2ray OUTPUT >/dev/null 2>&1
 fi
 
 ### Setup - bridge
