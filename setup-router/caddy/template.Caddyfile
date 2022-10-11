@@ -1,0 +1,77 @@
+# Auto HTTPS: Internal
+example.domain {
+  root * /home/user/public_html
+
+  tls {
+    protocols tls1.2 tls1.3
+    key_type p256
+    issuer internal
+  }
+}
+
+# Auto HTTPS: https://caddyserver.com/download?package=github.com%2Fcaddy-dns%2Fcloudflare
+example.domain {
+  file_server {
+    hide  .git
+    root /home/user/public_html
+    index index.html index index.htm
+  }
+
+  tls {
+    protocols tls1.2 tls1.3
+    key_type p256
+    dns cloudflare {env.CF_API_TOKEN} # Require Zone.Zone READ, Zone.DNS EDIT
+  }
+}
+
+# Auto HTTPS: https://caddyserver.com/download?package=github.com%2Fcaddy-dns%2Fcloudflare&package=github.com%2Fcaddy-dns%2Fdnspod
+example.domain {
+  reverse_proxy {
+    to http://127.0.0.1:7860
+    header_up Host {http.request.host}
+    header_up X-Real-IP {http.request.remote}
+    header_up X-Forwarded-For {http.request.remote}
+    header_up X-Forwarded-Port {http.request.port}
+    header_up X-Forwarded-Proto {http.request.scheme}
+  }
+
+  tls {
+    protocols tls1.2 tls1.3
+    key_type p256
+    dns dnspod {env.DNSPOD_TOKEN}
+  }
+}
+
+# Wbsocket reverse proxy
+{
+  auto_https disable_redirects
+  auto_https off
+  # http_port 8999
+}
+example.domain {
+  reverse_proxy /ws ws://localhost:8443 {
+    header_up Host {http.request.host}
+    header_up X-Real-IP {http.request.remote}
+    header_up X-Forwarded-For {http.request.remote}
+    header_up X-Forwarded-Port {http.request.port}
+    header_up X-Forwarded-Proto {http.request.scheme}
+    header_up Access-Control-Allow-Origin "*"
+    # transport http {
+    #   versions "1.1 2"
+    # }
+  }
+}
+
+
+# h2c
+{
+  auto_https off
+  servers :8375 {
+    protocol {
+      allow_h2c
+    }
+  }
+}
+example.domain {
+  redir https://owent.net{uri} html
+}
