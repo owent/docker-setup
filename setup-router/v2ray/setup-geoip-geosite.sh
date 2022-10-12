@@ -16,41 +16,45 @@ fi
 
 function update_geo_services() {
   if [ $TPROXY_SETUP_IPSET -ne 0 ]; then
-    # ipv4 - cn
-    ipset list GEOIP_IPV4_CN >/dev/null 2>&1
-    if [ $? -eq 0 ]; then
-      ipset flush GEOIP_IPV4_CN
-    else
-      ipset create GEOIP_IPV4_CN hash:net family inet
-    fi
-    cat ipv4_cn.ipset | ipset restore
+    if [ $TPROXY_SETUP_USING_GEOIP -ne 0 ]; then
+      # ipv4 - cn
+      ipset list GEOIP_IPV4_CN >/dev/null 2>&1
+      if [ $? -eq 0 ]; then
+        ipset flush GEOIP_IPV4_CN
+      else
+        ipset create GEOIP_IPV4_CN hash:net family inet
+      fi
+      cat ipv4_cn.ipset | ipset restore
 
-    # ipv4 - hk
-    ipset list GEOIP_IPV4_HK >/dev/null 2>&1
-    if [ $? -eq 0 ]; then
-      ipset flush GEOIP_IPV4_HK
-    else
-      ipset create GEOIP_IPV4_HK hash:net family inet
-    fi
-    cat ipv4_hk.ipset | ipset restore
+      # ipv4 - hk
+      ipset list GEOIP_IPV4_HK >/dev/null 2>&1
+      if [ $? -eq 0 ]; then
+        ipset flush GEOIP_IPV4_HK
+      else
+        ipset create GEOIP_IPV4_HK hash:net family inet
+      fi
+      cat ipv4_hk.ipset | ipset restore
 
-    # ipv6 - cn
-    ipset list GEOIP_IPV6_CN >/dev/null 2>&1
-    if [ $? -eq 0 ]; then
-      ipset flush GEOIP_IPV6_CN
-    else
-      ipset create GEOIP_IPV6_CN hash:net family inet6
-    fi
-    cat ipv6_cn.ipset | ipset restore
+      if [ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]; then
+        # ipv6 - cn
+        ipset list GEOIP_IPV6_CN >/dev/null 2>&1
+        if [ $? -eq 0 ]; then
+          ipset flush GEOIP_IPV6_CN
+        else
+          ipset create GEOIP_IPV6_CN hash:net family inet6
+        fi
+        cat ipv6_cn.ipset | ipset restore
 
-    # ipv6 - hk
-    ipset list GEOIP_IPV6_HK >/dev/null 2>&1
-    if [ $? -eq 0 ]; then
-      ipset flush GEOIP_IPV6_HK
-    else
-      ipset create GEOIP_IPV6_HK hash:net family inet6
+        # ipv6 - hk
+        ipset list GEOIP_IPV6_HK >/dev/null 2>&1
+        if [ $? -eq 0 ]; then
+          ipset flush GEOIP_IPV6_HK
+        else
+          ipset create GEOIP_IPV6_HK hash:net family inet6
+        fi
+        cat ipv6_hk.ipset | ipset restore
+      fi
     fi
-    cat ipv6_hk.ipset | ipset restore
   fi
 
   if [ $TPROXY_SETUP_NFTABLES -ne 0 ]; then
@@ -80,21 +84,23 @@ function update_geo_services() {
     nft add element bridge v2ray PERMANENT_WHITELIST_IPV4 "{$(echo "${TPROXY_WHITELIST_IPV4[@]}" | sed -E 's;[[:space:]]+;,;g')}"
 
     # ipv4 - cn
-    nft list set ip v2ray GEOIP_CN >/dev/null 2>&1
-    if [ $? -ne 0 ]; then
-      nft add set ip v2ray GEOIP_CN '{ type ipv4_addr; flags interval; }'
-    else
-      nft flush set ip v2ray GEOIP_CN
-    fi
-    cat ipv4_cn.ipset | awk '{print "add element ip v2ray GEOIP_CN {"$NF"}"}' | nft -f -
+    if [ $TPROXY_SETUP_USING_GEOIP -ne 0 ]; then
+      nft list set ip v2ray GEOIP_CN >/dev/null 2>&1
+      if [ $? -ne 0 ]; then
+        nft add set ip v2ray GEOIP_CN '{ type ipv4_addr; flags interval; }'
+      else
+        nft flush set ip v2ray GEOIP_CN
+      fi
+      cat ipv4_cn.ipset | awk '{print "add element ip v2ray GEOIP_CN {"$NF"}"}' | nft -f -
 
-    nft list set bridge v2ray GEOIP_CN_IPV4 >/dev/null 2>&1
-    if [ $? -ne 0 ]; then
-      nft add set bridge v2ray GEOIP_CN_IPV4 '{ type ipv4_addr; flags interval; }'
-    else
-      nft flush set bridge v2ray GEOIP_CN_IPV4
+      nft list set bridge v2ray GEOIP_CN_IPV4 >/dev/null 2>&1
+      if [ $? -ne 0 ]; then
+        nft add set bridge v2ray GEOIP_CN_IPV4 '{ type ipv4_addr; flags interval; }'
+      else
+        nft flush set bridge v2ray GEOIP_CN_IPV4
+      fi
+      cat ipv4_cn.ipset | awk '{print "add element bridge v2ray GEOIP_CN_IPV4 {"$NF"}"}' | nft -f -
     fi
-    cat ipv4_cn.ipset | awk '{print "add element bridge v2ray GEOIP_CN_IPV4 {"$NF"}"}' | nft -f -
 
     if [ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]; then
       nft list table ip6 v2ray >/dev/null 2>&1
@@ -118,22 +124,24 @@ function update_geo_services() {
       fi
       nft add element bridge v2ray PERMANENT_WHITELIST_IPV6 "{$(echo "${SETUP_WITH_WHITELIST_IPV6[@]}" | sed -E 's;[[:space:]]+;,;g')}"
 
-      # ipv6 - cn
-      nft list set ip6 v2ray GEOIP_CN >/dev/null 2>&1
-      if [ $? -ne 0 ]; then
-        nft add set ip6 v2ray GEOIP_CN '{ type ipv6_addr; flags interval; }'
-      else
-        nft flush set ip6 v2ray GEOIP_CN
-      fi
-      cat ipv6_cn.ipset | awk '{print "add element ip6 v2ray GEOIP_CN {"$NF"}"}' | nft -f -
+      if [ $TPROXY_SETUP_USING_GEOIP -ne 0 ]; then
+        # ipv6 - cn
+        nft list set ip6 v2ray GEOIP_CN >/dev/null 2>&1
+        if [ $? -ne 0 ]; then
+          nft add set ip6 v2ray GEOIP_CN '{ type ipv6_addr; flags interval; }'
+        else
+          nft flush set ip6 v2ray GEOIP_CN
+        fi
+        cat ipv6_cn.ipset | awk '{print "add element ip6 v2ray GEOIP_CN {"$NF"}"}' | nft -f -
 
-      nft list set bridge v2ray GEOIP_CN_IPV6 >/dev/null 2>&1
-      if [ $? -ne 0 ]; then
-        nft add set bridge v2ray GEOIP_CN_IPV6 '{ type ipv6_addr; flags interval; }'
-      else
-        nft flush set bridge v2ray GEOIP_CN_IPV6
+        nft list set bridge v2ray GEOIP_CN_IPV6 >/dev/null 2>&1
+        if [ $? -ne 0 ]; then
+          nft add set bridge v2ray GEOIP_CN_IPV6 '{ type ipv6_addr; flags interval; }'
+        else
+          nft flush set bridge v2ray GEOIP_CN_IPV6
+        fi
+        cat ipv6_cn.ipset | awk '{print "add element bridge v2ray GEOIP_CN_IPV6 {"$NF"}"}' | nft -f -
       fi
-      cat ipv6_cn.ipset | awk '{print "add element bridge v2ray GEOIP_CN_IPV6 {"$NF"}"}' | nft -f -
     fi
   fi
 

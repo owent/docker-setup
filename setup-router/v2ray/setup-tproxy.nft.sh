@@ -144,13 +144,15 @@ if [ ${#TPROXY_WHITELIST_IPV4[@]} -gt 0 ]; then
   nft add element ip v2ray PERMANENT_WHITELIST "{$(echo "${TPROXY_WHITELIST_IPV4[@]}" | sed -E 's;[[:space:]]+;,;g')}"
 fi
 
-nft list set ip v2ray GEOIP_CN >/dev/null 2>&1
-if [[ $? -ne 0 ]]; then
-  nft add set ip v2ray GEOIP_CN '{ type ipv4_addr; flags interval; }'
-fi
-nft list set ip v2ray GEOIP_HK >/dev/null 2>&1
-if [[ $? -ne 0 ]]; then
-  nft add set ip v2ray GEOIP_HK '{ type ipv4_addr; flags interval; }'
+if [ $TPROXY_SETUP_USING_GEOIP -ne 0 ]; then
+  nft list set ip v2ray GEOIP_CN >/dev/null 2>&1
+  if [[ $? -ne 0 ]]; then
+    nft add set ip v2ray GEOIP_CN '{ type ipv4_addr; flags interval; }'
+  fi
+  nft list set ip v2ray GEOIP_HK >/dev/null 2>&1
+  if [[ $? -ne 0 ]]; then
+    nft add set ip v2ray GEOIP_HK '{ type ipv4_addr; flags interval; }'
+  fi
 fi
 nft list set ip v2ray LOCAL_IPV4 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
@@ -196,12 +198,15 @@ nft add rule ip v2ray PREROUTING mark and 0x70 == 0x70 return
 
 # ipv4 skip package from outside
 nft add rule ip v2ray PREROUTING ip daddr @BLACKLIST return
-# GEOIP_CN
-nft add rule ip v2ray PREROUTING ip daddr @GEOIP_CN return
+if [ $TPROXY_SETUP_USING_GEOIP -ne 0 ]; then
+  # GEOIP_CN
+  nft add rule ip v2ray PREROUTING ip daddr @GEOIP_CN return
 ## GEOIP_HK
 #nft add rule ip v2ray PREROUTING ip daddr @GEOIP_HK return
-## Alternative: using whitlist
-## nft add rule ip v2ray PREROUTING ip daddr != @TEMPORARY_WHITELIST ip daddr != @PERMANENT_WHITELIST return
+else
+  ## Alternative: using whitlist
+  nft add rule ip v2ray PREROUTING ip daddr != @TEMPORARY_WHITELIST ip daddr != @PERMANENT_WHITELIST return
+fi
 
 ### ipv4 - forward to v2ray's listen address if not marked by v2ray
 # tproxy ip to $V2RAY_HOST_IPV4:$V2RAY_PORT
@@ -236,9 +241,12 @@ nft add rule ip v2ray OUTPUT ip daddr {224.0.0.0/4, 255.255.255.255/32, 172.20.1
 nft add rule ip v2ray OUTPUT ip daddr @LOCAL_IPV4 return
 nft add rule ip v2ray OUTPUT ip daddr @DEFAULT_ROUTE_IPV4 return
 nft add rule ip v2ray OUTPUT ip daddr @BLACKLIST return
-nft add rule ip v2ray OUTPUT ip daddr @GEOIP_CN return
-## Alternative: using whitlist
-## nft add rule ip v2ray OUTPUT ip daddr != @TEMPORARY_WHITELIST ip daddr != @PERMANENT_WHITELIST return
+if [ $TPROXY_SETUP_USING_GEOIP -ne 0 ]; then
+  nft add rule ip v2ray OUTPUT ip daddr @GEOIP_CN return
+else
+  ## Alternative: using whitlist
+  nft add rule ip v2ray OUTPUT ip daddr != @TEMPORARY_WHITELIST ip daddr != @PERMANENT_WHITELIST return
+fi
 # if dns service and v2ray are on different server, use rules below
 # nft add rule ip v2ray OUTPUT meta l4proto tcp ip daddr @LOCAL_IPV4 return
 # nft add rule ip v2ray OUTPUT meta l4proto tcp ip daddr @DEFAULT_ROUTE_IPV4 return
@@ -270,13 +278,15 @@ if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   if [ ${#TPROXY_WHITELIST_IPV6[@]} -gt 0 ]; then
     nft add element ip6 v2ray PERMANENT_WHITELIST "{$(echo "${TPROXY_WHITELIST_IPV6[@]}" | sed -E 's;[[:space:]]+;,;g')}"
   fi
-  nft list set ip6 v2ray GEOIP_CN >/dev/null 2>&1
-  if [[ $? -ne 0 ]]; then
-    nft add set ip6 v2ray GEOIP_CN '{ type ipv6_addr; flags interval; }'
-  fi
-  nft list set ip6 v2ray GEOIP_HK >/dev/null 2>&1
-  if [[ $? -ne 0 ]]; then
-    nft add set ip6 v2ray GEOIP_HK '{ type ipv6_addr; flags interval; }'
+  if [ $TPROXY_SETUP_USING_GEOIP -ne 0 ]; then
+    nft list set ip6 v2ray GEOIP_CN >/dev/null 2>&1
+    if [[ $? -ne 0 ]]; then
+      nft add set ip6 v2ray GEOIP_CN '{ type ipv6_addr; flags interval; }'
+    fi
+    nft list set ip6 v2ray GEOIP_HK >/dev/null 2>&1
+    if [[ $? -ne 0 ]]; then
+      nft add set ip6 v2ray GEOIP_HK '{ type ipv6_addr; flags interval; }'
+    fi
   fi
   nft list set ip6 v2ray LOCAL_IPV6 >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
@@ -317,12 +327,15 @@ if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   ### ipv6 - skip private network and UDP of DNS
   # ipv6 skip package from outside
   nft add rule ip6 v2ray PREROUTING ip6 daddr @BLACKLIST return
-  # GEOIP_CN
-  nft add rule ip6 v2ray PREROUTING ip6 daddr @GEOIP_CN return
-  ## GEOIP_HK
-  #nft add rule ip6 v2ray PREROUTING ip6 daddr @GEOIP_HK return
-  ## Alternative: using whitlist
-  ## nft add rule ip6 v2ray PREROUTING ip6 daddr != @TEMPORARY_WHITELIST ip6 daddr != @PERMANENT_WHITELIST return
+  if [ $TPROXY_SETUP_USING_GEOIP -ne 0 ]; then
+    # GEOIP_CN
+    nft add rule ip6 v2ray PREROUTING ip6 daddr @GEOIP_CN return
+    ## GEOIP_HK
+    #nft add rule ip6 v2ray PREROUTING ip6 daddr @GEOIP_HK return
+  else
+    ## Alternative: using whitlist
+    nft add rule ip6 v2ray PREROUTING ip6 daddr != @TEMPORARY_WHITELIST ip6 daddr != @PERMANENT_WHITELIST return
+  fi
 
   ### ipv6 - forward to v2ray's listen address if not marked by v2ray
   if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
@@ -357,9 +370,15 @@ if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   nft add rule ip6 v2ray OUTPUT ip6 daddr @LOCAL_IPV6 return
   nft add rule ip6 v2ray OUTPUT ip6 daddr @DEFAULT_ROUTE_IPV6 return
   nft add rule ip6 v2ray OUTPUT ip6 daddr @BLACKLIST return
-  nft add rule ip6 v2ray OUTPUT ip6 daddr @GEOIP_CN return
-  ## Alternative: using whitlist
-  ## nft add rule ip6 v2ray PREROUTING ip6 daddr != @TEMPORARY_WHITELIST ip6 daddr != @PERMANENT_WHITELIST return
+  if [ $TPROXY_SETUP_USING_GEOIP -ne 0 ]; then
+    ## GEOIP_CN
+    nft add rule ip6 v2ray OUTPUT ip6 daddr @GEOIP_CN return
+    ## GEOIP_HK
+    #nft add rule ip6 v2ray OUTPUT ip6 daddr @GEOIP_HK return
+  else
+    ## Alternative: using whitlist
+    nft add rule ip6 v2ray PREROUTING ip6 daddr != @TEMPORARY_WHITELIST ip6 daddr != @PERMANENT_WHITELIST return
+  fi
   nft add rule ip6 v2ray OUTPUT mark and 0x70 == 0x70 return # make sure v2ray's outbounds.*.streamSettings.sockopt.mark = 255
   if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
     nft add rule ip6 v2ray OUTPUT meta nftrace set 1
@@ -480,13 +499,16 @@ fi
 # if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
 #     nft add rule bridge v2ray PREROUTING ip6 daddr @BLACKLIST return
 # fi
-# nft add rule bridge v2ray PREROUTING ip daddr @GEOIP_CN return
-
-## Alternative: using whitlist
-## if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
-##   nft add rule bridge v2ray PREROUTING ip6 daddr != @TEMPORARY_WHITELIST_IPV6 ip6 daddr != @PERMANENT_WHITELIST_IPV6 return
-## fi
-## nft add rule bridge v2ray PREROUTING ip daddr != @TEMPORARY_WHITELIST_IPV4 ip daddr != @PERMANENT_WHITELIST_IPV4 return
+if [ $TPROXY_SETUP_USING_GEOIP -ne 0 ]; then
+  nft add rule bridge v2ray PREROUTING ip daddr @GEOIP_CN return
+  # nft add rule bridge v2ray PREROUTING ip daddr @GEOIP_HK return
+else
+  ## Alternative: using whitlist
+  if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
+    nft add rule bridge v2ray PREROUTING ip6 daddr != @TEMPORARY_WHITELIST_IPV6 ip6 daddr != @PERMANENT_WHITELIST_IPV6 return
+  fi
+  nft add rule bridge v2ray PREROUTING ip daddr != @TEMPORARY_WHITELIST_IPV4 ip daddr != @PERMANENT_WHITELIST_IPV4 return
+fi
 
 ### bridge - meta pkttype set unicast
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then

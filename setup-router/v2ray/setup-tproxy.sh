@@ -123,14 +123,17 @@ for IP_ADDR in $(echo ${SETUP_WITH_BLACKLIST_IPV4//,/ }); do
   ipset add V2RAY_BLACKLIST_IPV4 $IP_ADDR -exist
 done
 
-ipset list GEOIP_IPV4_CN >/dev/null 2>&1
-if [[ $? -ne 0 ]]; then
-  ipset create GEOIP_IPV4_CN hash:net family inet
+if [ $TPROXY_SETUP_USING_GEOIP -ne 0 ]; then
+  ipset list GEOIP_IPV4_CN >/dev/null 2>&1
+  if [[ $? -ne 0 ]]; then
+    ipset create GEOIP_IPV4_CN hash:net family inet
+  fi
+  ipset list GEOIP_IPV4_HK >/dev/null 2>&1
+  if [[ $? -ne 0 ]]; then
+    ipset create GEOIP_IPV4_HK hash:net family inet
+  fi
 fi
-ipset list GEOIP_IPV4_HK >/dev/null 2>&1
-if [[ $? -ne 0 ]]; then
-  ipset create GEOIP_IPV4_HK hash:net family inet
-fi
+
 ipset list V2RAY_LOCAL_IPV4 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   ipset create V2RAY_LOCAL_IPV4 hash:net family inet
@@ -191,9 +194,12 @@ iptables -t mangle -A V2RAY -d 172.20.1.1/24 -j RETURN # 172.20.1.1/24 is used f
 
 # ipv4 skip package from outside
 iptables -t mangle -A V2RAY -m set --match-set V2RAY_BLACKLIST_IPV4 dst -j RETURN
-iptables -t mangle -A V2RAY -m set --match-set GEOIP_IPV4_CN dst -j RETURN
+if [ $TPROXY_SETUP_USING_GEOIP -ne 0 ]; then
+  iptables -t mangle -A V2RAY -m set --match-set GEOIP_IPV4_CN dst -j RETURN
 # iptables -t mangle -A V2RAY -m set --match-set GEOIP_IPV4_HK dst -j RETURN
-# iptables -t mangle -A V2RAY -m set ! --match-set DNSMASQ_GFW_IPV4 dst -j RETURN
+else
+  iptables -t mangle -A V2RAY -m set ! --match-set DNSMASQ_GFW_IPV4 dst -j RETURN
+fi
 ### ipv4 - forward to v2ray's listen address if not marked by v2ray
 # tproxy ip to $V2RAY_HOST_IPV4:$V2RAY_PORT
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
@@ -247,9 +253,12 @@ iptables -t mangle -A V2RAY_MASK -d 172.20.1.1/24 -j RETURN # 172.20.1.1/24 is u
 # iptables -t mangle -A V2RAY_MASK -p udp -m set --match-set V2RAY_DEFAULT_ROUTE_IPV4 dst ! --dport 53 -j RETURN
 ### ipv4 - skip CN DNS
 iptables -t mangle -A V2RAY_MASK -m set --match-set V2RAY_BLACKLIST_IPV4 dst -j RETURN
-iptables -t mangle -A V2RAY_MASK -m set --match-set GEOIP_IPV4_CN dst -j RETURN
+if [ $TPROXY_SETUP_USING_GEOIP -ne 0 ]; then
+  iptables -t mangle -A V2RAY_MASK -m set --match-set GEOIP_IPV4_CN dst -j RETURN
 # iptables -t mangle -A V2RAY_MASK -m set --match-set GEOIP_IPV4_HK dst -j RETURN
-# iptables -t mangle -A V2RAY_MASK -m set ! --match-set DNSMASQ_GFW_IPV4 dst -j RETURN
+else
+  iptables -t mangle -A V2RAY_MASK -m set ! --match-set DNSMASQ_GFW_IPV4 dst -j RETURN
+fi
 
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
   # iptables -t mangle -A V2RAY_MASK -p tcp $SETUP_WITH_DEBUG_LOG_RULE -j TRACE
@@ -280,13 +289,15 @@ if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   for IP_ADDR in $(echo ${SETUP_WITH_BLACKLIST_IPV6//,/ }); do
     ipset add V2RAY_BLACKLIST_IPV6 $IP_ADDR -exist
   done
-  ipset list GEOIP_IPV6_CN >/dev/null 2>&1
-  if [ $? -ne 0 ]; then
-    ipset create GEOIP_IPV6_CN hash:net family inet6
-  fi
-  ipset list GEOIP_IPV6_HK >/dev/null 2>&1
-  if [[ $? -ne 0 ]]; then
-    ipset create GEOIP_IPV6_HK hash:net family inet6
+  if [ $TPROXY_SETUP_USING_GEOIP -ne 0 ]; then
+    ipset list GEOIP_IPV6_CN >/dev/null 2>&1
+    if [ $? -ne 0 ]; then
+      ipset create GEOIP_IPV6_CN hash:net family inet6
+    fi
+    ipset list GEOIP_IPV6_HK >/dev/null 2>&1
+    if [[ $? -ne 0 ]]; then
+      ipset create GEOIP_IPV6_HK hash:net family inet6
+    fi
   fi
   ipset list V2RAY_LOCAL_IPV6 >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
@@ -344,9 +355,12 @@ if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   # ipv6 skip package from outside
   ip6tables -t mangle -A V2RAY -d ff00::/8 -j RETURN
   ip6tables -t mangle -A V2RAY -m set --match-set V2RAY_BLACKLIST_IPV6 dst -j RETURN
-  ip6tables -t mangle -A V2RAY -m set --match-set GEOIP_IPV6_CN dst -j RETURN
+  if [ $TPROXY_SETUP_USING_GEOIP -ne 0 ]; then
+    ip6tables -t mangle -A V2RAY -m set --match-set GEOIP_IPV6_CN dst -j RETURN
   # ip6tables -t mangle -A V2RAY -m set --match-set GEOIP_IPV6_HK dst -j RETURN
-  # ip6tables -t mangle -A V2RAY -m set ! --match-set DNSMASQ_GFW_IPV6 dst -j RETURN
+  else
+    ip6tables -t mangle -A V2RAY -m set ! --match-set DNSMASQ_GFW_IPV6 dst -j RETURN
+  fi
   ### ipv6 - forward to v2ray's listen address if not marked by v2ray
   # tproxy ip to $V2RAY_HOST_IPV4:$V2RAY_PORT
   if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
@@ -400,9 +414,12 @@ if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   ip6tables -t mangle -A V2RAY_MASK -d 2400:3200::1/128,2400:3200:baba::1/128,2400:da00::6666/128 -j RETURN
   ip6tables -t mangle -A V2RAY_MASK -d ff00::/8 -j RETURN
   ip6tables -t mangle -A V2RAY_MASK -m set --match-set V2RAY_BLACKLIST_IPV6 dst -j RETURN
-  ip6tables -t mangle -A V2RAY_MASK -m set --match-set GEOIP_IPV6_CN dst -j RETURN
+  if [ $TPROXY_SETUP_USING_GEOIP -ne 0 ]; then
+    ip6tables -t mangle -A V2RAY_MASK -m set --match-set GEOIP_IPV6_CN dst -j RETURN
   # ip6tables -t mangle -A V2RAY_MASK -m set --match-set GEOIP_IPV6_HK dst -j RETURN
-  # ip6tables -t mangle -A V2RAY_MASK -m set ! --match-set DNSMASQ_GFW_IPV6 dst -j RETURN
+  else
+    ip6tables -t mangle -A V2RAY_MASK -m set ! --match-set DNSMASQ_GFW_IPV6 dst -j RETURN
+  fi
 
   if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
     # ip6tables -t mangle -A V2RAY_MASK -p tcp $SETUP_WITH_DEBUG_LOG_RULE -j TRACE
