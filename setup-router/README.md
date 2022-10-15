@@ -8,8 +8,8 @@ Lan bridge:  br0
 Wan: enp1s0f2, enp1s0f3
 > Disable auto start
 
-nftables 没找到类似 ```ebtables -t broute -A BROUTING ... -j redirect --redirect-target DROP``` 来改变FORWARD行为的方法。所以目前还是用了 ```iptables``` + ```ebtables``` 。
-https://www.mankier.com/8/ebtables-nft#Bugs 这里目前说的是不支持，等哪天支持了可以切过去试试，脚本里的 ```*.nft.sh``` 是宿主机正常透明代理，子网还只能走基本的NAT的的脚本。
+nftables 没找到类似 `ebtables -t broute -A BROUTING ... -j redirect --redirect-target DROP` 来改变FORWARD行为的方法。所以目前还是用了 `iptables` + `ebtables` 。
+https://www.mankier.com/8/ebtables-nft#Bugs 这里目前说的是不支持，等哪天支持了可以切过去试试，脚本里的 `*.nft.sh` 是宿主机正常透明代理，子网还只能走基本的NAT的的脚本。
 
 > 另： firewalld 会自动情况 iptables 规则和 ebtables 规则。所以母机上得自己设置安全选项
 

@@ -205,10 +205,8 @@ if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
 fi
 
 # fwmark here must match: ip rule list lookup 100
-nft add rule ip v2ray PREROUTING mark and 0x7f != 0x7e meta mark set mark and 0xffffff80 xor 0x7e
-nft add rule ip v2ray PREROUTING ct mark set mark and 0xffff
-nft add rule ip v2ray PREROUTING meta l4proto tcp tproxy to :$V2RAY_PORT accept # -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 0x7e/0x7f # mark tcp package with 1 and forward to $V2RAY_PORT
-nft add rule ip v2ray PREROUTING meta l4proto udp tproxy to :$V2RAY_PORT accept # -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 0x7e/0x7f # mark tcp package with 1 and forward to $V2RAY_PORT
+# nft add rule ip v2ray PREROUTING meta pkttype set unicast ether daddr set 00:00:00:00:00:00
+nft add rule ip v2ray PREROUTING meta l4proto "{udp, tcp}" tproxy to :$V2RAY_PORT meta mark set mark and 0xffffff80 xor 0x7e accept
 
 # Setup - ipv4 local
 nft list chain ip v2ray OUTPUT >/dev/null 2>&1
@@ -333,10 +331,7 @@ if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   fi
   # tproxy ip6 to $V2RAY_HOST_IPV6:$V2RAY_PORT
   # fwmark here must match: ip -6 rule list lookup 100
-  nft add rule ip6 v2ray PREROUTING mark and 0x7f != 0x7e meta mark set mark and 0xffffff80 xor 0x7e
-  nft add rule ip6 v2ray PREROUTING ct mark set mark and 0xffff
-  nft add rule ip6 v2ray PREROUTING meta l4proto tcp tproxy to :$V2RAY_PORT accept # -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 0x7e/0x7f  # mark tcp package with 1 and forward to $V2RAY_PORT
-  nft add rule ip6 v2ray PREROUTING meta l4proto udp tproxy to :$V2RAY_PORT accept # -j TPROXY --on-port $V2RAY_PORT --tproxy-mark 0x7e/0x7f  # mark tcp package with 1 and forward to $V2RAY_PORT
+  nft add rule ip6 v2ray PREROUTING meta l4proto "{udp, tcp}" tproxy to :$V2RAY_PORT meta mark set mark and 0xffffff80 xor 0x7e accept
 
   # Setup - ipv6 local
   nft list chain ip6 v2ray OUTPUT >/dev/null 2>&1
@@ -512,4 +507,4 @@ fi
 # Mac Address Assignments: https://www.iana.org/assignments/ethernet-numbers/ethernet-numbers.xml
 # ebtables -t broute -A V2RAY_BRIDGE -j redirect --redirect-target DROP
 
-nft add rule bridge v2ray PREROUTING meta pkttype set unicast ether daddr set ff:ff:ff:ff:ff:ff
+nft add rule bridge v2ray PREROUTING meta pkttype set unicast # ether daddr set ff:ff:ff:ff:ff:ff
