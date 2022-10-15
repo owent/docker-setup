@@ -11,9 +11,7 @@ else
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-if [[ "x$ROUTER_HOME" == "x" ]] && [[ -e "$SCRIPT_DIR/../configure-router.sh" ]]; then
-  source "$SCRIPT_DIR/../configure-router.sh"
-fi
+source "$SCRIPT_DIR/../configure-router.sh"
 
 if [[ "x$ARIA2_DATA_ROOT" == "x" ]]; then
   if [[ ! -z "$SAMBA_DATA_DIR" ]]; then

@@ -10,6 +10,8 @@ else
   export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
+source "$(cd "$(dirname "$0")" && pwd)/../configure-router.sh"
+
 if [[ "x$V2RAY_SSL_DIR" == "x" ]] && [[ -e "/home/website/ssl/" ]]; then
   V2RAY_SSL_DIR="/home/website/ssl/"
 fi
@@ -87,19 +89,18 @@ echo "
 {
   auto_https off
   servers :8375 {
-    protocol {
-      allow_h2c
-    }
+    protocols h1 h2 h2c h3
   }
 }
-http://localhost:8375 http://127.0.0.1:8375 http://*.shkits.com:8375 {
+:8375 {
+  header Content-Type \"text/html; charset=utf-8\"
   redir https://owent.net{uri} html
 }
 " >"$V2RAY_ETC_DIR/Caddyfile"
 podman run -d --name v2ray-caddy-fallback --security-opt label=disable \
   -v $V2RAY_ETC_DIR/Caddyfile:/etc/caddy/Caddyfile \
   --network=host docker.io/caddy:latest \
-  caddy run -config /etc/caddy/Caddyfile
+  caddy run --config /etc/caddy/Caddyfile
 
 if [[ $? -ne 0 ]]; then
   exit $?

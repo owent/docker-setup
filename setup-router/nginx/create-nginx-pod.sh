@@ -6,6 +6,8 @@ else
   export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
+source "$(cd "$(dirname "$0")" && pwd)/../configure-router.sh"
+
 # Require net.ipv4.ip_unprivileged_port_start=80 in /etc/sysctl.d/*.conf
 # See https://github.com/containers/podman/blob/master/rootless.md
 

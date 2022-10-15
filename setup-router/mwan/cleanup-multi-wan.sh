@@ -9,7 +9,6 @@ else
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
-
 source "$SCRIPT_DIR/setup-multi-wan-conf.sh"
 
 # Remove iface rules

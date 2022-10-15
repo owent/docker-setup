@@ -6,22 +6,11 @@ else
   export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/../configure-router.sh"
+
 export XDG_RUNTIME_DIR="/run/user/$UID"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
-
-RUN_USER=$(id -un)
-# sudo loginctl enable-linger $RUN_USER
-
-if [[ "x$RUN_USER" == "x" ]] || [[ "x$RUN_USER" == "xroot" ]]; then
-  echo -e "\033[1;32m$0 can not run with\033[0;m \033[1;31m$RUN_USER\033[0;m"
-  exit 1
-fi
-
-RUN_HOME=$(cat /etc/passwd | awk "BEGIN{FS=\":\"} \$1 == \"$RUN_USER\" { print \$6 }")
-
-if [[ "x$RUN_HOME" == "x" ]]; then
-  RUN_HOME="$HOME"
-fi
 
 if [[ "x$BITWARDEN_ETC_DIR" == "x" ]]; then
   BITWARDEN_ETC_DIR="$RUN_HOME/bitwarden/etc"

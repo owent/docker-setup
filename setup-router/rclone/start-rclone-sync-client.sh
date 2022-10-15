@@ -7,9 +7,7 @@ else
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-if [[ "x$ROUTER_HOME" == "x" ]]; then
-  source "$(cd "$(dirname "$0")" && pwd)/../configure-router.sh"
-fi
+source "$(cd "$(dirname "$0")" && pwd)/../configure-router.sh"
 
 if [[ "x$RCLONE_DATA_DIR" == "x" ]]; then
   if [[ ! -z "$SAMBA_DATA_DIR" ]]; then

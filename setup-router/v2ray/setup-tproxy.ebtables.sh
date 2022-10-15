@@ -7,10 +7,7 @@ else
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-
-if [ "x$ROUTER_HOME" == "x" ]; then
-  source "$SCRIPT_DIR/../configure-router.sh"
-fi
+source "$SCRIPT_DIR/../configure-router.sh"
 
 set -x
 

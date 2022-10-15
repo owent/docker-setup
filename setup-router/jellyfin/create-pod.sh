@@ -3,9 +3,7 @@
 # @see https://hub.docker.com/r/jellyfin/jellyfin
 # https://jellyfin.org/docs/general/administration/hardware-acceleration.html
 
-if [[ "x$ROUTER_HOME" == "x" ]]; then
-  source "$(cd "$(dirname "$0")" && pwd)/../configure-router.sh"
-fi
+source "$(cd "$(dirname "$0")" && pwd)/../configure-router.sh"
 
 systemctl disable jellyfin
 systemctl stop jellyfin

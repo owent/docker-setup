@@ -27,9 +27,7 @@ DOMAIN_NAME=owent.net
 ADMIN_EMAIL=$CF_Email
 INSTALL_CERT_DIR=/home/tools/bitwarden/ssl
 
-if [[ "x$ROUTER_HOME" == "x" ]] && [[ -e "$SCRIPT_DIR/../configure-router.sh" ]]; then
-  source "$SCRIPT_DIR/../configure-router.sh"
-fi
+source "$SCRIPT_DIR/../configure-router.sh"
 
 if [[ "x$ACMESH_SSL_DIR" == "x" ]]; then
   if [[ "x$ROUTER_HOME" != "x" ]]; then

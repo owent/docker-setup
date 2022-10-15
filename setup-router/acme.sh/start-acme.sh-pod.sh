@@ -7,10 +7,7 @@ else
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-
-if [[ "x$ROUTER_HOME" == "x" ]] && [[ -e "$SCRIPT_DIR/../configure-router.sh" ]]; then
-  source "$SCRIPT_DIR/../configure-router.sh"
-fi
+source "$SCRIPT_DIR/../configure-router.sh"
 
 if [[ "x$ACMESH_SSL_DIR" == "x" ]]; then
   if [[ "x$ROUTER_HOME" != "x" ]]; then

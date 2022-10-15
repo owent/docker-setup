@@ -24,9 +24,7 @@ LOCAL_LAN_INTERFACE='{ lo, br0, enp2s0 }'
 #            http://inai.de/images/nf-packet-flow.svg
 # Monitor: nft monitor
 
-if [[ "x$ROUTER_HOME" == "x" ]]; then
-  source "$(cd "$(dirname "$0")" && pwd)/../configure-router.sh"
-fi
+source "$(cd "$(dirname "$0")" && pwd)/../configure-router.sh"
 
 if [[ "x" == "x$SETUP_WITH_DEBUG_LOG" ]]; then
   SETUP_WITH_DEBUG_LOG=0

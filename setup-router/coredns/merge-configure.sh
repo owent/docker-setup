@@ -2,9 +2,7 @@
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-if [[ "x$ROUTER_HOME" == "x" ]]; then
-  source "$SCRIPT_DIR/../configure-router.sh"
-fi
+source "$SCRIPT_DIR/../configure-router.sh"
 
 if [[ "x$RUN_USER" == "x" ]]; then
   RUN_USER=$(id -un)

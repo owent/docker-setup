@@ -7,10 +7,8 @@ else
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/../configure-router.sh"
 
-if [[ "x$ROUTER_HOME" == "x" ]] && [[ -e "$SCRIPT_DIR/../configure-router.sh" ]]; then
-  source "$SCRIPT_DIR/../configure-router.sh"
-fi
 mkdir -p "$ROUTER_LOG_ROOT_DIR/samba"
 
 # Require net.ipv4.ip_unprivileged_port_start=80 in /etc/sysctl.d/*.conf

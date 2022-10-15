@@ -67,11 +67,10 @@ example.domain {
 {
   auto_https off
   servers :8375 {
-    protocol {
-      allow_h2c
-    }
+    protocols h1 h2 h2c h3
   }
 }
-example.domain {
+example.domain:8375 {
+  header Content-Type "text/html; charset=utf-8"
   redir https://owent.net{uri} html
 }
