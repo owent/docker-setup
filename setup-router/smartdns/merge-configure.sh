@@ -1,9 +1,7 @@
 #!/bin/bash
 
-SCRIPT_DIR="$(
-  cd "$(dirname "$0")"
-  pwd
-)"
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 
 if [[ "x$SMARTDNS_ETC_DIR" == "x" ]]; then
   export SMARTDNS_ETC_DIR="$RUN_HOME/smartdns/etc"

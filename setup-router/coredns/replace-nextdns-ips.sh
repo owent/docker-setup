@@ -1,8 +1,7 @@
 #!/bin/bash
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-
-source "$SCRIPT_DIR/../configure-router.sh"
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 
 if [[ "x$RUN_USER" == "x" ]]; then
   RUN_USER=$(id -un)

@@ -4,13 +4,8 @@
 #     DenyUsers tools
 #     DenyGroups tools
 
-if [[ -e "/opt/nftables/sbin" ]]; then
-  export PATH=/opt/nftables/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
-else
-  export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
-fi
-
-source "$(cd "$(dirname "$0")" && pwd)/../configure-router.sh"
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 
 if [[ "x$V2RAY_SSL_DIR" == "x" ]] && [[ -e "/home/website/ssl/" ]]; then
   V2RAY_SSL_DIR="/home/website/ssl/"

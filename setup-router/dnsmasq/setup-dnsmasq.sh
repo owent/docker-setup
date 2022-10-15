@@ -1,13 +1,7 @@
 #!/bin/bash
 
-if [ -e "/opt/nftables/sbin" ]; then
-  export PATH=/opt/nftables/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
-else
-  export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
-fi
-
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-source "$SCRIPT_DIR/../configure-router.sh"
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 
 if [ -e "/lib/systemd/system" ]; then
   export SETUP_SYSTEMD_SYSTEM_DIR=/lib/systemd/system
@@ -292,7 +286,15 @@ ExecReload=/bin/kill -HUP $MAINPID
 WantedBy=default.target
 " >$SETUP_SYSTEMD_SYSTEM_DIR/dnsmasq.service
 
-cp -f /etc/resolv.conf /etc/resolv.conf.dnsmasq
+if [ "$SETUP_SYSTEMD_SYSTEM_DIR" == "/lib/systemd/system" ]; then
+  systemctl daemon-reload
+  systemctl enable dnsmasq.service
+  systemctl start dnsmasq.service
+else
+  systemctl --user daemon-reload
+  systemctl --user enable "$SETUP_SYSTEMD_SYSTEM_DIR/dnsmasq.service"
+  systemctl --user start dnsmasq.service
+fi
 
 if [ $TPROXY_SETUP_IPSET -ne 0 ]; then
   which ipset >/dev/null 2>&1

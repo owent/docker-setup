@@ -1,6 +1,7 @@
 #!/bin/bash
 
-SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 
 if [[ ! -e "/etc/NetworkManager/dispatcher.d/up" ]]; then
   echo '#!/bin/bash

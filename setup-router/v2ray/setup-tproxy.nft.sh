@@ -15,16 +15,8 @@
 # Policy Routing: See RPDB in https://www.man7.org/linux/man-pages/man8/ip-rule.8.html
 # Monitor: nft monitor
 
-if [[ -e "/opt/nftables/sbin" ]]; then
-  export PATH=/opt/nftables/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
-else
-  export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
-fi
-
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-source "$SCRIPT_DIR/../configure-router.sh"
-
-set -x
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 
 ### ==================================== v2ray nftables rules begin ====================================
 ### ----------------------------------- $ROUTER_HOME/v2ray/setup-tproxy.sh -----------------------------------
@@ -100,7 +92,7 @@ else
     ip -6 rule delete fwmark 0x0e/0x0f lookup 100
     FWMARK_LOOPUP_TABLE_100=$(ip -6 rule show fwmark 0x0e/0x0f lookup 100 | awk 'END {print NF}')
   done
-  ip -6 route del local ::/0 dev lo table 100
+  ip -6 route del local ::/0 dev lo table 100 >/dev/null 2>&1
 fi
 # ip route show table 100
 

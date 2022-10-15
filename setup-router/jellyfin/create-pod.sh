@@ -3,7 +3,8 @@
 # @see https://hub.docker.com/r/jellyfin/jellyfin
 # https://jellyfin.org/docs/general/administration/hardware-acceleration.html
 
-source "$(cd "$(dirname "$0")" && pwd)/../configure-router.sh"
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 
 systemctl disable jellyfin
 systemctl stop jellyfin

@@ -1,5 +1,8 @@
 #!/bin/bash
 
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+source "$SCRIPT_DIR/configure-router.sh"
+
 NETWORKMANAGER_DISPATCHER_DIR="/etc/NetworkManager/dispatcher.d"
 
 function networkmanager_create_dispatcher_script_dir() {

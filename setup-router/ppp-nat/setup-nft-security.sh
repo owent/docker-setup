@@ -1,6 +1,7 @@
 #!/bin/bash
 
-source "$(cd "$(dirname "$0")" && pwd)/../configure-router.sh"
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 
 # LOCAL_LAN_INTERFACE='{ lo, br0, enp1s0f0, enp1s0f1, enp5s0 }'
 LOCAL_LAN_INTERFACE='{ lo, br0, enp2s0 }'

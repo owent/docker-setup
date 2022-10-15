@@ -1,13 +1,9 @@
 #!/bin/bash
 
-if [[ -e "/opt/nftables/sbin" ]]; then
-  export PATH=/opt/nftables/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
-else
-  export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
-fi
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+source "$SCRIPT_DIR/configure-router.sh"
 
-source "$(cd "$(dirname "$0")" && pwd)/configure-router.sh"
-cd "$(dirname "$(readlink -f "$0")")"
+cd "$SCRIPT_DIR"
 
 # ln -sf "$PWD/reset-local-address-sets.sh" /etc/NetworkManager/dispatcher.d/connectivity-change.d/91-reset-local-address-sets.sh
 # Ensure /etc/NetworkManager/dispatcher.d/connectivity-change run /etc/NetworkManager/dispatcher.d/connectivity-change.d/*

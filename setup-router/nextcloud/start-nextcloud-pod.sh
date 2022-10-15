@@ -1,17 +1,14 @@
 #!/bin/bash
 
-if [[ -e "/opt/nftables/sbin" ]]; then
-  export PATH=/opt/nftables/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
-else
-  export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
-fi
-
-source "$(cd "$(dirname "$0")" && pwd)/../configure-router.sh"
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 
 export XDG_RUNTIME_DIR="/run/user/$UID"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
 
-RUN_USER=$(id -un)
+if [[ "x$RUN_USER" == "x" ]]; then
+  RUN_USER=$(id -un)
+fi
 # sudo loginctl enable-linger $RUN_USER
 
 if [[ "x$RUN_USER" == "x" ]] || [[ "x$RUN_USER" == "xroot" ]]; then
@@ -19,7 +16,9 @@ if [[ "x$RUN_USER" == "x" ]] || [[ "x$RUN_USER" == "xroot" ]]; then
   exit 1
 fi
 
-RUN_HOME=$(cat /etc/passwd | awk "BEGIN{FS=\":\"} \$1 == \"$RUN_USER\" { print \$6 }")
+if [[ "x$RUN_HOME" == "x" ]]; then
+  RUN_HOME=$(cat /etc/passwd | awk "BEGIN{FS=\":\"} \$1 == \"$RUN_USER\" { print \$6 }")
+fi
 
 if [[ "x$RUN_HOME" == "x" ]]; then
   RUN_HOME="$HOME"

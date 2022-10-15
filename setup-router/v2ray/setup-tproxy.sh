@@ -14,10 +14,8 @@
 #            http://inai.de/images/nf-packet-flow.svg
 # Policy Routing: See RPDB in https://www.man7.org/linux/man-pages/man8/ip-rule.8.html
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-source "$SCRIPT_DIR/../configure-router.sh"
-
-set -x
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 
 ### ==================================== v2ray nftables rules begin ====================================
 ### ----------------------------------- $ROUTER_HOME/v2ray/setup-tproxy.sh -----------------------------------

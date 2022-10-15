@@ -1,6 +1,7 @@
 #!/bin/bash
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 
 # see https://github.com/Neilpang/acme.sh for detail
 # see https://github.com/Neilpang/acme.sh/wiki/How-to-issue-a-cert
@@ -26,8 +27,6 @@ export CF_Account_ID="6896d432a993ce19d72862cc8450db09"
 DOMAIN_NAME=owent.net
 ADMIN_EMAIL=$CF_Email
 INSTALL_CERT_DIR=/home/tools/bitwarden/ssl
-
-source "$SCRIPT_DIR/../configure-router.sh"
 
 if [[ "x$ACMESH_SSL_DIR" == "x" ]]; then
   if [[ "x$ROUTER_HOME" != "x" ]]; then
