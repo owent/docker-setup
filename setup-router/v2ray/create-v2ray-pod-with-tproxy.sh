@@ -26,7 +26,8 @@ if [[ "x$V2RAY_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman image prune -a -f --filter "until=240h"
 fi
 
-podman run -d --name v2ray --cap-add=NET_ADMIN --network=host --security-opt label=disable \
+podman run -d --name v2ray --cap-add=NET_ADMIN --cap-add=NET_BIND_SERVICE \
+  --network=host --security-opt label=disable \
   --mount type=bind,source=$GEOIP_GEOSITE_ETC_DIR,target=/usr/local/v2ray/etc,ro=true \
   --mount type=bind,source=$ROUTER_LOG_ROOT_DIR/v2ray,target=/data/logs/v2ray \
   --mount type=bind,source=$ACMESH_SSL_DIR,target=/usr/local/v2ray/ssl,ro=true \
