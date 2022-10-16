@@ -118,7 +118,7 @@ nft flush chain ip debug PREROUTING
 nft add rule ip debug PREROUTING ip daddr @WATCH_TPROXY_IPV4_ADDR meta nftrace set 1
 nft add rule ip debug PREROUTING ip daddr @WATCH_TPROXY_IPV4_ADDR log prefix '"[DEBUG PACKET]: PREROUTING:"' level debug flags all
 nft add rule ip debug PREROUTING mark and 0x70 == 0x70 return
-nft add rule ip debug PREROUTING ip daddr @WATCH_TPROXY_IPV4_ADDR meta l4proto "{udp, tcp}" tproxy to :$DEBUG_TPROXY_PORT meta mark set mark and 0xffffff80 xor 0x7c accept
+nft add rule ip debug PREROUTING ip daddr @WATCH_TPROXY_IPV4_ADDR meta l4proto "{udp, tcp}" tproxy to :$DEBUG_TPROXY_PORT meta mark set mark and 0xffffff80 xor 0x7e accept
 
 nft list table ip6 debug >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
@@ -135,7 +135,7 @@ nft add rule ip6 debug PREROUTING ip6 daddr @WATCH_TPROXY_IPV6_ADDR meta nftrace
 nft add rule ip6 debug PREROUTING ip6 daddr @WATCH_TPROXY_IPV6_ADDR log prefix '"[DEBUG PACKET]: PREROUTING:"' level debug flags all
 
 nft add rule ip6 debug PREROUTING mark and 0x70 == 0x70 return
-nft add rule ip6 debug PREROUTING ip6 daddr @WATCH_TPROXY_IPV6_ADDR meta l4proto "{udp, tcp}" tproxy to :$DEBUG_TPROXY_PORT meta mark set mark and 0xffffff80 xor 0x7c accept
+nft add rule ip6 debug PREROUTING ip6 daddr @WATCH_TPROXY_IPV6_ADDR meta l4proto "{udp, tcp}" tproxy to :$DEBUG_TPROXY_PORT meta mark set mark and 0xffffff80 xor 0x7e accept
 
 nft list chain inet debug OUTPUT >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then

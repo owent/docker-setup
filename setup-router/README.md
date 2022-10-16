@@ -220,7 +220,6 @@ Accept: */*
 |out    | 100   | output      |
 |srcnat | 300   | postrouting |
 
-
 ## Public DNS
 
 ```bash
