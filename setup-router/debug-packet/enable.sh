@@ -205,6 +205,22 @@ nft add rule bridge debug PREROUTING ip6 daddr @WATCH_TPROXY_IPV6_ADDR meta pktt
 
 # Debug tproxy
 if [[ ${#DEBUG_TPROXY_IPV4_ADDR[@]} -eq 0 ]] && [[ ${#DEBUG_TPROXY_IPV6_ADDR[@]} -eq 0 ]]; then
+  ## Cleanup hooks
+  ip -4 route delete local 0.0.0.0/0 dev lo table $DEBUG_TPROXY_TABLE_ID
+  ip -6 route delete local ::/0 dev lo table $DEBUG_TPROXY_TABLE_ID
+
+  FWMARK_LOOPUP_TABLE_IDS=($(ip -4 rule show fwmark 0x1e/0x1f lookup $DEBUG_TPROXY_TABLE_ID | awk 'END {print $NF}'))
+  for TABLE_ID in ${FWMARK_LOOPUP_TABLE_IDS[@]}; do
+    ip -4 rule delete fwmark 0x1e/0x1f lookup $TABLE_ID
+    ip -4 route delete local 0.0.0.0/0 dev lo table $TABLE_ID
+  done
+
+  FWMARK_LOOPUP_TABLE_IDS=($(ip -6 rule show fwmark 0x1e/0x1f lookup $DEBUG_TPROXY_TABLE_ID | awk 'END {print $NF}'))
+  for TABLE_ID in ${FWMARK_LOOPUP_TABLE_IDS[@]}; do
+    ip -6 rule delete fwmark 0x1e/0x1f lookup $TABLE_ID
+    ip -6 route delete local ::/0 dev lo table $TABLE_ID
+  done
+
   exit 0
 fi
 

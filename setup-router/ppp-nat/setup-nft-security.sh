@@ -3,9 +3,6 @@
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 
-# LOCAL_LAN_INTERFACE='{ lo, br0, enp1s0f0, enp1s0f1, enp5s0 }'
-LOCAL_LAN_INTERFACE='{ lo, br0, enp2s0 }'
-
 nft list table inet security_firewall >/dev/null 2>&1
 if [[ $? -eq 0 ]]; then
   nft delete table inet security_firewall
@@ -31,7 +28,7 @@ nft add rule inet security_firewall PREROUTING meta nfproto ipv6 fib saddr . mar
 nft add chain inet security_firewall INPUT '{ type filter hook input priority filter + 10; policy accept; }'
 nft add rule inet security_firewall INPUT ct state { established, related } accept
 nft add rule inet security_firewall INPUT ct status dnat accept
-nft add rule inet security_firewall INPUT iifname "$LOCAL_LAN_INTERFACE" accept
+nft add rule inet security_firewall INPUT iifname "$ROUTER_LOCAL_LAN_INTERFACE" accept
 # Internal services -- begin
 nft add rule inet security_firewall INPUT ip saddr @LOCAL_IPV4 tcp dport "{$ROUTER_INTERNAL_SERVICE_PRIVATE_PORT_TCP}" ct state { new, untracked } accept
 nft add rule inet security_firewall INPUT ip saddr @LOCAL_IPV4 udp dport "{$ROUTER_INTERNAL_SERVICE_PRIVATE_PORT_UDP}" ct state { new, untracked } accept
@@ -52,7 +49,7 @@ nft add rule inet security_firewall OUTPUT ip6 daddr { ::/96, ::ffff:0.0.0.0/96,
 nft add chain inet security_firewall FORWARD '{ type filter hook forward priority filter + 10; policy accept; }'
 nft add rule inet security_firewall FORWARD ct state { established, related } accept
 nft add rule inet security_firewall FORWARD ct status dnat accept
-nft add rule inet security_firewall FORWARD iifname "$LOCAL_LAN_INTERFACE" accept
+nft add rule inet security_firewall FORWARD iifname "$ROUTER_LOCAL_LAN_INTERFACE" accept
 nft add rule inet security_firewall FORWARD ip6 daddr { ::/96, ::ffff:0.0.0.0/96, 2002::/24, 2002:a00::/24, 2002:7f00::/24, 2002:a9fe::/32, 2002:ac10::/28, 2002:c0a8::/32, 2002:e000::/19 } reject with icmpv6 type addr-unreachable
 #
 nft add rule inet security_firewall FORWARD meta l4proto { icmp, ipv6-icmp } accept

@@ -4,7 +4,13 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 
 PPP_DEVICE=($(nmcli --fields=DEVICE,TYPE d status | awk '$2 == "ppp"{print $1}'))
-BRIDGE_DEVICE=($(nmcli --fields=DEVICE,TYPE d status | awk '$2 == "bridge"{print $1}'))
+RADVD_NDP_DEVICE=()
+for TEST_DEVICE in ${ROUTER_IPV6_RADVD_NDP_DEVICE[@]}; do
+  nmcli d show "$TEST_DEVICE" 2>/dev/null
+  if [[ $? -eq 0 ]]; then
+    RADVD_NDP_DEVICE=(${RADVD_NDP_DEVICE[@]} "$TEST_DEVICE")
+  fi
+done
 ETC_DIR="/etc"
 ENABLE_IPV6_NDPP_AND_RA=0
 
@@ -29,9 +35,9 @@ if [[ "x" == "x$MWAN_DEFAULT_ROUTE_TABLE_ID" ]]; then
   MWAN_DEFAULT_ROUTE_TABLE_ID=251
 fi
 
-# for CURRENT_BRIDGE_DEVICE in ${BRIDGE_DEVICE[@]}; do
-#   for old_ipv6_address in $(ip -o -6 addr show dev $CURRENT_BRIDGE_DEVICE scope global | awk 'match($0, /inet6\s+([0-9a-fA-F:]+(\/[0-9]+)?)/, ip) { print ip[1] }'); do
-#     ip -6 addr del "$old_ipv6_address" dev $CURRENT_BRIDGE_DEVICE
+# for CURRENT_RADVD_NDP_DEVICE in ${RADVD_NDP_DEVICE[@]}; do
+#   for old_ipv6_address in $(ip -o -6 addr show dev $CURRENT_RADVD_NDP_DEVICE scope global | awk 'match($0, /inet6\s+([0-9a-fA-F:]+(\/[0-9]+)?)/, ip) { print ip[1] }'); do
+#     ip -6 addr del "$old_ipv6_address" dev $CURRENT_RADVD_NDP_DEVICE
 #   done
 # done
 
@@ -39,9 +45,9 @@ NDPPD_CFG=""
 RADVD_CFG=""
 ip -6 route flush table $LOCAL_ROUTE_TABLE_ID
 
-for CURRENT_BRIDGE_DEVICE in ${BRIDGE_DEVICE[@]}; do
+for CURRENT_RADVD_NDP_DEVICE in ${RADVD_NDP_DEVICE[@]}; do
   RADVD_CFG="$RADVD_CFG
-interface $CURRENT_BRIDGE_DEVICE
+interface $CURRENT_RADVD_NDP_DEVICE
 {
   IgnoreIfMissing on;
   AdvSendAdvert on;
@@ -84,24 +90,24 @@ interface $CURRENT_BRIDGE_DEVICE
     done
   done
 
-  CURRENT_BRIDGE_IPV6=()
-  CURRENT_BRIDGE_IPV6_PERMANENT=()
+  CURRENT_RADVD_NDP_IPV6=()
+  CURRENT_RADVD_NDP_IPV6_PERMANENT=()
   RETRY_TIME=0
   while [[ $RETRY_TIME -lt 12 ]]; do
     let RETRY_TIME=$RETRY_TIME+1
-    echo "$CURRENT_BRIDGE_DEVICE : $RETRY_TIME times to get ipv6 address"
-    ip -o -6 addr show dev $CURRENT_BRIDGE_DEVICE
-    CURRENT_BRIDGE_IPV6=($(ip -o -6 addr show dev $CURRENT_BRIDGE_DEVICE | awk 'match($0, /inet6\s+([0-9a-fA-F:]+)/, ip) { print ip[1] }' | tail -n 3))
-    if [[ ${#CURRENT_BRIDGE_IPV6[@]} -gt 0 ]]; then
-      CURRENT_BRIDGE_IPV6_PERMANENT=($(ip -o -6 addr show dev $CURRENT_BRIDGE_DEVICE permanent | awk 'match($0, /inet6\s+([0-9a-fA-F:]+)/, ip) { print ip[1] }' | tail -n 3))
+    echo "$CURRENT_RADVD_NDP_DEVICE : $RETRY_TIME times to get ipv6 address"
+    ip -o -6 addr show dev $CURRENT_RADVD_NDP_DEVICE
+    CURRENT_RADVD_NDP_IPV6=($(ip -o -6 addr show dev $CURRENT_RADVD_NDP_DEVICE | awk 'match($0, /inet6\s+([0-9a-fA-F:]+)/, ip) { print ip[1] }' | tail -n 3))
+    if [[ ${#CURRENT_RADVD_NDP_IPV6[@]} -gt 0 ]]; then
+      CURRENT_RADVD_NDP_IPV6_PERMANENT=($(ip -o -6 addr show dev $CURRENT_RADVD_NDP_DEVICE permanent | awk 'match($0, /inet6\s+([0-9a-fA-F:]+)/, ip) { print ip[1] }' | tail -n 3))
       break
     fi
     sleep 20 || usleep 20000000
   done
 
-  if [[ ${#CURRENT_BRIDGE_IPV6_PERMANENT[@]} -gt 0 ]]; then
+  if [[ ${#CURRENT_RADVD_NDP_IPV6_PERMANENT[@]} -gt 0 ]]; then
     RADVD_CFG="$RADVD_CFG
-  RDNSS ${CURRENT_BRIDGE_IPV6_PERMANENT[@]}
+  RDNSS ${CURRENT_RADVD_NDP_IPV6_PERMANENT[@]}
   {
   };
 };"
@@ -190,15 +196,15 @@ for CURRENT_PPP_DEVICE in ${PPP_DEVICE[@]}; do
 proxy $CURRENT_PPP_DEVICE {
   autowire yes
   "
-    for CURRENT_BRIDGE_DEVICE in ${BRIDGE_DEVICE[@]}; do
+    for CURRENT_RADVD_NDP_DEVICE in ${RADVD_NDP_DEVICE[@]}; do
       NDPPD_CFG="$NDPPD_CFG
   rule $CURRENT_RULE_ADDRESS {
-    iface $CURRENT_BRIDGE_DEVICE
+    iface $CURRENT_RADVD_NDP_DEVICE
   }
 "
       # Change prefix route to route table
-      echo "Run: ip -6 route add $CURRENT_RULE_ADDRESS dev $CURRENT_BRIDGE_DEVICE table $LOCAL_ROUTE_TABLE_ID"
-      ip -6 route add "$CURRENT_RULE_ADDRESS" dev $CURRENT_BRIDGE_DEVICE table $LOCAL_ROUTE_TABLE_ID
+      echo "Run: ip -6 route add $CURRENT_RULE_ADDRESS dev $CURRENT_RADVD_NDP_DEVICE table $LOCAL_ROUTE_TABLE_ID"
+      ip -6 route add "$CURRENT_RULE_ADDRESS" dev $CURRENT_RADVD_NDP_DEVICE table $LOCAL_ROUTE_TABLE_ID
     done
     NDPPD_CFG="$NDPPD_CFG
 }"

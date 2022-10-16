@@ -9,12 +9,12 @@ fi
 
 nft list table ip debug >/dev/null 2>&1
 if [[ $? -eq 0 ]]; then
-  nft delete table inet debug
+  nft delete table ip debug
 fi
 
 nft list table ip6 debug >/dev/null 2>&1
 if [[ $? -eq 0 ]]; then
-  nft delete table inet debug
+  nft delete table ip6 debug
 fi
 
 nft list table bridge debug >/dev/null 2>&1
