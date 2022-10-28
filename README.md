@@ -297,43 +297,91 @@ services:
 
 rootless模式下建议母机mount完共享到子机。编辑 `/etc/fstab` 增加 `NFS_REMOTE:/NFS_REMOTE_PATH /NFS_LOCAL_PATH nfs rw,nolock 0 0` ，然后手动mount一下: `sudo mount -t nfs -o rw,nolock NFS_REMOTE:/NFS_REMOTE_PATH /NFS_LOCAL_PATH`
 
-## CentOS 7 开启用户态systemd
+## 非root 模式 systemd(`systrmctl --user`)
 
-需要对每个用户单独启动 systemd 服务
+需要对每个用户单独启动 systemd 服务。先补全下面几个文件:
 
-```bash
-echo '[Unit]
-Description=User Manager for UID %i
-After=systemd-user-sessions.service
-# These are present in the RHEL8 version of this file except that the unit is Requires, not Wants.
-# It is listed as Wants here so that if this file is used in a RHEL7 settings, it will not fail.
-# If a user upgrades from RHEL7 to RHEL8, this unit file will continue to work until it is
-# deleted the next time they upgrade Tableau Server itself.
-After=user-runtime-dir@%i.service
-Wants=user-runtime-dir@%i.service
+### File: `/lib/systemd/system/user-runtime-dir@.service`
+
+如果 `/lib/systemd/systemd-user-runtime-dir` 文件不存在忽略这个
+
+```toml
+#  SPDX-License-Identifier: LGPL-2.1-or-later
+#
+#  This file is part of systemd.
+#
+#  systemd is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU Lesser General Public License as published by
+#  the Free Software Foundation; either version 2.1 of the License, or
+#  (at your option) any later version.
+
+[Unit]
+Description=User Runtime Directory /run/user/%i
+Documentation=man:user@.service(5)
+After=systemd-user-sessions.service dbus.service
+StopWhenUnneeded=yes
+IgnoreOnIsolate=yes
 
 [Service]
-LimitNOFILE=infinity
-LimitNPROC=infinity
+ExecStart=/lib/systemd/systemd-user-runtime-dir start %i
+ExecStop=/lib/systemd/systemd-user-runtime-dir stop %i
+Type=oneshot
+RemainAfterExit=yes
+Slice=user-%i.slice
+```
+
+### File: `/lib/systemd/system/user@.service`
+
+**如果上面 `user-runtime-dir@.service` 未启用，移除下面的After和Requires里的对应条目**
+
+```toml
+#  SPDX-License-Identifier: LGPL-2.1-or-later
+#
+#  This file is part of systemd.
+#
+#  systemd is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU Lesser General Public License as published by
+#  the Free Software Foundation; either version 2.1 of the License, or
+#  (at your option) any later version.
+
+[Unit]
+Description=User Manager for UID %i
+Documentation=man:user@.service(5)
+After=systemd-user-sessions.service user-runtime-dir@%i.service dbus.service
+Requires=user-runtime-dir@%i.service
+IgnoreOnIsolate=yes
+
+[Service]
 User=%i
 PAMName=systemd-user
 Type=notify
-# PermissionsStartOnly is deprecated and will be removed in future versions of systemd
-# This is required for all systemd versions prior to version 231
-PermissionsStartOnly=true
-ExecStartPre=/bin/loginctl enable-linger %i
-ExecStart=-/lib/systemd/systemd --user
+ExecStart=/lib/systemd/systemd --user
 Slice=user-%i.slice
 KillMode=mixed
-Delegate=yes
+Delegate=pids memory
 TasksMax=infinity
-Restart=always
-RestartSec=15
+TimeoutStopSec=120s
+KeyringMode=inherit
+OOMScoreAdjust=100
+```
 
-[Install]
-WantedBy=default.target
-' > /lib/systemd/system/user@[需要开启的用户UID: $(id -u)].service
+### root 用户执行
+
+```bash
 systemctl daemon-reload
-systemctl start user@[需要开启的用户UID: $(id -u)].service
-systemctl enable user@[需要开启的用户UID: $(id -u)].service
+systemctl start user-runtime-dir@<需要启用systemd的用户UID>.service
+systemctl enable user-runtime-dir@<需要启用systemd的用户UID>.service
+systemctl start user@<需要启用systemd的用户UID>.service
+systemctl enable user@<需要启用systemd的用户UID>.service
+
+loginctl enable-linger <需要启用systemd的用户>
+```
+
+### 目标用户执行
+
+```bash
+export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
+
+systemctl --user status
 ```
