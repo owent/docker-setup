@@ -61,14 +61,22 @@ if [[ $? -eq 0 ]]; then
   podman rm -f nextcloud
 fi
 
+if [[ "x$NEXTCLOUD_REVERSE_ROOT_DIR" != "x" ]]; then
+  NEXTCLOUD_BASE_IMAGE="docker.io/nextcloud:fpm"
+  NEXTCLOUD_REVERSE_PORT=9000
+else
+  NEXTCLOUD_BASE_IMAGE="docker.io/nextcloud:latest"
+  NEXTCLOUD_REVERSE_PORT=80
+fi
+
 if [[ "x$NEXTCLOUD_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman image inspect docker.io/nextcloud:latest >/dev/null 2>&1
+  podman image inspect "$NEXTCLOUD_BASE_IMAGE" >/dev/null 2>&1
   if [[ $? -eq 0 ]]; then
-    podman image rm -f docker.io/nextcloud:latest
+    podman image rm -f "$NEXTCLOUD_BASE_IMAGE"
   fi
 fi
 
-podman pull docker.io/nextcloud:latest
+podman pull "$NEXTCLOUD_BASE_IMAGE"
 
 if [[ "x" == "x$ADMIN_USENAME" ]]; then
   ADMIN_USENAME=owent
@@ -91,7 +99,7 @@ echo "$ADMIN_USENAME $ADMIN_TOKEN" | tee "$RUN_HOME/nextcloud/admin-access.log"
 #     nextcloud
 
 echo "Rebuild docker image ..."
-echo "FROM docker.io/nextcloud:latest
+echo "FROM $NEXTCLOUD_BASE_IMAGE
 
 LABEL maintainer \"OWenT <admin@owent.net>\"
 
@@ -111,11 +119,25 @@ podman build \
   -v "$NEXTCLOUD_APPS_DIR:/var/www/html/custom_apps" \
   -t local_nextcloud -f nextcloud.Dockerfile
 
+if [[ "x$NEXTCLOUD_REVERSE_ROOT_DIR" != "x" ]]; then
+  podman run --name nextcloud_temporary local_nextcloud bash -c 'du -sh /usr/src/nextcloud/*'
+  if [[ $? -eq 0 ]]; then
+    echo "[nextcloud] Remove old static files..."
+    find "$NEXTCLOUD_REVERSE_ROOT_DIR" -maxdepth 1 -mindepth 1 -name "*" | xargs -r rm -rf
+    echo "[nextcloud] Copy static files..."
+    podman cp --overwrite nextcloud_temporary:/usr/src/nextcloud/ "$NEXTCLOUD_REVERSE_ROOT_DIR"
+
+    # 不能删除 .php 文件,否则反向代理时nginx的try_files会检测不过
+    # find "$NEXTCLOUD_REVERSE_ROOT_DIR" -name "*.php" -type f | xargs -r rm -f
+  fi
+  podman rm nextcloud_temporary
+fi
+
 podman run -d --name nextcloud \
   --security-opt seccomp=unconfined \
   --security-opt label=disable \
   -e NEXTCLOUD_TRUSTED_DOMAINS="$NEXTCLOUD_TRUSTED_DOMAINS" \
-  -e OVERWRITEHOST=home-router.x-ha.com:6883 -e OVERWRITEPROTOCOL=https \
+  -e OVERWRITEHOST=$ROUTER_DOMAIN:6443 -e OVERWRITEPROTOCOL=https \
   -e NEXTCLOUD_ADMIN_USER=$ADMIN_USENAME -e NEXTCLOUD_ADMIN_PASSWORD=$ADMIN_TOKEN \
   -e APACHE_DISABLE_REWRITE_IP=1 -e TRUSTED_PROXIES=0.0.0.0/32 \
   --mount type=bind,source=$NEXTCLOUD_ETC_DIR,target=/var/www/html/config \
@@ -125,7 +147,7 @@ podman run -d --name nextcloud \
   --mount type=tmpfs,target=/run/lock,tmpfs-mode=1777,tmpfs-size=67108864 \
   --mount type=tmpfs,target=/tmp,tmpfs-mode=1777 \
   --mount type=tmpfs,target=/var/log/journal,tmpfs-mode=1777 \
-  -p $NEXTCLOUD_LISTEN_PORT:80 \
+  -p $NEXTCLOUD_LISTEN_PORT:$NEXTCLOUD_REVERSE_PORT \
   local_nextcloud
 # --copy-links
 

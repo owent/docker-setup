@@ -52,13 +52,19 @@ podman pull docker.io/nginx:latest
 mkdir -p "$ROUTER_LOG_ROOT_DIR/nginx"
 mkdir -p "$SAMBA_DATA_DIR/download"
 
+NGINX_MOUNT_DIRS=("--mount" "type=bind,source=$SAMBA_DATA_DIR/download,target=/usr/share/nginx/html/downloads")
+
+if [[ "x$NEXTCLOUD_REVERSE_ROOT_DIR" != "x" ]]; then
+  NGINX_MOUNT_DIRS=(${NGINX_MOUNT_DIRS[@]} "--mount" "type=bind,source=$NEXTCLOUD_REVERSE_ROOT_DIR,target=/usr/share/nginx/html/")
+fi
+
 podman run -d --name router-nginx --security-opt label=disable \
   --mount type=bind,source=$ROUTER_HOME/etc/nginx/nginx.conf,target=/etc/nginx/nginx.conf,ro=true \
   --mount type=bind,source=$ROUTER_HOME/etc/nginx/conf.d,target=/etc/nginx/conf.d,ro=true \
   --mount type=bind,source=$ROUTER_HOME/etc/nginx/dhparam.pem,target=/etc/nginx/dhparam.pem,ro=true \
   --mount type=bind,source=$ACMESH_SSL_DIR,target=/etc/nginx/ssl,ro=true \
   --mount type=bind,source=$ROUTER_LOG_ROOT_DIR/nginx,target=/var/log/nginx \
-  --mount type=bind,source=$SAMBA_DATA_DIR/download,target=/usr/share/nginx/html/downloads \
+  ${NGINX_MOUNT_DIRS[@]} \
   --network=host docker.io/nginx:latest nginx -c /etc/nginx/nginx.conf
 
 podman generate systemd router-nginx | tee -p "$SYSTEMD_SERVICE_DIR/router-nginx.service"
