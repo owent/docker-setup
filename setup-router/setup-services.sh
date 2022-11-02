@@ -60,7 +60,7 @@ if [ $SMARTDNS_ENABLE -ne 0 ]; then
   su "$SCRIPT_DIR/smartdns/create-smartdns-pod.sh" - tools
 fi
 
-if [[ "x$ROUTER_CONFIG_ON_FINISH_RUN" == "x" ]]; then
+if [[ "x$ROUTER_CONFIG_ON_FINISH_RUN" != "x" ]]; then
   chmod +x "$ROUTER_CONFIG_ON_FINISH_RUN"
   "$ROUTER_CONFIG_ON_FINISH_RUN"
 fi

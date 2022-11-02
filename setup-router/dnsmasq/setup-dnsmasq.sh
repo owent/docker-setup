@@ -261,12 +261,18 @@ echo 'conf-dir=/etc/dnsmasq.d/,*.router.conf' >>/etc/dnsmasq.d/router.conf
 # Test: dhclient -n enp1s0f0 enp1s0f1 / dhclient -6 -n enp1s0f0 enp1s0f1
 
 # Some system already has dnsmasq.service
-if [ -e "$SETUP_SYSTEMD_SYSTEM_DIR/dnsmasq.service" ] && [ ! -e "$SETUP_SYSTEMD_SYSTEM_DIR/dnsmasq.service.bak" ]; then
-  systemctl disbale dnsmasq
-  systemctl stop dnsmasq
-  mv $SETUP_SYSTEMD_SYSTEM_DIR/dnsmasq.service $SETUP_SYSTEMD_SYSTEM_DIR/dnsmasq.service.bak
+DNSMASQ_SETUP_SYSTEMD=1
+if [ -e "$SETUP_SYSTEMD_SYSTEM_DIR/dnsmasq.service" ]; then
+  grep -E 'C[[:space:]]+/etc/dnsmasq.d/router.conf' "$SETUP_SYSTEMD_SYSTEM_DIR/dnsmasq.service" && DNSMASQ_SETUP_SYSTEMD=0
 fi
-echo "
+
+if [ $DNSMASQ_SETUP_SYSTEMD -ne 0 ]; then
+  if [ -e "$SETUP_SYSTEMD_SYSTEM_DIR/dnsmasq.service" ]; then
+    systemctl disbale dnsmasq || true
+    systemctl stop dnsmasq || true
+    mv $SETUP_SYSTEMD_SYSTEM_DIR/dnsmasq.service $SETUP_SYSTEMD_SYSTEM_DIR/dnsmasq.service.bak || true
+  fi
+  echo "
 [Unit]
 Description=dnsmasq - A lightweight DHCP and caching DNS server
 After=network.target
@@ -286,14 +292,15 @@ ExecReload=/bin/kill -HUP $MAINPID
 WantedBy=default.target
 " >$SETUP_SYSTEMD_SYSTEM_DIR/dnsmasq.service
 
-if [ "$SETUP_SYSTEMD_SYSTEM_DIR" == "/lib/systemd/system" ]; then
-  systemctl daemon-reload
-  systemctl enable dnsmasq.service
-  systemctl start dnsmasq.service
-else
-  systemctl --user daemon-reload
-  systemctl --user enable "$SETUP_SYSTEMD_SYSTEM_DIR/dnsmasq.service"
-  systemctl --user start dnsmasq.service
+  if [ "$SETUP_SYSTEMD_SYSTEM_DIR" == "/lib/systemd/system" ]; then
+    systemctl daemon-reload
+    systemctl enable dnsmasq.service
+    systemctl start dnsmasq.service
+  else
+    systemctl --user daemon-reload
+    systemctl --user enable "$SETUP_SYSTEMD_SYSTEM_DIR/dnsmasq.service"
+    systemctl --user start dnsmasq.service
+  fi
 fi
 
 if [ $TPROXY_SETUP_IPSET -ne 0 ]; then
