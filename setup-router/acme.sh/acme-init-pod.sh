@@ -26,7 +26,6 @@ export CF_Account_ID="6896d432a993ce19d72862cc8450db09"
 
 DOMAIN_NAME=owent.net
 ADMIN_EMAIL=$CF_Email
-INSTALL_CERT_DIR=/home/tools/bitwarden/ssl
 
 if [[ "x$ACMESH_SSL_DIR" == "x" ]]; then
   if [[ "x$ROUTER_HOME" != "x" ]]; then
@@ -46,22 +45,10 @@ podman exec \
   acme.sh acme.sh --force --issue \
   -d $DOMAIN_NAME \
   -d "*.$DOMAIN_NAME" \
-  -d "atframe.work" \
-  -d "*.atframe.work" \
   -d "r-ci.com" \
   -d "*.r-ci.com" \
-  -d "w-oa.com" \
-  -d "*.w-oa.com" \
-  -d "f-ha.com" \
-  -d "*.f-ha.com" \
-  -d "x-ha.com" \
-  -d "*.x-ha.com" \
-  -d "g-ha.com" \
-  -d "*.g-ha.com" \
   --dns dns_cf \
-  --keylength 4096 # 2048, 3072, 4096, 8192 or ec-256, ec-384, ec-521
-
-cp -f $ACMESH_SSL_DIR/${DOMAIN_NAME}*/* $INSTALL_CERT_DIR
+  --keylength ec-384 # 2048, 3072, 4096, 8192 or ec-256, ec-384, ec-521
 
 # sudo -u tools crontab -e
 # 32 4 * * * /bin/bash /data/setup/acme.sh/acme-renew.sh > /dev/null

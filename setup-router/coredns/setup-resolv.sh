@@ -50,7 +50,7 @@ if [[ ${#ROUTER_CONFIG_IPV6_INTERFACES[@]} -gt 0 ]]; then
 # nameserver 2620:fe::fe
 # nameserver 2620:fe::9
 ## DNSPod
-nameserver 2402:4e00::
+# nameserver 2402:4e00::
 ## aliyun
 # nameserver 2400:3200::1
 # nameserver 2400:3200:baba::1
