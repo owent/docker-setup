@@ -6,8 +6,7 @@ After=network.target network-online.target
 
 [Service]
 Type=oneshot
-Environment=ROUTER_HOME=/home/router
-ExecStart=/bin/bash $ROUTER_HOME/ppp-nat/reactive-ppp-interfaces.sh
+ExecStart=/bin/bash /home/router/ppp-nat/reactive-ppp-interfaces.sh
 # RemainAfterExit=yes
 
 [Install]
