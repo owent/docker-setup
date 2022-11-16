@@ -9,6 +9,7 @@ ROUTER_LOCAL_LAN_INTERFACE='{ lo, br0, enp2s0 , vlan0 }'
 ROUTER_IPV6_RADVD_NDP_DEVICE=(enp2s0 vlan0)
 #sysctl -w net.ipv6.conf.${ROUTER_IPV6_RADVD_NDP_DEVICE[@]}.proxy_ndp=1
 #sysctl -w net.ipv6.conf.${ROUTER_IPV6_RADVD_NDP_DEVICE[@]}.accept_ra=2
+# Edit $ROUTER_HOME/vlan/vlan-setup-bridge.sh to make sure bridge and vlan tag will be set correctly
 
 ROUTER_INTERNAL_SERVICE_PRIVATE_PORT_TCP="53,80,139,443,445,853,6800"
 ROUTER_INTERNAL_SERVICE_PUBLIC_PORT_TCP="6443,6881,6882,6883,8371,8372,8373,36000"

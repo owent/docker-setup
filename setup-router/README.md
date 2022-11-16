@@ -362,6 +362,48 @@ See https://en.wikipedia.org/wiki/Public_recursive_name_server for more details
   + https://cdn.jsdelivr.net/gh/felixonmars/dnsmasq-china-list/bogus-nxdomain.china.conf
   + https://cdn.jsdelivr.net/gh/felixonmars/dnsmasq-china-list/google.china.conf
 
+## 桥接设置VLAN Tag参考(未测试)
+
+参考 `man bridge` / https://www.man7.org/linux/man-pages/man8/bridge.8.html 
+
+```bash
+BRIDGE_IFNAME=br0
+BRIDGE_TARGET_IFNAMES=(enp7s0 enp8s0)
+BRIDGE_TARGET_VLAN_ID=3
+
+# 对外透明
+for BRIDGE_TARGET_IFNAME in ${BRIDGE_TARGET_IFNAME[@]}; do
+  # 指定接口入流量打 VLAN tag，出流量 untagged（允许打多个tag）
+  bridge vlan add vid $BRIDGE_TARGET_VLAN_ID pvid untagged dev $BRIDGE_TARGET_IFNAME
+  # 指定接口入流量打 VLAN tag（允许打多个tag）
+  # bridge vlan add vid $BRIDGE_TARGET_VLAN_ID pvid untagged dev $BRIDGE_TARGET_IFNAME
+  # 删除默认tag
+  bridge vlan del vid 1 dev $BRIDGE_TARGET_IFNAME
+done
+# 是否可以直接? bridge vlan add vid $BRIDGE_TARGET_VLAN_ID pvid untagged dev $BRIDGE_IFNAME self
+
+# 对外tag
+for BRIDGE_TARGET_IFNAME in ${BRIDGE_TARGET_IFNAME[@]}; do
+  # 指定接口出入流量都打 VLAN tag（允许打多个tag）
+  bridge vlan add vid $BRIDGE_TARGET_VLAN_ID dev $BRIDGE_TARGET_IFNAME
+  # 删除默认tag
+  bridge vlan del vid 1 dev $BRIDGE_TARGET_IFNAME
+done
+# 是否可以直接? bridge vlan add vid $BRIDGE_TARGET_VLAN_ID dev $BRIDGE_IFNAME self
+
+# 删除默认 vlan tag
+bridge vlan del vid 1 dev $BRIDGE_IFNAME self
+
+# 开启桥接的 vlan_filtering ， 仅仅用于使用桥接管理多个子vlan。如果是上级vlan转发到此bridge请不要开启
+# 注意试一下 ip route get <ip> 和 ping <ip> 确保链路路由正常
+# 参考: https://developers.redhat.com/blog/2017/09/14/vlan-filter-support-on-bridge
+# ip link add $BRIDGE_IFNAME type bridge vlan_filtering 1
+ip link set $BRIDGE_IFNAME type bridge vlan_filtering 1
+
+# 默认VLAN，不一定需要
+# ip link set $BRIDGE_IFNAME type bridge vlan_default_pvid $BRIDGE_TARGET_VLAN_ID
+```
+
 [1]: https://tools.ietf.org/html/rfc8484 "RFC 8484"
 [2]: https://tools.ietf.org/html/rfc7858 "RFC 7858"
 [3]: https://dnscrypt.info/ "DNSCrypt"
