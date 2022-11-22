@@ -67,6 +67,13 @@ TPROXY_SETUP_NFTABLES=1 # Set 1 to use iptables/ebtables
 TPROXY_WHITELIST_IPV4=("91.108.56.0/22" "95.161.64.0/20" "91.108.4.0/22" "91.108.8.0/22" "149.154.160.0/22" "149.154.164.0/22" "8.8.8.8" "8.8.4.4")
 TPROXY_WHITELIST_IPV6=("2001:4860:4860::8888" "2001:4860:4860::8844")
 
+# Syncthing
+if [[ -e "$ROUTER_HOME/syncthing/configure-server.sh" ]]; then
+  source "$ROUTER_HOME/syncthing/configure-server.sh"
+elif [[ -e "$(dirname "$0")/syncthing/configure-server.sh" ]]; then
+  source "$(dirname "$0")/syncthing/configure-server.sh"
+fi
+
 [ -e "/opt/podman" ] && export PATH="/opt/podman/bin:/opt/podman/libexec:$PATH"
 export PATH="$PATH:/usr/local/sbin:/usr/local/bin:/usr/sbin:/sbin"
 

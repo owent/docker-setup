@@ -1,7 +1,12 @@
 #!/bin/bash
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
+
+if [[ -e "$(dirname "$SCRIPT_DIR")/configure-router.sh" ]]; then
+  source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
+elif [[ -e "$SCRIPT_DIR/configure-server.sh" ]]; then
+  source "$SCRIPT_DIR/configure-server.sh"
+fi
 
 export XDG_RUNTIME_DIR="/run/user/$UID"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
@@ -21,10 +26,7 @@ if [[ "x$RUN_HOME" == "x" ]]; then
 fi
 
 if [[ "x$SYNCTHING_DISCOVERY_LISTEN_PORT" == "x" ]]; then
-  SYNCTHING_DISCOVERY_LISTEN_PORT=8341
-fi
-if [[ "x$SYNCTHING_DISCOVERY_LISTEN_REPLICATION_PORT" == "x" ]]; then
-  SYNCTHING_DISCOVERY_LISTEN_REPLICATION_PORT=8351
+  SYNCTHING_DISCOVERY_LISTEN_PORT=6341
 fi
 
 if [[ "x$SYNCTHING_ETC_DIR" == "x" ]]; then
@@ -33,38 +35,30 @@ fi
 mkdir -p "$SYNCTHING_ETC_DIR"
 chmod 777 "$SYNCTHING_ETC_DIR"
 
-if [[ "x$SYNCTHING_DATA_DIR" == "x" ]]; then
-  SYNCTHING_DATA_DIR="$RUN_HOME/syncthing/data"
+if [[ "x$SYNCTHING_DISCOVERY_DATA_DIR" == "x" ]]; then
+  SYNCTHING_DISCOVERY_DATA_DIR="$RUN_HOME/syncthing/data"
 fi
-mkdir -p "$SYNCTHING_DATA_DIR"
-chmod 777 "$SYNCTHING_DATA_DIR"
+mkdir -p "$SYNCTHING_DISCOVERY_DATA_DIR"
+chmod 777 "$SYNCTHING_DISCOVERY_DATA_DIR"
 
-if [[ "x$SYNCTHING_SSL_DIR" == "x" ]]; then
-  SYNCTHING_SSL_DIR="$RUN_HOME/syncthing/ssl/"
+if [[ -z "$SYNCTHING_DISCOVERY_SSL_DIR" ]]; then
+  SYNCTHING_DISCOVERY_SSL_DIR="$RUN_HOME/syncthing/ssl/"
 fi
-mkdir -p "$SYNCTHING_SSL_DIR"
-chmod 777 "$SYNCTHING_SSL_DIR"
+if [[ ! -e "$SYNCTHING_DISCOVERY_SSL_DIR" ]]; then
+  mkdir -p "$SYNCTHING_DISCOVERY_SSL_DIR"
+  chmod 777 "$SYNCTHING_DISCOVERY_SSL_DIR"
+fi
+SYNCTHING_DISCOVERY_SSL_COPY_TO_DIR="$RUN_HOME/syncthing/ssl/"
+mkdir -p "$SYNCTHING_DISCOVERY_SSL_COPY_TO_DIR"
+chmod 777 "$SYNCTHING_DISCOVERY_SSL_COPY_TO_DIR"
 
-if [[ "x$SYNCTHING_SSL_CERT" == "x" ]] && [[ -e "/home/website/ssl/fullchain.cer" ]]; then
-  SYNCTHING_SSL_CERT="/home/website/ssl/fullchain.cer"
-fi
-if [[ "x$SYNCTHING_SSL_CERT" != "x" ]] && [[ -e "$SYNCTHING_SSL_CERT" ]]; then
-  if [[ "x$SYNCTHING_UPDATE" != "x" ]] || [[ "x$SYNCTHING_UPDATE_SSL" != "x" ]] || [[ ! -e "$SYNCTHING_SSL_DIR/fullchain.cer" ]]; then
-    cp -f "$SYNCTHING_SSL_CERT" "$SYNCTHING_SSL_DIR/fullchain.cer"
-    chmod 666 "$SYNCTHING_SSL_DIR/fullchain.cer"
-  fi
-fi
-
-if [[ "x$SYNCTHING_SSL_KEY" == "x" ]] && [[ -e "/home/website/ssl/owent.net.key" ]]; then
-  SYNCTHING_SSL_KEY="/home/website/ssl/owent.net.key"
-fi
-if [[ "x$SYNCTHING_SSL_KEY" != "x" ]] && [[ -e "$SYNCTHING_SSL_KEY" ]]; then
-  if [[ "x$SYNCTHING_UPDATE" != "x" ]] || [[ "x$SYNCTHING_UPDATE_SSL" != "x" ]] || [[ ! -e "$SYNCTHING_SSL_DIR/st-discovery.x-ha.com.key" ]]; then
-    cp -f "$SYNCTHING_SSL_KEY" "$SYNCTHING_SSL_DIR/st-discovery.x-ha.com.key"
-    chmod 666 "$SYNCTHING_SSL_DIR/st-discovery.x-ha.com.key"
-  fi
+if [[ -z "$SYNCTHING_DISCOVERY_SSL_CERT" ]]; then
+  SYNCTHING_DISCOVERY_SSL_CERT="cert.pem"
 fi
 
+if [[ -z "$SYNCTHING_DISCOVERY_SSL_KEY" ]]; then
+  SYNCTHING_DISCOVERY_SSL_KEY="key.pem"
+fi
 systemctl --user --all | grep -F container-syncthing-discovery.service
 
 if [[ $? -eq 0 ]]; then
@@ -89,21 +83,33 @@ fi
 podman pull docker.io/syncthing/discosrv:latest
 
 # Use these options if the discovery is not under a reserve proxy and remove -http
-#   -cert=/syncthing/ssl/fullchain.cer \
-#   -key=/syncthing/ssl/st-discovery.x-ha.com.key \
+#   -cert=/syncthing/ssl/http-cert.pem \
+#   -key=/syncthing/ssl/http-key.pem \
+if [[ -e "$SYNCTHING_DISCOVERY_SSL_DIR/$SYNCTHING_DISCOVERY_SSL_CERT" ]] && [[ -e "$SYNCTHING_DISCOVERY_SSL_DIR/$SYNCTHING_DISCOVERY_SSL_KEY" ]]; then
+  if [[ "$SYNCTHING_DISCOVERY_SSL_DIR" != "$SYNCTHING_DISCOVERY_SSL_COPY_TO_DIR" ]]; then
+    cp -f "$SYNCTHING_DISCOVERY_SSL_DIR/$SYNCTHING_DISCOVERY_SSL_CERT" "$SYNCTHING_DISCOVERY_SSL_COPY_TO_DIR/$SYNCTHING_DISCOVERY_SSL_CERT"
+    cp -f "$SYNCTHING_DISCOVERY_SSL_DIR/$SYNCTHING_DISCOVERY_SSL_KEY" "$SYNCTHING_DISCOVERY_SSL_COPY_TO_DIR/$SYNCTHING_DISCOVERY_SSL_KEY"
+  fi
+  chmod 666 "$SYNCTHING_DISCOVERY_SSL_COPY_TO_DIR/$SYNCTHING_DISCOVERY_SSL_CERT"
+  chmod 666 "$SYNCTHING_DISCOVERY_SSL_COPY_TO_DIR/$SYNCTHING_DISCOVERY_SSL_KEY"
+  SYNCTHING_SSL_OPTIONS=(-cert "/syncthing/ssl/$SYNCTHING_DISCOVERY_SSL_CERT" -key "/syncthing/ssl/$SYNCTHING_DISCOVERY_SSL_KEY" -http)
+else
+  SYNCTHING_SSL_OPTIONS=(-http)
+fi
 podman run -d --name syncthing-discovery --security-opt label=disable \
-  --mount type=bind,source=$SYNCTHING_SSL_DIR,target=/syncthing/ssl/ \
-  --mount type=bind,source=$SYNCTHING_DATA_DIR,target=/syncthing/data/ \
-  -p $SYNCTHING_DISCOVERY_LISTEN_PORT:8443/tcp \
+  --mount type=bind,source=$SYNCTHING_DISCOVERY_SSL_COPY_TO_DIR,target=/syncthing/ssl/ \
+  --mount type=bind,source=$SYNCTHING_DISCOVERY_DATA_DIR,target=/syncthing/data/ \
+  -p $SYNCTHING_DISCOVERY_LISTEN_PORT:$SYNCTHING_DISCOVERY_LISTEN_PORT/tcp \
   docker.io/syncthing/discosrv:latest \
-  -cert=/syncthing/ssl/fullchain.cer \
-  -key=/syncthing/ssl/st-discovery.x-ha.com.key \
-  -http \
-  -db-dir=/syncthing/data
+  ${SYNCTHING_SSL_OPTIONS[@]} \
+  -listen ":$SYNCTHING_DISCOVERY_LISTEN_PORT" \
+  -db-dir /syncthing/data
 
 podman exec syncthing-discovery ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
 podman generate systemd --name syncthing-discovery | tee $SYNCTHING_ETC_DIR/container-syncthing-discovery.service
+
+podman stop syncthing-discovery
 
 systemctl --user enable $SYNCTHING_ETC_DIR/container-syncthing-discovery.service
 systemctl --user restart container-syncthing-discovery
