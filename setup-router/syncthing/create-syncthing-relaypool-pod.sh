@@ -79,9 +79,13 @@ fi
 podman pull docker.io/syncthing/strelaypoolsrv:latest
 
 if [[ -e "$SYNCTHING_SSL_CERT" ]] && [[ -e "$SYNCTHING_SSL_KEY" ]]; then
-  SYNCTHING_SSL_OPTIONS=(-keys /syncthing/ssl)
+  SYNCTHING_RELAYPOOL_EXT_OPTIONS=(-keys /syncthing/ssl)
 else
-  SYNCTHING_SSL_OPTIONS=()
+  SYNCTHING_RELAYPOOL_EXT_OPTIONS=()
+fi
+
+if [[ ! -z "$SYNCTHING_RELAY_POOL_IP_HEADER" ]]; then
+  SYNCTHING_RELAYPOOL_EXT_OPTIONS=(${SYNCTHING_RELAYPOOL_EXT_OPTIONS[@]} "-ip-header" "$SYNCTHING_RELAY_POOL_IP_HEADER")
 fi
 
 podman run -d --name syncthing-relay-pool --security-opt label=disable \
@@ -89,7 +93,7 @@ podman run -d --name syncthing-relay-pool --security-opt label=disable \
   --mount type=bind,source=$SYNCTHING_DATA_DIR,target=/syncthing/data/ \
   -p $SYNCTHING_RELAY_POOL_LISTEN_PORT:$SYNCTHING_RELAY_POOL_LISTEN_PORT/tcp \
   docker.io/syncthing/strelaypoolsrv:latest \
-  ${SYNCTHING_SSL_OPTIONS[@]} \
+  ${SYNCTHING_RELAYPOOL_EXT_OPTIONS[@]} \
   -listen ":$SYNCTHING_RELAY_POOL_LISTEN_PORT" \
   -protocol "tcp"
 

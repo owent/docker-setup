@@ -83,9 +83,15 @@ fi
 podman pull docker.io/syncthing/relaysrv:latest
 
 if [[ -e "$SYNCTHING_SSL_CERT" ]] && [[ -e "$SYNCTHING_SSL_KEY" ]]; then
-  SYNCTHING_SSL_OPTIONS=(-keys=/syncthing/ssl)
+  SYNCTHING_RELAYSVR_EXT_OPTIONS=(-keys=/syncthing/ssl)
 else
-  SYNCTHING_SSL_OPTIONS=()
+  SYNCTHING_RELAYSVR_EXT_OPTIONS=()
+fi
+
+if [[ ! -z "$SYNCTHING_RELAY_POOL_ADDRESS" ]]; then
+  SYNCTHING_RELAYSVR_EXT_OPTIONS=(${SYNCTHING_RELAYSVR_EXT_OPTIONS[@]} -pools "$SYNCTHING_RELAY_POOL_ADDRESS/endpoint")
+else
+  SYNCTHING_RELAYSVR_EXT_OPTIONS=(${SYNCTHING_RELAYSVR_EXT_OPTIONS[@]} -pools "")
 fi
 
 # --network=host \
@@ -98,11 +104,9 @@ podman run -d --name syncthing-relay-node --security-opt label=disable \
   --mount type=bind,source=$SYNCTHING_DATA_DIR,target=/syncthing/data/ \
   --network=host \
   docker.io/syncthing/relaysrv:latest \
-  ${SYNCTHING_SSL_OPTIONS[@]} \
-  -ext-address "$SYNCTHING_RELAY_SERVER_EXT_ADDRESS" \
+  ${SYNCTHING_RELAYSVR_EXT_OPTIONS[@]} \
   -listen ":$SYNCTHING_RELAY_SERVER_LISTEN_PORT" \
   -status-srv "127.0.0.1:$SYNCTHING_RELAY_SERVER_STATUS_PORT" \
-  -pools "$SYNCTHING_RELAY_POOL_ADDRESS/endpoint" \
   -protocol "tcp" \
   -provided-by "owent"
 
