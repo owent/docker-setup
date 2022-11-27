@@ -26,7 +26,7 @@ $(ip -6 -o addr)" | systemd-cat -t router-mwan -p info ;
   fi
 
   grep -F "$NETWORKMANAGER_DISPATCHER_DIR/$1.d/" "$NETWORKMANAGER_DISPATCHER_DIR/$1" || echo "
-for SCRIPT_FILE in \$(find $NETWORKMANAGER_DISPATCHER_DIR/$1.d -type f -name '*') ; do
+for SCRIPT_FILE in \$(find $NETWORKMANAGER_DISPATCHER_DIR/$1.d -name '*.sh') ; do
   bash \$SCRIPT_FILE "$@"
 done
 " >>"$NETWORKMANAGER_DISPATCHER_DIR/$1"

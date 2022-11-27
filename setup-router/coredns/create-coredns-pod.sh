@@ -83,8 +83,8 @@ podman run -d --name coredns \
   -conf /etc/coredns/Corefile
 
 podman generate systemd coredns \
-  | sed "/ExecStart=/a ExecStartPost=$SCRIPT_DIR/setup-resolv.sh" \
-  | sed "/ExecStop=/a ExecStopPost=$SCRIPT_DIR/restore-resolv.sh" \
+  | sed "/ExecStart=/i ExecStartPost=$SCRIPT_DIR/setup-resolv.sh" \
+  | sed "/ExecStop=/i ExecStopPost=$SCRIPT_DIR/restore-resolv.sh" \
   | sed "/PIDFile=/a TimeoutSec=90" \
   | tee "$SYSTEMD_SERVICE_DIR/coredns.service"
 
