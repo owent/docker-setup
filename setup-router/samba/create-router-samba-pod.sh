@@ -54,7 +54,7 @@ podman build -t router-samba -f Dockerfile .
 
 podman run -d --name=router-samba \
   -v $SAMBA_DATA_DIR:/data/content \
-  -v $ROUTER_LOG_ROOT_DIR/samba:/data/logs \
+  -v $ROUTER_LOG_ROOT_DIR/samba:/data/log \
   -p 139:139/TCP -p 445:445/TCP -p 137:137/UDP -p 138:138/UDP \
   --security-opt seccomp=unconfined \
   --security-opt label=disable \

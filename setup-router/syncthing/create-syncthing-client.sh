@@ -77,12 +77,26 @@ SYNCTHING_MOUNT_DIRS=(
   --mount "type=bind,source=$SYNCTHING_SSL_DIR,target=/syncthing/ssl/"
   --mount "type=bind,source=$SYNCTHING_CLIENT_HOME_DIR,target=/syncthing/home/"
 )
+
+HAS_MAKE_EXT_DIR=0
 for EXT_MOUNTS in ${SYNCTHING_CLIENT_EXT_DIRS[@]}; do
   EXT_MOUNTS_SOURCE="${EXT_MOUNTS/:*/}"
   EXT_MOUNTS_TARGET="${EXT_MOUNTS//*:/}"
-  mkdir -p "$EXT_MOUNTS_SOURCE"
+  if [[ ! -e "$EXT_MOUNTS_SOURCE" ]]; then
+    mkdir -p "$EXT_MOUNTS_SOURCE"
+    HAS_MAKE_EXT_DIR=1
+  fi
+  if [[ ! -e "$SYNCTHING_CLIENT_HOME_DIR/data/$EXT_MOUNTS_TARGET" ]]; then
+    mkdir -p "$SYNCTHING_CLIENT_HOME_DIR/data/$EXT_MOUNTS_TARGET"
+    HAS_MAKE_EXT_DIR=1
+  fi
   SYNCTHING_MOUNT_DIRS=(${SYNCTHING_MOUNT_DIRS[@]} --mount "type=bind,source=$EXT_MOUNTS_SOURCE,target=/syncthing/home/data/$EXT_MOUNTS_TARGET")
 done
+
+if [[ $HAS_MAKE_EXT_DIR -ne 0 ]]; then
+  chown $RUN_USER:$RUN_USER -R "$SYNCTHING_CLIENT_HOME_DIR/data"
+  chmod 777 -R "$SYNCTHING_CLIENT_HOME_DIR/data"
+fi
 
 SYNCTHING_CLIENT_GUI_APIKEY=""
 if [[ -e "$SCRIPT_DIR/.syncthing-client.token" ]]; then
