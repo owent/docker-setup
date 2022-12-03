@@ -196,8 +196,8 @@ dhcp-range=172.23.11.1,172.23.255.254,255.255.0.0,28800s
 # https://en.wikipedia.org/wiki/Dynamic_Host_Configuration_Protocol
 # https://www.iana.org/assignments/bootp-dhcp-parameters/bootp-dhcp-parameters.xhtml
 # https://thekelleys.org.uk/gitweb/?p=dnsmasq.git;a=blob_plain;f=src/dhcp-common.c
-dhcp-option=option:router,172.23.1.10
-dhcp-option=option:dns-server,172.23.1.10
+dhcp-option=option:router,$ROUTER_INTERNAL_IPV4
+dhcp-option=option:dns-server,$ROUTER_INTERNAL_IPV4
 dhcp-option=option:netbios-ns,0.0.0.0
 " >>/etc/dnsmasq.d/router.conf
 

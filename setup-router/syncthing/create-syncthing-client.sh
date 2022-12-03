@@ -25,12 +25,6 @@ if [[ "x$RUN_HOME" == "x" ]]; then
   RUN_HOME="$HOME"
 fi
 
-if [[ "x$SYNCTHING_ETC_DIR" == "x" ]]; then
-  SYNCTHING_ETC_DIR="$RUN_HOME/syncthing/etc"
-fi
-mkdir -p "$SYNCTHING_ETC_DIR"
-chmod 777 "$SYNCTHING_ETC_DIR"
-
 if [[ "x$SYNCTHING_CLIENT_HOME_DIR" == "x" ]]; then
   SYNCTHING_CLIENT_HOME_DIR="$RUN_HOME/syncthing/home"
 fi
@@ -79,28 +73,46 @@ if [[ -e "$SYNCTHING_SSL_CERT" ]] && [[ -e "$SYNCTHING_SSL_KEY" ]]; then
 else
   SYNCTHING_SSL_OPTIONS=()
 fi
+SYNCTHING_MOUNT_DIRS=(
+  --mount "type=bind,source=$SYNCTHING_SSL_DIR,target=/syncthing/ssl/"
+  --mount "type=bind,source=$SYNCTHING_CLIENT_HOME_DIR,target=/syncthing/home/"
+)
+for EXT_MOUNTS in ${SYNCTHING_CLIENT_EXT_DIRS[@]}; do
+  EXT_MOUNTS_SOURCE="${EXT_MOUNTS/:*/}"
+  EXT_MOUNTS_TARGET="${EXT_MOUNTS//*:/}"
+  mkdir -p "$EXT_MOUNTS_SOURCE"
+  SYNCTHING_MOUNT_DIRS=(${SYNCTHING_MOUNT_DIRS[@]} --mount "type=bind,source=$EXT_MOUNTS_SOURCE,target=/syncthing/home/data/$EXT_MOUNTS_TARGET")
+done
+
+SYNCTHING_CLIENT_GUI_APIKEY=""
+if [[ -e "$SCRIPT_DIR/.syncthing-client.token" ]]; then
+  SYNCTHING_CLIENT_GUI_APIKEY=$(cat "$SCRIPT_DIR/.syncthing-client.token")
+fi
+if [[ -z "$SYNCTHING_CLIENT_GUI_APIKEY" ]]; then
+  SYNCTHING_CLIENT_GUI_APIKEY=$(openssl rand -base64 15 | tr '/' '_' | tr '+' '-')
+fi
 
 podman run -d --name syncthing-client --security-opt label=disable \
-  --mount type=bind,source=$SYNCTHING_ETC_DIR,target=/syncthing/etc/ \
-  --mount type=bind,source=$SYNCTHING_SSL_DIR,target=/syncthing/ssl/ \
-  --mount type=bind,source=$SYNCTHING_CLIENT_HOME_DIR,target=/syncthing/home/ \
+  ${SYNCTHING_MOUNT_DIRS[@]} \
   --network=host \
   docker.io/syncthing/syncthing:latest \
   ${SYNCTHING_SSL_OPTIONS[@]} \
-  --config=/syncthing/etc/ \
   --home=/syncthing/home/ \
   --no-default-folder \
   --skip-port-probing \
   "--gui-address=$SYNCTHING_CLIENT_GUI_ADDRESS" \
+  "--gui-apikey=$SYNCTHING_CLIENT_GUI_APIKEY" \
   --no-browser \
   --no-restart \
   --no-upgrade
 
 podman exec syncthing-client ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
-podman generate systemd --name syncthing-client | tee $SYNCTHING_ETC_DIR/container-syncthing-client.service
+mkdir -p "$SCRIPT_DIR/etc"
+
+podman generate systemd --name syncthing-client | tee "$SCRIPT_DIR/etc/container-syncthing-client.service"
 
 podman stop syncthing-client
 
-systemctl --user enable $SYNCTHING_ETC_DIR/container-syncthing-client.service
+systemctl --user enable "$SCRIPT_DIR/etc/container-syncthing-client.service"
 systemctl --user restart container-syncthing-client

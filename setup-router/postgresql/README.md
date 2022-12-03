@@ -13,3 +13,14 @@ psql -h localhost -U postgres
 
   \q
 ```
+
+## 备份数据库
+
+```bash
+podman run --rm -e "PGPASSWORD=password" docker.io/postgres:latest
+  pg_dump [db_name] -h [server] -U [username] -p $POSTGRESQL_PORT -f sqlbkp_`date +"%Y%m%d"`.bak
+
+
+podman run --rm -e "PGPASSWORD=password" docker.io/postgres:latest
+  pg_dump nextcloud -h 127.0.0.1 -U nextcloud -p $POSTGRESQL_PORT -f nextcloud-sqlbkp_`date +"%Y%m%d"`.bak
+```
