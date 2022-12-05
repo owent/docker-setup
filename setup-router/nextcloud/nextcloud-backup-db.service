@@ -1,0 +1,15 @@
+[Unit]
+Description=Nextcloud backup DB
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /home/router/nextcloud/nextcloud-backup-db.sh
+# RemainAfterExit=yes
+
+[Install]
+WantedBy=default.target
+
+# ln /home/router/nextcloud/nextcloud-backup-db.service ~/.config/systemd/user/nextcloud-backup-db.service
+# systemctl status --user nextcloud-backup-db.service

@@ -53,6 +53,7 @@ POSTGRESQL_PORT=5432
 NEXTCLOUD_DATA_DIR=$SAMBA_DATA_DIR/nextcloud/data
 NEXTCLOUD_APPS_DIR=$SAMBA_DATA_DIR/nextcloud/apps
 NEXTCLOUD_ETC_DIR=$SAMBA_DATA_DIR/nextcloud/etc
+NEXTCLOUD_EXTERNAL_DIR=$SAMBA_DATA_DIR/nextcloud/external
 NEXTCLOUD_REVERSE_ROOT_DIR="" # Set non empty and use fpm docker image when success
 NEXTCLOUD_TRUSTED_DOMAINS=""  # nextcloud domains and IPs
 
