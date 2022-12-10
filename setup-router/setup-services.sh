@@ -32,7 +32,7 @@ fi
 
 # Notice: gateways's ip must match the configure in setup-dnsmasq.sh and setup-nat-ssh.sh
 #             fd27:32d6:ac12:XXXX/64 for ipv6
-#             172.18.X.X/16 for ipv4
+#             172.23.X.X/16 for ipv4
 if [[ "x$ROUTER_CONFIG_IPV6_INTERFACE" == "x" ]]; then
   if [[ "x$ROUTER_CONFIG_PPP_LINK_INTERFACE" != "x" ]]; then
     export ROUTER_CONFIG_IPV6_INTERFACE=$ROUTER_CONFIG_PPP_LINK_INTERFACE
