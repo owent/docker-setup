@@ -1,0 +1,8 @@
+    location /downloads {
+      root /usr/share/nginx/html ;
+      autoindex on;
+      autoindex_format html;
+      autoindex_localtime on;
+      index  index.html index.htm;
+      default_type application/octet-stream;
+    }
