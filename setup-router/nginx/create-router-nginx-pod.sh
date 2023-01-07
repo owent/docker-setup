@@ -33,6 +33,10 @@ else
   fi
 fi
 
+if [[ "x$NGINX_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman pull docker.io/nginx:latest
+fi
+
 podman container inspect router-nginx >/dev/null 2>&1
 
 if [[ $? -eq 0 ]]; then
@@ -41,13 +45,8 @@ if [[ $? -eq 0 ]]; then
 fi
 
 if [[ "x$NGINX_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman image inspect docker.io/nginx:latest >/dev/null 2>&1
-  if [[ $? -eq 0 ]]; then
-    podman image rm -f docker.io/nginx:latest
-  fi
+  podman image prune -a -f --filter "until=240h"
 fi
-
-podman pull docker.io/nginx:latest
 
 mkdir -p "$ROUTER_LOG_ROOT_DIR/nginx"
 mkdir -p "$SAMBA_DATA_DIR/download"

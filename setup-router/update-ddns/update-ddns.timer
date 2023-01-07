@@ -3,6 +3,7 @@ Description=Update ddns
 Requires=update-ddns.service
 
 [Timer]
+OnStartupSec=2m
 OnCalendar=*-*-* *:02/10:13
 AccuracySec=1m
 RandomizedDelaySec=120
