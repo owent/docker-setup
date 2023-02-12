@@ -5,10 +5,10 @@ REMOTE_DEPLOY_KEY=<path of id_ed25519>
 REMOTE_DEPLOY_SSL_PATH=/home/website/ssl/
 
 # Update local services
-if [[ "x$1" == "xupdate-v2ray" ]]; then
-    env V2RAY_UPDATE=1 bash /data/v2ray/setup.sh ;
+if [[ "x$1" == "xupdate-v2ray" ]] || [[ "x$1" == "xupdate-vproxy" ]]; then
+    env V2RAY_UPDATE=1 bash /data/vproxy/setup.sh ;
 else
-    bash /data/v2ray/update.sh ;
+    bash /data/vproxy/update.sh ;
 fi
 
 echo "" > sync-to-replications.log ;
@@ -41,14 +41,14 @@ for NODE_ADDR in ${REPLICATION_NODES[@]}; do
 
     echo "============ Update $NODE_USER@$NODE_HOST:$NODE_PORT ... " 
 
-    ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i $REMOTE_DEPLOY_KEY $NODE_USER@$NODE_HOST "mkdir -p /data/v2ray" 
+    ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i $REMOTE_DEPLOY_KEY $NODE_USER@$NODE_HOST "mkdir -p /data/vproxy" 
 
     scp -r -P $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i \
-      "$REMOTE_DEPLOY_KEY" /data/v2ray/etc /data/v2ray/*.sh "$NODE_USER@$NODE_HOST:/data/v2ray/"
+      "$REMOTE_DEPLOY_KEY" /data/vproxy/etc /data/vproxy/*.sh "$NODE_USER@$NODE_HOST:/data/vproxy/"
 
-    if [[ "x$1" == "xupdate-v2ray" ]]; then
-        ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$REMOTE_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "env V2RAY_UPDATE=1 bash /data/v2ray/setup.sh" 
+    if [[ "x$1" == "xupdate-v2ray" ]] || [[ "x$1" == "xupdate-vproxy" ]]; then
+        ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$REMOTE_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "env V2RAY_UPDATE=1 bash /data/vproxy/setup.sh" 
     else
-    ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$REMOTE_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "bash /data/v2ray/update.sh"
+    ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$REMOTE_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "bash /data/vproxy/update.sh"
     fi
 done
