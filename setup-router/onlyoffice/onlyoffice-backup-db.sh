@@ -24,11 +24,11 @@ if [[ "x$RUN_HOME" == "x" ]]; then
   RUN_HOME="$HOME"
 fi
 
-NEXTCLOUD_DB_NAME=nextcloud
-NEXTCLOUD_DB_USER=nextcloud
-NEXTCLOUD_DB_PASSWORD=
-NEXTCLOUD_DB_HOST=127.0.0.1
-NEXTCLOUD_DB_PORT=5432
+ONLYOFFICE_DB_NAME=onlyoffice
+ONLYOFFICE_DB_USER=onlyoffice
+ONLYOFFICE_DB_PASSWORD=
+ONLYOFFICE_DB_HOST=127.0.0.1
+ONLYOFFICE_DB_PORT=5432
 
 if [[ "x$NEXTCLOUD_DATA_DIR" == "x" ]]; then
   NEXTCLOUD_DATA_DIR="$RUN_HOME/nextcloud/data"
@@ -38,16 +38,16 @@ if [[ ! -e "$NEXTCLOUD_DATA_DIR/sql-backup" ]]; then
   chmod 770 -R "$NEXTCLOUD_DATA_DIR/sql-backup"
 fi
 
-BACKUP_FILE_NAME="$NEXTCLOUD_DB_NAME-sqlbkp_$(date +"%Y%m%d").sql"
-find . -name "$NEXTCLOUD_DB_NAME-sqlbkp_*.sql*" | xargs -r rm
+BACKUP_FILE_NAME="$ONLYOFFICE_DB_NAME-sqlbkp_$(date +"%Y%m%d").sql"
+find . -name "$ONLYOFFICE_DB_NAME-sqlbkp_*.sql*" | xargs -r rm
 
 podman run --rm \
   --security-opt seccomp=unconfined \
   --security-opt label=disable \
   --network=host \
-  --mount type=bind,source=$PWD,target=/data/$NEXTCLOUD_DB_NAME \
-  -e "PGPASSWORD=$NEXTCLOUD_DB_PASSWORD" docker.io/postgres:latest \
-  pg_dump $NEXTCLOUD_DB_NAME -h $NEXTCLOUD_DB_HOST -U $NEXTCLOUD_DB_USER -p $NEXTCLOUD_DB_PORT -f /data/$NEXTCLOUD_DB_NAME/$BACKUP_FILE_NAME
+  --mount type=bind,source=$PWD,target=/data/$ONLYOFFICE_DB_NAME \
+  -e "PGPASSWORD=$ONLYOFFICE_DB_PASSWORD" docker.io/postgres:latest \
+  pg_dump $ONLYOFFICE_DB_NAME -h $ONLYOFFICE_DB_HOST -U $ONLYOFFICE_DB_USER -p $ONLYOFFICE_DB_PORT -f /data/$ONLYOFFICE_DB_NAME/$BACKUP_FILE_NAME
 
 tar -cvf- $BACKUP_FILE_NAME | zstd -T0 -B0 -15 --format=zstd -r -f -o $BACKUP_FILE_NAME.tar.zst -
 # zstd -d --stdout $BACKUP_FILE_NAME.tar.zst | tar -xf-
@@ -59,4 +59,4 @@ fi
 
 chmod 770 "$BACKUP_FILE_NAME.tar.zst"
 cp -f "$BACKUP_FILE_NAME.tar.zst" "$NEXTCLOUD_DATA_DIR/sql-backup/$BACKUP_FILE_NAME.tar.zst"
-find "$NEXTCLOUD_DATA_DIR/sql-backup" -name "$NEXTCLOUD_DB_NAME-sqlbkp_*.sql*" -ctime +100 | xargs -r rm
+find "$NEXTCLOUD_DATA_DIR/sql-backup" -name "$ONLYOFFICE_DB_NAME-sqlbkp_*.sql*" -ctime +100 | xargs -r rm

@@ -1,0 +1,15 @@
+[Unit]
+Description=Onlyoffice backup DB
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /home/router/onlyoffice/onlyoffice-backup-db.sh
+# RemainAfterExit=yes
+
+[Install]
+WantedBy=default.target
+
+# ln /home/router/onlyoffice/onlyoffice-backup-db.service ~/.config/systemd/user/onlyoffice-backup-db.service
+# systemctl status --user onlyoffice-backup-db.service

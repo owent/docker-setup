@@ -3,7 +3,7 @@
 ## 初始化
 
 ```bash
-psql -h localhost -U postgres
+podman exec -it postgresql psql -h localhost -U postgres/或其他默认用户
 
   CREATE USER <用户名> WITH PASSWORD '<密码>' CREATEDB;
   CREATE DATABASE <数据库名> TEMPLATE template0 ENCODING 'UTF8';

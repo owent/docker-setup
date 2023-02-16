@@ -5,7 +5,7 @@ After=network.target network-online.target
 Wants=network-online.target
 
 [Timer]
-OnCalendar=*-*-* 03:27:23
+OnCalendar=Sun *-*-* 03:27:23
 AccuracySec=20m
 RandomizedDelaySec=300
 
