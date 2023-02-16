@@ -47,6 +47,18 @@ if [[ "x$NEXTCLOUD_APPS_DIR" == "x" ]]; then
 fi
 mkdir -p "$NEXTCLOUD_APPS_DIR"
 
+if [[ "x$NEXTCLOUD_REVERSE_ROOT_DIR" != "x" ]]; then
+  NEXTCLOUD_BASE_IMAGE="docker.io/nextcloud:fpm"
+  NEXTCLOUD_REVERSE_PORT=9000
+else
+  NEXTCLOUD_BASE_IMAGE="docker.io/nextcloud:latest"
+  NEXTCLOUD_REVERSE_PORT=80
+fi
+
+if [[ "x$NEXTCLOUD_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman pull "$NEXTCLOUD_BASE_IMAGE"
+fi
+
 systemctl --user --all | grep -F container-nextcloud.service
 
 if [[ $? -eq 0 ]]; then
@@ -61,22 +73,9 @@ if [[ $? -eq 0 ]]; then
   podman rm -f nextcloud
 fi
 
-if [[ "x$NEXTCLOUD_REVERSE_ROOT_DIR" != "x" ]]; then
-  NEXTCLOUD_BASE_IMAGE="docker.io/nextcloud:fpm"
-  NEXTCLOUD_REVERSE_PORT=9000
-else
-  NEXTCLOUD_BASE_IMAGE="docker.io/nextcloud:latest"
-  NEXTCLOUD_REVERSE_PORT=80
-fi
-
 if [[ "x$NEXTCLOUD_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman image inspect "$NEXTCLOUD_BASE_IMAGE" >/dev/null 2>&1
-  if [[ $? -eq 0 ]]; then
-    podman image rm -f "$NEXTCLOUD_BASE_IMAGE"
-  fi
+  podman image prune -a -f --filter "until=240h"
 fi
-
-podman pull "$NEXTCLOUD_BASE_IMAGE"
 
 if [[ "x" == "x$ADMIN_USENAME" ]]; then
   ADMIN_USENAME=owent
