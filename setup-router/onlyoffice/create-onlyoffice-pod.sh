@@ -52,8 +52,16 @@ if [[ "x$ONLYOFFICE_LOG_DIR" == "x" ]]; then
 fi
 mkdir -p "$ONLYOFFICE_LOG_DIR"
 
+if [[ -z "$ONLYOFFICE_IMAGE_NAME" ]]; then
+  ONLYOFFICE_IMAGE_NAME="documentserver"
+  # Home or enterprise
+  # ONLYOFFICE_IMAGE_NAME="documentserver-ee"
+  # Developer
+  # ONLYOFFICE_IMAGE_NAME="documentserver-de"
+fi
+
 if [[ "x$ONLYOFFICE_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman pull "docker.io/onlyoffice/documentserver"
+  podman pull "docker.io/onlyoffice/$ONLYOFFICE_IMAGE_NAME"
 fi
 
 systemctl --user --all | grep -F container-onlyoffice.service
@@ -84,9 +92,9 @@ if [[ -z "$ONLYOFFICE_JWT_SECRET" ]]; then
   fi
 fi
 
-ONLYOFFICE_ENVS=(-e JWT_SECRET="$ONLYOFFICE_JWT_SECRET")
-if [[ ! -z "$ONLYOFFICE_DB_USER" ]] && [[ ! -z "$ONLYOFFICE_DB_PASSWD" ]] && \\
-  [[ ! -z "$ONLYOFFICE_DB_HOST" ]] && [[ ! -z "$ONLYOFFICE_DB_PORT" ]] && \\
+ONLYOFFICE_ENVS=(-e "TZ=Asia/Shanghai" -e JWT_SECRET="$ONLYOFFICE_JWT_SECRET")
+if [[ ! -z "$ONLYOFFICE_DB_USER" ]] && [[ ! -z "$ONLYOFFICE_DB_PASSWD" ]] && \
+  [[ ! -z "$ONLYOFFICE_DB_HOST" ]] && [[ ! -z "$ONLYOFFICE_DB_PORT" ]] && \
   [[ ! -z "$ONLYOFFICE_DB_NAME" ]] && [[ ! -z "$ONLYOFFICE_DB_TYPE" ]]; then
   ONLYOFFICE_ENVS=(${ONLYOFFICE_ENVS[@]} -e DB_TYPE=$ONLYOFFICE_DB_TYPE \
     -e DB_HOST=$ONLYOFFICE_DB_HOST -e DB_PORT=$ONLYOFFICE_DB_PORT \
@@ -107,10 +115,13 @@ podman run -d --name onlyoffice \
   --mount type=tmpfs,target=/tmp,tmpfs-mode=1777 \
   --mount type=tmpfs,target=/var/log/journal,tmpfs-mode=1777 \
   -p $ONLYOFFICE_LISTEN_PORT:80 \
-  docker.io/onlyoffice/documentserver
+  docker.io/onlyoffice/$ONLYOFFICE_IMAGE_NAME
 # --copy-links
 
 podman generate systemd --name onlyoffice | tee "$RUN_HOME/onlyoffice/container-onlyoffice.service"
+# podman exec onlyoffice sudo supervisorctl start ds:example
+# podman exec onlyoffice sudo sed 's,autostart=false,autostart=true,' -i /etc/supervisor/conf.d/ds-example.conf
+podman exec onlyoffice ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
 podman stop onlyoffice
 

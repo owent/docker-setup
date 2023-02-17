@@ -5,9 +5,17 @@ source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 
 nft list table inet security_firewall >/dev/null 2>&1
 if [[ $? -eq 0 ]]; then
-  nft delete table inet security_firewall
+  FLUSH_CHAINS=(PREROUTING INPUT OUTPUT FORWARD)
+  for TEST_CHAIN_NAME in ${FLUSH_CHAINS[@]}; do
+    nft list chain inet security_firewall $TEST_CHAIN_NAME >/dev/null 2>&1
+    if [[ $? -eq 0 ]]; then
+      echo "Remove old chain: inet security_firewall $TEST_CHAIN_NAME"
+      nft delete chain inet security_firewall $TEST_CHAIN_NAME
+    fi
+  done
+else
+  nft add table inet security_firewall
 fi
-nft add table inet security_firewall
 
 nft list set inet security_firewall LOCAL_IPV4 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then

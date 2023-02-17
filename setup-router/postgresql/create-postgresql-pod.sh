@@ -41,6 +41,10 @@ if [[ "x$POSTGRESQL_DATA_DIR" == "x" ]]; then
 fi
 mkdir -p "$POSTGRESQL_DATA_DIR"
 
+if [[ "x$POSTGRESQL_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman pull docker.io/postgres:latest
+fi
+
 systemctl --user --all | grep -F container-postgresql.service
 
 if [[ $? -eq 0 ]]; then
@@ -55,14 +59,9 @@ if [[ $? -eq 0 ]]; then
   podman rm -f postgresql
 fi
 
-if [[ "x$POSTGRESQL_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman image inspect docker.io/postgres:latest >/dev/null 2>&1
-  if [[ $? -eq 0 ]]; then
-    podman image rm -f docker.io/postgres:latest
-  fi
+if [[ "x$NEXTCLOUD_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman image prune -a -f --filter "until=240h"
 fi
-
-podman pull docker.io/postgres:latest
 
 ADMIN_TOKEN=""
 if [[ -e "$POSTGRESQL_ETC_DIR/admin-token" ]]; then

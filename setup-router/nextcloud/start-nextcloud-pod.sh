@@ -139,6 +139,7 @@ podman run -d --name nextcloud \
   -e OVERWRITEHOST=$ROUTER_DOMAIN:6443 -e OVERWRITEPROTOCOL=https \
   -e NEXTCLOUD_ADMIN_USER=$ADMIN_USENAME -e NEXTCLOUD_ADMIN_PASSWORD=$ADMIN_TOKEN \
   -e APACHE_DISABLE_REWRITE_IP=1 -e TRUSTED_PROXIES=0.0.0.0/32 \
+  ${NEXTCLOUD_CACHE_OPTIONS[@]} \
   --mount type=bind,source=$NEXTCLOUD_ETC_DIR,target=/var/www/html/config \
   --mount type=bind,source=$NEXTCLOUD_DATA_DIR,target=/var/www/html/data \
   --mount type=bind,source=$NEXTCLOUD_APPS_DIR,target=/var/www/html/custom_apps \

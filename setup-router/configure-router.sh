@@ -52,6 +52,8 @@ NAT_SETUP_SKIP_IPV6=1
 
 ACMESH_SSL_DIR=$ROUTER_HOME/acme.sh/ssl
 SAMBA_DATA_DIR=$ROUTER_DATA_ROOT_DIR/samba
+REDIS_PORT=6379
+REDIS_DATA_DIR=$ROUTER_DATA_ROOT_DIR/redis/data
 POSTGRESQL_ADMIN_USER=owent
 POSTGRESQL_DATA_DIR=$SAMBA_DATA_DIR/postgresql/data
 POSTGRESQL_SHM_SIZE=1024 # MB
@@ -63,17 +65,18 @@ NEXTCLOUD_ETC_DIR=$SAMBA_DATA_DIR/nextcloud/etc
 NEXTCLOUD_EXTERNAL_DIR=$SAMBA_DATA_DIR/nextcloud/external
 NEXTCLOUD_REVERSE_ROOT_DIR="" # Set non empty and use fpm docker image when success
 NEXTCLOUD_TRUSTED_DOMAINS=""  # nextcloud domains and IPs
-ONLYOFFICE_DATA_DIR=$SAMBA_DATA_DIR/onlyoffice/data # /var/www/onlyoffice/Data
-ONLYOFFICE_CACHE_DIR=$SAMBA_DATA_DIR/onlyoffice/lib # /var/lib/onlyoffice
-ONLYOFFICE_DB_DIR=$SAMBA_DATA_DIR/onlyoffice/db     # /var/lib/postgresql
-ONLYOFFICE_LOG_DIR=$ROUTER_LOG_ROOT_DIR/onlyoffice  # /var/log/onlyoffice
-ONLYOFFICE_JWT_SECRET=                              # -e JWT_SECRET=$ONLYOFFICE_JWT_SECRET
-ONLYOFFICE_DB_TYPE=postgres                         # -e DB_TYPE=$ONLYOFFICE_DB_TYPE (postgres/mariadb/mysql)
-ONLYOFFICE_DB_HOST=127.0.0.1                        # -e DB_HOST=$ONLYOFFICE_DB_HOST
-ONLYOFFICE_DB_PORT=$POSTGRESQL_PORT                 # -e DB_PORT=$ONLYOFFICE_DB_PORT
-ONLYOFFICE_DB_NAME=onlyoffice                       # -e DB_NAME=$ONLYOFFICE_DB_NAME
-ONLYOFFICE_DB_USER=onlyoffice                       # -e DB_USER=$ONLYOFFICE_DB_USER
-ONLYOFFICE_DB_PASSWD=                               # -e DB_PWD=$ONLYOFFICE_DB_PASSWD
+NEXTCLOUD_CACHE_OPTIONS=()    # -e REDIS_HOST= -e REDIS_HOST_PORT= -e REDIS_HOST_PASSWORD=
+ONLYOFFICE_DATA_DIR=$ROUTER_DATA_ROOT_DIR/onlyoffice/data # /var/www/onlyoffice/Data
+ONLYOFFICE_CACHE_DIR=$ROUTER_DATA_ROOT_DIR/onlyoffice/lib # /var/lib/onlyoffice
+ONLYOFFICE_DB_DIR=$ROUTER_DATA_ROOT_DIR/onlyoffice/db     # /var/lib/postgresql
+ONLYOFFICE_LOG_DIR=$ROUTER_LOG_ROOT_DIR/onlyoffice        # /var/log/onlyoffice
+ONLYOFFICE_JWT_SECRET=                                    # -e JWT_SECRET=$ONLYOFFICE_JWT_SECRET
+ONLYOFFICE_DB_TYPE=postgres                               # -e DB_TYPE=$ONLYOFFICE_DB_TYPE (postgres/mariadb/mysql)
+ONLYOFFICE_DB_HOST=127.0.0.1                              # -e DB_HOST=$ONLYOFFICE_DB_HOST
+ONLYOFFICE_DB_PORT=$POSTGRESQL_PORT                       # -e DB_PORT=$ONLYOFFICE_DB_PORT
+ONLYOFFICE_DB_NAME=onlyoffice                             # -e DB_NAME=$ONLYOFFICE_DB_NAME
+ONLYOFFICE_DB_USER=onlyoffice                             # -e DB_USER=$ONLYOFFICE_DB_USER
+ONLYOFFICE_DB_PASSWD=                                     # -e DB_PWD=$ONLYOFFICE_DB_PASSWD
 
 TPROXY_SETUP_USING_GEOIP=0
 TPROXY_SETUP_IPSET=0
