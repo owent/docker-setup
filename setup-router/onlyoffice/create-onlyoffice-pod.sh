@@ -92,7 +92,10 @@ if [[ -z "$ONLYOFFICE_JWT_SECRET" ]]; then
   fi
 fi
 
-ONLYOFFICE_ENVS=(-e "TZ=Asia/Shanghai" -e JWT_SECRET="$ONLYOFFICE_JWT_SECRET")
+ONLYOFFICE_ENVS=(
+  -e "TZ=Asia/Shanghai" -e JWT_SECRET="$ONLYOFFICE_JWT_SECRET"
+  -e NGINX_WORKER_PROCESSES=12 -e NGINX_WORKER_CONNECTIONS=2048
+)
 if [[ ! -z "$ONLYOFFICE_DB_USER" ]] && [[ ! -z "$ONLYOFFICE_DB_PASSWD" ]] \
   && [[ ! -z "$ONLYOFFICE_DB_HOST" ]] && [[ ! -z "$ONLYOFFICE_DB_PORT" ]] \
   && [[ ! -z "$ONLYOFFICE_DB_NAME" ]] && [[ ! -z "$ONLYOFFICE_DB_TYPE" ]]; then

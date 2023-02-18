@@ -24,6 +24,11 @@ if [[ "x$RUN_HOME" == "x" ]]; then
   RUN_HOME="$HOME"
 fi
 
+NEXTCLOUD_SETTINGS=(
+  -e PHP_MEMORY_LIMIT=8192M
+  -e PHP_UPLOAD_LIMIT=4096M
+)
+
 if [[ "x$NEXTCLOUD_LISTEN_PORT" == "x" ]]; then
   NEXTCLOUD_LISTEN_PORT=6783
 fi
@@ -139,7 +144,7 @@ podman run -d --name nextcloud \
   -e OVERWRITEHOST=$ROUTER_DOMAIN:6443 -e OVERWRITEPROTOCOL=https \
   -e NEXTCLOUD_ADMIN_USER=$ADMIN_USENAME -e NEXTCLOUD_ADMIN_PASSWORD=$ADMIN_TOKEN \
   -e APACHE_DISABLE_REWRITE_IP=1 -e TRUSTED_PROXIES=0.0.0.0/32 \
-  ${NEXTCLOUD_CACHE_OPTIONS[@]} \
+  ${NEXTCLOUD_CACHE_OPTIONS[@]} ${NEXTCLOUD_SETTINGS[@]} \
   --mount type=bind,source=$NEXTCLOUD_ETC_DIR,target=/var/www/html/config \
   --mount type=bind,source=$NEXTCLOUD_DATA_DIR,target=/var/www/html/data \
   --mount type=bind,source=$NEXTCLOUD_APPS_DIR,target=/var/www/html/custom_apps \
@@ -152,6 +157,7 @@ podman run -d --name nextcloud \
 # --copy-links
 
 podman generate systemd --name nextcloud | tee "$RUN_HOME/nextcloud/container-nextcloud.service"
+podman exec nextcloud sed -i 's;pm.max_children[[:space:]]*=[[:space:]][0-9]*;pm.max_children = 16;g' /usr/local/etc/php-fpm.d/www.conf
 
 podman stop nextcloud
 
