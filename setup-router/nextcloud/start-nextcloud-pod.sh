@@ -130,6 +130,7 @@ if [[ "x$NEXTCLOUD_REVERSE_ROOT_DIR" != "x" ]]; then
     find "$NEXTCLOUD_REVERSE_ROOT_DIR/nextcloud/" -maxdepth 1 -mindepth 1 -name "*" | xargs -r rm -rf
     echo "[nextcloud] Copy static files..."
     podman cp --overwrite nextcloud_temporary:/usr/src/nextcloud/ "$NEXTCLOUD_REVERSE_ROOT_DIR"
+    [ -e "$NEXTCLOUD_REVERSE_ROOT_DIR/nextcloud/custom_apps" ] && rm -rf "$NEXTCLOUD_REVERSE_ROOT_DIR/nextcloud/custom_apps"
 
     # 不能删除 .php 文件,否则反向代理时nginx的try_files会检测不过
     # find "$NEXTCLOUD_REVERSE_ROOT_DIR" -name "*.php" -type f | xargs -r rm -f
