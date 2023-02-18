@@ -66,7 +66,7 @@ if [[ $? -eq 0 ]]; then
   systemctl --user disable container-nextcloud
 fi
 
-podman container inspect nextcloud >/dev/null 2>&1
+podman container exists nextcloud
 
 if [[ $? -eq 0 ]]; then
   podman stop nextcloud

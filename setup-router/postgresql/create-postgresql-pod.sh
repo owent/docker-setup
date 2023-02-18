@@ -52,7 +52,7 @@ if [[ $? -eq 0 ]]; then
   systemctl --user disable container-postgresql
 fi
 
-podman container inspect postgresql >/dev/null 2>&1
+podman container exists postgresql
 
 if [[ $? -eq 0 ]]; then
   podman stop postgresql

@@ -37,14 +37,14 @@ else
   fi
 fi
 
-podman container inspect router-samba >/dev/null 2>&1
+podman container exists router-samba
 if [[ $? -eq 0 ]]; then
   podman stop router-samba
   podman rm -f router-samba
 fi
 
 if [[ "x$SAMBA_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman image inspect router-samba >/dev/null 2>&1
+  podman image exists router-samba
   if [[ $? -eq 0 ]]; then
     podman image rm -f router-samba
   fi

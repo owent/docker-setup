@@ -62,7 +62,7 @@ if [[ $? -eq 0 ]]; then
   systemctl --user disable container-syncthing-relay-pool
 fi
 
-podman container inspect syncthing-relay-pool >/dev/null 2>&1
+podman container exists syncthing-relay-pool
 
 if [[ $? -eq 0 ]]; then
   podman stop syncthing-relay-pool
@@ -70,7 +70,7 @@ if [[ $? -eq 0 ]]; then
 fi
 
 if [[ "x$SYNCTHING_UPDATE" != "x" ]]; then
-  podman image inspect docker.io/syncthing/strelaypoolsrv:latest >/dev/null 2>&1
+  podman image exists docker.io/syncthing/strelaypoolsrv:latest
   if [[ $? -eq 0 ]]; then
     podman image rm -f docker.io/syncthing/strelaypoolsrv:latest
   fi

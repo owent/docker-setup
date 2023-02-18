@@ -42,14 +42,14 @@ else
   fi
 fi
 
-podman container inspect acme.sh >/dev/null 2>&1
+podman container exists acme.sh
 if [[ $? -eq 0 ]]; then
   podman stop acme.sh
   podman rm -f acme.sh
 fi
 
 if [[ "x$ACMESH_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman image inspect docker.io/neilpang/acme.sh:latest >/dev/null 2>&1
+  podman image exists docker.io/neilpang/acme.sh:latest
   if [[ $? -eq 0 ]]; then
     podman image rm -f docker.io/neilpang/acme.sh:latest
   fi

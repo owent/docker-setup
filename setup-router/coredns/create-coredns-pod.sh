@@ -62,7 +62,7 @@ else
   fi
 fi
 
-podman container inspect coredns >/dev/null 2>&1
+podman container exists coredns
 if [[ $? -eq 0 ]]; then
   podman stop coredns
   podman rm -f coredns

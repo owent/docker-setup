@@ -40,7 +40,7 @@ if [[ $? -eq 0 ]]; then
   systemctl --user disable container-redis
 fi
 
-podman container inspect redis >/dev/null 2>&1
+podman container exists redis >/dev/null 2>&1
 
 if [[ $? -eq 0 ]]; then
   podman stop redis
@@ -64,9 +64,21 @@ CMD [ \"redis-server\", \"/usr/local/etc/redis/redis.conf\" ]
 podman rmi local_redis || true
 podman build -t local_redis -f redis.Dockerfile
 
+if [[ ! -z "$REDIS_PRIVATE_NETWORK_NAME" ]] && [[ ! -z "$REDIS_PRIVATE_NETWORK_IP" ]]; then
+  REDIS_PRIVATE_GATEWAY_IP=$(echo $REDIS_PRIVATE_NETWORK_IP | sed -E 's;[0-9]+$;1;')
+  # --dns $ROUTER_INTERNAL_IPV4/--disable-dns
+  podman network exists $REDIS_PRIVATE_NETWORK_NAME \
+    || podman network create --driver bridge --ipam-driver host-local \
+      --disable-dns --subnet 10.85.0.0/16 \
+      $REDIS_PRIVATE_NETWORK_NAME
+  REDIS_NETWORK_OPTIONS=(--network=$REDIS_PRIVATE_NETWORK_NAME --ip=$REDIS_PRIVATE_NETWORK_IP)
+else
+  REDIS_NETWORK_OPTIONS=(-p $REDIS_PORT:6379/tcp)
+fi
+
 podman run -d --name redis --security-opt label=disable \
   --mount type=bind,source=$REDIS_DATA_DIR,target=/data \
-  -p $REDIS_PORT:6379/tcp \
+  ${REDIS_NETWORK_OPTIONS[@]} \
   local_redis
 
 podman stop redis

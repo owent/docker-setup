@@ -16,7 +16,7 @@ fi
 systemctl disable v2ray
 systemctl stop v2ray
 
-podman container inspect v2ray >/dev/null 2>&1
+podman container exists v2ray
 if [[ $? -eq 0 ]]; then
   podman stop v2ray
   podman rm -f v2ray

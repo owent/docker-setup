@@ -66,7 +66,7 @@ if [[ $? -eq 0 ]]; then
   systemctl --user disable container-syncthing-relay-node
 fi
 
-podman container inspect syncthing-relay-node >/dev/null 2>&1
+podman container exists syncthing-relay-node
 
 if [[ $? -eq 0 ]]; then
   podman stop syncthing-relay-node
@@ -74,7 +74,7 @@ if [[ $? -eq 0 ]]; then
 fi
 
 if [[ "x$SYNCTHING_UPDATE" != "x" ]]; then
-  podman image inspect docker.io/syncthing/relaysrv:latest >/dev/null 2>&1
+  podman image exists docker.io/syncthing/relaysrv:latest
   if [[ $? -eq 0 ]]; then
     podman image rm -f docker.io/syncthing/relaysrv:latest
   fi

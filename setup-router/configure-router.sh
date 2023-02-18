@@ -52,6 +52,8 @@ NAT_SETUP_SKIP_IPV6=1
 
 ACMESH_SSL_DIR=$ROUTER_HOME/acme.sh/ssl
 SAMBA_DATA_DIR=$ROUTER_DATA_ROOT_DIR/samba
+REDIS_PRIVATE_NETWORK_NAME=local-redis
+REDIS_PRIVATE_NETWORK_IP=10.85.0.9
 REDIS_PORT=6379
 REDIS_DATA_DIR=$ROUTER_DATA_ROOT_DIR/redis/data
 POSTGRESQL_ADMIN_USER=owent
@@ -63,9 +65,9 @@ NEXTCLOUD_DATA_DIR=$SAMBA_DATA_DIR/nextcloud/data
 NEXTCLOUD_APPS_DIR=$SAMBA_DATA_DIR/nextcloud/apps
 NEXTCLOUD_ETC_DIR=$SAMBA_DATA_DIR/nextcloud/etc
 NEXTCLOUD_EXTERNAL_DIR=$SAMBA_DATA_DIR/nextcloud/external
-NEXTCLOUD_REVERSE_ROOT_DIR="" # Set non empty and use fpm docker image when success
-NEXTCLOUD_TRUSTED_DOMAINS=""  # nextcloud domains and IPs
-NEXTCLOUD_CACHE_OPTIONS=()    # -e REDIS_HOST= -e REDIS_HOST_PORT= -e REDIS_HOST_PASSWORD=
+NEXTCLOUD_REVERSE_ROOT_DIR=""                             # Set non empty and use fpm docker image when success
+NEXTCLOUD_TRUSTED_DOMAINS=""                              # nextcloud domains and IPs
+NEXTCLOUD_CACHE_OPTIONS=()                                # --network=$REDIS_PRIVATE_NETWORK_NAME -e REDIS_HOST=$REDIS_PRIVATE_NETWORK_IP -e REDIS_HOST_PORT=$REDIS_PORT -e REDIS_HOST_PASSWORD=
 ONLYOFFICE_DATA_DIR=$ROUTER_DATA_ROOT_DIR/onlyoffice/data # /var/www/onlyoffice/Data
 ONLYOFFICE_CACHE_DIR=$ROUTER_DATA_ROOT_DIR/onlyoffice/lib # /var/lib/onlyoffice
 ONLYOFFICE_DB_DIR=$ROUTER_DATA_ROOT_DIR/onlyoffice/db     # /var/lib/postgresql
@@ -77,6 +79,7 @@ ONLYOFFICE_DB_PORT=$POSTGRESQL_PORT                       # -e DB_PORT=$ONLYOFFI
 ONLYOFFICE_DB_NAME=onlyoffice                             # -e DB_NAME=$ONLYOFFICE_DB_NAME
 ONLYOFFICE_DB_USER=onlyoffice                             # -e DB_USER=$ONLYOFFICE_DB_USER
 ONLYOFFICE_DB_PASSWD=                                     # -e DB_PWD=$ONLYOFFICE_DB_PASSWD
+ONLYOFFICE_CACHE_OPTIONS=()                               # --network=$REDIS_PRIVATE_NETWORK_NAME -e REDIS_SERVER_HOST=$REDIS_PRIVATE_NETWORK_IP -e REDIS_SERVER_PORT=$REDIS_PORT
 
 TPROXY_SETUP_USING_GEOIP=0
 TPROXY_SETUP_IPSET=0

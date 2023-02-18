@@ -125,7 +125,7 @@ else
   fi
 fi
 
-podman container inspect emby-server >/dev/null 2>&1
+podman container exists emby-server
 if [[ $? -eq 0 ]]; then
   podman stop emby-server
   podman rm -f emby-server

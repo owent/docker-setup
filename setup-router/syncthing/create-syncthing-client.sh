@@ -52,7 +52,7 @@ if [[ $? -eq 0 ]]; then
   systemctl --user disable container-syncthing-client
 fi
 
-podman container inspect syncthing-client >/dev/null 2>&1
+podman container exists syncthing-client
 
 if [[ $? -eq 0 ]]; then
   podman stop syncthing-client
@@ -60,7 +60,7 @@ if [[ $? -eq 0 ]]; then
 fi
 
 if [[ "x$SYNCTHING_UPDATE" != "x" ]]; then
-  podman image inspect docker.io/syncthing/syncthing:latest >/dev/null 2>&1
+  podman image exists docker.io/syncthing/syncthing:latest
   if [[ $? -eq 0 ]]; then
     podman image rm -f docker.io/syncthing/syncthing:latest
   fi

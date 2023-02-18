@@ -4,8 +4,18 @@
   > `mkdir -p $NEXTCLOUD_DATA_DIR $NEXTCLOUD_APPS_DIR $NEXTCLOUD_ETC_DIR && chmod 770 $NEXTCLOUD_DATA_DIR $NEXTCLOUD_APPS_DIR $NEXTCLOUD_ETC_DIR`
 2. Use the final domain (e.g. `home.x-ha.com`) to setup nextcloud
 3. Modify `trusted_domains` in `config.php` and add all trusted address
-4. Modify `overwrite.cli.url` in `config.php` to set it to final  homeurl of nextcloud.
+4. Modify `overwrite.cli.url` in `config.php` to set it to final homeurl of nextcloud.
 5. Modify/Add `'default_phone_region' => 'CN',` in `config.php`
+
+
+## occ commands
+
+```bash
+podman exec -u <run user> <container name> env PHP_MEMORY_LIMIT=1024M php occ ...
+
+# Examples
+podman exec -u www-data nextcloud env PHP_MEMORY_LIMIT=1024M php occ app:install documentserver_community
+```
 
 ## postgresql
 

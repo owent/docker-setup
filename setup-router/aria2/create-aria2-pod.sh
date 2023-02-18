@@ -54,14 +54,14 @@ else
   fi
 fi
 
-podman container inspect aria2 >/dev/null 2>&1
+podman container exists aria2
 if [[ $? -eq 0 ]]; then
   podman stop aria2
   podman rm -f aria2
 fi
 
 if [[ "x$ARIA2_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman image inspect local-aria2 >/dev/null 2>&1
+  podman image exists local-aria2
   if [[ $? -eq 0 ]]; then
     podman image rm -f local-aria2
   fi

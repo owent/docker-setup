@@ -64,7 +64,7 @@ else
   fi
 fi
 
-podman container inspect smartdns >/dev/null 2>&1
+podman container exists smartdns
 if [[ $? -eq 0 ]]; then
   podman stop smartdns
   podman rm -f smartdns

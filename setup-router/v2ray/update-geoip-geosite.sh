@@ -27,7 +27,7 @@ else
   exit 1
 fi
 
-podman container inspect v2ray >/dev/null 2>&1
+podman container exists v2ray
 if [[ $? -eq 0 ]]; then
 
   podman cp geoip.dat v2ray:/usr/local/v2ray/bin/geoip.dat

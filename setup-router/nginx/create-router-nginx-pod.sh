@@ -37,7 +37,7 @@ if [[ "x$NGINX_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman pull docker.io/nginx:latest
 fi
 
-podman container inspect router-nginx >/dev/null 2>&1
+podman container exists router-nginx
 
 if [[ $? -eq 0 ]]; then
   podman stop router-nginx

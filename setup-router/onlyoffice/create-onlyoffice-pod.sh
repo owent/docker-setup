@@ -71,7 +71,7 @@ if [[ $? -eq 0 ]]; then
   systemctl --user disable container-onlyoffice
 fi
 
-podman container inspect onlyoffice >/dev/null 2>&1
+podman container exists onlyoffice
 
 if [[ $? -eq 0 ]]; then
   podman stop onlyoffice
@@ -93,19 +93,19 @@ if [[ -z "$ONLYOFFICE_JWT_SECRET" ]]; then
 fi
 
 ONLYOFFICE_ENVS=(-e "TZ=Asia/Shanghai" -e JWT_SECRET="$ONLYOFFICE_JWT_SECRET")
-if [[ ! -z "$ONLYOFFICE_DB_USER" ]] && [[ ! -z "$ONLYOFFICE_DB_PASSWD" ]] && \
-  [[ ! -z "$ONLYOFFICE_DB_HOST" ]] && [[ ! -z "$ONLYOFFICE_DB_PORT" ]] && \
-  [[ ! -z "$ONLYOFFICE_DB_NAME" ]] && [[ ! -z "$ONLYOFFICE_DB_TYPE" ]]; then
-  ONLYOFFICE_ENVS=(${ONLYOFFICE_ENVS[@]} -e DB_TYPE=$ONLYOFFICE_DB_TYPE \
-    -e DB_HOST=$ONLYOFFICE_DB_HOST -e DB_PORT=$ONLYOFFICE_DB_PORT \
-    -e DB_NAME=$ONLYOFFICE_DB_NAME -e DB_USER=$ONLYOFFICE_DB_USER \
+if [[ ! -z "$ONLYOFFICE_DB_USER" ]] && [[ ! -z "$ONLYOFFICE_DB_PASSWD" ]] \
+  && [[ ! -z "$ONLYOFFICE_DB_HOST" ]] && [[ ! -z "$ONLYOFFICE_DB_PORT" ]] \
+  && [[ ! -z "$ONLYOFFICE_DB_NAME" ]] && [[ ! -z "$ONLYOFFICE_DB_TYPE" ]]; then
+  ONLYOFFICE_ENVS=(${ONLYOFFICE_ENVS[@]} -e DB_TYPE=$ONLYOFFICE_DB_TYPE
+    -e DB_HOST=$ONLYOFFICE_DB_HOST -e DB_PORT=$ONLYOFFICE_DB_PORT
+    -e DB_NAME=$ONLYOFFICE_DB_NAME -e DB_USER=$ONLYOFFICE_DB_USER
     -e DB_PWD=$ONLYOFFICE_DB_PASSWD)
 fi
 
 podman run -d --name onlyoffice \
   --security-opt seccomp=unconfined \
   --security-opt label=disable \
-  ${ONLYOFFICE_ENVS[@]} \
+  ${ONLYOFFICE_ENVS[@]} ${ONLYOFFICE_CACHE_OPTIONS[@]} \
   --mount type=bind,source=$ONLYOFFICE_DATA_DIR,target=/var/www/onlyoffice/Data \
   --mount type=bind,source=$ONLYOFFICE_CACHE_DIR,target=/var/lib/onlyoffice \
   --mount type=bind,source=$ONLYOFFICE_DB_DIR,target=/var/lib/postgresql \

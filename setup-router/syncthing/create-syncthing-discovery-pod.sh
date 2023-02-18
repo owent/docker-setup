@@ -66,7 +66,7 @@ if [[ $? -eq 0 ]]; then
   systemctl --user disable container-syncthing-discovery
 fi
 
-podman container inspect syncthing-discovery >/dev/null 2>&1
+podman container exists syncthing-discovery
 
 if [[ $? -eq 0 ]]; then
   podman stop syncthing-discovery
@@ -74,7 +74,7 @@ if [[ $? -eq 0 ]]; then
 fi
 
 if [[ "x$SYNCTHING_UPDATE" != "x" ]]; then
-  podman image inspect docker.io/syncthing/discosrv:latest >/dev/null 2>&1
+  podman image exists docker.io/syncthing/discosrv:latest
   if [[ $? -eq 0 ]]; then
     podman image rm -f docker.io/syncthing/discosrv:latest
   fi

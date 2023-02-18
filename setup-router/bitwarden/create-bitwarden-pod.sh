@@ -28,7 +28,7 @@ if [[ $? -eq 0 ]]; then
   systemctl --user disable container-bitwarden
 fi
 
-podman container inspect bitwarden >/dev/null 2>&1
+podman container exists bitwarden
 
 if [[ $? -eq 0 ]]; then
   podman stop bitwarden
@@ -36,7 +36,7 @@ if [[ $? -eq 0 ]]; then
 fi
 
 if [[ "x$BITWARDEN_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman image inspect docker.io/vaultwarden/server:latest >/dev/null 2>&1
+  podman image exists docker.io/vaultwarden/server:latest
   if [[ $? -eq 0 ]]; then
     podman image rm -f docker.io/vaultwarden/server:latest
   fi

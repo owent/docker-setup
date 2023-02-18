@@ -12,7 +12,7 @@ if [[ $? -eq 0 ]]; then
   systemctl disable router
 fi
 
-podman container inspect router >/dev/null 2>&1
+podman container exists router
 
 if [[ $? -eq 0 ]]; then
   podman stop router

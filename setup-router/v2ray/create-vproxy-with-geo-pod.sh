@@ -107,14 +107,14 @@ else
 fi
 
 # Caddy fallback server(Legacy name)
-podman container inspect v2ray-caddy-fallback >/dev/null 2>&1
+podman container exists v2ray-caddy-fallback
 if [[ $? -eq 0 ]]; then
   podman stop v2ray-caddy-fallback
   podman rm -f v2ray-caddy-fallback
 fi
 
 # Caddy fallback server(New name)
-podman container inspect vproxy-caddy-fallback >/dev/null 2>&1
+podman container exists vproxy-caddy-fallback
 if [[ $? -eq 0 ]]; then
   podman stop vproxy-caddy-fallback
   podman rm -f vproxy-caddy-fallback
@@ -145,7 +145,7 @@ podman generate systemd vproxy-caddy-fallback | tee -p "$SYSTEMD_SERVICE_DIR/vpr
 podman container stop vproxy-caddy-fallback
 
 # proxy
-podman container inspect vproxy-with-geo >/dev/null 2>&1
+podman container exists vproxy-with-geo
 if [[ $? -eq 0 ]]; then
   podman stop vproxy-with-geo
   podman rm -f vproxy-with-geo

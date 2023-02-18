@@ -9,14 +9,14 @@ source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 systemctl disable jellyfin
 systemctl stop jellyfin
 
-podman container inspect jellyfin >/dev/null 2>&1
+podman container exists jellyfin
 if [[ $? -eq 0 ]]; then
   podman stop jellyfin
   podman rm -f jellyfin
 fi
 
 if [[ "x$JELLYFIN_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman image inspect docker.io/jellyfin/jellyfin:latest >/dev/null 2>&1
+  podman image exists docker.io/jellyfin/jellyfin:latest
   if [[ $? -eq 0 ]]; then
     podman image rm -f docker.io/jellyfin/jellyfin:latest
   fi
