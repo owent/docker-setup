@@ -25,8 +25,8 @@ if [[ "x$RUN_HOME" == "x" ]]; then
 fi
 
 NEXTCLOUD_SETTINGS=(
-  -e PHP_MEMORY_LIMIT=8192M
-  -e PHP_UPLOAD_LIMIT=4096M
+  -e PHP_MEMORY_LIMIT=2000M
+  -e PHP_UPLOAD_LIMIT=2000M # 32bit int, must less than 2GB
 )
 
 if [[ "x$NEXTCLOUD_LISTEN_PORT" == "x" ]]; then
@@ -127,7 +127,7 @@ if [[ "x$NEXTCLOUD_REVERSE_ROOT_DIR" != "x" ]]; then
   podman run --name nextcloud_temporary local_nextcloud bash -c 'du -sh /usr/src/nextcloud/*'
   if [[ $? -eq 0 ]]; then
     echo "[nextcloud] Remove old static files..."
-    find "$NEXTCLOUD_REVERSE_ROOT_DIR" -maxdepth 1 -mindepth 1 -name "*" | xargs -r rm -rf
+    find "$NEXTCLOUD_REVERSE_ROOT_DIR/nextcloud/" -maxdepth 1 -mindepth 1 -name "*" | xargs -r rm -rf
     echo "[nextcloud] Copy static files..."
     podman cp --overwrite nextcloud_temporary:/usr/src/nextcloud/ "$NEXTCLOUD_REVERSE_ROOT_DIR"
 

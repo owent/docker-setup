@@ -54,7 +54,9 @@ mkdir -p "$SAMBA_DATA_DIR/download"
 NGINX_MOUNT_DIRS=("--mount" "type=bind,source=$SAMBA_DATA_DIR/download,target=/usr/share/nginx/html/downloads")
 
 if [[ "x$NEXTCLOUD_REVERSE_ROOT_DIR" != "x" ]]; then
-  NGINX_MOUNT_DIRS=(${NGINX_MOUNT_DIRS[@]} "--mount" "type=bind,source=$NEXTCLOUD_REVERSE_ROOT_DIR,target=/usr/share/nginx/html/")
+  NGINX_MOUNT_DIRS=(${NGINX_MOUNT_DIRS[@]}
+    "--mount" "type=bind,source=$NEXTCLOUD_REVERSE_ROOT_DIR/nextcloud,target=/usr/share/nginx/html/nextcloud"
+    "--mount" "type=bind,source=$NEXTCLOUD_APPS_DIR,target=/usr/share/nginx/html/nextcloud/custom_apps")
 fi
 
 podman run -d --name router-nginx --security-opt label=disable \
