@@ -122,6 +122,9 @@ podman generate systemd --name onlyoffice | tee "$RUN_HOME/onlyoffice/container-
 # podman exec onlyoffice sudo supervisorctl start ds:example
 # podman exec onlyoffice sudo sed 's,autostart=false,autostart=true,' -i /etc/supervisor/conf.d/ds-example.conf
 podman exec onlyoffice ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+podman exec onlyoffice sed -i 's;worker_processes[[:space:]]*1;worker_processes 8;' /etc/nginx/nginx.conf
+podman exec onlyoffice sed -i '/use[[:space:]]*epoll/d' /etc/nginx/nginx.conf
+podman exec onlyoffice sed -i '/events[[:space:]]*{/a use epoll;' /etc/nginx/nginx.conf
 
 podman stop onlyoffice
 

@@ -66,6 +66,7 @@ podman run -d --name router-nginx --security-opt label=disable \
   ${NGINX_MOUNT_DIRS[@]} \
   --network=host docker.io/nginx:latest nginx -c /etc/nginx/nginx.conf
 
+podman exec router-nginx usermod -a -G root nginx
 podman generate systemd router-nginx | tee -p "$SYSTEMD_SERVICE_DIR/router-nginx.service"
 podman container stop router-nginx
 

@@ -6,7 +6,10 @@
 3. Modify `trusted_domains` in `config.php` and add all trusted address
 4. Modify `overwrite.cli.url` in `config.php` to set it to final homeurl of nextcloud.
 5. Modify/Add `'default_phone_region' => 'CN',` in `config.php`
-
+6. Set and mount nginx paths:
+  + Set root of `nextcloud-fpm.nginx.conf` to `/usr/share/nginx/html/nextcloud`
+  + Mount `$NEXTCLOUD_REVERSE_ROOT_DIR/nextcloud` -> `/usr/share/nginx/html/nextcloud`.
+  + Mount `$NEXTCLOUD_APPS_DIR` -> `/usr/share/nginx/html/nextcloud/custom_apps`.
 
 ## occ commands
 
@@ -30,3 +33,7 @@ psql -h localhost -U postgres
 
   \q
 ```
+
+## 连接onlyoffice
+
+注意: 如果局域网跨机器需要设置DNS，本地解析指向内网地址，外网解析走正常DNS/DDNS 。否则跨网点网络很不稳定。

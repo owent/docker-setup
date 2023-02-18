@@ -69,7 +69,7 @@ if [[ ! -z "$REDIS_PRIVATE_NETWORK_NAME" ]] && [[ ! -z "$REDIS_PRIVATE_NETWORK_I
   # --dns $ROUTER_INTERNAL_IPV4/--disable-dns
   podman network exists $REDIS_PRIVATE_NETWORK_NAME \
     || podman network create --driver bridge --ipam-driver host-local \
-      --disable-dns --subnet 10.85.0.0/16 \
+      --dns $ROUTER_INTERNAL_IPV4 --subnet 10.85.0.0/16 \
       $REDIS_PRIVATE_NETWORK_NAME
   REDIS_NETWORK_OPTIONS=(--network=$REDIS_PRIVATE_NETWORK_NAME --ip=$REDIS_PRIVATE_NETWORK_IP)
 else
