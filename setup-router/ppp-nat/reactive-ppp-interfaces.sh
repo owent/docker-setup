@@ -28,11 +28,18 @@ function check_banned() {
 function nmcli_up_connection() {
   echo "nmcli connection up $1" | systemd-cat -t router-ppp -p info
   nmcli connection up "$1"
+
+  return $?
 }
 
 echo "All pppoe interfaces: ${ALL_PPP_INERFACES[@]}"
 echo "Actived pppoe interfaces: ${ACTIVED_PPP_INERFACES[@]}"
 
+PPP_HAVE_ACTIVE_PPP_INTERFACE=0
 for PPP_INERFACE in ${ALL_PPP_INERFACES[@]}; do
-  check_actived "$PPP_INERFACE" || check_banned "$PPP_INERFACE" || nmcli_up_connection "$PPP_INERFACE"
+  check_actived "$PPP_INERFACE" || check_banned "$PPP_INERFACE" || nmcli_up_connection "$PPP_INERFACE" && PPP_HAVE_ACTIVE_PPP_INTERFACE=1
 done
+
+if [[ $PPP_HAVE_ACTIVE_PPP_INTERFACE -ne 0 ]] && [[ -e "$ROUTER_HOME/coredns/setup-resolv.sh" ]] && [[ $(ps aux | grep coredns | grep -v grep | wc -l) -gt 0 ]]; then
+  bash "$ROUTER_HOME/coredns/setup-resolv.sh"
+fi

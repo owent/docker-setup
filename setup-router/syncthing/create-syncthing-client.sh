@@ -28,14 +28,18 @@ fi
 if [[ "x$SYNCTHING_CLIENT_HOME_DIR" == "x" ]]; then
   SYNCTHING_CLIENT_HOME_DIR="$RUN_HOME/syncthing/home"
 fi
-mkdir -p "$SYNCTHING_CLIENT_HOME_DIR"
-chmod 777 "$SYNCTHING_CLIENT_HOME_DIR"
+if [[ ! -e "$SYNCTHING_CLIENT_HOME_DIR/data" ]]; then
+  mkdir -p "$SYNCTHING_CLIENT_HOME_DIR/data"
+  chmod 777 "$SYNCTHING_CLIENT_HOME_DIR"
+fi
 
 if [[ "x$SYNCTHING_SSL_DIR" == "x" ]]; then
   SYNCTHING_SSL_DIR="$RUN_HOME/syncthing/ssl/"
 fi
-mkdir -p "$SYNCTHING_SSL_DIR"
-chmod 777 "$SYNCTHING_SSL_DIR"
+if [[ ! -e "$SYNCTHING_SSL_DIR" ]]; then
+  mkdir -p "$SYNCTHING_SSL_DIR"
+  chmod 777 "$SYNCTHING_SSL_DIR"
+fi
 
 if [[ "x$SYNCTHING_SSL_CERT" == "x" ]]; then
   SYNCTHING_SSL_CERT="$SYNCTHING_SSL_DIR/cert.pem"
