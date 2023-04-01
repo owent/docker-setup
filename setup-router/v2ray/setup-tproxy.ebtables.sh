@@ -32,6 +32,13 @@ for SKIP_PORT in $(echo $ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT | sed 's/,/ /g
   fi
 done
 
+### bridge - skip black vlans
+if [[ ${#TPROXY_BLACKLIST_VLAN_TAGS[@]} -gt 0 ]]; then
+  for BLACK_VLAN_ID in ${TPROXY_BLACKLIST_VLAN_TAGS[@]}; do
+    ebtables -t broute -A V2RAY_BRIDGE -p 802_1Q --vlan-id $BLACK_VLAN_ID -j RETURN
+  done
+fi
+
 ### bridge - skip link-local and broadcast address
 ebtables -t broute -A V2RAY_BRIDGE --mark 0x70/0x70 -j RETURN
 

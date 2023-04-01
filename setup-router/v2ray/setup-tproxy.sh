@@ -112,7 +112,7 @@ for IP_ADDR in $(echo ${SETUP_WITH_BLACKLIST_IPV4//,/ }); do
   ipset add V2RAY_BLACKLIST_IPV4 $IP_ADDR -exist
 done
 
-if [ $TPROXY_SETUP_USING_GEOIP -ne 0 ]; then
+if [[ $TPROXY_SETUP_USING_GEOIP -ne 0 ]]; then
   ipset list GEOIP_IPV4_CN >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
     ipset create GEOIP_IPV4_CN hash:net family inet

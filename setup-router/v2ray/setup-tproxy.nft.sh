@@ -53,6 +53,16 @@ if [[ "x" == "x$SETUP_WITH_DEBUG_LOG" ]]; then
   SETUP_WITH_DEBUG_LOG=0
 fi
 
+if [[ ${#TPROXY_BLACKLIST_VLAN_TAGS[@]} -gt 0 ]]; then
+  SETUP_WITH_BLACKLIST_VLAN_IDS="{"
+  for VLAN_TAG in "${TPROXY_BLACKLIST_VLAN_TAGS[@]}"; do
+    SETUP_WITH_BLACKLIST_VLAN_IDS="$SETUP_WITH_BLACKLIST_VLAN_IDS$VLAN_TAG,"
+  done
+  SETUP_WITH_BLACKLIST_VLAN_IDS="${SETUP_WITH_BLACKLIST_VLAN_IDS::-1}}"
+else
+  SETUP_WITH_BLACKLIST_VLAN_IDS=""
+fi
+
 if [[ $(ip -4 route list 0.0.0.0/0 dev lo table 100 | wc -l) -eq 0 ]]; then
   ip -4 route add local 0.0.0.0/0 dev lo table 100
 fi
@@ -173,6 +183,11 @@ nft add rule ip v2ray PREROUTING udp dport "{$ROUTER_INTERNAL_DIRECTLY_VISIT_UDP
 nft add rule ip v2ray PREROUTING ip daddr != @PROXY_DNS_IPV4 udp dport '{53, 853}' return
 nft add rule ip v2ray PREROUTING ip daddr != @PROXY_DNS_IPV4 tcp dport '{53, 853}' return
 
+## ipv4 - skip black vlans
+if [[ ! -z "$SETUP_WITH_BLACKLIST_VLAN_IDS" ]]; then
+  nft add rule ip v2ray PREROUTING vlan id "$SETUP_WITH_BLACKLIST_VLAN_IDS" return
+fi
+
 ### ipv4 - skip link-local and broadcast address, 172.20.1.1/24 is used for remote debug
 nft add rule ip v2ray PREROUTING ip daddr {224.0.0.0/4, 255.255.255.255/32, 172.20.1.1/24} return
 ### ipv4 - skip private network and UDP of DNS
@@ -222,6 +237,11 @@ nft add rule ip v2ray OUTPUT udp sport "{$ROUTER_INTERNAL_SERVICE_PORT_UDP}" ret
 nft add rule ip v2ray OUTPUT udp dport "{$ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT}" return
 nft add rule ip v2ray OUTPUT ip daddr != @PROXY_DNS_IPV4 udp dport '{53, 853}' return
 nft add rule ip v2ray OUTPUT ip daddr != @PROXY_DNS_IPV4 tcp dport '{53, 853}' return
+
+## ipv4 - skip black vlans
+if [[ ! -z "$SETUP_WITH_BLACKLIST_VLAN_IDS" ]]; then
+  nft add rule ip v2ray OUTPUT vlan id "$SETUP_WITH_BLACKLIST_VLAN_IDS" return
+fi
 
 # 172.20.1.1/24 is used for remote debug
 nft add rule ip v2ray OUTPUT ip daddr {224.0.0.0/4, 255.255.255.255/32, 172.20.1.1/24} return
@@ -304,6 +324,11 @@ if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   nft add rule ip6 v2ray PREROUTING ip6 daddr != @PROXY_DNS_IPV6 tcp dport '{53, 853}' return
   nft add rule ip6 v2ray PREROUTING mark and 0x70 == 0x70 return
 
+  ### ipv6 - skip black vlans
+  if [[ ! -z "$SETUP_WITH_BLACKLIST_VLAN_IDS" ]]; then
+    nft add rule ip6 v2ray PREROUTING vlan id "$SETUP_WITH_BLACKLIST_VLAN_IDS" return
+  fi
+
   ### ipv6 - skip multicast
   nft add rule ip6 v2ray PREROUTING ip6 daddr '{ ff00::/8 }' return
   ### ipv6 - skip link/unique-local fc00::/7,fe80::/10 and ::1/128 are in ip -6 address show scope host/link
@@ -346,6 +371,11 @@ if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   nft add rule ip6 v2ray OUTPUT udp dport "{$ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT}" return
   nft add rule ip6 v2ray OUTPUT ip6 daddr != @PROXY_DNS_IPV6 udp dport '{53, 853}' return
   nft add rule ip6 v2ray OUTPUT ip6 daddr != @PROXY_DNS_IPV6 tcp dport '{53, 853}' return
+
+  ### ipv6 - skip black vlans
+  if [[ ! -z "$SETUP_WITH_BLACKLIST_VLAN_IDS" ]]; then
+    nft add rule ip6 v2ray OUTPUT vlan id "$SETUP_WITH_BLACKLIST_VLAN_IDS" return
+  fi
 
   ### ipv6 - skip multicast
   nft add rule ip6 v2ray OUTPUT ip6 daddr '{ ff00::/8 }' return
@@ -422,7 +452,7 @@ nft list set bridge v2ray PERMANENT_WHITELIST_IPV6 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   nft add set bridge v2ray PERMANENT_WHITELIST_IPV6 '{ type ipv6_addr; flags interval; auto-merge; }'
 fi
-if [ ${#TPROXY_WHITELIST_IPV6[@]} -gt 0 ]; then
+if [[ ${#TPROXY_WHITELIST_IPV6[@]} -gt 0 ]]; then
   nft add element bridge v2ray PERMANENT_WHITELIST_IPV6 "{$(echo "${TPROXY_WHITELIST_IPV6[@]}" | sed -E 's;[[:space:]]+;,;g')}"
 fi
 
@@ -441,6 +471,11 @@ nft add rule bridge v2ray PREROUTING ip daddr != @PROXY_DNS_IPV4 udp dport '{53,
 nft add rule bridge v2ray PREROUTING ip daddr != @PROXY_DNS_IPV4 tcp dport '{53, 853}' return
 nft add rule bridge v2ray PREROUTING ip6 daddr != @PROXY_DNS_IPV6 udp dport '{53, 853}' return
 nft add rule bridge v2ray PREROUTING ip6 daddr != @PROXY_DNS_IPV6 tcp dport '{53, 853}' return
+
+## bridge - skip black vlans
+if [[ ! -z "$SETUP_WITH_BLACKLIST_VLAN_IDS" ]]; then
+  nft add rule bridge v2ray PREROUTING vlan id "$SETUP_WITH_BLACKLIST_VLAN_IDS" return
+fi
 
 ### bridge - skip link-local and broadcast address
 nft add rule bridge v2ray PREROUTING mark and 0x70 == 0x70 return
