@@ -118,7 +118,8 @@ RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ; \\
     apt update -y && apt upgrade -y; \\
     apt install -y cron vim; \\
     crontab -l > /tmp/cronjobs.tmp 2>/dev/null ; \\
-    echo '15 3 * * * su www-data -s /bin/bash -c "/usr/local/bin/php /var/www/html/cron.php"' >> /tmp/cronjobs.tmp ; \\
+    echo '*/5 * * * * su www-data -s /bin/bash -c "/usr/local/bin/php /var/www/html/cron.php"' >> /tmp/cronjobs.tmp ; \\
+    crontab /tmp/cronjobs.tmp && rm -f /tmp/cronjobs.tmp ; \\
     rm -rf /var/lib/apt/lists/*
 " >nextcloud.Dockerfile
 
@@ -165,7 +166,9 @@ podman run -d --name nextcloud \
   local_nextcloud
 # --copy-links
 
-podman generate systemd --name nextcloud | tee "$RUN_HOME/nextcloud/container-nextcloud.service"
+podman generate systemd --name nextcloud \
+  | sed "/ExecStart=/a ExecStartPost=/usr/bin/podman exec nextcloud /bin/bash /etc/init.d/cron restart" \
+  | tee "$RUN_HOME/nextcloud/container-nextcloud.service"
 podman exec nextcloud sed -i 's;pm.max_children[[:space:]]*=[[:space:]][0-9]*;pm.max_children = 16;g' /usr/local/etc/php-fpm.d/www.conf
 
 podman stop nextcloud
