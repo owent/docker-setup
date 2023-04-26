@@ -108,10 +108,18 @@ echo "FROM $NEXTCLOUD_BASE_IMAGE
 LABEL maintainer \"OWenT <admin@owent.net>\"
 
 RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ; \\
+    export DEBIAN_FRONTEND=noninteractive; \\
     usermod -g root www-data; \\
     usermod -a -G www-data www-data; \\
     chown -R www-data:root /var/www/html/config /var/www/html/data /var/www/html/custom_apps; \\
-    chmod -R 770 /var/www/html/config /var/www/html/data /var/www/html/custom_apps
+    chmod -R 770 /var/www/html/config /var/www/html/data /var/www/html/custom_apps; \\
+    sed -i -r 's;#?https?://.*/debian-security/?[[:space:]];http://mirrors.tencent.com/debian-security/ ;g' /etc/apt/sources.list ; \\
+    sed -i -r 's;#?https?://.*/debian/?[[:space:]];http://mirrors.tencent.com/debian/ ;g' /etc/apt/sources.list ; \\
+    apt update -y && apt upgrade -y; \\
+    apt install -y cron vim; \\
+    crontab -l > /tmp/cronjobs.tmp 2>/dev/null ; \\
+    echo '15 3 * * * su www-data -s /bin/bash -c "/usr/local/bin/php /var/www/html/cron.php"' >> /tmp/cronjobs.tmp ; \\
+    rm -rf /var/lib/apt/lists/*
 " >nextcloud.Dockerfile
 
 podman rmi local_nextcloud || true
