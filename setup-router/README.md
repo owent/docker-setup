@@ -87,11 +87,13 @@ net.ipv4.conf.enp1s0f1.route_localnet=1
 # NDP with radvd and dnsmasq enable ipv6 router advisement with ppp interface
 net.ipv6.conf.all.proxy_ndp=1
 net.ipv6.conf.default.proxy_ndp=1
-net.ipv6.conf.br0.forwarding=1
+net.ipv6.conf.br0.autoconf=0
 ## ================= Untest =================
 # Disable local-link address for internal bridge(For IPv6 NAT)
-net.ipv6.conf.br0.autoconf=0
+net.ipv6.conf.br0.forwarding=1
+net.ipv6.conf.br0.proxy_ndp=1
 net.ipv6.conf.br0.accept_ra=2
+# For all other interfaces set these 3 options
 " | sudo tee /etc/sysctl.d/91-forwarding.conf ;
 
 echo "net.ipv4.ip_unprivileged_port_start=80
