@@ -112,16 +112,17 @@ RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ; \\
     usermod -g root www-data; \\
     usermod -a -G www-data www-data; \\
     chown -R www-data:root /var/www/html/config /var/www/html/data /var/www/html/custom_apps; \\
-    chmod -R 770 /var/www/html/config /var/www/html/data /var/www/html/custom_apps; \\
-    sed -i -r 's;#?https?://.*/debian-security/?[[:space:]];http://mirrors.tencent.com/debian-security/ ;g' /etc/apt/sources.list ; \\
-    sed -i -r 's;#?https?://.*/debian/?[[:space:]];http://mirrors.tencent.com/debian/ ;g' /etc/apt/sources.list ; \\
-    apt update -y && apt upgrade -y; \\
-    apt install -y cron vim; \\
-    crontab -l > /tmp/cronjobs.tmp 2>/dev/null ; \\
-    echo '*/5 * * * * su www-data -s /bin/bash -c "/usr/local/bin/php /var/www/html/cron.php"' >> /tmp/cronjobs.tmp ; \\
-    crontab /tmp/cronjobs.tmp && rm -f /tmp/cronjobs.tmp ; \\
-    rm -rf /var/lib/apt/lists/*
+    chmod -R 770 /var/www/html/config /var/www/html/data /var/www/html/custom_apps;
 " >nextcloud.Dockerfile
+
+#     sed -i -r 's;#?https?://.*/debian-security/?[[:space:]];http://mirrors.tencent.com/debian-security/ ;g' /etc/apt/sources.list ; \\
+#     sed -i -r 's;#?https?://.*/debian/?[[:space:]];http://mirrors.tencent.com/debian/ ;g' /etc/apt/sources.list ; \\
+#     apt update -y && apt upgrade -y; \\
+#     apt install -y cron vim; \\
+#     crontab -l > /tmp/cronjobs.tmp 2>/dev/null ; \\
+#     echo '*/5 * * * * su www-data -s /bin/bash -c "/usr/local/bin/php /var/www/html/cron.php"' >> /tmp/cronjobs.tmp ; \\
+#     crontab /tmp/cronjobs.tmp && rm -f /tmp/cronjobs.tmp ; \\
+#     rm -rf /var/lib/apt/lists/*
 
 podman rmi local_nextcloud || true
 podman build \
@@ -167,7 +168,7 @@ podman run -d --name nextcloud \
 # --copy-links
 
 podman generate systemd --name nextcloud \
-  | sed "/ExecStart=/a ExecStartPost=/usr/bin/podman exec nextcloud /bin/bash /etc/init.d/cron restart" \
+  | sed "/ExecStart=/a ExecStartPost=/usr/bin/podman exec -d nextcloud /bin/su www-data -s /bin/bash /cron.sh" \
   | tee "$RUN_HOME/nextcloud/container-nextcloud.service"
 podman exec nextcloud sed -i 's;pm.max_children[[:space:]]*=[[:space:]][0-9]*;pm.max_children = 16;g' /usr/local/etc/php-fpm.d/www.conf
 
