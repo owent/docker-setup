@@ -168,7 +168,7 @@ podman run -d --name nextcloud \
 # --copy-links
 
 podman generate systemd --name nextcloud \
-  | sed "/ExecStart=/a ExecStartPost=/usr/bin/podman exec -d nextcloud /bin/su www-data -s /bin/bash /cron.sh" \
+  | sed "/ExecStart=/a ExecStartPost=/usr/bin/podman exec -d nextcloud /bin/bash /cron.sh" \
   | tee "$RUN_HOME/nextcloud/container-nextcloud.service"
 podman exec nextcloud sed -i 's;pm.max_children[[:space:]]*=[[:space:]][0-9]*;pm.max_children = 16;g' /usr/local/etc/php-fpm.d/www.conf
 
