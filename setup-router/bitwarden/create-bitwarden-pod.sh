@@ -21,6 +21,10 @@ if [[ "x$BITWARDEN_DATA_DIR" == "x" ]]; then
 fi
 mkdir -p "$BITWARDEN_DATA_DIR"
 
+if [[ "x$BITWARDEN_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman pull docker.io/vaultwarden/server:latest
+fi
+
 systemctl --user --all | grep -F container-bitwarden.service
 
 if [[ $? -eq 0 ]]; then
@@ -36,13 +40,8 @@ if [[ $? -eq 0 ]]; then
 fi
 
 if [[ "x$BITWARDEN_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman image exists docker.io/vaultwarden/server:latest
-  if [[ $? -eq 0 ]]; then
-    podman image rm -f docker.io/vaultwarden/server:latest
-  fi
+  podman image prune -a -f --filter "until=240h"
 fi
-
-podman pull docker.io/vaultwarden/server:latest
 
 ADMIN_TOKEN=$(openssl rand -base64 48)
 
