@@ -30,4 +30,7 @@ StartLimitInterval=300s
 WantedBy=multi-user.target
 ```
 
+ 可以使用定时运行 `ip -o addr | grep "$ROUTER_INTERNAL_IPV4" > /dev/null && (systemctl -q status dhcpd4.service > /dev/null || systemctl start dhcpd4.service)` 来重试启动。
+ 上面的service配置容易被冲刷掉。
+
 + 注意多个vlan时，要排除不需要的interface（subnet）

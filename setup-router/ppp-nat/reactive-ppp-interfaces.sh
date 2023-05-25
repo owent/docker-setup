@@ -43,3 +43,6 @@ done
 if [[ $PPP_HAVE_ACTIVE_PPP_INTERFACE -ne 0 ]] && [[ -e "$ROUTER_HOME/coredns/setup-resolv.sh" ]] && [[ $(ps aux | grep coredns | grep -v grep | wc -l) -gt 0 ]]; then
   bash "$ROUTER_HOME/coredns/setup-resolv.sh"
 fi
+
+# Restart dhcpd4.service if router internal ipv4 address is on
+# ip -o addr | grep "$ROUTER_INTERNAL_IPV4" > /dev/null && (systemctl -q status dhcpd4.service > /dev/null || systemctl start dhcpd4.service)
