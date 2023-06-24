@@ -104,6 +104,7 @@ check-certificate=false
 enable-dht=true
 bt-enable-lpd=true
 enable-peer-exchange=true
+max-overall-upload-limit=512K
 ' >>$RUN_HOME/aria2/etc/aria2.conf
 
 ARIA2_BT_TRACKER=""
