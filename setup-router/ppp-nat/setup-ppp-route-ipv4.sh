@@ -30,3 +30,6 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 if [[ -e "/etc/resolv.conf.dnsmasq" ]]; then
   cp -f /etc/resolv.conf.dnsmasq /etc/resolv.conf
 fi
+
+sed -i -E "/$ROUTER_DOMAIN/d" /etc/hosts
+echo "$IPLOCAL $ROUTER_DOMAIN" >>/etc/hosts

@@ -19,3 +19,5 @@ source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 echo "[$(date "+%F %T")]: $0 $@" | systemd-cat -t router-ppp -p info
 
 # ip -4 route delete 0.0.0.0/0 via $IPREMOTE dev $IFNAME
+
+sed -i -E "/$IPLOCAL[[:spaces:]]+$ROUTER_DOMAIN/d" /etc/hosts
