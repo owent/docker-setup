@@ -365,6 +365,8 @@ KeyringMode=inherit
 OOMScoreAdjust=100
 ```
 
+可能需要在 `[Service]` 下加 `Environment="XDG_RUNTIME_DIR=/run/user/%i" "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%i/bus"` ·
+
 ### root 用户执行
 
 ```bash
@@ -424,3 +426,5 @@ sudo systemctl daemon-reload
 sudo systemctl enable user@$(id -u).service
 sudo systemctl start user@$(id -u).service
 ```
+
+可能需要在 `[Service]` 下加 `Environment="XDG_RUNTIME_DIR=/run/user/%i" "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%i/bus"` ·
