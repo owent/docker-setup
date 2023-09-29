@@ -38,7 +38,7 @@ if [[ ! -e "$NEXTCLOUD_DATA_DIR/sql-backup" ]]; then
   chmod 770 -R "$NEXTCLOUD_DATA_DIR/sql-backup"
 fi
 
-BACKUP_FILE_NAME="$NEXTCLOUD_DB_NAME-sqlbkp_$(date +"%Y%m%d").sql"
+BACKUP_FILE_NAME="$NEXTCLOUD_DB_NAME-sqlbkp_$(date +"%m%d").sql"
 find . -name "$NEXTCLOUD_DB_NAME-sqlbkp_*.sql*" | xargs -r rm
 
 podman run --rm \
