@@ -24,3 +24,10 @@ podman run --rm -e "PGPASSWORD=password" docker.io/postgres:latest
 podman run --rm -e "PGPASSWORD=password" docker.io/postgres:latest
   pg_dump nextcloud -h 127.0.0.1 -U nextcloud -p $POSTGRESQL_PORT -f nextcloud-sqlbkp_`date +"%Y%m%d"`.bak
 ```
+
+## 升级数据库
+
+移动完数据库文件后可能需要
+
+1. 使用 `REINDEX DATABASE <数据库名>;` 和 `ALTER DATABASE <数据库名> REFRESH COLLATION VERSION` 重建索引。
+2. 修改配置文件允许内网地址连入: `/var/lib/postgresql/data/pgdata/pg_hba.conf` (本地路由地址: 172.23.1.10/16 和 docker地址: 10.0.2.100/16) 然后 `pg_ctl reload` 。
