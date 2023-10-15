@@ -47,6 +47,22 @@ if [[ ! -e "$NEXTCLOUD_DATA_DIR" ]]; then
   chmod 770 -R "$NEXTCLOUD_DATA_DIR"
 fi
 
+if [[ "x$NEXTCLOUD_EXTERNAL_DIR" == "x" ]]; then
+  NEXTCLOUD_EXTERNAL_DIR="$RUN_HOME/nextcloud/external"
+fi
+if [[ ! -e "$NEXTCLOUD_EXTERNAL_DIR" ]]; then
+  mkdir -p "$NEXTCLOUD_EXTERNAL_DIR"
+  chmod 770 -R "$NEXTCLOUD_EXTERNAL_DIR"
+fi
+
+if [[ "x$NEXTCLOUD_TEMPORARY_DIR" == "x" ]]; then
+  NEXTCLOUD_TEMPORARY_DIR="$RUN_HOME/nextcloud/temporary"
+fi
+if [[ ! -e "$NEXTCLOUD_TEMPORARY_DIR" ]]; then
+  mkdir -p "$NEXTCLOUD_TEMPORARY_DIR"
+  chmod 770 -R "$NEXTCLOUD_TEMPORARY_DIR"
+fi
+
 if [[ "x$NEXTCLOUD_APPS_DIR" == "x" ]]; then
   NEXTCLOUD_APPS_DIR="$RUN_HOME/nextcloud/apps"
 fi
@@ -159,6 +175,8 @@ podman run -d --name nextcloud \
   --mount type=bind,source=$NEXTCLOUD_ETC_DIR,target=/var/www/html/config \
   --mount type=bind,source=$NEXTCLOUD_DATA_DIR,target=/var/www/html/data \
   --mount type=bind,source=$NEXTCLOUD_APPS_DIR,target=/var/www/html/custom_apps \
+  --mount type=bind,source=$NEXTCLOUD_EXTERNAL_DIR,target=/data/external \
+  --mount type=bind,source=$NEXTCLOUD_TEMPORARY_DIR,target=/data/temporary \
   --mount type=tmpfs,target=/run,tmpfs-mode=1777,tmpfs-size=67108864 \
   --mount type=tmpfs,target=/run/lock,tmpfs-mode=1777,tmpfs-size=67108864 \
   --mount type=tmpfs,target=/tmp,tmpfs-mode=1777 \

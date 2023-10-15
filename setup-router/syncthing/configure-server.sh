@@ -36,6 +36,7 @@ if [[ $SYNCTHING_CLIENT_REPLICATE_MODE -eq 0 ]]; then
     "$NEXTCLOUD_APPS_DIR:archive/nextcloud/apps"
     "$NEXTCLOUD_ETC_DIR:archive/nextcloud/etc"
     "$NEXTCLOUD_EXTERNAL_DIR:archive/nextcloud/external"
+    "$NEXTCLOUD_TEMPORARY_DIR:archive/nextcloud/temporary"
   )
 else
   SYNCTHING_CLIENT_EXT_DIRS=(
