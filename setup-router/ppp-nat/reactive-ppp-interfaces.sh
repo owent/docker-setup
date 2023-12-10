@@ -45,4 +45,13 @@ if [[ $PPP_HAVE_ACTIVE_PPP_INTERFACE -ne 0 ]] && [[ -e "$ROUTER_HOME/coredns/set
 fi
 
 # Restart dhcpd4.service if router internal ipv4 address is on
-# ip -o addr | grep "$ROUTER_INTERNAL_IPV4" > /dev/null && (systemctl -q status dhcpd4.service > /dev/null || systemctl start dhcpd4.service)
+if [[ ${#DHCPD_IPV4_ADDRESS[@]} -gt 0 ]]; then
+  DHCPD_IPV4_ADDRESS_ALL_ACTIVED=1
+  DHCPD_IPV4_ADDRESS_ALL="$(ip -o addr)"
+  for DHCPD_IPV4_ADDRESS_ITEM in ${DHCPD_IPV4_ADDRESS[@]}; do
+    echo "$DHCPD_IPV4_ADDRESS_ALL" | grep -F "$DHCPD_IPV4_ADDRESS_ITEM" >/dev/null || DHCPD_IPV4_ADDRESS_ALL_ACTIVED=0
+  done
+  if [[ $DHCPD_IPV4_ADDRESS_ALL_ACTIVED -ne 0 ]]; then
+    systemctl -q status dhcpd4.service >/dev/null || systemctl start dhcpd4.service
+  fi
+fi
