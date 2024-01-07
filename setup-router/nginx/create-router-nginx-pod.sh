@@ -6,6 +6,14 @@ source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 # Require net.ipv4.ip_unprivileged_port_start=80 in /etc/sysctl.d/*.conf
 # See https://github.com/containers/podman/blob/master/rootless.md
 
+if [[ "x$NGINX_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman pull docker.io/nginx:latest
+  if [[ $? -ne 0 ]]; then
+    echo "Pull docker.io/nginx:latest failed"
+    exit 1
+  fi
+fi
+
 if [[ "root" == "$(id -un)" ]]; then
   SYSTEMD_SERVICE_DIR=/lib/systemd/system
 else
@@ -33,11 +41,7 @@ else
   fi
 fi
 
-if [[ "x$NGINX_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman pull docker.io/nginx:latest
-fi
-
-podman container exists router-nginx
+podman container inspect router-nginx >/dev/null 2>&1
 
 if [[ $? -eq 0 ]]; then
   podman stop router-nginx

@@ -4,8 +4,22 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 
 SET_IP_PARAMETERS=()
+BAN_INERFACES=( ppp1 ) # ppp0 ppp1
+
+function check_available() {
+  for CHECK_INERFACE in ${BAN_INERFACES[@]}; do
+    if [[ "$1" == "$CHECK_INERFACE" ]]; then
+      return 1
+    fi
+  done
+  return 0
+}
 
 for PPP_INTERFACE in $(nmcli --fields NAME,TYPE connection show | awk '{if($2=="pppoe"){print $1}}'); do
+  IGNORE_INTERFACE=0
+  check_available "$PPP_INTERFACE" || IGNORE_INTERFACE=1
+  [[ $IGNORE_INTERFACE -ne 0 ]] && continue
+
   for PPP_IP in $(ip -o -4 addr show scope global dev $PPP_INTERFACE | awk 'match($0, /inet\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/, ip) { print ip[1] }'); do
     SET_IP_PARAMETERS=(${SET_IP_PARAMETERS[@]} "$PPP_IP")
   done
