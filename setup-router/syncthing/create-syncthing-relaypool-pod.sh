@@ -55,6 +55,13 @@ if [[ "x$SYNCTHING_SSL_KEY" == "x" ]]; then
   SYNCTHING_SSL_KEY="$SYNCTHING_SSL_DIR/http-key.pem"
 fi
 
+if [[ "x$SYNCTHING_UPDATE" != "x" ]] && [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman image pull docker.io/syncthing/strelaypoolsrv:latest
+  if [[ $? -ne 0 ]]; then
+    exit 1
+  fi
+fi
+
 systemctl --user --all | grep -F container-syncthing-relay-pool.service
 
 if [[ $? -eq 0 ]]; then
@@ -69,14 +76,9 @@ if [[ $? -eq 0 ]]; then
   podman rm -f syncthing-relay-pool
 fi
 
-if [[ "x$SYNCTHING_UPDATE" != "x" ]]; then
-  podman image exists docker.io/syncthing/strelaypoolsrv:latest
-  if [[ $? -eq 0 ]]; then
-    podman image rm -f docker.io/syncthing/strelaypoolsrv:latest
-  fi
+if [[ "x$SYNCTHING_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman image prune -a -f --filter "until=240h"
 fi
-
-podman pull docker.io/syncthing/strelaypoolsrv:latest
 
 if [[ -e "$SYNCTHING_SSL_CERT" ]] && [[ -e "$SYNCTHING_SSL_KEY" ]]; then
   SYNCTHING_RELAYPOOL_EXT_OPTIONS=(-keys /syncthing/ssl)

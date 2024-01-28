@@ -78,6 +78,9 @@ fi
 
 if [[ "x$NEXTCLOUD_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman pull "$NEXTCLOUD_BASE_IMAGE"
+  if [[ $? -ne 0 ]]; then
+    exit 1
+  fi
 fi
 
 systemctl --user --all | grep -F container-nextcloud.service

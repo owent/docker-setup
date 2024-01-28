@@ -42,6 +42,13 @@ if [[ "x" == "x$ADMIN_TOKEN" ]]; then
 fi
 echo "$ADMIN_USENAME $ADMIN_TOKEN" | tee "$RCLONE_ETC_DIR/admin-access"
 
+if [[ "x$RCLONE_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman pull docker.io/rclone/rclone:latest
+  if [[ $? -ne 0 ]]; then
+    exit 1
+  fi
+fi
+
 systemctl --user --all | grep -F container-rclone-rcd.service
 
 if [[ $? -eq 0 ]]; then
@@ -57,8 +64,7 @@ if [[ $? -eq 0 ]]; then
 fi
 
 if [[ "x$RCLONE_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman image prune -f
-  podman pull docker.io/rclone/rclone:latest
+  podman image prune -a -f --filter "until=240h"
 fi
 
 # See https://rclone.org/install/

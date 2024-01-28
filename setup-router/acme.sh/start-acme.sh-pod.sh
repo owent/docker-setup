@@ -22,6 +22,13 @@ else
   mkdir -p "$SYSTEMD_SERVICE_DIR"
 fi
 
+if [[ "x$ACMESH_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman image pull docker.io/neilpang/acme.sh:latest
+  if [[ $? -ne 0 ]]; then
+    exit 1
+  fi
+fi
+
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
   systemctl --all | grep -F acme.sh.service >/dev/null 2>&1
   if [ $? -eq 0 ]; then
@@ -48,14 +55,9 @@ if [[ $? -eq 0 ]]; then
   podman rm -f acme.sh
 fi
 
-if [[ "x$ACMESH_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman image exists docker.io/neilpang/acme.sh:latest
-  if [[ $? -eq 0 ]]; then
-    podman image rm -f docker.io/neilpang/acme.sh:latest
-  fi
+if [[ "x$RCLONE_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman image prune -a -f --filter "until=240h"
 fi
-
-podman pull docker.io/neilpang/acme.sh:latest
 
 podman run -d --name acme.sh --security-opt label=disable \
   --mount type=bind,source=$ACMESH_SSL_DIR,target=/acme.sh \

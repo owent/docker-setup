@@ -11,6 +11,9 @@ cd "$GEOIP_GEOSITE_ETC_DIR"
 
 if [[ "x$V2RAY_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman pull docker.io/owt5008137/proxy-with-geo:latest
+  if [[ $? -ne 0 ]]; then
+    exit 1
+  fi
 fi
 
 systemctl disable v2ray

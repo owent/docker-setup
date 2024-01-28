@@ -59,8 +59,15 @@ fi
 if [[ -z "$SYNCTHING_DISCOVERY_SSL_KEY" ]]; then
   SYNCTHING_DISCOVERY_SSL_KEY="key.pem"
 fi
-systemctl --user --all | grep -F container-syncthing-discovery.service
 
+if [[ "x$SYNCTHING_UPDATE" != "x" ]] && [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman image pull docker.io/syncthing/discosrv:latest
+  if [[ $? -ne 0 ]]; then
+    exit 1
+  fi
+fi
+
+systemctl --user --all | grep -F container-syncthing-discovery.service
 if [[ $? -eq 0 ]]; then
   systemctl --user stop container-syncthing-discovery
   systemctl --user disable container-syncthing-discovery
@@ -73,14 +80,9 @@ if [[ $? -eq 0 ]]; then
   podman rm -f syncthing-discovery
 fi
 
-if [[ "x$SYNCTHING_UPDATE" != "x" ]]; then
-  podman image exists docker.io/syncthing/discosrv:latest
-  if [[ $? -eq 0 ]]; then
-    podman image rm -f docker.io/syncthing/discosrv:latest
-  fi
+if [[ "x$SYNCTHING_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman image prune -a -f --filter "until=240h"
 fi
-
-podman pull docker.io/syncthing/discosrv:latest
 
 # Use these options if the discovery is not under a reserve proxy and remove -http
 #   -cert=/syncthing/ssl/http-cert.pem \

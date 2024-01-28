@@ -40,6 +40,9 @@ mkdir -p "$COREDNS_ETC_DIR"
 
 if [[ "x$COREDNS_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman pull docker.io/owt5008137/coredns:latest
+  if [[ $? -ne 0 ]]; then
+    exit 1
+  fi
 fi
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
