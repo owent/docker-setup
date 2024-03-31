@@ -40,17 +40,19 @@ if [[ "x$ROUTER_CONFIG_IPV6_INTERFACE" == "x" ]]; then
 fi
 
 # Disable systemd-resolved
-sed -i -r 's/#?DNSStubListener[[:space:]]*=.*/DNSStubListener=no/g' /etc/systemd/resolved.conf
+if [[ -e /etc/systemd/resolved.conf ]]; then
+  sed -i -r 's/#?DNSStubListener[[:space:]]*=.*/DNSStubListener=no/g' /etc/systemd/resolved.conf
 
-systemctl disable systemd-resolved
-systemctl stop systemd-resolved
+  systemctl disable systemd-resolved
+  systemctl stop systemd-resolved
+fi
 
-if [ $DNSMASQ_ENABLE_DNS -ne 0 ] || [ $DNSMASQ_ENABLE_DHCP -ne 0 ] || [ $DNSMASQ_ENABLE_IPV6_NDP -ne 0 ]; then
+if [[ $DNSMASQ_ENABLE_DNS -ne 0 ]] || [ $DNSMASQ_ENABLE_DHCP -ne 0 ] || [ $DNSMASQ_ENABLE_IPV6_NDP -ne 0 ]; then
   /bin/bash "$SCRIPT_DIR/dnsmasq/setup-dnsmasq.sh"
 
   systemctl daemon-reload
   systemctl enable dnsmasq
-else
+elif [[ -e /etc/dnsmasq.d ]]; then
   systemctl disable dnsmasq
   systemctl stop dnsmasq
 fi
