@@ -1,0 +1,219 @@
+{
+  "log": {
+    "disabled": false,
+    "level": "info",
+    "output": "/var/log/vbox/box.log",
+    "timestamp": true
+  },
+  "dns": {
+    // When proxy server support ipv4 only
+    "strategy": "prefer_ipv4", // prefer_ipv4,prefer_ipv6,ipv4_only,ipv6_only
+    "servers": [
+      {
+        "tag": "dns-proxy",
+        "address": "tls://8.8.8.8"
+      },
+      // {
+      //   "tag": "dns-proxy",
+      //   "address": "tls://1.1.1.1"
+      // },
+      {
+        "tag": "dns-local",
+        "address": "tls://223.5.5.5",
+        "detour": "direct"
+      }// ,
+      // {
+      //   "tag": "dns-local",
+      //   "address": "https://223.5.5.5/dns-query",
+      //   "detour": "direct"
+      // }
+    ],
+    // 默认使用第一个服务器
+    // "final": "",
+    "rules": [
+      // 自定义服务器
+      {
+        "domain_suffix": [
+          ".shkits.com",
+          ".x-ha.com",
+          ".r-ci.com"
+        ],
+        "server": "dns-local"
+      },
+      {
+        "outbound": "any",
+        "server": "dns-local"
+      },
+      {
+        "clash_mode": "Direct",
+        "server": "dns-local"
+      },
+      {
+        "clash_mode": "Global",
+        "server": "dns-proxy"
+      },
+      {
+        "rule_set": "geosite-geolocation-cn",
+        "server": "dns-local"
+      },
+      {
+        "type": "logical",
+        "mode": "and",
+        "rules": [
+          {
+            "rule_set": "geosite-geolocation-!cn"
+          },
+          {
+            "rule_set": "geoip-cn"
+          }
+        ],
+        "server": "dns-local"
+        // client_subnet is available from 1.9.0
+        // "server": "dns-proxy",
+        // "client_subnet": "114.114.114.114" // Any China client IP address
+      }
+    ]
+  },
+  "inbounds": [
+    {
+      "type": "tun",
+      "tag": "in-tun",
+      "interface_name": "tun-vbox",
+      "inet4_address": "172.19.0.1/30",
+      "inet6_address": "fdfe:dcba:9876::1/126",
+      "mtu": 9000,
+      "gso": false,
+      "auto_route": true,
+      "strict_route": false,
+      "inet4_route_exclude_address": [
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16"
+      ],
+      "inet6_route_exclude_address": ["fc00::/7"]
+    }
+  ],
+  "outbounds": [
+    // 大陆白名单模式,第一个或final指向默认值
+    {
+      "type": "trojan",
+      "tag": "out-proxy",
+      "server": "127.0.0.1",
+      "server_port": 8080,
+      "password": "password",
+      "tls": {
+        "enabled": true,
+        "server_name": "example.org",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "firefox"
+        }
+      },
+      "multiplex": {
+        "enabled": true
+      }
+    },
+    {
+      "type": "direct",
+      "tag": "direct"
+    },
+    {
+      "type": "dns",
+      "tag": "dns-out"
+    },
+    {
+      "type": "block",
+      "tag": "block"
+    }
+  ],
+  "route": {
+    "rules": [
+      {
+        "type": "logical",
+        "mode": "or",
+        "rules": [
+          {
+            "protocol": "dns"
+          },
+          {
+            "port": 53
+          }
+        ],
+        "outbound": "dns-out"
+      },
+      {
+        "ip_is_private": true,
+        "outbound": "direct"
+      },
+      {
+        "clash_mode": "Direct",
+        "outbound": "direct"
+      },
+      {
+        "clash_mode": "Global",
+        "outbound": "out-proxy"
+      },
+      {
+        "type": "logical",
+        "mode": "or",
+        "rules": [
+          {
+            "port": 853
+          },
+          {
+            "network": "udp",
+            "port": 443
+          },
+          {
+            "protocol": "stun"
+          }
+        ],
+        "outbound": "block"
+      },
+      {
+        "rule_set": ["geoip-cn", "geosite-geolocation-cn"],
+        "outbound": "direct"
+      },
+      // When proxy server support ipv4 only
+      {
+        "ip_version": 6,
+        "outbound": "direct"
+      }
+    ],
+    "rule_set": [
+      {
+        "type": "remote",
+        "tag": "geosite-geolocation-cn",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-geolocation-cn.srs"
+      },
+      {
+        "type": "remote",
+        "tag": "geosite-geolocation-!cn",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-geolocation-!cn.srs"
+      },
+      {
+        "type": "remote",
+        "tag": "geoip-cn",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-cn.srs"
+      }
+    ],
+    // 默认出站标签。如果为空，将使用第一个可用于对应协议的出站。
+    "final": "",
+    "auto_detect_interface": true
+    // For Android
+    // "override_android_vpn": true,
+  },
+  "experimental": {
+    "cache_file": {
+      "enabled": true // ,
+      // Available from 1.9.0
+      // "store_rdrc": true
+    },
+    "clash_api": {
+      "default_mode": "Enhanced"
+    }
+  }
+}
