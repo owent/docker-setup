@@ -31,6 +31,7 @@ podman run docker run -d --systemd true IMAGE /sbin/init
 ## It also expects to be able to write to /sys/fs/cgroup/systemd and /var/log/journal
 ## docker run -d --cap-add=SYS_ADMIN -v /sys/fs/cgroup:/sys/fs/cgroup IMAGE /sbin/init
 ## Mount list come from setupSystemd@libpod/container_internal_linux.go on https://github.com/containers/libpod
+## More details https://systemd.io/CONTAINER_INTERFACE/
 docker build --tag router-base -f debian10.router.raw.Dockerfile
 docker run -d --name router --cap-add=SYS_ADMIN                             \
         --mount type=tmpfs,target=/run,tmpfs-size=67108864                  \

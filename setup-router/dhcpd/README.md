@@ -1,6 +1,6 @@
 # dhcpd 注意事项
 
-+ 由于网络启动顺序和时间不定， `/lib/systemd/system/dhcpd4.service` 中请确保 `RestartSec` 和 `StartLimitInterval` 猪狗大。不然容器启动失败。
++ 由于网络启动顺序和时间不定， `/lib/systemd/system/dhcpd4.service` 中请确保 `RestartSec` 和 `StartLimitInterval` 足够大。不然容器启动失败。
 
 ```conf
 [Unit]

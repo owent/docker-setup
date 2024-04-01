@@ -39,6 +39,7 @@ fi
 
 podman run -d --name vbox-client --cap-add=NET_ADMIN --cap-add=NET_BIND_SERVICE \
   --network=host --security-opt label=disable \
+  --device /dev/net/tun:/dev/net/tun \
   --mount type=bind,source=$VBOX_ETC_DIR,target=/etc/vbox/,ro=true \
   --mount type=bind,source=$VBOX_DATA_DIR,target=/var/lib/vbox \
   --mount type=bind,source=$ROUTER_LOG_ROOT_DIR/vbox,target=/var/log/vbox \

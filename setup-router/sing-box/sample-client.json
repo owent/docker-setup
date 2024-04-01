@@ -11,7 +11,8 @@
     "servers": [
       {
         "tag": "dns-proxy",
-        "address": "tls://8.8.8.8"
+        "address": "tls://8.8.8.8",
+        "strategy": "ipv4_only"
       },
       // {
       //   "tag": "dns-proxy",
@@ -34,43 +35,41 @@
       // 自定义服务器
       {
         "domain_suffix": [
-          ".shkits.com",
-          ".x-ha.com",
-          ".r-ci.com"
+          "shkits.com",
+          "x-ha.com",
+          "r-ci.com",
+          "myip.biturl.top",
+          "ifconfig.me",
+          "ifconfig.io",
+          "api.myip.la",
+          "getip.icu",
+          "ip.threep.top ip.sb",
+          "test-ipv6.com"
         ],
         "server": "dns-local"
-      },
-      {
-        "outbound": "any",
-        "server": "dns-local"
-      },
-      {
-        "clash_mode": "Direct",
-        "server": "dns-local"
-      },
-      {
-        "clash_mode": "Global",
-        "server": "dns-proxy"
       },
       {
         "rule_set": "geosite-geolocation-cn",
         "server": "dns-local"
       },
+      // client_subnet is available from 1.9.0
+      // {
+      //   "type": "logical",
+      //   "mode": "and",
+      //   "rules": [
+      //     {
+      //       "rule_set": "geosite-geolocation-!cn"
+      //     },
+      //     {
+      //       "rule_set": "geoip-cn"
+      //     }
+      //   ],
+      //   "server": "dns-proxy",
+      //   "client_subnet": "114.114.114.114" // Any China client IP address
+      // },
       {
-        "type": "logical",
-        "mode": "and",
-        "rules": [
-          {
-            "rule_set": "geosite-geolocation-!cn"
-          },
-          {
-            "rule_set": "geoip-cn"
-          }
-        ],
-        "server": "dns-local"
-        // client_subnet is available from 1.9.0
-        // "server": "dns-proxy",
-        // "client_subnet": "114.114.114.114" // Any China client IP address
+        "outbound": "any",
+        "server": "dns-proxy"
       }
     ]
   },
@@ -81,10 +80,12 @@
       "interface_name": "tun-vbox",
       "inet4_address": "172.19.0.1/30",
       "inet6_address": "fdfe:dcba:9876::1/126",
+      "sniff": true,
       "mtu": 9000,
-      "gso": false,
+      "gso": true,
       "auto_route": true,
       "strict_route": false,
+      "stack": "gvisor",
       "inet4_route_exclude_address": [
         "10.0.0.0/8",
         "172.16.0.0/12",
@@ -104,14 +105,13 @@
       "tls": {
         "enabled": true,
         "server_name": "example.org",
-        "utls": {
-          "enabled": true,
-          "fingerprint": "firefox"
-        }
-      },
-      "multiplex": {
-        "enabled": true
-      }
+        "insecure": false,
+        "alpn": ["h2"],
+        "min_version": "1.2"
+      } //,
+      // "multiplex": {
+      //   "enabled": true
+      // }
     },
     {
       "type": "direct",
@@ -146,12 +146,16 @@
         "outbound": "direct"
       },
       {
-        "clash_mode": "Direct",
-        "outbound": "direct"
+        "rule_set": [
+          "geosite-category-ads-all"
+        ],
+        "outbound": "block"
       },
       {
-        "clash_mode": "Global",
-        "outbound": "out-proxy"
+        "protocol": [
+          "bittorrent"
+        ],
+        "outbound": "direct"
       },
       {
         "type": "logical",
@@ -171,7 +175,63 @@
         "outbound": "block"
       },
       {
-        "rule_set": ["geoip-cn", "geosite-geolocation-cn"],
+        "port": [
+          123,
+          5353,
+          6349,
+          6443,
+          6881,
+          6882,
+          6883,
+          8371,
+          8372,
+          8373
+        ],
+        "network": [
+          "udp"
+        ],
+        "outbound": "direct"
+      },
+      {
+        "port": [
+           22,
+           6349,
+           6443,
+           6881,
+           6882,
+           6883,
+           8371,
+           8372,
+           8373,
+           36000
+        ],
+        "network": [
+          "tcp"
+        ],
+        "outbound": "direct"
+      },
+      {
+        "rule_set": [
+          "geoip-cn",
+          "geosite-geolocation-cn",
+          "geosite-speedtest"
+        ],
+        "outbound": "direct"
+      },
+      {
+        // Special domains
+        "domain_suffix": [
+          "shkits.com",
+          "x-ha.com",
+          "r-ci.com",
+          "myip.biturl.top",
+          "ifconfig.me",
+          "ifconfig.io",
+          "api.myip.la",
+          "getip.icu",
+          "ip.threep.top ip.sb",
+          "test-ipv6.com"
+        ],
         "outbound": "direct"
       },
       // When proxy server support ipv4 only
@@ -182,26 +242,38 @@
     ],
     "rule_set": [
       {
-        "type": "remote",
+        "type": "local",
         "tag": "geosite-geolocation-cn",
         "format": "binary",
-        "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-geolocation-cn.srs"
+        "path": "/usr/share/vbox/geosite/geosite-geolocation-cn.srs"
       },
       {
-        "type": "remote",
+        "type": "local",
         "tag": "geosite-geolocation-!cn",
         "format": "binary",
-        "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-geolocation-!cn.srs"
+        "path": "/usr/share/vbox/geosite/geosite-geolocation-!cn.srs"
       },
       {
-        "type": "remote",
+        "type": "local",
         "tag": "geoip-cn",
         "format": "binary",
-        "url": "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-cn.srs"
+        "path": "/usr/share/vbox/geoip/geoip-cn.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-speedtest",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-speedtest.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-category-ads-all",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-category-ads-all.srs"
       }
     ],
     // 默认出站标签。如果为空，将使用第一个可用于对应协议的出站。
-    "final": "",
+    // "final": "",
     "auto_detect_interface": true
     // For Android
     // "override_android_vpn": true,
