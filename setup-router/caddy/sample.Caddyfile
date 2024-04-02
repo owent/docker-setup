@@ -1,0 +1,49 @@
+{
+  log {
+    output file /var/log/caddy/caddy.log {
+      roll_size     100MiB
+      roll_uncompressed
+      roll_local_time
+      roll_keep     10
+      roll_keep_for 2160h
+    }
+    format  json
+    level   INFO
+  }
+}
+
+
+# Auto HTTPS: Internal
+media.x-ha.com:6096,
+local-media.x-ha.com:6096 {
+  reverse_proxy {
+    to http://127.0.0.1:8096
+    header_up Host {http.request.host}
+    header_up X-Real-IP {http.request.remote}
+    header_up X-Forwarded-Port {http.request.port}
+  }
+
+  tls /data/ssl/shkits.com_ecc/fullchain.cer /data/ssl/shkits.com_ecc/shkits.com.key {
+    protocols tls1.2 tls1.3
+  }
+}
+
+# Auto HTTPS: https://caddyserver.com/download?package=github.com%2Fcaddy-dns%2Fcloudflare
+media.x-ha.com,
+local-media.x-ha.com {
+  root * /data/website/html
+
+  route {
+    file_server /downloads/* {
+      hide  .git
+      browse
+      pass_thru
+    }
+
+    reverse_proxy http://127.0.0.1:9090
+  }
+
+  tls /data/ssl/shkits.com_ecc/fullchain.cer /data/ssl/shkits.com_ecc/shkits.com.key {
+    protocols tls1.2 tls1.3
+  }
+}
