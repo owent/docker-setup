@@ -46,5 +46,6 @@ export ROUTER_NET_LOCAL_IPSET_PREFIX
 
 bash "$PWD/reset-local-address-set.sh"
 bash "$PWD/ppp-nat/reset-ipv6-ndp.sh"
+bash "$PWD/ppp-nat/reset-multi-ppp-routes.sh"
 
 echo "$CURRENT_VERSION" | tee /tmp/reset-local-address-sets.version
