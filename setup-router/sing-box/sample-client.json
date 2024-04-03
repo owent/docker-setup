@@ -94,6 +94,35 @@
         "192.168.0.0/16"
       ],
       "inet6_route_exclude_address": ["fc00::/7"]
+    },
+    {
+      "type": "trojan",
+      "tag": "in-trojan",
+      "listen": "::",
+      "listen_port": 8372,
+      "users": [{
+        "name": "<USER NAME>",
+        "password": "<PASSWORD>"
+      }],
+      "tls": {
+        "enabled": true,
+        "server_name": "example.org",
+        "insecure": false,
+        "alpn": ["h2"],
+        "min_version": "1.2",
+        "certificate_path": "/data/ssl/<CERT OR FULLCHAIN>",
+        "key_path": "/data/ssl/<KEY>"
+      },
+      "fallback": {
+        "server": "127.0.0.1",
+        "server_port": 8375
+      },
+      "fallback_for_alpn": {
+        "h2": {
+          "server": "127.0.0.1",
+          "server_port": 8375
+        }
+      }
     }
   ],
   "outbounds": [
@@ -101,9 +130,9 @@
     {
       "type": "trojan",
       "tag": "out-proxy",
-      "server": "127.0.0.1",
+      "server": "<HOST>",
       "server_port": 8080,
-      "password": "password",
+      "password": "<PASSWORD>",
       "tls": {
         "enabled": true,
         "server_name": "example.org",
@@ -179,17 +208,7 @@
       {
         "port": [
           123,
-          546,
-          5353,
-          6096,
-          6349,
-          6443,
-          6881,
-          6882,
-          6883,
-          8371,
-          8372,
-          8373
+          546
         ],
         "network": [
           "udp"
@@ -197,8 +216,17 @@
         "outbound": "direct"
       },
       {
-        "port": [
+        "source_port": [
            22,
+           36000
+        ],
+        "network": [
+          "tcp"
+        ],
+        "outbound": "direct"
+      },
+      {
+        "source_port": [
            6096,
            6349,
            6443,
@@ -207,11 +235,7 @@
            6883,
            8371,
            8372,
-           8373,
-           36000
-        ],
-        "network": [
-          "tcp"
+           8373
         ],
         "outbound": "direct"
       },

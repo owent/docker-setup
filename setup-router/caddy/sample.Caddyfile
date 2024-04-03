@@ -10,6 +10,11 @@
     format  json
     level   INFO
   }
+
+  auto_https off
+  servers :8375 {
+    protocols h1 h2 h2c h3
+  }
 }
 
 
@@ -46,4 +51,9 @@ local-media.x-ha.com {
   tls /data/ssl/shkits.com_ecc/fullchain.cer /data/ssl/shkits.com_ecc/shkits.com.key {
     protocols tls1.2 tls1.3
   }
+}
+
+:8375 {
+  header Content-Type "text/html; charset=utf-8"
+  redir https://owent.net{uri} html
 }
