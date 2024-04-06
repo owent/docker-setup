@@ -147,6 +147,7 @@ podman rmi local_nextcloud || true
 podman build \
   --security-opt seccomp=unconfined \
   --security-opt label=disable \
+  --network=host \
   -v "$NEXTCLOUD_ETC_DIR:/var/www/html/config" \
   -v "$NEXTCLOUD_DATA_DIR:/var/www/html/data" \
   -v "$NEXTCLOUD_APPS_DIR:/var/www/html/custom_apps" \

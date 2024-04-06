@@ -21,6 +21,10 @@ fi
 
 podman build --layers --force-rm --tag local-caddy -f build.Dockerfile .
 
+if [[ $? -ne 0 ]]; then
+  exit 1
+fi
+
 if [[ "root" == "$(id -un)" ]]; then
   SYSTEMD_SERVICE_DIR=/lib/systemd/system
 else
