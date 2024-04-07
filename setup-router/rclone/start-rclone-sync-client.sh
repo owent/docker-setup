@@ -79,7 +79,7 @@ if [[ $RCLONE_REPLICATE_LOCAL_REPLICATE_MODE -eq 0 ]]; then
     echo "============ Start to sync from onedrive ... ============"
     podman run --rm --security-opt seccomp=unconfined \
       --mount type=bind,source=$RCLONE_ETC_DIR,target=/config/rclone \
-      --mount type=bind,source=$RCLONE_DATA_DIR,target=/data/remote:shared \
+      --mount type=bind,source=$RCLONE_DATA_DIR,target=/data/remote \
       --mount type=bind,source=$SCRIPT_DIR,target=/var/log/rclone \
       --device /dev/fuse --cap-add SYS_ADMIN --network=host \
       $RCLONE_IMAGE \
@@ -106,9 +106,9 @@ for SYNC_TARGET in ${RCLONE_REPLICATE_TARGET[@]}; do
     for DATA_FILTER_DIR in $(find "$NEXTCLOUD_DATA_DIR" -mindepth 1 -maxdepth 1 -name "appdata_*" -prune -o -name "*.log" -prune -o -print); do
       podman run --rm --security-opt seccomp=unconfined \
         --mount type=bind,source=$RCLONE_ETC_DIR,target=/config/rclone \
-        --mount type=bind,source=$NEXTCLOUD_DATA_DIR,target=$NEXTCLOUD_DATA_DIR:shared \
+        --mount type=bind,source=$NEXTCLOUD_DATA_DIR,target=$NEXTCLOUD_DATA_DIR \
         --mount type=bind,source=$SCRIPT_DIR,target=/var/log/rclone \
-        --device /dev/fuse --cap-add SYS_ADMIN --network=host \
+        --network=host \
         $RCLONE_IMAGE \
         --log-file /var/log/rclone/rclone-sync-onedrive.log --ignore-size --onedrive-chunk-size 2560k \
         sync --progress "$DATA_FILTER_DIR" "$SYNC_TARGET:/Archive/nextcloud/$(basename $NEXTCLOUD_DATA_DIR)/$(basename $DATA_FILTER_DIR)" || SYNC_NEXTCLOUD_HAS_ERROR=1
@@ -117,9 +117,9 @@ for SYNC_TARGET in ${RCLONE_REPLICATE_TARGET[@]}; do
   if [[ -e "$NEXTCLOUD_EXTERNAL_DIR" ]]; then
     podman run --rm --security-opt seccomp=unconfined \
       --mount type=bind,source=$RCLONE_ETC_DIR,target=/config/rclone \
-      --mount type=bind,source=$NEXTCLOUD_EXTERNAL_DIR,target=$NEXTCLOUD_EXTERNAL_DIR:shared \
+      --mount type=bind,source=$NEXTCLOUD_EXTERNAL_DIR,target=$NEXTCLOUD_EXTERNAL_DIR \
       --mount type=bind,source=$SCRIPT_DIR,target=/var/log/rclone \
-      --device /dev/fuse --cap-add SYS_ADMIN --network=host \
+      --network=host \
       $RCLONE_IMAGE \
       --log-file /var/log/rclone/rclone-sync-onedrive.log --ignore-size --onedrive-chunk-size 2560k \
       sync --progress $NEXTCLOUD_EXTERNAL_DIR "$SYNC_TARGET:/Archive/nextcloud/$(basename $NEXTCLOUD_EXTERNAL_DIR)" || SYNC_NEXTCLOUD_HAS_ERROR=1
@@ -127,9 +127,9 @@ for SYNC_TARGET in ${RCLONE_REPLICATE_TARGET[@]}; do
   if [[ -e "$NEXTCLOUD_ETC_DIR" ]]; then
     podman run --rm --security-opt seccomp=unconfined \
       --mount type=bind,source=$RCLONE_ETC_DIR,target=/config/rclone \
-      --mount type=bind,source=$NEXTCLOUD_ETC_DIR,target=$NEXTCLOUD_ETC_DIR:shared \
+      --mount type=bind,source=$NEXTCLOUD_ETC_DIR,target=$NEXTCLOUD_ETC_DIR \
       --mount type=bind,source=$SCRIPT_DIR,target=/var/log/rclone \
-      --device /dev/fuse --cap-add SYS_ADMIN --network=host \
+      --network=host \
       $RCLONE_IMAGE \
       --log-file /var/log/rclone/rclone-sync-onedrive.log --ignore-size --onedrive-chunk-size 2560k \
       sync --progress $NEXTCLOUD_ETC_DIR "$SYNC_TARGET:/Archive/nextcloud/$(basename $NEXTCLOUD_ETC_DIR)" || SYNC_NEXTCLOUD_HAS_ERROR=1
@@ -147,9 +147,9 @@ for SYNC_TARGET in ${RCLONE_REPLICATE_TARGET[@]}; do
       SYNC_REMOTE_HAS_ERROR=0
       podman run --rm --security-opt seccomp=unconfined \
         --mount type=bind,source=$RCLONE_ETC_DIR,target=/config/rclone \
-        --mount type=bind,source=$RCLONE_DATA_DIR,target=$RCLONE_DATA_DIR:shared \
+        --mount type=bind,source=$RCLONE_DATA_DIR,target=$RCLONE_DATA_DIR \
         --mount type=bind,source=$SCRIPT_DIR,target=/var/log/rclone \
-        --device /dev/fuse --cap-add SYS_ADMIN --network=host \
+        --network=host \
         $RCLONE_IMAGE \
         --log-file /var/log/rclone/rclone-sync-onedrive.log --ignore-size --onedrive-chunk-size 2560k \
         sync --progress $RCLONE_DATA_DIR/$REMOTE_SYNC_DIR $SYNC_TARGET:/$REMOTE_SYNC_DIR || SYNC_REMOTE_HAS_ERROR=1

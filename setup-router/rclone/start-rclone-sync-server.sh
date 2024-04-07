@@ -51,7 +51,7 @@ fi
 
 # podman run -it --network=host --security-opt seccomp=unconfined --rm    \
 #     --volume $HOME/rclone/etc:/config/rclone                            \
-#     --volume $HOME/rclone/data:/data:shared                             \
+#     --volume $HOME/rclone/data:/data                             \
 #     --user $(id -u):$(id -g)                                            \
 #     --volume /etc/passwd:/etc/passwd:ro                                 \
 #     --volume /etc/group:/etc/group:ro                                   \
@@ -60,9 +60,9 @@ fi
 
 podman run --rm --security-opt seccomp=unconfined \
   --mount type=bind,source=$RCLONE_ETC_DIR,target=/config/rclone \
-  --mount type=bind,source=$RCLONE_DATA_DIR,target=/data:shared \
+  --mount type=bind,source=$RCLONE_DATA_DIR,target=/data \
   --mount type=bind,source=$RUN_HOME/bitwarden/data,target=/data/bitwarden/data \
-  --device /dev/fuse --cap-add SYS_ADMIN --network=host \
+  --network=host \
   $RCLONE_IMAGE \
   --log-file /data/rclone-sync-onedrive.log --ignore-size --onedrive-chunk-size 2560k \
   sync --progress /data remote-onedrive:/Apps/OWenT.Home.rclone
