@@ -21,6 +21,21 @@
 # Auto HTTPS: Internal
 media.x-ha.com:6096,
 local-media.x-ha.com:6096 {
+
+  # Syncthing
+  handle_path /syncthing-client/* {
+    reverse_proxy http://127.0.0.1:6348 {
+      header_up Host {upstream_hostport}
+    }
+  }
+
+  handle_path /syncthing-relay-status/* {
+    rewrite * /status{path}
+    reverse_proxy http://127.0.0.1:6350 {
+      header_up Host {upstream_hostport}
+    }
+  }
+
   reverse_proxy {
     to http://127.0.0.1:8096
     header_up Host {http.request.host}

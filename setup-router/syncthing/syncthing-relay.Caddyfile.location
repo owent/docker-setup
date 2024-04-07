@@ -1,0 +1,7 @@
+# $SYNCTHING_RELAY_POOL_ADDRESS in configure-router.sh
+handle_path /syncthing-relay/* {
+  reverse_proxy http://127.0.0.1:6350 {
+    header_up Host {upstream_hostport}
+  }
+}
+

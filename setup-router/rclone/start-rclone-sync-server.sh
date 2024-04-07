@@ -34,9 +34,16 @@ if [[ "x$RCLONE_DATA_DIR" == "x" ]]; then
 fi
 mkdir -p "$RCLONE_DATA_DIR"
 
+if [[ "x$RCLONE_IMAGE" == "x" ]]; then
+  RCLONE_IMAGE="docker.io/rclone/rclone:latest"
+fi
+
 if [[ "x$RCLONE_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman image prune -f
-  podman pull docker.io/rclone/rclone:latest
+  podman pull $RCLONE_IMAGE
+  if [[ $? -ne 0 ]]; then
+    exit 1
+  fi
 fi
 
 # See https://rclone.org/install/
@@ -56,7 +63,7 @@ podman run --rm --security-opt seccomp=unconfined \
   --mount type=bind,source=$RCLONE_DATA_DIR,target=/data:shared \
   --mount type=bind,source=$RUN_HOME/bitwarden/data,target=/data/bitwarden/data \
   --device /dev/fuse --cap-add SYS_ADMIN --network=host \
-  docker.io/rclone/rclone:latest \
+  $RCLONE_IMAGE \
   --log-file /data/rclone-sync-onedrive.log --ignore-size --onedrive-chunk-size 2560k \
   sync --progress /data remote-onedrive:/Apps/OWenT.Home.rclone
 # --copy-links

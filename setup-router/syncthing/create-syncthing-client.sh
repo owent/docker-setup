@@ -115,6 +115,8 @@ fi
 podman run -d --name syncthing-client --security-opt label=disable \
   ${SYNCTHING_MOUNT_DIRS[@]} \
   --network=host \
+  --userns=keep-id \
+  -e PUID=$(id -u) -e PGID=$(id -g) \
   docker.io/syncthing/syncthing:latest \
   ${SYNCTHING_SSL_OPTIONS[@]} \
   --home=/syncthing/home/ \

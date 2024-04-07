@@ -1,0 +1,5 @@
+handle_path /syncthing-client/* {
+  reverse_proxy http://127.0.0.1:6348/ {
+    header_up Host {upstream_hostport}
+  }
+}
