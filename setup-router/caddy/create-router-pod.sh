@@ -19,7 +19,11 @@ if [[ ! -e "Caddyfile" ]]; then
   cp -f sample.Caddyfile Caddyfile
 fi
 
-podman build --layers --force-rm --tag local-caddy -f build.Dockerfile .
+podman build --env GOPROXY=https://mirrors.cloud.tencent.com/go/,https://goproxy.io,direct --layers --force-rm --tag local-caddy -f build.Dockerfile .
+
+if [[ $? -ne 0 ]]; then
+  exit 1
+fi
 
 if [[ $? -ne 0 ]]; then
   exit 1
