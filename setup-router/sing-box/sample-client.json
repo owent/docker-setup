@@ -44,7 +44,8 @@
           "api.myip.la",
           "getip.icu",
           "ip.threep.top ip.sb",
-          "test-ipv6.com"
+          "test-ipv6.com",
+          "ipv6-test.com"
         ],
         "server": "dns-local"
       },
@@ -261,7 +262,8 @@
           "api.myip.la",
           "getip.icu",
           "ip.threep.top ip.sb",
-          "test-ipv6.com"
+          "test-ipv6.com",
+          "ipv6-test.com"
         ],
         "outbound": "direct"
       },

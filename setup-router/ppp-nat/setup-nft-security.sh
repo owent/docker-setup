@@ -31,7 +31,7 @@ fi
 
 nft add chain inet security_firewall PREROUTING '{ type filter hook prerouting priority filter + 10; policy accept; }'
 nft add rule inet security_firewall PREROUTING icmpv6 type '{ nd-router-advert, nd-neighbor-solicit }' accept
-nft add rule inet security_firewall PREROUTING meta nfproto ipv6 fib saddr . mark . iif oif missing drop
+nft add rule inet security_firewall PREROUTING meta nfproto ipv6 meta iifkind != '{ "tun" }' fib saddr . iif oif missing drop
 
 nft add chain inet security_firewall INPUT '{ type filter hook input priority filter + 10; policy accept; }'
 nft add rule inet security_firewall INPUT ct state { established, related } accept
