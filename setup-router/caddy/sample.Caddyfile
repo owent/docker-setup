@@ -81,8 +81,8 @@ local-home.x-ha.com:6443 {
   }
 
 	# client support (e.g. os x calendar / contacts)
-	redir /.well-known/carddav /remote.php/dav 301
-	redir /.well-known/caldav /remote.php/dav 301
+	redir /.well-known/carddav /remote.php/dav/ 301
+	redir /.well-known/caldav /remote.php/dav/ 301
   respond /.well-known/acme-challenge 404
 	respond /.well-known/pki-validation 404
 	redir /.well-known/* /index.php{uri} 301
