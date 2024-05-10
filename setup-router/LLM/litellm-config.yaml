@@ -1,0 +1,38 @@
+model_list:
+  - model_name: gpt-3.5-turbo
+    litellm_params:
+      model: azure/gpt-3.5-turbo
+      api_base: https://owent-us.openai.azure.com/
+      api_key: <your-azure-api-key>
+  - model_name: gpt-3.5-turbo-16k
+    litellm_params:
+      model: azure/gpt-3.5-turbo-16k
+      api_base: https://owent-us.openai.azure.com/
+      api_key: <your-azure-api-key>
+  - model_name: gpt-4-turbo
+    litellm_params:
+      model: azure/gpt-4-turbo
+      api_base: https://owent-us.openai.azure.com/
+      api_key: <your-azure-api-key>
+  - model_name: gpt-4-32k
+    litellm_params:
+      model: azure/gpt-4-32k
+      api_base: https://owent-us.openai.azure.com/
+      api_key: <your-azure-api-key>
+  - model_name: gemini-vision
+    litellm_params:
+      model: vertex_ai/gemini-1.0-pro-vision-001
+      vertex_project: "api-project-429734047293"
+      vertex_location: "us-west1"
+  - model_name: gemini-1.5-pro
+    litellm_params:
+      model: vertex_ai/gemini-1.5-pro-preview-0409
+      vertex_project: "api-project-429734047293"
+      vertex_location: "us-west1"
+# router_settings:
+#   redis_host: <your redis host>
+#   redis_password: <your redis password>
+#   redis_port: 1992
+# general_settings:
+#   master_key: sk-1234 # [OPTIONAL] Only use this if you to require all calls to contain this key (Authorization: Bearer sk-1234)
+#   alerting: ["slack"] # [OPTIONAL] If you want Slack Alerts for Hanging LLM requests, Slow llm responses, Budget Alerts. Make sure to set `SLACK_WEBHOOK_URL` in your env
