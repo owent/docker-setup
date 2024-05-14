@@ -28,6 +28,31 @@ if [[ "x$POSTGRESQL_SHM_SIZE" == "x" ]]; then
   POSTGRESQL_SHM_SIZE=256
 fi
 
+if [[ "x$POSTGRESQL_EFFECTIVE_CACHE_SIZE" == "x" ]]; then
+  POSTGRESQL_EFFECTIVE_CACHE_SIZE=512
+fi
+
+if [[ "x$POSTGRESQL_WORK_MEM" == "x" ]]; then
+  POSTGRESQL_WORK_MEM=16
+fi
+
+if [[ "x$POSTGRESQL_MAINTENANCE_WORK_MEM" == "x" ]]; then
+  POSTGRESQL_MAINTENANCE_WORK_MEM=64
+fi
+
+if [[ "x$POSTGRESQL_WAL_LEVEL" == "x" ]]; then
+  POSTGRESQL_WAL_LEVEL=minimal
+fi
+
+if [[ "x$POSTGRESQL_FSYNC" == "x" ]]; then
+  POSTGRESQL_FSYNC=off
+fi
+
+if [[ "x$POSTGRESQL_RANDOM_PAGE_COST" == "x" ]]; then
+  # 1.1 for SSD, 4 for HDD
+  POSTGRESQL_RANDOM_PAGE_COST=1.1
+fi
+
 if [[ "x$POSTGRESQL_MAX_CONNECTIONS" == "x" ]]; then
   POSTGRESQL_MAX_CONNECTIONS=256
 fi
@@ -79,7 +104,21 @@ podman run -d --name postgresql --security-opt label=disable \
   --shm-size ${POSTGRESQL_SHM_SIZE}m \
   -v $POSTGRESQL_DATA_DIR:/var/lib/postgresql/data/:Z \
   -p $POSTGRESQL_PORT:5432/tcp \
-  docker.io/postgres:latest -c shared_buffers=${POSTGRESQL_SHM_SIZE}MB -c max_connections=$POSTGRESQL_MAX_CONNECTIONS
+  docker.io/postgres:latest \
+  -c shared_buffers=${POSTGRESQL_SHM_SIZE}MB \
+  -c effective_cache_size=${POSTGRESQL_EFFECTIVE_CACHE_SIZE}MB \
+  -c work_mem=${POSTGRESQL_WORK_MEM}MB \
+  -c maintenance_work_mem=${POSTGRESQL_MAINTENANCE_WORK_MEM}MB \
+  -c max_connections=$POSTGRESQL_MAX_CONNECTIONS \
+  -c random_page_cost=$POSTGRESQL_RANDOM_PAGE_COST \
+  -c superuser_reserved_connections=4 \
+  -c wal_level=$POSTGRESQL_WAL_LEVEL \
+  -c fsync=$POSTGRESQL_FSYNC \
+  -c logging_collector=on \
+  -c log_min_duration_statement=1000 \
+  -c track_activities=on \
+  -c track_counts=on \
+  -c default_statistics_target = 100
 
 podman exec postgresql ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 podman stop postgresql
