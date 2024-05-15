@@ -23,7 +23,9 @@ fi
 mkdir -p "$LLM_LITELLM_DATA_DIR"
 
 # Datebase
-# LLM_LITELLM_DATABASE_URL
+# LLM_LITELLM_HOST_IP_ADDRESS=$(ip -o -4 addr show scope global | awk 'match($0, /inet\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/, ip) { print ip[1] }')
+# LLM_LITELLM_DATABASE_URL=postgresql://<user>:<password>@<host>:<port>/<dbname>
+# LLM_LITELLM_DATABASE_URL=postgresql://llm:<password>@$LLM_LITELLM_HOST_IP_ADDRESS:5432/litellm?schema=public
 
 # Password for root, maybe 123456
 if [[ -e "$SCRIPT_DIR/llm-litellm.LITELLM_MASTER_KEY" ]]; then

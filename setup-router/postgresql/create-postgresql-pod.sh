@@ -1,7 +1,10 @@
 #!/bin/bash
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
+
+if [[ -e "$(dirname "$SCRIPT_DIR")/configure-router.sh" ]]; then
+  source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
+fi
 
 export XDG_RUNTIME_DIR="/run/user/$UID"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
@@ -42,6 +45,14 @@ fi
 
 if [[ "x$POSTGRESQL_WAL_LEVEL" == "x" ]]; then
   POSTGRESQL_WAL_LEVEL=minimal
+fi
+
+if [[ "x$POSTGRESQL_MAX_WAL_SENDERS" == "x" ]]; then
+  if [[ $POSTGRESQL_WAL_LEVEL == "logical" ]] || [[ $POSTGRESQL_WAL_LEVEL == "replica" ]]; then
+    POSTGRESQL_MAX_WAL_SENDERS=8
+  else
+    POSTGRESQL_MAX_WAL_SENDERS=0
+  fi
 fi
 
 if [[ "x$POSTGRESQL_FSYNC" == "x" ]]; then
@@ -93,7 +104,7 @@ if [[ -e "$POSTGRESQL_ETC_DIR/admin-token" ]]; then
   ADMIN_TOKEN=$(cat "$POSTGRESQL_ETC_DIR/admin-token")
 fi
 if [[ "x$ADMIN_TOKEN" == "x" ]]; then
-  ADMIN_TOKEN=$(openssl rand -base64 48)
+  ADMIN_TOKEN=$(head -c 18 /dev/urandom | base64)
   echo "$ADMIN_TOKEN" >"$POSTGRESQL_ETC_DIR/admin-token"
 fi
 
@@ -113,12 +124,13 @@ podman run -d --name postgresql --security-opt label=disable \
   -c random_page_cost=$POSTGRESQL_RANDOM_PAGE_COST \
   -c superuser_reserved_connections=4 \
   -c wal_level=$POSTGRESQL_WAL_LEVEL \
+  -c max_wal_senders=$POSTGRESQL_MAX_WAL_SENDERS \
   -c fsync=$POSTGRESQL_FSYNC \
   -c logging_collector=on \
   -c log_min_duration_statement=1000 \
   -c track_activities=on \
   -c track_counts=on \
-  -c default_statistics_target = 100
+  -c default_statistics_target=100
 
 podman exec postgresql ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 podman stop postgresql

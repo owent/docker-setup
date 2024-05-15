@@ -20,6 +20,7 @@ for PPP_INTERFACE in $(nmcli --fields NAME,TYPE connection show | awk '{if($2=="
   check_available "$PPP_INTERFACE" || IGNORE_INTERFACE=1
   [[ $IGNORE_INTERFACE -ne 0 ]] && continue
 
+  # Need gawk
   for PPP_IP in $(ip -o -4 addr show scope global dev $PPP_INTERFACE | awk 'match($0, /inet\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/, ip) { print ip[1] }'); do
     SET_IP_PARAMETERS=(${SET_IP_PARAMETERS[@]} "$PPP_IP")
   done
