@@ -1,3 +1,4 @@
+# Model List: https://github.com/BerriAI/litellm/blob/main/proxy_server_config.yaml
 model_list:
   - model_name: gpt-3.5-turbo
     litellm_params:
@@ -24,6 +25,14 @@ model_list:
       model: azure/gpt-4-32k
       api_base: https://owent-us.openai.azure.com/
       api_key: <your-azure-api-key>
+  - model_name: dall-e-3
+    litellm_params:
+      model: azure/dall-e3
+      api_base: https://owent-us1.openai.azure.com/
+      api_key: <your-azure-api-key>
+      api_version: "2024-02-01"
+    model_info:
+      mode: image_generation
   - model_name: gemini-vision
     litellm_params:
       model: vertex_ai/gemini-1.0-pro-vision-001
@@ -38,6 +47,12 @@ model_list:
 #   redis_host: <your redis host>
 #   redis_password: <your redis password>
 #   redis_port: 1992
-# general_settings:
-#   master_key: sk-1234 # [OPTIONAL] Only use this if you to require all calls to contain this key (Authorization: Bearer sk-1234)
-#   alerting: ["slack"] # [OPTIONAL] If you want Slack Alerts for Hanging LLM requests, Slow llm responses, Budget Alerts. Make sure to set `SLACK_WEBHOOK_URL` in your env
+general_settings:
+  # ui_access_mode: "admin_only"
+  # master_key: sk-1234 # [OPTIONAL] Only use this if you to require all calls to contain this key (Authorization: Bearer sk-1234)
+  # alerting: ["slack"] # [OPTIONAL] If you want Slack Alerts for Hanging LLM requests, Slow llm responses, Budget Alerts. Make sure to set `SLACK_WEBHOOK_URL` in your env
+  allow_user_auth: true
+  store_model_in_db: True
+  proxy_batch_write_at: 60
+  # proxy_budget_rescheduler_min_time: 60
+  # proxy_budget_rescheduler_max_time: 64

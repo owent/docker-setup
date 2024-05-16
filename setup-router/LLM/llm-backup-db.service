@@ -11,5 +11,5 @@ ExecStart=/bin/bash /home/tools/llm/llm-backup-db.sh
 [Install]
 WantedBy=default.target
 
-# ln /home/tools/llm/llm-backup-db.service ~/.config/systemd/user/llm-backup-db.service
+# ln ~/llm/llm-backup-db.service ~/.config/systemd/user/llm-backup-db.service
 # systemctl status --user llm-backup-db.service

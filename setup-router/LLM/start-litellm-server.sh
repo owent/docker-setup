@@ -22,6 +22,8 @@ if [[ -z "$LLM_LITELLM_DATA_DIR" ]]; then
 fi
 mkdir -p "$LLM_LITELLM_DATA_DIR"
 
+# Model List: https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json
+
 # Datebase
 # LLM_LITELLM_HOST_IP_ADDRESS=$(ip -o -4 addr show scope global | awk 'match($0, /inet\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/, ip) { print ip[1] }')
 # LLM_LITELLM_DATABASE_URL=postgresql://<user>:<password>@<host>:<port>/<dbname>
@@ -33,6 +35,13 @@ if [[ -e "$SCRIPT_DIR/llm-litellm.LITELLM_MASTER_KEY" ]]; then
 else
   LLM_LITELLM_LITELLM_MASTER_KEY="sk-$(head -c 12 /dev/urandom | base64)"
   echo "$LLM_LITELLM_LITELLM_MASTER_KEY" >"$SCRIPT_DIR/llm-litellm.LITELLM_MASTER_KEY"
+fi
+
+if [[ -e "$SCRIPT_DIR/llm-litellm.UI_PASSWORD" ]]; then
+  LLM_LITELLM_UI_PASSWORD="$(cat "$SCRIPT_DIR/llm-litellm.UI_PASSWORD")"
+else
+  LLM_LITELLM_UI_PASSWORD="$(head -c 12 /dev/urandom | base64)"
+  echo "$LLM_LITELLM_UI_PASSWORD" >"$SCRIPT_DIR/llm-litellm.UI_PASSWORD"
 fi
 
 ln -f "litellm-config.yaml" "$LLM_LITELLM_DATA_DIR/" || cp -f "litellm-config.yaml" "$LLM_LITELLM_DATA_DIR/"
@@ -77,17 +86,36 @@ fi
 
 LLM_LITELLM_ENV=(
   -e TZ=Asia/Shanghai
+  -e LITELLM_MODE=PRODUCTION
   -e LITELLM_MASTER_KEY=$LLM_LITELLM_LITELLM_MASTER_KEY
+  -e UI_USERNAME=owent
+  -e UI_PASSWORD=$LLM_LITELLM_UI_PASSWORD
 )
 if [[ ! -z "$LLM_LITELLM_DATABASE_URL" ]]; then
-  LLM_LITELLM_ENV=(${LLM_LITELLM_ENV[@]} -e DATABASE_URL="$LLM_LITELLM_DATABASE_URL")
+  LLM_LITELLM_ENV=("${LLM_LITELLM_ENV[@]}" -e DATABASE_URL="$LLM_LITELLM_DATABASE_URL" -e STORE_MODEL_IN_DB=true)
 fi
 if [[ -e "$LLM_LITELLM_DATA_DIR/google-application-credentials.json" ]]; then
-  LLM_LITELLM_ENV=(${LLM_LITELLM_ENV[@]} -e GOOGLE_APPLICATION_CREDENTIALS="/app/google-application-credentials.json")
+  LLM_LITELLM_ENV=("${LLM_LITELLM_ENV[@]}" -e GOOGLE_APPLICATION_CREDENTIALS="/app/google-application-credentials.json")
+fi
+
+if [[ ! -z "$LLM_LITELLM_SMTP_HOST" ]]; then
+  LLM_LITELLM_ENV=("${LLM_LITELLM_ENV[@]}" -e SMTP_HOST="$LLM_LITELLM_SMTP_HOST")
+fi
+if [[ ! -z "$LLM_LITELLM_SMTP_PORT" ]]; then
+  LLM_LITELLM_ENV=("${LLM_LITELLM_ENV[@]}" -e SMTP_PORT="$LLM_LITELLM_SMTP_PORT")
+fi
+if [[ ! -z "$LLM_LITELLM_SMTP_USERNAME" ]]; then
+  LLM_LITELLM_ENV=("${LLM_LITELLM_ENV[@]}" -e SMTP_USERNAME="$LLM_LITELLM_SMTP_USERNAME")
+fi
+if [[ ! -z "$LLM_LITELLM_SMTP_PASSWORD" ]]; then
+  LLM_LITELLM_ENV=("${LLM_LITELLM_ENV[@]}" -e SMTP_PASSWORD="$LLM_LITELLM_SMTP_PASSWORD")
+fi
+if [[ ! -z "$LLM_LITELLM_SMTP_SENDER_EMAIL" ]]; then
+  LLM_LITELLM_ENV=("${LLM_LITELLM_ENV[@]}" -e SMTP_SENDER_EMAIL="$LLM_LITELLM_SMTP_SENDER_EMAIL")
 fi
 
 podman run -d --name llm-litellm --security-opt label=disable \
-  ${LLM_LITELLM_ENV[@]} \
+  "${LLM_LITELLM_ENV[@]}" \
   --mount type=bind,source=$LLM_LITELLM_DATA_DIR,target=/app \
   -p $LLM_LITELLM_PORT:4000 \
   ghcr.io/berriai/litellm:main-latest --port 4000 --config /app/litellm-config.yaml --num_workers 8

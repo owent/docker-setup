@@ -38,7 +38,8 @@ owent-one-api.imwe.chat {
   }
 }
 
-owent-litellm.imwe.chat {
+owent-litellm.imwe.chat,
+litellm.imwe.chat {
   request_body {
     max_size 64MB
   }
