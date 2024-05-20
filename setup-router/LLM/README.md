@@ -1,5 +1,9 @@
 # LLM集成
 
+## Azure OpenAI模型和可用区域
+
+https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models#standard-deployment-model-availability
+
 ## PostgreSQL 数据库初始化
 
 注意: 需要分配入站地址权限:

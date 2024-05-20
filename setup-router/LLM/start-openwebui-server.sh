@@ -74,7 +74,7 @@ fi
 if [[ -e "$SCRIPT_DIR/openwebui.WEBUI_SECRET_KEY" ]]; then
   LLM_OPENWEBUI_WEBUI_SECRET_KEY=$(cat "$SCRIPT_DIR/openwebui.WEBUI_SECRET_KEY")
 else
-  LLM_OPENWEBUI_WEBUI_SECRET_KEY="t0p-$(head -c 12 /dev/urandom | base64)"
+  LLM_OPENWEBUI_WEBUI_SECRET_KEY="t0p-$(head -c 12 /dev/urandom | base64 | tr '/' '_' | tr '+' '-')"
   echo "$LLM_OPENWEBUI_WEBUI_SECRET_KEY" >"$SCRIPT_DIR/openwebui.WEBUI_SECRET_KEY"
 fi
 

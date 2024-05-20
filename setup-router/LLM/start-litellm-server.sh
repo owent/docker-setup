@@ -33,14 +33,14 @@ mkdir -p "$LLM_LITELLM_DATA_DIR"
 if [[ -e "$SCRIPT_DIR/llm-litellm.LITELLM_MASTER_KEY" ]]; then
   LLM_LITELLM_LITELLM_MASTER_KEY="$(cat "$SCRIPT_DIR/llm-litellm.LITELLM_MASTER_KEY")"
 else
-  LLM_LITELLM_LITELLM_MASTER_KEY="sk-$(head -c 12 /dev/urandom | base64)"
+  LLM_LITELLM_LITELLM_MASTER_KEY="sk-$(head -c 12 /dev/urandom | base64 | tr '/' '_' | tr '+' '-')"
   echo "$LLM_LITELLM_LITELLM_MASTER_KEY" >"$SCRIPT_DIR/llm-litellm.LITELLM_MASTER_KEY"
 fi
 
 if [[ -e "$SCRIPT_DIR/llm-litellm.UI_PASSWORD" ]]; then
   LLM_LITELLM_UI_PASSWORD="$(cat "$SCRIPT_DIR/llm-litellm.UI_PASSWORD")"
 else
-  LLM_LITELLM_UI_PASSWORD="$(head -c 12 /dev/urandom | base64)"
+  LLM_LITELLM_UI_PASSWORD="$(head -c 12 /dev/urandom | base64 | tr '/' '_' | tr '+' '-')"
   echo "$LLM_LITELLM_UI_PASSWORD" >"$SCRIPT_DIR/llm-litellm.UI_PASSWORD"
 fi
 

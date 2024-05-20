@@ -54,7 +54,7 @@ fi
 if [[ -e "$SCRIPT_DIR/llm-one-api.INITIAL_ROOT_TOKEN" ]]; then
   LLM_ONE_API_INITIAL_ROOT_TOKEN=$(cat "$SCRIPT_DIR/llm-one-api.INITIAL_ROOT_TOKEN")
 else
-  LLM_ONE_API_INITIAL_ROOT_TOKEN=$(head -c 12 /dev/urandom | base64)
+  LLM_ONE_API_INITIAL_ROOT_TOKEN=$(head -c 12 /dev/urandom | base64 | tr '/' '_' | tr '+' '-')
   echo "$LLM_ONE_API_INITIAL_ROOT_TOKEN" >"$SCRIPT_DIR/llm-one-api.INITIAL_ROOT_TOKEN"
 fi
 

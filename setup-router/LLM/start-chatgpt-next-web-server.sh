@@ -40,7 +40,7 @@ LLM_CHATGPT_NEXT_WEB_CUSTOM_MODELS=-all,+gemini-pro,+gemini-pro-vision,+gpt-4-32
 if [[ -e "$SCRIPT_DIR/llm-chatgpt-next-web.CODE" ]]; then
   LLM_CHATGPT_NEXT_WEB_CODE="$(cat "$SCRIPT_DIR/llm-chatgpt-next-web.CODE")"
 else
-  LLM_CHATGPT_NEXT_WEB_CODE="sk-$(head -c 12 /dev/urandom | base64)"
+  LLM_CHATGPT_NEXT_WEB_CODE="sk-$(head -c 12 /dev/urandom | base64 | tr '/' '_' | tr '+' '-')"
   echo "$LLM_CHATGPT_NEXT_WEB_CODE" >"$SCRIPT_DIR/llm-chatgpt-next-web.CODE"
 fi
 
