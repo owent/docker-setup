@@ -3,7 +3,7 @@
 ## 初始化
 
 ```bash
-podman exec -it postgresql psql -h localhost -U postgres/或其他默认用户
+podman exec -it postgresql psql -h localhost -d postgres -U postgres/或其他默认用户
 
   CREATE USER <用户名> WITH PASSWORD '<密码>' CREATEDB;
   CREATE DATABASE <数据库名> TEMPLATE template0 ENCODING 'UTF8';
@@ -12,6 +12,16 @@ podman exec -it postgresql psql -h localhost -U postgres/或其他默认用户
   GRANT ALL PRIVILEGES ON SCHEMA public TO <用户名>;
 
   \q
+```
+
+注意: 需要分配入站地址权限:
+
+```bash
+echo "host    all     all             10.0.0.0/16                 trust
+host    all     all             172.23.1.10/16                 trust
+host    all     all             172.22.1.10/16                 trust" >> /var/lib/postgresql/data/pgdata/pg_hba.conf
+
+su postgres -- pg_ctl reload
 ```
 
 ## 备份数据库

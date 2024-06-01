@@ -44,17 +44,12 @@
           "api.myip.la",
           "getip.icu",
           "ip.threep.top ip.sb",
-          "test-ipv6.com",
-          "ipv6-test.com"
+          "test-ipv6.com"
         ],
         "server": "dns-local"
       },
       {
         "rule_set": "geosite-geolocation-cn",
-        "server": "dns-local"
-      },
-      {
-        "source_ip_cidr": "172.22.0.0/16",
         "server": "dns-local"
       },
       // client_subnet is available from 1.9.0
@@ -80,27 +75,6 @@
   },
   "inbounds": [
     {
-      "type": "tun",
-      "tag": "in-tun",
-      "interface_name": "tun-vbox",
-      "inet4_address": "172.19.0.1/30",
-      "inet6_address": "fdfe:dcba:9876::1/126",
-      "sniff": true,
-      "mtu": 9000,
-      "gso": true,
-      "auto_route": true,
-      "strict_route": false,
-      "stack": "gvisor",
-      // "include_interface": [],
-      // "exclude_interface": [],
-      "inet4_route_exclude_address": [
-        "10.0.0.0/8",
-        "172.16.0.0/12",
-        "192.168.0.0/16"
-      ],
-      "inet6_route_exclude_address": ["fc00::/7"]
-    },
-    {
       "type": "trojan",
       "tag": "in-trojan",
       "listen": "::",
@@ -115,8 +89,14 @@
         "insecure": false,
         "alpn": ["h2"],
         "min_version": "1.2",
-        "certificate_path": "/data/ssl/<CERT OR FULLCHAIN>",
-        "key_path": "/data/ssl/<KEY>"
+        "acme": {
+          "domain": "example.org",
+          "email": "admin@example.org",
+          "dns01_challenge": {
+            "provider": "cloudflare",
+            "api_token": "my_token"
+          }
+        }
       },
       "fallback": {
         "server": "127.0.0.1",
@@ -165,23 +145,6 @@
   "route": {
     "rules": [
       {
-        "type": "logical",
-        "mode": "or",
-        "rules": [
-          {
-            "protocol": "dns"
-          },
-          {
-            "port": 53
-          }
-        ],
-        "outbound": "dns-out"
-      },
-      {
-        "source_ip_cidr": "172.22.0.0/16",
-        "outbound": "direct"
-      },
-      {
         "ip_is_private": true,
         "outbound": "direct"
       },
@@ -198,29 +161,9 @@
         "outbound": "direct"
       },
       {
-        "type": "logical",
-        "mode": "or",
-        "rules": [
-          {
-            "port": 853
-          },
-          {
-            "network": "udp",
-            "port": 443
-          },
-          {
-            "protocol": "stun"
-          }
-        ],
-        "outbound": "block"
-      },
-      {
         "port": [
-          67,
-          68,
           123,
-          546,
-          547
+          546
         ],
         "network": [
           "udp"
@@ -238,28 +181,6 @@
         "outbound": "direct"
       },
       {
-        "source_port": [
-           6096,
-           6349,
-           6443,
-           6881,
-           6882,
-           6883,
-           8371,
-           8372,
-           8373
-        ],
-        "outbound": "direct"
-      },
-      {
-        "rule_set": [
-          "geoip-cn",
-          "geosite-geolocation-cn",
-          "geosite-speedtest"
-        ],
-        "outbound": "direct"
-      },
-      {
         // Special domains
         "domain_suffix": [
           "shkits.com",
@@ -271,8 +192,7 @@
           "api.myip.la",
           "getip.icu",
           "ip.threep.top ip.sb",
-          "test-ipv6.com",
-          "ipv6-test.com"
+          "test-ipv6.com"
         ],
         "outbound": "direct"
       },
@@ -303,12 +223,6 @@
       },
       {
         "type": "local",
-        "tag": "geosite-speedtest",
-        "format": "binary",
-        "path": "/usr/share/vbox/geosite/geosite-speedtest.srs"
-      },
-      {
-        "type": "local",
         "tag": "geosite-category-ads-all",
         "format": "binary",
         "path": "/usr/share/vbox/geosite/geosite-category-ads-all.srs"
@@ -325,9 +239,6 @@
       "enabled": true // ,
       // Available from 1.9.0
       // "store_rdrc": true
-    },
-    "clash_api": {
-      "default_mode": "Enhanced"
     }
   }
 }

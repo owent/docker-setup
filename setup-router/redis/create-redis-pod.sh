@@ -1,7 +1,10 @@
 #!/bin/bash
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
+
+if [[ -e "$(dirname "$SCRIPT_DIR")/configure-router.sh" ]]; then
+  source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
+fi
 
 export XDG_RUNTIME_DIR="/run/user/$UID"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"

@@ -36,3 +36,11 @@ done
 networkmanager_create_dispatcher_script_dir up
 networkmanager_create_dispatcher_script_dir down
 networkmanager_create_dispatcher_script_dir connectivity-change
+
+if [[ -e "$SCRIPT_DIR/reset-local-address-sets.sh" ]]; then
+  echo "Maybe need run these codes below for router:
+echo '#!/bin/bash
+/bin/bash $SCRIPT_DIR/reset-local-address-sets.sh
+' | sudo tee /etc/NetworkManager/dispatcher.d/connectivity-change.d/99-reset-local-address-sets.sh
+sudo chmod +x /etc/NetworkManager/dispatcher.d/connectivity-change.d/99-reset-local-address-sets.sh"
+fi

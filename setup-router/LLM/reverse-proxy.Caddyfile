@@ -1,0 +1,144 @@
+# Global options
+{
+  servers {
+    timeouts {
+      read_body 300s
+      read_header 60s
+      write 420s
+      idle 480s
+    }
+  }
+}
+
+
+# Auto HTTPS: Internal
+owent-one-api.imwe.chat {
+  request_body {
+    max_size 64MB
+  }
+
+  reverse_proxy {
+    to http://127.0.0.1:3002
+    header_up Host {http.request.host}
+    header_up X-Real-IP {http.request.remote}
+    header_up X-Forwarded-Port {http.request.port}
+
+    transport http {
+      dial_timeout 30s
+      response_header_timeout 180s
+      read_timeout 300s
+      write_timeout 300s
+    }
+  }
+
+  tls {
+    protocols tls1.2 tls1.3
+    key_type p256
+    dns dnspod {env.DNSPOD_TOKEN_IMWE_CHAT}
+  }
+}
+
+owent-litellm.imwe.chat,
+litellm.imwe.chat {
+  request_body {
+    max_size 64MB
+  }
+
+  reverse_proxy {
+    to http://127.0.0.1:4000
+    header_up Host {http.request.host}
+    header_up X-Real-IP {http.request.remote}
+    header_up X-Forwarded-Port {http.request.port}
+
+    transport http {
+      dial_timeout 30s
+      response_header_timeout 180s
+      read_timeout 300s
+      write_timeout 300s
+    }
+  }
+
+  tls {
+    protocols tls1.2 tls1.3
+    key_type p256
+    dns dnspod {env.DNSPOD_TOKEN_IMWE_CHAT}
+  }
+}
+
+owent-gpt.imwe.chat {
+  request_body {
+    max_size 64MB
+  }
+
+  reverse_proxy {
+    to http://127.0.0.1:3005
+    header_up Host {http.request.host}
+    header_up X-Real-IP {http.request.remote}
+    header_up X-Forwarded-Port {http.request.port}
+
+    transport http {
+      dial_timeout 30s
+      response_header_timeout 180s
+      read_timeout 300s
+      write_timeout 300s
+    }
+  }
+
+  tls {
+    protocols tls1.2 tls1.3
+    key_type p256
+    dns dnspod {env.DNSPOD_TOKEN_IMWE_CHAT}
+  }
+}
+
+openwebui.imwe.chat {
+  request_body {
+    max_size 64MB
+  }
+
+  reverse_proxy {
+    to http://127.0.0.1:3006
+    header_up Host {http.request.host}
+    header_up X-Real-IP {http.request.remote}
+    header_up X-Forwarded-Port {http.request.port}
+
+    transport http {
+      dial_timeout 30s
+      response_header_timeout 180s
+      read_timeout 300s
+      write_timeout 300s
+    }
+  }
+
+  tls {
+    protocols tls1.2 tls1.3
+    key_type p256
+    dns dnspod {env.DNSPOD_TOKEN_IMWE_CHAT}
+  }
+}
+
+lobechat.imwe.chat {
+  request_body {
+    max_size 64MB
+  }
+
+  reverse_proxy {
+    to http://127.0.0.1:3210
+    header_up Host {http.request.host}
+    header_up X-Real-IP {http.request.remote}
+    header_up X-Forwarded-Port {http.request.port}
+
+    transport http {
+      dial_timeout 30s
+      response_header_timeout 180s
+      read_timeout 300s
+      write_timeout 300s
+    }
+  }
+
+  tls {
+    protocols tls1.2 tls1.3
+    key_type p256
+    dns dnspod {env.DNSPOD_TOKEN_IMWE_CHAT}
+  }
+}

@@ -187,7 +187,7 @@ chown $RUN_USER aria2c_with_session.sh
 
 podman build --layers --force-rm --tag local-aria2 -f aria2.Dockerfile .
 
-podman --log-level debug run -d --name aria2 \
+podman run -d --name aria2 \
   --security-opt label=disable \
   --mount type=bind,source=$RUN_HOME/aria2/etc,target=/etc/aria2 \
   --mount type=bind,source=$RUN_HOME/aria2/log,target=/var/log/aria2 \
