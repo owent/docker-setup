@@ -5,6 +5,13 @@
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 
+if [[ -z "$ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY" ]]; then
+  ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY=29901
+fi
+if [[ -z "$VBOX_SKIP_IP_RULE_PRIORITY" ]]; then
+  VBOX_SKIP_IP_RULE_PRIORITY=8123
+fi
+
 if [[ -z "$VBOX_ETC_DIR" ]]; then
   VBOX_ETC_DIR="$HOME/vbox/etc"
 fi
@@ -59,6 +66,87 @@ podman run -d --name vbox-client --cap-add=NET_ADMIN --cap-add=NET_BIND_SERVICE 
 #     bash "$SCRIPT_DIR/setup-geoip-geosite.sh"
 #   fi
 # fi
+
+# Sing-box has poor performance, we route by ip first
+ROUTER_IP_RULE_LOOPUP_PRIORITY_NOP=$(ip -4 rule show priority $ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY | awk 'END {print NF}')
+while [[ 0 -ne $ROUTER_IP_RULE_LOOPUP_PRIORITY_NOP ]]; do
+  ip -4 rule delete priority $ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY
+  ROUTER_IP_RULE_LOOPUP_PRIORITY_NOP=$(ip -4 rule show priority $ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY | awk 'END {print NF}')
+done
+
+ROUTER_IP_RULE_LOOPUP_PRIORITY_NOP=$(ip -6 rule show priority $ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY | awk 'END {print NF}')
+while [[ 0 -ne $ROUTER_IP_RULE_LOOPUP_PRIORITY_NOP ]]; do
+  ip -6 rule delete priority $ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY
+  ROUTER_IP_RULE_LOOPUP_PRIORITY_NOP=$(ip -6 rule show priority $ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY | awk 'END {print NF}')
+done
+
+ip -4 rule add priority $ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY nop
+ip -6 rule add priority $ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY nop
+
+ROUTER_IP_RULE_LOOPUP_VBOX_SKIP_PRIORITY=$(ip -4 rule show priority $VBOX_SKIP_IP_RULE_PRIORITY | awk 'END {print NF}')
+while [[ 0 -ne $ROUTER_IP_RULE_LOOPUP_VBOX_SKIP_PRIORITY ]]; do
+  ip -4 rule delete priority $VBOX_SKIP_IP_RULE_PRIORITY
+  ROUTER_IP_RULE_LOOPUP_VBOX_SKIP_PRIORITY=$(ip -4 rule show priority $VBOX_SKIP_IP_RULE_PRIORITY | awk 'END {print NF}')
+done
+
+ROUTER_IP_RULE_LOOPUP_VBOX_SKIP_PRIORITY=$(ip -6 rule show priority $VBOX_SKIP_IP_RULE_PRIORITY | awk 'END {print NF}')
+while [[ 0 -ne $ROUTER_IP_RULE_LOOPUP_VBOX_SKIP_PRIORITY ]]; do
+  ip -6 rule delete priority $VBOX_SKIP_IP_RULE_PRIORITY
+  ROUTER_IP_RULE_LOOPUP_VBOX_SKIP_PRIORITY=$(ip -6 rule show priority $VBOX_SKIP_IP_RULE_PRIORITY | awk 'END {print NF}')
+done
+
+nft list table ip vbox >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add table ip vbox
+fi
+
+if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
+  nft list table ip6 vbox >/dev/null 2>&1
+  if [ $? -ne 0 ]; then
+    nft add table ip6 vbox
+  fi
+fi
+
+nft list table bridge vbox >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add table bridge vbox
+fi
+
+### Setup - ipv4
+nft list set ip vbox BLACKLIST >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add set ip vbox BLACKLIST '{ type ipv4_addr; }'
+fi
+nft list set ip vbox GEOIP_CN >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add set ip vbox GEOIP_CN '{ type ipv4_addr; }'
+fi
+
+### Setup - ipv6
+nft list set ip6 vbox BLACKLIST >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add set ip6 vbox BLACKLIST '{ type ipv6_addr; }'
+fi
+nft list set ip6 vbox GEOIP_CN >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add set ip6 vbox GEOIP_CN '{ type ipv6_addr; }'
+fi
+
+### Setup - ipv6
+nft list set bridge vbox BLACKLIST_IPV4 >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add set bridge vbox BLACKLIST_IPV4 '{ type ipv4_addr; flags interval; auto-merge; }'
+fi
+nft list set bridge vbox BLACKLIST_IPV6 >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add set bridge vbox BLACKLIST_IPV6 '{ type ipv6_addr; flags interval; auto-merge; }'
+fi
+nft list set bridge vbox GEOIP_CN >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add set bridge vbox GEOIP_CN '{ type ipv4_addr; flags interval; auto-merge; }'
+fi
+
+# Start systemd service
 
 podman generate systemd vbox-client | tee /lib/systemd/system/vbox-client.service
 
