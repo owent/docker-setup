@@ -29,9 +29,9 @@ if [ $ROUTER_NET_LOCAL_ENABLE_V2RAY -ne 0 ]; then
 fi
 if [ $ROUTER_NET_LOCAL_ENABLE_VBOX -ne 0 ]; then
   if [[ -z "$ROUTER_NET_LOCAL_NFTABLE_NAME" ]]; then
-    ROUTER_NET_LOCAL_NFTABLE_NAME="vbox:ip:ip6:bridge"
+    ROUTER_NET_LOCAL_NFTABLE_NAME="vbox:inet:bridge"
   else
-    ROUTER_NET_LOCAL_NFTABLE_NAME="$ROUTER_NET_LOCAL_NFTABLE_NAME,vbox:ip:ip6:bridge"
+    ROUTER_NET_LOCAL_NFTABLE_NAME="$ROUTER_NET_LOCAL_NFTABLE_NAME,vbox:inet:bridge"
   fi
 fi
 if [ $ROUTER_NET_LOCAL_ENABLE_NAT -ne 0 ]; then
