@@ -22,7 +22,7 @@ mkdir -p "$VBOX_DATA_DIR"
 mkdir -p "$VBOX_LOG_DIR"
 
 if [[ "x$VBOX_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman pull docker.io/owt5008137/vbox:latest
+  podman pull ghcr.io/owent/vbox:latest
   if [[ $? -ne 0 ]]; then
     exit 1
   fi
@@ -48,13 +48,17 @@ podman run -d --name vbox-client --cap-add=NET_ADMIN --cap-add=NET_BIND_SERVICE 
   --mount type=bind,source=$VBOX_DATA_DIR,target=/var/lib/vbox \
   --mount type=bind,source=$VBOX_LOG_DIR,target=/var/log/vbox \
   --mount type=bind,source=$ACMESH_SSL_DIR,target=/data/ssl,ro=true \
-  docker.io/owt5008137/vbox:latest -D /var/lib/vbox -C /etc/vbox/ run
+  ghcr.io/owent/vbox:latest -D /var/lib/vbox -C /etc/vbox/ run
 
 if [[ $? -ne 0 ]]; then
   exit 1
 fi
 
-bash "$SCRIPT_DIR/setup-client-pod-ip-rules.sh"
+if [[ -z "$ROUTER_NET_LOCAL_ENABLE_VBOX" ]] || [[ $ROUTER_NET_LOCAL_ENABLE_VBOX -eq 0 ]]; then
+  bash "$SCRIPT_DIR/setup-client-pod-ip-rules.sh"
+else
+  bash "$SCRIPT_DIR/setup-client-pod-ip-nft.sh"
+fi
 
 if [[ $? -ne 0 ]]; then
   exit 1
@@ -62,10 +66,15 @@ fi
 
 # Start systemd service
 
-podman generate systemd vbox-client \
-  | sed "/PIDFile=/a ExecStopPost=/bin/bash $SCRIPT_DIR/setup-client-pod-ip-rules.sh clear" \
-  | sed "/PIDFile=/a ExecStartPost=/bin/bash $SCRIPT_DIR/setup-client-pod-ip-rules.sh" \
-  | tee /lib/systemd/system/vbox-client.service
+if [[ -z "$ROUTER_NET_LOCAL_ENABLE_VBOX" ]] || [[ $ROUTER_NET_LOCAL_ENABLE_VBOX -eq 0 ]]; then
+  podman generate systemd vbox-client \
+    | tee /lib/systemd/system/vbox-client.service
+else
+  podman generate systemd vbox-client \
+    | sed "/PIDFile=/a ExecStopPost=/bin/bash $SCRIPT_DIR/setup-client-pod-ip-nft.sh clear" \
+    | sed "/PIDFile=/a ExecStartPost=/bin/bash $SCRIPT_DIR/setup-client-pod-ip-nft.sh" \
+    | tee /lib/systemd/system/vbox-client.service
+fi
 
 podman container stop vbox-client
 

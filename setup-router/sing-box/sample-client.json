@@ -99,8 +99,12 @@
         "10.0.0.0/8",
         "172.16.0.0/12",
         "192.168.0.0/16"
+        // INET4_ROUTE_EXLUCDE_ADDRESS_PLACEHOLDER
       ],
-      "inet6_route_exclude_address": ["fc00::/7"]
+      "inet6_route_exclude_address": [
+        "fc00::/7"
+        // INET6_ROUTE_EXLUCDE_ADDRESS_PLACEHOLDER
+      ]
     },
     {
       "type": "trojan",

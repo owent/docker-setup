@@ -32,7 +32,7 @@ done
 echo "PPP ip(s): ${SET_IP_PARAMETERS[@]}" | systemd-cat -t router-ddns -p info
 
 # Update ddns to cloudflare
-podman run --rm --network=host docker.io/owt5008137/ddns-cli /usr/local/ddns-cli/bin/ddns-cli \
+podman run --rm --network=host ghcr.io/owent/ddns-cli /usr/local/ddns-cli/bin/ddns-cli \
   --ip ${SET_IP_PARAMETERS[@]} --ip-no-link-local --ip-no-loopback --ip-no-multicast --ip-no-private --ip-no-shared \
   --cf-token <cloudflare token> \
   --cf-domain <domain> --cf-zone-id <cloudflare zone id>
