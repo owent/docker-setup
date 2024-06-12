@@ -355,7 +355,7 @@
     // "default_interface": "ppp0",
     // For Android
     // "override_android_vpn": true,
-    "default_mark": 511
+    "default_mark": 15
   },
   "experimental": {
     "cache_file": {

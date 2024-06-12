@@ -1,21 +1,5 @@
 #!/bin/bash
 
-# $ROUTER_HOME/sing-box/create-client-pod.sh
-# nftables
-# Quick: https://wiki.nftables.org/wiki-nftables/index.php/Performing_Network_Address_Translation_(NAT)
-# Quick(CN): https://wiki.archlinux.org/index.php/Nftables_(%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87)#Masquerading
-# List all tables/chains/rules/matches/statements: https://wiki.nftables.org/wiki-nftables/index.php/Quick_reference-nftables_in_10_minutes#Rules
-# man 8 nft:
-#    https://www.netfilter.org/projects/nftables/manpage.html
-#    https://www.mankier.com/8/nft
-# IP http://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest
-#    ipv4 <start> <count> => ipv4 58.42.0.0 65536
-#    ipv6 <prefix> <bits> => ipv6 2407:c380:: 32
-# Netfilter: https://en.wikipedia.org/wiki/Netfilter
-#            http://inai.de/images/nf-packet-flow.svg
-# Policy Routing: See RPDB in https://www.man7.org/linux/man-pages/man8/ip-rule.8.html
-# Monitor: nft monitor
-
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 
@@ -27,12 +11,6 @@ if [[ -z "$VBOX_DATA_DIR" ]]; then
   VBOX_DATA_DIR="$HOME/vbox/data"
 fi
 
-### 策略路由(占用mark的后4位,RPDB变化均会触发重路由, meta mark and 0x0f != 0x0 都跳过重路由):
-###   不需要重路由设置: meta mark and 0x0f != 0x0
-###   走 tun: 设置 fwmark = 0x03/0x03 (0011)
-###   直接跳转到默认路由: 跳过 fwmark = 0x0c/0x0c (1100)
-###     (vbox会设置511,0x1ff), 避开 meta mark and 0x0f != 0x0 规则 (防止循环重定向)
-
 if [[ -z "$ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY" ]]; then
   ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY=20901
 fi
@@ -41,13 +19,13 @@ if [[ -z "$VBOX_SKIP_IP_RULE_PRIORITY" ]]; then
 fi
 
 if [[ "x$1" != "xclear" ]]; then
-  VBOX_SETUP_IP_RULE_CLEAR=1
-else
   VBOX_SETUP_IP_RULE_CLEAR=0
+else
+  VBOX_SETUP_IP_RULE_CLEAR=1
 fi
 
 function vbox_setup_patch_configures() {
-  PATCH_CONF_FILES=($(find "$VBOX_ETC_DIR" -name "*.json.template"))
+  PATCH_CONF_FILES=($(find "$VBOX_ETC_DIR" -maxdepth 1 -name "*.json.template"))
   if [ ${#PATCH_CONF_FILES[@]} -eq 0 ]; then
     return 0
   fi
@@ -129,15 +107,18 @@ function vbox_setup_patch_configures() {
 }
 
 function vbox_cleanup_patch_configures() {
-  PATCH_CONF_FILES=($(find "$VBOX_ETC_DIR" -name "*.json.template"))
+  PATCH_CONF_FILES=($(find "$VBOX_ETC_DIR" -maxdepth 1 -name "*.json.template"))
   if [ ${#PATCH_CONF_FILES[@]} -eq 0 ]; then
     return 0
   fi
 
-  # cp -f "${PATCH_CONF_FILES[@]}" "$VBOX_ETC_DIR/"
+  for PATCH_CONF_FILE in "${PATCH_CONF_FILES[@]}"; do
+    TARGET_CONF_FILE_BASENAME="$(basename "$PATCH_CONF_FILE" | sed -E 's;.template$;;')"
+    cp -f "$PATCH_CONF_FILE" "$VBOX_ETC_DIR/$TARGET_CONF_FILE_BASENAME"
+  done
 }
 
-if [ $VBOX_SETUP_IP_RULE_CLEAR -ne 0 ]; then
+if [ $VBOX_SETUP_IP_RULE_CLEAR -eq 0 ]; then
   vbox_setup_patch_configures
 else
   vbox_cleanup_patch_configures
