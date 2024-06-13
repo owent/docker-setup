@@ -21,8 +21,8 @@ fi
 # LLM_LOBE_CHAT_OPENAI_PROXY_URL=https://litellm.imwe.chat/v1 # https://api.openai.com/v1
 # LLM_LOBE_CHAT_API_KEY_SELECT_MODE=random # random,turn
 # See https://github.com/lobehub/lobe-chat/blob/main/src/config/modelProviders/openai.ts
-# LLM_LOBE_CHAT_OPENAI_MODEL_LIST="-all,+gpt-3.5-turbo,+gpt-3.5-turbo-16k,+gpt-4-turbo,+gpt-4-32k,+gemini-pro,+gemini-pro-vision"
-# LLM_LOBE_CHAT_OPENAI_MODEL_LIST="-all,+gpt-3.5-turbo=gpt-3.5-turbo<16384:fc>,+gpt-3.5-turbo-16k,+gpt-4-turbo=gpt-4-turbo<128000:fc:vision:file>,+gpt-4-32k"
+# LLM_LOBE_CHAT_OPENAI_MODEL_LIST="-all,+gpt-3.5-turbo,+gpt-3.5-turbo-16k,+gpt-4o,+gpt-4-turbo,+gemini-pro,+gemini-pro-vision"
+# LLM_LOBE_CHAT_OPENAI_MODEL_LIST="-all,+gpt-3.5-turbo=gpt-3.5-turbo<16384:fc>,+gpt-3.5-turbo-16k,+gpt-4o=gpt-4o<128000:fc:vision:file>"
 
 # LLM_LOBE_CHAT_AZURE_API_KEY=
 # LLM_LOBE_CHAT_AZURE_ENDPOINT= # https://owent-us.openai.azure.com/

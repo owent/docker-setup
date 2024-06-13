@@ -10,19 +10,9 @@ model_list:
       model: azure/gpt-3.5-turbo-16k
       api_base: https://owent-us.openai.azure.com/
       api_key: <your-azure-api-key>
-  - model_name: gpt-4-turbo
+  - model_name: gpt-4o
     litellm_params:
-      model: azure/gpt-4-turbo
-      api_base: https://owent-us.openai.azure.com/
-      api_key: <your-azure-api-key>
-  - model_name: gpt-4-8k
-    litellm_params:
-      model: azure/gpt-4-turbo
-      api_base: https://owent-us.openai.azure.com/
-      api_key: <your-azure-api-key>
-  - model_name: gpt-4-32k
-    litellm_params:
-      model: azure/gpt-4-32k
+      model: azure/gpt-4o
       api_base: https://owent-us.openai.azure.com/
       api_key: <your-azure-api-key>
   - model_name: dall-e-3
