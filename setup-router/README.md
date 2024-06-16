@@ -166,10 +166,12 @@ fi
   + http://ifconfig.me/ip
 + https://ip.sb/
   + https://api.ip.sb/ip
-+ http://ifconfig.io
-  + http://ifconfig.io/ip
-+ http://www.myip.la/
-  + http://api.myip.la
++ https://ifconfig.io
+  + https://ifconfig.io/ip
++ https://www.myip.la/
+  + https://api.myip.la
++ https://www.ipify.org
+  + https://api.ipify.org
 + http://getip.icu
 + http://myip.biturl.top
 + http://ip.threep.top
