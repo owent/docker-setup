@@ -408,6 +408,29 @@ ip link set $BRIDGE_IFNAME type bridge vlan_filtering 1
 # ip link set $BRIDGE_IFNAME type bridge vlan_default_pvid $BRIDGE_TARGET_VLAN_ID
 ```
 
+## Podman/docker 代理
+
+### podman 代理
+
+文件: `/etc/containers/registries.conf`
+
+```toml
+[[registry]]
+prefix = "docker.io"
+blocked = false
+location = "mirror.ccs.tencentyun.com"
+```
+
+### docker 代理
+
+文件: `/etc/docker/daemon.json`
+
+```toml
+{
+  "registry-mirrors": ["mirror.ccs.tencentyun.com"]
+}
+```
+
 [1]: https://tools.ietf.org/html/rfc8484 "RFC 8484"
 [2]: https://tools.ietf.org/html/rfc7858 "RFC 7858"
 [3]: https://dnscrypt.info/ "DNSCrypt"

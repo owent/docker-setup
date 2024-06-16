@@ -39,7 +39,7 @@ fi
 mkdir -p "$COREDNS_ETC_DIR"
 
 if [[ "x$COREDNS_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman pull docker.io/owt5008137/coredns:latest
+  podman pull ghcr.io/owent/coredns:latest
   if [[ $? -ne 0 ]]; then
     exit 1
   fi
@@ -81,7 +81,7 @@ podman run -d --name coredns \
   --security-opt seccomp=unconfined \
   --mount type=bind,source=$COREDNS_ETC_DIR,target=/etc/coredns/ \
   ${COREDNS_NETWORK_OPTIONS[@]} \
-  docker.io/owt5008137/coredns:latest \
+  ghcr.io/owent/coredns:latest \
   -dns.port=$COREDNS_DNS_PORT \
   -conf /etc/coredns/Corefile
 
