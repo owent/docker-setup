@@ -298,6 +298,10 @@ services:
 
 rootless模式下建议母机mount完共享到子机。编辑 `/etc/fstab` 增加 `NFS_REMOTE:/NFS_REMOTE_PATH /NFS_LOCAL_PATH nfs rw,nolock 0 0` ，然后手动mount一下: `sudo mount -t nfs -o rw,nolock NFS_REMOTE:/NFS_REMOTE_PATH /NFS_LOCAL_PATH`
 
++ 启动systemd提示 `Failed to create /init.scope control group: No such file or directory`
+
+尝试启动时增加 `--cgroupns host` 。或在 `/etc/docker/daemon.json` 中添加 `"default-cgroupns-mode": "host"` 。
+
 ## 非root 模式 systemd(`systrmctl --user`)
 
 需要对每个用户单独启动 systemd 服务。先补全下面几个文件:
