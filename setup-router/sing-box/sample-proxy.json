@@ -98,8 +98,8 @@
           //   + https://zerossl.com/documentation/api/generate-eab-credentials/
           //   + https://app.zerossl.com/developer
           "external_account": {
-              "key_id": "xFHnEIOGIYYN5c6vzAqqog",
-              "mac_key": ""
+              "key_id": "<KEY ID>",
+              "mac_key": "<MAC KEY>"
           },
           "dns01_challenge": {
             "provider": "cloudflare",
