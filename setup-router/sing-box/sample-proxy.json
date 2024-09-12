@@ -99,7 +99,7 @@
           //   + https://app.zerossl.com/developer
           "external_account": {
               "key_id": "xFHnEIOGIYYN5c6vzAqqog",
-              "mac_key": "9bY57ottttxGZqqQsVGIsyJkuauDe79Ehxyva4nfjzp6Fo_a9AAisMOT88ATSYwkLiWF74PHdqLbIfOMB8Ugig"
+              "mac_key": ""
           },
           "dns01_challenge": {
             "provider": "cloudflare",

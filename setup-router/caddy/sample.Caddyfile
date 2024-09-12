@@ -147,6 +147,11 @@ local-home.x-ha.com:6443 {
   }
 }
 
+# adguard-home
+adguard-home.x-ha.com:6443 {
+  reverse_proxy http://127.0.0.1:6393
+}
+
 :8375 {
   header Content-Type "text/html; charset=utf-8"
   redir https://owent.net{uri} html

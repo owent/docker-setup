@@ -14,3 +14,9 @@ mkdir -p "$ACMESH_SSL_DIR"
 
 # sudo -u tools bash -c 'source ~/.bashrc; systemctl restart --user router-nginx'
 # systemctl restart v2ray
+systemctl --user --all | grep -F container-adguard-home.service
+
+if [[ $? -eq 0 ]]; then
+  systemctl --user stop container-adguard-home
+  systemctl --user disable container-adguard-home
+fi
