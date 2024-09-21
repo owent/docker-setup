@@ -5,13 +5,13 @@ REMOTE_DEPLOY_KEY=<path of id_ed25519>
 REMOTE_DEPLOY_SSL_PATH=/home/website/ssl/
 
 # Update local services
-if [[ "x$1" == "xupdate-v2ray" ]] || [[ "x$1" == "xupdate-vproxy" ]]; then
-    env V2RAY_UPDATE=1 bash /data/vproxy/setup.sh ;
+if [[ "x$1" == "xupdate-v2ray" ]] || [[ "x$1" == "xupdate-vproxy" ]] || [[ "x$1" == "xupdate-vbox" ]]; then
+    env VBOX_UPDATE=1 bash /data/vbox-server/setup-server.sh
 else
-    bash /data/vproxy/update.sh ;
+    bash /data/vbox-server/update-server.sh
 fi
 
-echo "" > sync-to-replications.log ;
+echo "" > sync-to-replications.log
 REPLICATION_NODES=(
   "USER@HOST:PORT"
 );
@@ -41,14 +41,14 @@ for NODE_ADDR in ${REPLICATION_NODES[@]}; do
 
     echo "============ Update $NODE_USER@$NODE_HOST:$NODE_PORT ... " 
 
-    ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i $REMOTE_DEPLOY_KEY $NODE_USER@$NODE_HOST "mkdir -p /data/vproxy" 
+    ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i $REMOTE_DEPLOY_KEY $NODE_USER@$NODE_HOST "mkdir -p /data/vbox-server" 
 
     scp -r -P $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i \
-      "$REMOTE_DEPLOY_KEY" /data/vproxy/etc /data/vproxy/*.sh "$NODE_USER@$NODE_HOST:/data/vproxy/"
+      "$REMOTE_DEPLOY_KEY" /data/vbox-server/etc /data/vbox-server/*.sh "$NODE_USER@$NODE_HOST:/data/vbox-server/"
 
-    if [[ "x$1" == "xupdate-v2ray" ]] || [[ "x$1" == "xupdate-vproxy" ]]; then
-        ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$REMOTE_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "env V2RAY_UPDATE=1 bash /data/vproxy/setup.sh" 
+    if [[ "x$1" == "xupdate-v2ray" ]] || [[ "x$1" == "xupdate-vproxy" ]] || [[ "x$1" == "xupdate-vbox" ]]; then
+        ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$REMOTE_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "env VBOX_UPDATE=1 bash /data/vbox-server/setup-server.sh" 
     else
-    ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$REMOTE_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "bash /data/vproxy/update.sh"
+    ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$REMOTE_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "bash /data/vbox-server/update-server.sh"
     fi
 done

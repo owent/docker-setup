@@ -13,13 +13,16 @@ fi
 if [[ -z "$VBOX_LOG_DIR" ]]; then
   VBOX_LOG_DIR="$HOME/vbox/log"
 fi
+if [[ -z "$VBOX_IMAGE_URL" ]]; then
+  VBOX_IMAGE_URL="ghcr.io/owent/vbox:latest"
+fi
 
 mkdir -p "$VBOX_ETC_DIR"
 mkdir -p "$VBOX_DATA_DIR"
 mkdir -p "$VBOX_LOG_DIR"
 
 if [[ "x$VBOX_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman pull ghcr.io/owent/vbox:latest
+  podman pull "$VBOX_IMAGE_URL"
   if [[ $? -ne 0 ]]; then
     exit 1
   fi
@@ -67,7 +70,7 @@ podman run -d --name vbox-proxy --cap-add=NET_BIND_SERVICE \
   --mount type=bind,source=$VBOX_ETC_DIR,target=/etc/vbox/,ro=true \
   --mount type=bind,source=$VBOX_DATA_DIR,target=/var/lib/vbox \
   --mount type=bind,source=$VBOX_LOG_DIR,target=/var/log/vbox \
-  ghcr.io/owent/vbox:latest -D /var/lib/vbox -C /etc/vbox/ run
+  "$VBOX_IMAGE_URL" -D /var/lib/vbox -C /etc/vbox/ run
 
 # podman cp vbox-proxy:/usr/local/vbox-proxy/share/geo-all.tar.gz geo-all.tar.gz
 # if [[ $? -eq 0 ]]; then

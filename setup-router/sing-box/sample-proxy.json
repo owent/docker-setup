@@ -53,20 +53,23 @@
         "server": "dns-local"
       },
       // client_subnet is available from 1.9.0
-      // {
-      //   "type": "logical",
-      //   "mode": "and",
-      //   "rules": [
-      //     {
-      //       "rule_set": "geosite-geolocation-!cn"
-      //     },
-      //     {
-      //       "rule_set": "geoip-cn"
-      //     }
-      //   ],
-      //   "server": "dns-proxy",
-      //   "client_subnet": "114.114.114.114" // Any China client IP address
-      // },
+      {
+        "type": "logical",
+        "mode": "and",
+        "rules": [
+          {
+            "rule_set": "geosite-geolocation-!cn",
+            "invert": true
+          },
+          {
+            "rule_set": "geoip-cn"
+          }
+        ],
+        "server": "dns-proxy",
+        // "client_subnet": "114.114.114.114/24" // Any China client IP address
+        // "client_subnet": "202.96.209.133/24" // Shanghai ChinaNet IP address
+        "client_subnet": "210.22.70.3/24" // Shanghai ChinaUnion IP address
+      },
       {
         "outbound": "any",
         "server": "dns-proxy"
