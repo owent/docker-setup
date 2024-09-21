@@ -29,6 +29,13 @@ if [[ "x$SYNCTHING_RELAY_POOL_LISTEN_PORT" == "x" ]]; then
   SYNCTHING_RELAY_POOL_LISTEN_PORT=6345
 fi
 
+if [[ "x$GEOIP_LICENSE_KEY" == "x" ]]; then
+  GEOIP_LICENSE_KEY="<License Key from https://www.maxmind.com/>"
+fi
+if [[ "x$GEOIP_ACCOUNT_ID" == "x" ]]; then
+  GEOIP_ACCOUNT_ID="<Account from https://www.maxmind.com/>"
+fi
+
 if [[ "x$SYNCTHING_ETC_DIR" == "x" ]]; then
   SYNCTHING_ETC_DIR="$RUN_HOME/syncthing/etc"
 fi
@@ -91,6 +98,7 @@ if [[ ! -z "$SYNCTHING_RELAY_POOL_IP_HEADER" ]]; then
 fi
 
 podman run -d --name syncthing-relay-pool --security-opt label=disable \
+  -e "GEOIP_LICENSE_KEY=$GEOIP_LICENSE_KEY" -e "GEOIP_ACCOUNT_ID=$GEOIP_ACCOUNT_ID" \
   --mount type=bind,source=$SYNCTHING_SSL_DIR,target=/syncthing/ssl/ \
   --mount type=bind,source=$SYNCTHING_DATA_DIR,target=/syncthing/data/ \
   -p $SYNCTHING_RELAY_POOL_LISTEN_PORT:$SYNCTHING_RELAY_POOL_LISTEN_PORT/tcp \

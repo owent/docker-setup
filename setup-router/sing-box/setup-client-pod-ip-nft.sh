@@ -246,6 +246,7 @@ function vbox_iniitialize_rule_table() {
   fi
   nft flush chain $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP
 
+  nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP meta mark and 0x0f != 0x0 ct mark and 0x0f == 0x0 ct mark set meta mark accept
   nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP meta mark and 0x0f != 0x0 accept
   nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP ct mark and 0x0f != 0x0 meta mark set ct mark accept
   nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP meta mark and 0x0c == 0x0c jump POLICY_MARK_GOTO_DEFAULT

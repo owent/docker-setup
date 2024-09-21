@@ -4,14 +4,14 @@
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
-if [[ -z "$VBOX_ETC_DIR" ]]; then
-  VBOX_ETC_DIR="$HOME/vbox/etc"
+if [[ -z "$VBOX_CADDY_ETC_DIR" ]]; then
+  VBOX_CADDY_ETC_DIR="$HOME/vbox/etc-caddy"
 fi
 if [[ -z "$VBOX_CADDY_IMAGE_URL" ]]; then
   VBOX_CADDY_IMAGE_URL="docker.io/caddy:latest"
 fi
 
-mkdir -p "$VBOX_ETC_DIR"
+mkdir -p "$VBOX_CADDY_ETC_DIR"
 
 if [[ "x$VBOX_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman pull "$VBOX_CADDY_IMAGE_URL"
@@ -38,6 +38,7 @@ if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
   if [[ -e "$SYSTEMD_SERVICE_DIR/vproxy-caddy-fallback.service" ]]; then
     systemctl stop vproxy-caddy-fallback.service
     systemctl disable vproxy-caddy-fallback.service
+    rm "$SYSTEMD_SERVICE_DIR/vproxy-caddy-fallback.service"
   fi
 else
   export XDG_RUNTIME_DIR="/run/user/$UID"
@@ -56,6 +57,7 @@ else
   if [[ -e "$SYSTEMD_SERVICE_DIR/vproxy-caddy-fallback.service" ]]; then
     systemctl --user stop vproxy-caddy-fallback.service
     systemctl --user disable vproxy-caddy-fallback.service
+    rm "$SYSTEMD_SERVICE_DIR/vproxy-caddy-fallback.service"
   fi
 fi
 
@@ -87,10 +89,10 @@ echo "
   header Content-Type \"text/html; charset=utf-8\"
   redir https://owent.net{uri} html
 }
-" >"$VBOX_ETC_DIR/Caddyfile"
+" >"$VBOX_CADDY_ETC_DIR/Caddyfile"
 
 podman run -d --name vbox-caddy-fallback --security-opt label=disable \
-  -v $VBOX_ETC_DIR/Caddyfile:/etc/caddy/Caddyfile \
+  -v $VBOX_CADDY_ETC_DIR/Caddyfile:/etc/caddy/Caddyfile \
   --network=host $VBOX_CADDY_IMAGE_URL \
   caddy run --config /etc/caddy/Caddyfile
 

@@ -46,6 +46,7 @@ if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
   if [[ -e "$SYSTEMD_SERVICE_DIR/vproxy-with-geo.service" ]]; then
     systemctl stop vproxy-with-geo.service
     systemctl disable vproxy-with-geo.service
+    rm "$SYSTEMD_SERVICE_DIR/vproxy-with-geo.service"
   fi
 else
   export XDG_RUNTIME_DIR="/run/user/$UID"
@@ -64,6 +65,7 @@ else
   if [[ -e "$SYSTEMD_SERVICE_DIR/vproxy-with-geo.service" ]]; then
     systemctl --user stop vproxy-with-geo.service
     systemctl --user disable vproxy-with-geo.service
+    rm "$SYSTEMD_SERVICE_DIR/vproxy-with-geo.service"
   fi
 fi
 

@@ -22,7 +22,7 @@
         "tag": "dns-local",
         "address": "tls://223.5.5.5",
         "detour": "direct"
-      }// ,
+      } // ,
       // {
       //   "tag": "dns-local",
       //   "address": "https://223.5.5.5/dns-query",
@@ -72,7 +72,7 @@
       },
       {
         "outbound": "any",
-        "server": "dns-proxy"
+        "server": "dns-local"
       }
     ]
   },
@@ -82,13 +82,20 @@
       "tag": "in-vmess",
       "listen": "::",
       "listen_port": 8371,
-      "users": [{
-        "name": "<USER NAME>",
-        "uuid": "<UUID>",
-        "alterId": 256
-      }],
+      "sniff_override_destination": true,
+      "sniff": true,
+      "tcp_fast_open": false,
+      "proxy_protocol": false,
+      "users": [
+        {
+          "name": "<USER NAME>",
+          "uuid": "<UUID>",
+          "alterId": 256
+        }
+      ],
       "tls": {
         "enabled": true,
+        "server_name": "example.org",
         "insecure": false,
         "alpn": ["h2"],
         "min_version": "1.2",
@@ -96,28 +103,26 @@
         "key_path": "<KEY FILE PATH>"
       },
       "transport": {
-        "type": "http",
-        "host": [
-          "vr-m.shkits.com",
-          "vr-s.shkits.com",
-          "vr-l.shkits.com",
-          "vr-l2.shkits.com",
-          "vr-sg.shkits.com",
-          "vr-us.shkits.com"
-        ],
-        "path": "/redirect"
+        "type": "ws",
+        "path": "/redirect",
+        "max_early_data": 2048,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
       }
-    }, {
+    },
+    {
       "type": "trojan",
       "tag": "in-trojan",
       "listen": "::",
       "listen_port": 8372,
-      "users": [{
-        "name": "<USER NAME>",
-        "password": "<PASSWORD>"
-      }],
+      "users": [
+        {
+          "name": "<USER NAME>",
+          "password": "<PASSWORD>"
+        }
+      ],
       "tls": {
         "enabled": true,
+        "server_name": "example.org",
         "insecure": false,
         "alpn": ["h2"],
         "min_version": "1.2",
@@ -134,38 +139,37 @@
           "server_port": 8375
         }
       }
-    }, {
+    },
+    {
       "type": "vless",
       "tag": "in-vless",
       "listen": "::",
       "listen_port": 8373,
-      "users": [{
-        "name": "<USER NAME>",
-        "uuid": "<UUID>",
-        "flow": ""
-      }],
+      "sniff_override_destination": true,
+      "sniff": true,
+      "tcp_fast_open": false,
+      "proxy_protocol": false,
+      "users": [
+        {
+          "name": "<USER NAME>",
+          "uuid": "<UUID>",
+          "flow": ""
+        }
+      ],
       "tls": {
         "enabled": true,
+        "server_name": "example.org",
         "insecure": false,
-        "alpn": ["h2"],
+        "alpn": ["h2", "http/1.1"],
         "min_version": "1.2",
         "certificate_path": "<CERT/FULLCHAIN FILE PATH>",
         "key_path": "<KEY FILE PATH>"
       },
       "transport": {
-        "type": "http",
-        "host": [
-          "vr-m.shkits.com",
-          "vr-s.shkits.com",
-          "vr-l.shkits.com",
-          "vr-l2.shkits.com",
-          "vr-sg.shkits.com",
-          "vr-us.shkits.com"
-        ],
+        "type": "ws",
         "path": "/redirect",
-        "headers": {
-          "Location": "https://owent.net/"
-        }
+        "max_early_data": 2048,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
       }
     }
   ],
@@ -184,7 +188,12 @@
     }
   ],
   "route": {
-    "rules": [],
+    "rules": [
+      {
+        "protocol": "dns",
+        "outbound": "dns-out"
+      }
+    ],
     "rule_set": [
       {
         "type": "local",
@@ -212,11 +221,7 @@
       }
     ],
     // 默认出站标签。如果为空，将使用第一个可用于对应协议的出站。
-    // "final": "",
-    "auto_detect_interface": true,
-    // For Android
-    // "override_android_vpn": true,
-    "default_mark": 511
+    "final": "direct"
   },
   "experimental": {
     "cache_file": {
