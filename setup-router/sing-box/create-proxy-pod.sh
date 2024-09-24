@@ -15,6 +15,7 @@ if [[ -z "$VBOX_LOG_DIR" ]]; then
 fi
 if [[ -z "$VBOX_IMAGE_URL" ]]; then
   VBOX_IMAGE_URL="ghcr.io/owent/vbox:latest"
+  # VBOX_IMAGE_URL="docker.io/owt5008137/vbox:latest"
 fi
 
 mkdir -p "$VBOX_ETC_DIR"
