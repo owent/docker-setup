@@ -41,8 +41,7 @@ function vbox_setup_patch_configures() {
   podman exec -it vbox-client vbox geoip export cn -f /usr/share/vbox/geoip.db -o /usr/share/vbox/geoip-cn.json
   podman cp vbox-client:/usr/share/vbox/geoip-cn.json "$VBOX_DATA_DIR/geoip-cn.json" || mv -f "$VBOX_DATA_DIR/geoip-cn.json.bak" "$VBOX_DATA_DIR/geoip-cn.json"
 
-  GEOIP_CN_ADDRESS_IPV4=($(jq '.rules[].ip_cidr[]' -r "$VBOX_DATA_DIR/geoip-cn.json" | grep -v ':'))
-  GEOIP_CN_ADDRESS_IPV6=($(jq '.rules[].ip_cidr[]' -r "$VBOX_DATA_DIR/geoip-cn.json" | grep ':'))
+  GEOIP_CN_ADDRESS=($(jq '.rules[].ip_cidr[]' -r "$VBOX_DATA_DIR/geoip-cn.json"))
 
   if [[ -e "$SCRIPT_DIR/patch" ]]; then
     rm -rf "$SCRIPT_DIR/patch"
@@ -51,55 +50,19 @@ function vbox_setup_patch_configures() {
 
   for PATCH_CONF_FILE in "${PATCH_CONF_FILES[@]}"; do
     TARGET_CONF_FILE="$SCRIPT_DIR/patch/$(basename "$PATCH_CONF_FILE" | sed -E 's;.template$;;')"
-    IPV4_PLACEHOLDER=$(grep -nr INET4_ROUTE_EXLUCDE_ADDRESS_PLACEHOLDER "$PATCH_CONF_FILE" | awk 'BEGIN{FS=":"}{print $1}')
-    IPV6_PLACEHOLDER=$(grep -nr INET6_ROUTE_EXLUCDE_ADDRESS_PLACEHOLDER "$PATCH_CONF_FILE" | awk 'BEGIN{FS=":"}{print $1}')
+    GEOIP_ADDRESS_PLACEHOLDER=$(grep -nr ROUTE_EXLUCDE_ADDRESS_PLACEHOLDER "$PATCH_CONF_FILE" | awk 'BEGIN{FS=":"}{print $1}')
 
-    if [[ -z "$IPV4_PLACEHOLDER" ]] && [[ -z "$IPV6_PLACEHOLDER" ]]; then
+    if [[ -z "$GEOIP_ADDRESS_PLACEHOLDER" ]]; then
       echo "No placeholder found in $PATCH_CONF_FILE"
       continue
     fi
 
-    if [[ -z "$IPV6_PLACEHOLDER" ]]; then
-      sed -n "1,$((IPV4_PLACEHOLDER - 1))p" "$PATCH_CONF_FILE" >"$TARGET_CONF_FILE"
-      for IP_CIDR in "${GEOIP_CN_ADDRESS_IPV4[@]}"; do
-        echo "        ,\"$IP_CIDR\"" >>"$TARGET_CONF_FILE"
-      done
-      echo "        // INET4_ROUTE_EXLUCDE_ADDRESS_PATCHED" >>"$TARGET_CONF_FILE"
-      sed -n "$((IPV4_PLACEHOLDER + 1)),$ p" "$PATCH_CONF_FILE" >>"$TARGET_CONF_FILE"
-    elif [[ -z "$IPV4_PLACEHOLDER" ]]; then
-      sed -n "1,$((IPV6_PLACEHOLDER - 1))p" "$PATCH_CONF_FILE" >"$TARGET_CONF_FILE"
-      for IP_CIDR in "${GEOIP_CN_ADDRESS_IPV6[@]}"; do
-        echo "        ,\"$IP_CIDR\"" >>"$TARGET_CONF_FILE"
-      done
-      echo "        // INET6_ROUTE_EXLUCDE_ADDRESS_PATCHED" >>"$TARGET_CONF_FILE"
-      sed -n "$((IPV6_PLACEHOLDER + 1)),$ p" "$PATCH_CONF_FILE" >>"$TARGET_CONF_FILE"
-    elif [ $IPV4_PLACEHOLDER -lt $IPV6_PLACEHOLDER ]; then
-      sed -n "1,$((IPV4_PLACEHOLDER - 1))p" "$PATCH_CONF_FILE" >"$TARGET_CONF_FILE"
-      for IP_CIDR in "${GEOIP_CN_ADDRESS_IPV4[@]}"; do
-        echo "        ,\"$IP_CIDR\"" >>"$TARGET_CONF_FILE"
-      done
-      echo "        // INET4_ROUTE_EXLUCDE_ADDRESS_PATCHED" >>"$TARGET_CONF_FILE"
-
-      sed -n "$((IPV4_PLACEHOLDER + 1)),$((IPV6_PLACEHOLDER - 1))p" "$PATCH_CONF_FILE" >>"$TARGET_CONF_FILE"
-      for IP_CIDR in "${GEOIP_CN_ADDRESS_IPV6[@]}"; do
-        echo "        ,\"$IP_CIDR\"" >>"$TARGET_CONF_FILE"
-      done
-      echo "        // INET6_ROUTE_EXLUCDE_ADDRESS_PATCHED" >>"$TARGET_CONF_FILE"
-      sed -n "$((IPV6_PLACEHOLDER + 1)),$ p" "$PATCH_CONF_FILE" >>"$TARGET_CONF_FILE"
-    else
-      sed -n "1,$((IPV6_PLACEHOLDER - 1))p" "$PATCH_CONF_FILE" >"$TARGET_CONF_FILE"
-      for IP_CIDR in "${GEOIP_CN_ADDRESS_IPV6[@]}"; do
-        echo "        ,\"$IP_CIDR\"" >>"$TARGET_CONF_FILE"
-      done
-      echo "        // INET6_ROUTE_EXLUCDE_ADDRESS_PATCHED" >>"$TARGET_CONF_FILE"
-
-      sed -n "$((IPV6_PLACEHOLDER + 1)),$((IPV4_PLACEHOLDER - 1))p" "$PATCH_CONF_FILE" >>"$TARGET_CONF_FILE"
-      for IP_CIDR in "${GEOIP_CN_ADDRESS_IPV4[@]}"; do
-        echo "        ,\"$IP_CIDR\"" >>"$TARGET_CONF_FILE"
-      done
-      echo "        // INET4_ROUTE_EXLUCDE_ADDRESS_PATCHED" >>"$TARGET_CONF_FILE"
-      sed -n "$((IPV4_PLACEHOLDER + 1)),$ p" "$PATCH_CONF_FILE" >>"$TARGET_CONF_FILE"
-    fi
+    sed -n "1,$((GEOIP_ADDRESS_PLACEHOLDER - 1))p" "$PATCH_CONF_FILE" >"$TARGET_CONF_FILE"
+    for IP_CIDR in "${GEOIP_CN_ADDRESS[@]}"; do
+      echo "        ,\"$IP_CIDR\"" >>"$TARGET_CONF_FILE"
+    done
+    echo "        // ROUTE_EXLUCDE_ADDRESS_PATCHED" >>"$TARGET_CONF_FILE"
+    sed -n "$((GEOIP_ADDRESS_PLACEHOLDER + 1)),$ p" "$PATCH_CONF_FILE" >>"$TARGET_CONF_FILE"
 
     echo "Copy patched configure file: $TARGET_CONF_FILE to $VBOX_ETC_DIR/"
     cp -f "$TARGET_CONF_FILE" "$VBOX_ETC_DIR/"

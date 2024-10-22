@@ -86,8 +86,10 @@
       "type": "tun",
       "tag": "in-tun",
       "interface_name": "tun-vbox",
-      "inet4_address": "172.19.0.1/30",
-      "inet6_address": "fdfe:dcba:9876::1/126",
+      "address": [
+        "172.19.0.1/30",
+        "fdfe:dcba:9876::1/126"
+      ],
       "sniff": true,
       "mtu": 9000,
       "gso": true,
@@ -97,15 +99,12 @@
       // "endpoint_independent_nat": false,
       "include_interface": ["enp2s0"],
       // "exclude_interface": [],
-      "inet4_route_exclude_address": [
+      "route_exclude_address": [
         "10.0.0.0/8",
         "172.16.0.0/12",
-        "192.168.0.0/16"
-        // INET4_ROUTE_EXLUCDE_ADDRESS_PLACEHOLDER
-      ],
-      "inet6_route_exclude_address": [
+        "192.168.0.0/16",
         "fc00::/7"
-        // INET6_ROUTE_EXLUCDE_ADDRESS_PLACEHOLDER
+        // ROUTE_EXLUCDE_ADDRESS_PLACEHOLDER
       ]
     },
     {
