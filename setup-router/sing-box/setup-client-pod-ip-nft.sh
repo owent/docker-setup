@@ -323,10 +323,35 @@ if [ $VBOX_SETUP_IP_RULE_CLEAR -ne 0 ]; then
   nft flush set bridge vbox GEOIP_CN_IPV4
   nft flush set bridge vbox GEOIP_CN_IPV6
 
-  nft add element inet vbox GEOIP_CN_IPV4 "{$(echo "${GEOIP_CN_ADDRESS_IPV4[@]}" | sed 's;[[:space:]][[:space:]]*;,;g')}"
-  nft add element bridge vbox GEOIP_CN_IPV4 " {$(echo "${GEOIP_CN_ADDRESS_IPV4[@]}" | sed 's;[[:space:]][[:space:]]*;,;g')}"
-  nft add element inet vbox GEOIP_CN_IPV6 "{$(echo "${GEOIP_CN_ADDRESS_IPV6[@]}" | sed 's;[[:space:]][[:space:]]*;,;g')}"
-  nft add element bridge vbox GEOIP_CN_IPV6 " {$(echo "${GEOIP_CN_ADDRESS_IPV6[@]}" | sed 's;[[:space:]][[:space:]]*;,;g')}"
+  GEOIP_CN_ADDRESS_COUNT=${#GEOIP_CN_ADDRESS_IPV4[@]}
+  GEOIP_CN_ADDRESS_START=0
+  while [[ $GEOIP_CN_ADDRESS_START -lt $GEOIP_CN_ADDRESS_COUNT ]]; do
+    GEOIP_CN_ADDRESS_END=$((GEOIP_CN_ADDRESS_START + 2000))
+    if [[ $GEOIP_CN_ADDRESS_END -lt $GEOIP_CN_ADDRESS_COUNT ]]; then
+      nft add element inet vbox GEOIP_CN_IPV4 "{$(echo "${GEOIP_CN_ADDRESS_IPV4:$GEOIP_CN_ADDRESS_START:$GEOIP_CN_ADDRESS_END}" | sed 's;[[:space:]][[:space:]]*;,;g')}"
+      nft add element bridge vbox GEOIP_CN_IPV4 " {$(echo "${GEOIP_CN_ADDRESS_IPV4:$GEOIP_CN_ADDRESS_START:$GEOIP_CN_ADDRESS_END}" | sed 's;[[:space:]][[:space:]]*;,;g')}"
+      GEOIP_CN_ADDRESS_START=$GEOIP_CN_ADDRESS_END
+    else
+      nft add element inet vbox GEOIP_CN_IPV4 "{$(echo "${GEOIP_CN_ADDRESS_IPV4:$GEOIP_CN_ADDRESS_START:$GEOIP_CN_ADDRESS_COUNT}" | sed 's;[[:space:]][[:space:]]*;,;g')}"
+      nft add element bridge vbox GEOIP_CN_IPV4 " {$(echo "${GEOIP_CN_ADDRESS_IPV4:$GEOIP_CN_ADDRESS_START:$GEOIP_CN_ADDRESS_COUNT}" | sed 's;[[:space:]][[:space:]]*;,;g')}"
+      GEOIP_CN_ADDRESS_START=$GEOIP_CN_ADDRESS_COUNT
+    fi
+  done
+
+  GEOIP_CN_ADDRESS_COUNT=${#GEOIP_CN_ADDRESS_IPV6[@]}
+  GEOIP_CN_ADDRESS_START=0
+  while [[ $GEOIP_CN_ADDRESS_START -lt $GEOIP_CN_ADDRESS_COUNT ]]; do
+    GEOIP_CN_ADDRESS_END=$((GEOIP_CN_ADDRESS_START + 2000))
+    if [[ $GEOIP_CN_ADDRESS_END -lt $GEOIP_CN_ADDRESS_COUNT ]]; then
+      nft add element inet vbox GEOIP_CN_IPV4 "{$(echo "${GEOIP_CN_ADDRESS_IPV6:$GEOIP_CN_ADDRESS_START:$GEOIP_CN_ADDRESS_END}" | sed 's;[[:space:]][[:space:]]*;,;g')}"
+      nft add element bridge vbox GEOIP_CN_IPV4 " {$(echo "${GEOIP_CN_ADDRESS_IPV6:$GEOIP_CN_ADDRESS_START:$GEOIP_CN_ADDRESS_END}" | sed 's;[[:space:]][[:space:]]*;,;g')}"
+      GEOIP_CN_ADDRESS_START=$GEOIP_CN_ADDRESS_END
+    else
+      nft add element inet vbox GEOIP_CN_IPV4 "{$(echo "${GEOIP_CN_ADDRESS_IPV6:$GEOIP_CN_ADDRESS_START:$GEOIP_CN_ADDRESS_COUNT}" | sed 's;[[:space:]][[:space:]]*;,;g')}"
+      nft add element bridge vbox GEOIP_CN_IPV4 " {$(echo "${GEOIP_CN_ADDRESS_IPV6:$GEOIP_CN_ADDRESS_START:$GEOIP_CN_ADDRESS_COUNT}" | sed 's;[[:space:]][[:space:]]*;,;g')}"
+      GEOIP_CN_ADDRESS_START=$GEOIP_CN_ADDRESS_COUNT
+    fi
+  done
 else
   nft delete chain inet vbox PREROUTING >/dev/null 2>&1
   nft delete chain inet vbox OUTPUT >/dev/null 2>&1
