@@ -42,16 +42,6 @@ else
   VBOX_SETUP_IP_RULE_CLEAR=0
 fi
 
-if [[ ${#VBOX_BLACKLIST_VLAN_IDS[@]} -gt 0 ]]; then
-  SETUP_WITH_BLACKLIST_VLAN_IDS="{"
-  for VLAN_TAG in "${VBOX_BLACKLIST_VLAN_IDS[@]}"; do
-    SETUP_WITH_BLACKLIST_VLAN_IDS="$SETUP_WITH_BLACKLIST_VLAN_IDS$VLAN_TAG,"
-  done
-  SETUP_WITH_BLACKLIST_VLAN_IDS="${SETUP_WITH_BLACKLIST_VLAN_IDS::-1}}"
-else
-  SETUP_WITH_BLACKLIST_VLAN_IDS=""
-fi
-
 if [ $VBOX_SETUP_IP_RULE_CLEAR -ne 0 ]; then
   if [[ -e "$VBOX_DATA_DIR/geoip-cn.json" ]] && [[ -e "$VBOX_DATA_DIR/geoip-cn.json.bak" ]]; then
     rm -f "$VBOX_DATA_DIR/geoip-cn.json.bak"
@@ -257,11 +247,6 @@ function vbox_iniitialize_rule_table() {
   ## DNS always goto tun
   nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP udp dport '{53, 853}' jump POLICY_MARK_GOTO_TUN
   nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP tcp dport '{53, 853}' jump POLICY_MARK_GOTO_TUN
-
-  ## skip black vlans
-  if [[ ! -z "$SETUP_WITH_BLACKLIST_VLAN_IDS" ]]; then
-    nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP vlan id "$SETUP_WITH_BLACKLIST_VLAN_IDS" jump POLICY_MARK_GOTO_DEFAULT
-  fi
 
   nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP ip version 4 jump POLICY_VBOX_IPV4
   nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP ip6 version 6 jump POLICY_VBOX_IPV6
