@@ -31,6 +31,9 @@ fi
 # LLM_LOBE_CHAT_GOOGLE_API_KEY=
 # LLM_LOBE_CHAT_GOOGLE_PROXY_URL= # https://generativelanguage.googleapis.com
 
+# LLM_LOBE_CHAT_HUNYUAN_API_KEY=
+# LLM_LOBE_CHAT_HUNYUAN_MODEL_LIST="-all,+hunyuan-lite,,+hunyuan-standard,,+hunyuan-standard-256K,,+hunyuan-turbo" #https://console.cloud.tencent.com/hunyuan
+
 # LLM_LOBE_CHAT_OLLAMA_PROXY_URL= # http://127.0.0.1:11434
 # LLM_LOBE_CHAT_OLLAMA_MODEL_LIST=random # random,turn
 
@@ -149,6 +152,9 @@ LLM_LOBE_CHAT_TEST_ENV=(
 
   GOOGLE_API_KEY
   GOOGLE_PROXY_URL
+
+  HUNYUAN_API_KEY
+  HUNYUAN_MODEL_LIST
 
   ANTHROPIC_API_KEY
   ANTHROPIC_PROXY_URL

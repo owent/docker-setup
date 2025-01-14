@@ -23,20 +23,73 @@ model_list:
       api_version: "2024-02-01"
     model_info:
       mode: image_generation
-  - model_name: gemini-vision
+  - model_name: claude-3-5-sonnet
     litellm_params:
-      model: vertex_ai/gemini-1.0-pro-vision-001
+      model: openrouter/anthropic/claude-3.5-sonnet
+      api_base: https://openrouter.ai/api/v1
+      api_key: <your-api-key>
+  - model_name: o1-mini
+    litellm_params:
+      model: o1-mini
+      api_base: https://openrouter.ai/api/v1
+      api_key: <your-api-key>
+  - model_name: o1
+    litellm_params:
+      model: o1
+      api_base: https://openrouter.ai/api/v1
+      api_key: <your-api-key>
+  - model_name: o1
+    litellm_params:
+      model: o1-preview
+      api_base: https://openrouter.ai/api/v1
+      api_key: <your-api-key>
+  - model_name: gpt-4o
+    litellm_params:
+      model: gpt-4o
+      api_base: https://openrouter.ai/api/v1
+      api_key: <your-api-key>
+  - model_name: gpt-4o-mini
+    litellm_params:
+      model: gpt-4o-mini
+      api_base: https://openrouter.ai/api/v1
+      api_key: <your-api-key>
+  - model_name: dall-e-3
+    litellm_params:
+      model: dall-e-3
+      api_base: https://aihubmix.com/v1
+      api_key: <your-api-key>
+    model_info:
+      mode: image_generation
+  - model_name: hunyuan-turbo
+    litellm_params:
+      model: openai/hunyuan-turbo
+      api_base: https://api.hunyuan.cloud.tencent.com/v1
+      api_key: <your-azure-api-key>
+      max_tokens: 28000
+  - model_name: hunyuan-standard-256K
+    litellm_params:
+      model: openai/hunyuan-standard-256K
+      api_base: https://api.hunyuan.cloud.tencent.com/v1
+      api_key: <your-azure-api-key>
+      max_tokens: 256000
+  - model_name: gemini-flash
+    litellm_params:
+      model: vertex_ai/gemini-2.0-flash-exp
+      vertex_project: "api-project-429734047293"
+      vertex_location: "us-central1"
+      vertex_credentials: "/etc/litellm/google-application-credentials.json"
+  - model_name: gemini-pro
+    litellm_params:
+      model: vertex_ai/gemini-1.5-pro-002
       vertex_project: "api-project-429734047293"
       vertex_location: "us-west1"
-  - model_name: gemini-1.5-pro
-    litellm_params:
-      model: vertex_ai/gemini-1.5-pro-preview-0409
-      vertex_project: "api-project-429734047293"
-      vertex_location: "us-west1"
+      vertex_credentials: "/etc/litellm/google-application-credentials.json"
 # router_settings:
 #   redis_host: <your redis host>
 #   redis_password: <your redis password>
 #   redis_port: 1992
+litellm_settings:
+  drop_params: true
 general_settings:
   # ui_access_mode: "admin_only"
   # master_key: sk-1234 # [OPTIONAL] Only use this if you to require all calls to contain this key (Authorization: Bearer sk-1234)
