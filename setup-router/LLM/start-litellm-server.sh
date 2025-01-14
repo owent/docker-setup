@@ -116,9 +116,9 @@ fi
 
 podman run -d --name llm-litellm --security-opt label=disable \
   "${LLM_LITELLM_ENV[@]}" \
-  --mount type=bind,source=$LLM_LITELLM_DATA_DIR,target=/app \
+  --mount type=bind,source=$LLM_LITELLM_DATA_DIR,target=/etc/litellm \
   -p $LLM_LITELLM_PORT:4000 \
-  ghcr.io/berriai/litellm:main-latest --port 4000 --config /app/litellm-config.yaml --num_workers 8
+  ghcr.io/berriai/litellm:main-latest --port 4000 --config /etc/litellm/litellm-config.yaml --num_workers 8
 
 podman generate systemd llm-litellm | tee -p "$SYSTEMD_SERVICE_DIR/llm-litellm.service"
 podman container stop llm-litellm
