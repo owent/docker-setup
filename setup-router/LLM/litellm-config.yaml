@@ -72,6 +72,12 @@ model_list:
       api_base: https://api.hunyuan.cloud.tencent.com/v1
       api_key: <your-azure-api-key>
       max_tokens: 256000
+  - model_name: hunyuan-code
+    litellm_params:
+      model: openai/hunyuan-code
+      api_base: https://api.hunyuan.cloud.tencent.com/v1
+      api_key: <your-azure-api-key>
+      max_tokens: 4000
   - model_name: gemini-flash
     litellm_params:
       model: vertex_ai/gemini-2.0-flash-exp
