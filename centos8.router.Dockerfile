@@ -16,8 +16,9 @@ RUN /bin/bash /opt/docker-setup/replace-source.sh ;                             
     dnf install -y vim dnsmasq dnsmasq-utils ppp ca-certificates ipset nftables ;               \
     dnf install -y NetworkManager NetworkManager-tui NetworkManager-wifi NetworkManager-ppp ;   \
     dnf install -y NetworkManager-wwan NetworkManager-bluetooth chrony;                         \
-    dnf install -y traceroute knot-utils tcpdump htop iotop nmap-ncat;                          \
-    dnf clean all
+    dnf install -y traceroute knot-utils tcpdump htop iotop nmap-ncat yq jq;                    \
+    dnf clean all;                                                                              \
+    useradd -u 29998 -g 29998 -m tools -s /bin/bash ;
 
 CMD [ "/bin/bash", "/opt/docker-setup/setup-router/setup-services.sh" ]
 

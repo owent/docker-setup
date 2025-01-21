@@ -16,12 +16,13 @@ RUN /bin/bash /opt/docker-setup/replace-source.sh ;                             
     dnf reinstall -y coreutils bash gawk sed;                                                                       \
     dnf install -y vim curl wget perl unzip lzip p7zip p7zip-plugins net-tools telnet iotop htop iproute nftables;  \
     dnf install -y man-db tzdata less lsof openssh-clients openssh-server systemd vim wget curl ca-certificates  ;  \
-    dnf install -y traceroute knot-utils tcpdump htop iotop nmap-ncat  ;                                            \
+    dnf install -y traceroute knot-utils tcpdump htop iotop nmap-ncat yq jq; ;                                      \
     localectl set-locale LANG=en_GB.utf8 ;                                                                          \
-    timedatectl set-timezone Asia/Shanghai;                                                                     \
-    timedatectl set-ntp true;                                                                                   \
-    # hwclock -w;                                                                                                 \
-    # ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                       \
+    timedatectl set-timezone Asia/Shanghai;                                                                         \
+    timedatectl set-ntp true;                                                                                       \
+    useradd -u 29998 -g 29998 -m tools -s /bin/bash ;                                                               \
+    # hwclock -w;                                                                                                   \
+    # ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                     \
     /bin/bash /opt/docker-setup/centos8.install-devtools.sh;                                                        \
     /bin/bash /opt/docker-setup/cleanup.devtools.sh
 

@@ -23,10 +23,12 @@ RUN set -ex ;                                                                   
     locale-gen en_US.UTF-8 ;                                                                                    \
     localectl set-locale LANGUAGE=en_US.UTF-8 || true; localectl set-locale LANG=en_GB.utf8 || true;            \
     pacman -Syy --noconfirm procps-ng less iproute2 gawk systemd which wget curl inetutils findutils traceroute;\
+    pacman -Syy --noconfirm yq jq;                                                                              \
     pacman -S -cc --noconfirm;                                                                                  \
     sed -i -r 's/#?DNSStubListener[[:space:]]*=.*/DNSStubListener=no/g'  /etc/systemd/resolved.conf ;           \
     rm -rf /var/lib/pacman/sync/* /var/cache/pacman/pkg/* ;                                                     \
-    echo "" > /var/log/pacman.log ;
+    echo "" > /var/log/pacman.log ;                                                                             \
+    useradd -u 29998 -g 29998 -m tools -s /bin/bash ;
 
 
 CMD [ "/lib/systemd/systemd" ]

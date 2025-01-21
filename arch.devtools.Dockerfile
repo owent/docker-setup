@@ -17,8 +17,8 @@ RUN sed -i -r '/Server\s*=\s*.*tencent.com/d' /etc/pacman.d/mirrorlist;         
     timedatectl set-ntp true || true;                                                                           \
     systemctl enable systemd-timesyncd.service || true ;                                                        \
     systemctl start systemd-timesyncd.service || true ;                                                         \
-    # hwclock -w;                                                                                                 \
-    # ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                   \
+    # hwclock -w;                                                                                               \
+    # ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                 \
     locale-gen en_US.UTF-8 ;                                                                                    \
     localectl set-locale LANGUAGE=en_US.UTF-8 || true; localectl set-locale LANG=en_GB.utf8 || true;            \
     pacman -Syy --noconfirm procps-ng less iproute2 gawk lsof openssh systemd sudo which;                       \
@@ -27,9 +27,11 @@ RUN sed -i -r '/Server\s*=\s*.*tencent.com/d' /etc/pacman.d/mirrorlist;         
     pacman -Syy --noconfirm openssl python perl automake gdb valgrind unzip p7zip base-devel asciidoc ;         \
     pacman -Syy --noconfirm xmlto xmltoman expat re2c cmake git git-lfs ninja tmux zsh clang lld llvm;          \
     pacman -Syy --noconfirm dotnet-sdk dotnet-runtime jdk-openjdk chrpath;                                      \
+    pacman -Syy --noconfirm yq jq;                                                                              \
     pacman -S -cc --noconfirm;                                                                                  \
     rm -rf /var/lib/pacman/sync/* /var/cache/pacman/pkg/* ;                                                     \
-    echo "" > /var/log/pacman.log ;
+    echo "" > /var/log/pacman.log ;                                                                             \
+    useradd -u 29998 -g 29998 -m tools -s /bin/bash ;
 
 # Auto setup network
 # systemctl enable NetworkManager
