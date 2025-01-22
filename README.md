@@ -247,6 +247,15 @@ systemctl restart systemd-journald
 
 ## 常见错误
 
++ sshd版本过老导致 `sign_and_send_pubkey: no mutual signature supported`
+
+```bash
+# 配置 ~/.ssh/config 文件，添加如下内容
+Host *
+    PubkeyAcceptedKeyTypes=+ssh-rsa
+    HostKeyAlgorithms=+ssh-rsa
+```
+
 + podman启动报 `Error: OCI runtime error: container_linux.go:380: starting container process caused: error adding seccomp filter rule for syscall bdflush: requested action matches default action of filter`
 
 启动时增加 `--security-opt seccomp=unconfined` 参数
