@@ -115,7 +115,7 @@ if [ $? -eq 0 ]; then
         sed -i "/tcp_bbr/d" /etc/modules-load.d/*.conf ;
         sed -i "/net.core.default_qdisc/d" /etc/sysctl.d/*.conf;
         sed -i "/net.ipv4.tcp_congestion_control/d" /etc/sysctl.d/*.conf;
-        echo "tcp_bbr" >> /etc/modules-load.d/ppp.conf ;
+        echo "tcp_bbr" >> /etc/modules-load.d/tcp_bbr.conf ;
         echo "net.core.default_qdisc = fq
 net.ipv4.tcp_congestion_control = bbr" >> /etc/sysctl.d/91-forwarding.conf ;
     fi
@@ -416,7 +416,7 @@ ip link set $BRIDGE_IFNAME type bridge vlan_filtering 1
 
 ### podman 代理
 
-文件: `/etc/containers/registries.conf`
+文件: `/etc/containers/registries.conf.d/docker.io.conf`
 
 ```toml
 [[registry]]
@@ -432,6 +432,31 @@ location = "mirror.ccs.tencentyun.com"
 ```toml
 {
   "registry-mirrors": ["mirror.ccs.tencentyun.com"]
+}
+```
+
+## Podman/docker 存储设置
+
+### podman 存储
+
+文件: `/etc/containers/storage.conf` 或 `$HOME/.config/containers/storage.conf`
+
+```toml
+[storage]
+  driver = "overlay"
+  runroot = "/data/docker-container"
+  graphroot = "/data/docker-image"
+```
+
+### docker 存储
+
+文件: `/etc/docker/daemon.json`
+
+```json
+{
+    "graph": "/data/docker-data",
+    "storage-driver": "overlay",
+    "insecure-registries" : [ "docker.io" ]
 }
 ```
 

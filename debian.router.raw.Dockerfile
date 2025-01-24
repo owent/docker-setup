@@ -11,7 +11,7 @@ RUN cp -f /etc/apt/sources.list /etc/apt/sources.list.bak ;                     
     apt install -y vim wget curl ca-certificates telnet iotop htop knot-dnsutils dnsutils ;                     \
     apt install -y dnsmasq dnsmasq-utils ppp pppconfig pppoe pppoeconf ca-certificates ipset chrony ;           \
     apt install -y traceroute tcptraceroute tcpdump netcat-openbsd ncat network-manager nftables;               \
-    apt install -y yq jq;                                                                                       \
+    apt install -y systemd-timesyncd yq jq;                                                                     \
     localectl set-locale LANGUAGE=en_US.UTF-8; localectl set-locale LANG=en_US.UTF-8 ;                          \
     timedatectl set-timezone Asia/Shanghai;                                                                     \
     timedatectl set-ntp true;                                                                                   \
