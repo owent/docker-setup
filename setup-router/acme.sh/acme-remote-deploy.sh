@@ -1,8 +1,14 @@
 #!/bin/bash
 
-INSTALL_CERT_DIR=/home/tools/bitwarden/ssl
+DOMAIN_NAME=owent.net
+ACMESH_SSL_DIR=/data/website/ssl
+if [[ -e "$ACMESH_SSL_DIR/${DOMAIN_NAME}_ecc" ]]; then
+  INSTALL_CERT_DIR="$ACMESH_SSL_DIR/${DOMAIN_NAME}_ecc"
+else
+  INSTALL_CERT_DIR="$ACMESH_SSL_DIR/${DOMAIN_NAME}"
+fi
 REMOTE_DEPLOY_KEY=<path of id_ed25519>
-REMOTE_DEPLOY_SSL_PATH=/data/website/ssl/
+REMOTE_DEPLOY_SSL_PATH=$INSTALL_CERT_DIR
 
 # Update local services
 if [[ "x$1" == "xupdate-v2ray" ]] || [[ "x$1" == "xupdate-vproxy" ]] || [[ "x$1" == "xupdate-vbox" ]]; then

@@ -94,9 +94,9 @@ if [[ -e "$SYNCTHING_DISCOVERY_SSL_DIR/$SYNCTHING_DISCOVERY_SSL_CERT" ]] && [[ -
   fi
   chmod 666 "$SYNCTHING_DISCOVERY_SSL_COPY_TO_DIR/$SYNCTHING_DISCOVERY_SSL_CERT"
   chmod 666 "$SYNCTHING_DISCOVERY_SSL_COPY_TO_DIR/$SYNCTHING_DISCOVERY_SSL_KEY"
-  SYNCTHING_SSL_OPTIONS=(-cert "/syncthing/ssl/$SYNCTHING_DISCOVERY_SSL_CERT" -key "/syncthing/ssl/$SYNCTHING_DISCOVERY_SSL_KEY" -http)
+  SYNCTHING_SSL_OPTIONS=(--cert "/syncthing/ssl/$SYNCTHING_DISCOVERY_SSL_CERT" --key "/syncthing/ssl/$SYNCTHING_DISCOVERY_SSL_KEY" --http)
 else
-  SYNCTHING_SSL_OPTIONS=(-http)
+  SYNCTHING_SSL_OPTIONS=(--http)
 fi
 podman run -d --name syncthing-discovery --security-opt label=disable \
   --mount type=bind,source=$SYNCTHING_DISCOVERY_SSL_COPY_TO_DIR,target=/syncthing/ssl/ \
@@ -104,8 +104,8 @@ podman run -d --name syncthing-discovery --security-opt label=disable \
   -p $SYNCTHING_DISCOVERY_LISTEN_PORT:$SYNCTHING_DISCOVERY_LISTEN_PORT/tcp \
   docker.io/syncthing/discosrv:latest \
   ${SYNCTHING_SSL_OPTIONS[@]} \
-  -listen ":$SYNCTHING_DISCOVERY_LISTEN_PORT" \
-  -db-dir /syncthing/data
+  --listen ":$SYNCTHING_DISCOVERY_LISTEN_PORT" \
+  --db-dir /syncthing/data
 
 podman exec syncthing-discovery ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 

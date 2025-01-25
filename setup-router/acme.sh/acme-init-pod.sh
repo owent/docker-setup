@@ -38,17 +38,25 @@ mkdir -p "$ACMESH_SSL_DIR"
 
 # podman exec acme.sh acme.sh --register-account -m $CF_Email
 
+if [[ "x$ACMESH_ACTION" == "renewx" ]]; then
+  ACMESH_ACTION_OPTIONS=(--renew-all)
+elif [[ "x$ACMESH_ACTION" == "registerx" ]]; then
+  ACMESH_ACTION_OPTIONS=(--register-account -m $CF_Email)
+else
+  ACMESH_ACTION_OPTIONS=(--renew-all)
+  ACMESH_ACTION_OPTIONS=(--force --issue
+    -d "$DOMAIN_NAME" -d "*.$DOMAIN_NAME"
+    -d "r-ci.com" -d "*.r-ci.com"
+    --dns dns_cf
+    --keylength ec-384)
+  # 2048, 3072, 4096, 8192 or ec-256, ec-384, ec-521
+fi
+
 podman exec \
   -e CF_Email=$CF_Email \
   -e CF_Account_ID=$CF_Account_ID \
   -e CF_Token=$CF_Token \
-  acme.sh acme.sh --force --issue \
-  -d $DOMAIN_NAME \
-  -d "*.$DOMAIN_NAME" \
-  -d "r-ci.com" \
-  -d "*.r-ci.com" \
-  --dns dns_cf \
-  --keylength ec-384 # 2048, 3072, 4096, 8192 or ec-256, ec-384, ec-521
+  acme.sh acme.sh "${ACMESH_ACTION_OPTIONS[@]}" "$@"
 
 # sudo -u tools crontab -e
 # 32 4 * * * /bin/bash /data/setup/acme.sh/acme-renew.sh > /dev/null
