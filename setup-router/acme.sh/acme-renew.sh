@@ -6,7 +6,7 @@
 # curl https://get.acme.sh | sh
 
 DOMAIN_NAME=owent.net
-INSTALL_CERT_DIR=/home/tools/bitwarden/ssl
+ACMESH_SSL_DIR=/home/tools/bitwarden/ssl
 REMOTE_DEPLOY_KEY=<path of id_ed25519>
 
 # using a custom port
@@ -26,7 +26,7 @@ fi
 
 "$HOME/.acme.sh"/acme.sh --cron --home "$HOME/.acme.sh"
 
-cp -f ~/.acme.sh/${DOMAIN_NAME}*/* $INSTALL_CERT_DIR;
+cp -f ~/.acme.sh/${DOMAIN_NAME}*/* $ACMESH_SSL_DIR;
 
 
 # Restart local services

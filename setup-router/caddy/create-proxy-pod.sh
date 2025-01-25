@@ -2,6 +2,11 @@
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
+PODMAN_COMMON_OPTIONS=(--cgroup-manager=cgroupfs)
+
+PROXY_CADDY_DNSPOD_TOKEN="" # ID,Token
+PROXY_CADDY_CLOUDFLARE_API_TOKEN=""
+
 # Require net.ipv4.ip_unprivileged_port_start=80 in /etc/sysctl.d/*.conf
 # See https://github.com/containers/podman/blob/master/rootless.md
 
@@ -18,7 +23,7 @@ if [[ ! -e "Caddyfile" ]]; then
   cp -f sample.Caddyfile Caddyfile
 fi
 
-podman build --env GOPROXY=https://mirrors.cloud.tencent.com/go/,https://goproxy.io,direct --layers --force-rm --tag local-caddy -f build.Dockerfile .
+podman build ${PODMAN_COMMON_OPTIONS[@]} --env GOPROXY=https://mirrors.cloud.tencent.com/go/,https://goproxy.io,direct --layers --force-rm --tag local-caddy -f build.Dockerfile .
 
 if [[ $? -ne 0 ]]; then
   exit 1
@@ -28,6 +33,11 @@ if [[ -z "$CADDY_LOG_DIR" ]]; then
   CADDY_LOG_DIR="$HOME/caddy/log"
 fi
 mkdir -p "$CADDY_LOG_DIR"
+
+if [[ -z "$CADDY_DATA_DIR" ]]; then
+  CADDY_DATA_DIR="$HOME/caddy/data"
+fi
+mkdir -p "$CADDY_DATA_DIR"
 
 if [[ "root" == "$(id -un)" ]]; then
   SYSTEMD_SERVICE_DIR=/lib/systemd/system
@@ -68,7 +78,12 @@ if [[ "x$CADDY_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
 fi
 
 podman run -d --name proxy-caddy --security-opt label=disable \
+  ${PODMAN_COMMON_OPTIONS[@]} \
+  --cap-add=NET_ADMIN --cap-add=NET_BIND_SERVICE \
   --mount type=bind,source=$CADDY_LOG_DIR,target=/var/log/caddy \
+  --mount type=bind,source=$CADDY_DATA_DIR,target=/data/caddy \
+  -e "DNSPOD_TOKEN=$PROXY_CADDY_DNSPOD_TOKEN" \
+  -e "CF_API_TOKEN=$PROXY_CADDY_CLOUDFLARE_API_TOKEN" \
   --network=host local-caddy
 
 podman generate systemd proxy-caddy | tee -p "$SYSTEMD_SERVICE_DIR/proxy-caddy.service"

@@ -2,7 +2,7 @@
 
 INSTALL_CERT_DIR=/home/tools/bitwarden/ssl
 REMOTE_DEPLOY_KEY=<path of id_ed25519>
-REMOTE_DEPLOY_SSL_PATH=/home/website/ssl/
+REMOTE_DEPLOY_SSL_PATH=/data/website/ssl/
 
 # Update local services
 if [[ "x$1" == "xupdate-v2ray" ]] || [[ "x$1" == "xupdate-vproxy" ]] || [[ "x$1" == "xupdate-vbox" ]]; then
