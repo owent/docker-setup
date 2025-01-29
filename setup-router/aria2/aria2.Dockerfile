@@ -9,9 +9,9 @@ LABEL maintainer "OWenT <admin@owent.net>"
 # echo 'if [ -e "/data/aria2/session/aria2.session" ]; then aria2 --input-file=/data/aria2/session/aria2.session "$@"; else aria2 "$@"; fi' > aria2c_with_session.sh
 COPY aria2c_with_session.sh /usr/bin/aria2c_with_session.sh
 
-# sed -i -r 's#dl-cdn.alpinelinux.org#mirrors.tencent.com#g' /etc/apk/repositories ;  \
+# sed -i -r 's#dl-cdn.alpinelinux.org#mirrors.aliyun.com#g' /etc/apk/repositories ;  \
 RUN set -ex ;                                                                         \
-    sed -i -r 's#dl-cdn.alpinelinux.org#mirrors.aliyun.com#g' /etc/apk/repositories ; \
+    sed -i -r 's#dl-cdn.alpinelinux.org#mirrors.cloud.tencent.com#g' /etc/apk/repositories ; \
     apk --no-cache add ca-certificates tzdata aria2 bash;                             \
     ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                         \
     chmod +x /usr/bin/aria2c_with_session.sh ;                                        \

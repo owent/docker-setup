@@ -32,9 +32,9 @@ COPY --from=builder /usr/local/v2ray/bin/geoip.dat        /usr/local/v2ray/bin/
 COPY --from=builder /usr/local/v2ray/bin/geosite.dat      /usr/local/v2ray/bin/
 COPY --from=builder /usr/local/v2ray/bin/geoip-only-cn-private.dat /usr/local/v2ray/bin/
 
-# sed -i -r 's#dl-cdn.alpinelinux.org#mirrors.tencent.com#g' /etc/apk/repositories ;        \
+# sed -i -r 's#dl-cdn.alpinelinux.org#mirrors.aliyun.com#g' /etc/apk/repositories ;        \
 RUN set -ex ;                                                                               \
-    sed -i -r 's#dl-cdn.alpinelinux.org#mirrors.aliyun.com#g' /etc/apk/repositories ;       \
+    sed -i -r 's#dl-cdn.alpinelinux.org#mirrors.cloud.tencent.com#g' /etc/apk/repositories ;       \
     apk --no-cache add ca-certificates tzdata ;                                             \
     ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                               \
     mkdir -p /var/log/v2ray/ ;                                                              \

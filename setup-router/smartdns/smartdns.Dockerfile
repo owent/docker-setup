@@ -30,10 +30,10 @@ COPY --from=builder /usr/local/smartdns/ReadMe.md                /usr/local/smar
 COPY --from=builder /usr/local/smartdns/ReadMe_en.md             /usr/local/smartdns/share/
 COPY ./smartdns.origin.conf                                      /usr/local/smartdns/etc/smartdns.conf
 
-# sed -i -r 's#dl-cdn.alpinelinux.org#mirrors.tencent.com#g' /etc/apk/repositories ;    \
+# sed -i -r 's#dl-cdn.alpinelinux.org#mirrors.aliyun.com#g' /etc/apk/repositories ;    \
 RUN set -ex ;                                                                           \
     if [ -z "$GITHUB_TOKEN" ] && [ -z "$GITHUB_ACTION" ]; then                                                     \
-    sed -i -r 's#dl-cdn.alpinelinux.org#mirrors.aliyun.com#g' /etc/apk/repositories ;   \
+    sed -i -r 's#dl-cdn.alpinelinux.org#mirrors.cloud.tencent.com#g' /etc/apk/repositories ;   \
     fi;                                                                                 \
     apk --no-cache add ca-certificates tzdata ;                                         \
     ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                           \
