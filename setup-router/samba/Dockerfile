@@ -10,7 +10,7 @@ EXPOSE 138/UDP
 COPY smb.conf /etc/samba/smb.conf
 COPY setup.sh /opt/setup.sh
 
-RUN sed -i.bak -r 's#dl-cdn.alpinelinux.org#mirrors.tencent.com#g' /etc/apk/repositories ; \
+RUN sed -i.bak -r 's#dl-cdn.alpinelinux.org#mirrors.cloud.tencent.com#g' /etc/apk/repositories ; \
   apk add --no-cache bash ; \
   /opt/setup.sh && rm -f /opt/setup.sh
 

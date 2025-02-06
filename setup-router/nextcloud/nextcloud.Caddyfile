@@ -1,6 +1,8 @@
 subdomain.example.com {
   redir /.well-known/carddav /remote.php/dav 301
   redir /.well-known/caldav /remote.php/dav 301
+	redir /.well-known/webfinger /index.php/.well-known/webfinger 301
+  redir /.well-known/nodeinfo /index.php/.well-known/nodeinfo 301
 
   reverse_proxy <宿主机IP>:6783
 }
@@ -19,6 +21,8 @@ subdomain.example.com {
 	# client support (e.g. os x calendar / contacts)
 	redir /.well-known/carddav /remote.php/dav 301
 	redir /.well-known/caldav /remote.php/dav 301
+	redir /.well-known/webfinger /index.php/.well-known/webfinger 301
+  redir /.well-known/nodeinfo /index.php/.well-known/nodeinfo 301
   respond /.well-known/acme-challenge 404
 	respond /.well-known/pki-validation 404
 	redir /.well-known/* /index.php{uri} 301
@@ -37,7 +41,7 @@ subdomain.example.com {
 	# Cache control
 	@static {
 		file
-		path *.css *.js *.svg *.gif
+		path *.css *.js *.mjs *.svg *.gif *.ico *.jpg *.png *.webp *.wasm *.tflite *.map *.ogg *.flac *.otf *.woff2
 	}
 
 	header @static {
