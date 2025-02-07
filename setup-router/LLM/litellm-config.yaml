@@ -91,9 +91,9 @@ model_list:
       vertex_location: "us-west1"
       vertex_credentials: "/etc/litellm/google-application-credentials.json"
 # router_settings:
-#   redis_host: <your redis host>
-#   redis_password: <your redis password>
-#   redis_port: 1992
+#   redis_host: os.environ/REDIS_HOST # <your redis host>
+#   redis_password: os.environ/REDIS_PASSWORD # <your redis password>
+#   redis_port: os.environ/REDIS_PORT
 litellm_settings:
   drop_params: true
 general_settings:

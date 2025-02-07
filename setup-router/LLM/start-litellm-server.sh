@@ -13,6 +13,10 @@ if [[ "x$LLM_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   fi
 fi
 
+if [[ -z "$LLM_LITELLM_WORKER_COUNT" ]]; then
+  LLM_LITELLM_WORKER_COUNT=4
+fi
+
 if [[ -z "$LLM_LITELLM_PORT" ]]; then
   LLM_LITELLM_PORT=4000
 fi
@@ -28,6 +32,11 @@ mkdir -p "$LLM_LITELLM_DATA_DIR"
 # LLM_LITELLM_HOST_IP_ADDRESS=$(ip -o -4 addr show scope global | awk 'match($0, /inet\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/, ip) { print ip[1] }')
 # LLM_LITELLM_DATABASE_URL=postgresql://<user>:<password>@<host>:<port>/<dbname>
 # LLM_LITELLM_DATABASE_URL=postgresql://llm:<password>@$LLM_LITELLM_HOST_IP_ADDRESS:5432/litellm?schema=public
+
+# Redis
+# LLM_LITELLM_REDIS_HOST=$LLM_LITELLM_HOST_IP_ADDRESS
+# LLM_LITELLM_REDIS_PORT=6379
+# LLM_LITELLM_REDIS_PASSWORD=
 
 # Password for root, maybe 123456
 if [[ -e "$SCRIPT_DIR/llm-litellm.LITELLM_MASTER_KEY" ]]; then
@@ -97,7 +106,15 @@ fi
 if [[ -e "$LLM_LITELLM_DATA_DIR/google-application-credentials.json" ]]; then
   LLM_LITELLM_ENV=("${LLM_LITELLM_ENV[@]}" -e GOOGLE_APPLICATION_CREDENTIALS="/app/google-application-credentials.json")
 fi
-
+if [[ ! -z "$LLM_LITELLM_REDIS_HOST" ]]; then
+  LLM_LITELLM_ENV=("${LLM_LITELLM_ENV[@]}" -e REDIS_HOST="$LLM_LITELLM_REDIS_HOST")
+fi
+if [[ ! -z "$LLM_LITELLM_REDIS_PORT" ]]; then
+  LLM_LITELLM_ENV=("${LLM_LITELLM_ENV[@]}" -e REDIS_PORT="$LLM_LITELLM_REDIS_PORT")
+fi
+if [[ ! -z "$LLM_LITELLM_REDIS_PASSWORD" ]]; then
+  LLM_LITELLM_ENV=("${LLM_LITELLM_ENV[@]}" -e REDIS_PASSWORD="$LLM_LITELLM_REDIS_PASSWORD")
+fi
 if [[ ! -z "$LLM_LITELLM_SMTP_HOST" ]]; then
   LLM_LITELLM_ENV=("${LLM_LITELLM_ENV[@]}" -e SMTP_HOST="$LLM_LITELLM_SMTP_HOST")
 fi
@@ -118,7 +135,7 @@ podman run -d --name llm-litellm --security-opt label=disable \
   "${LLM_LITELLM_ENV[@]}" \
   --mount type=bind,source=$LLM_LITELLM_DATA_DIR,target=/etc/litellm \
   -p $LLM_LITELLM_PORT:4000 \
-  ghcr.io/berriai/litellm:main-latest --port 4000 --config /etc/litellm/litellm-config.yaml --num_workers 8
+  ghcr.io/berriai/litellm:main-latest --port 4000 --config /etc/litellm/litellm-config.yaml --num_workers $LLM_LITELLM_WORKER_COUNT
 
 podman generate systemd llm-litellm | tee -p "$SYSTEMD_SERVICE_DIR/llm-litellm.service"
 podman container stop llm-litellm
