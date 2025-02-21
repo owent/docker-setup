@@ -101,7 +101,7 @@ fi
 podman run -d --name syncthing-discovery --security-opt label=disable \
   --mount type=bind,source=$SYNCTHING_DISCOVERY_SSL_COPY_TO_DIR,target=/syncthing/ssl/ \
   --mount type=bind,source=$SYNCTHING_DISCOVERY_DATA_DIR,target=/syncthing/data/ \
-  -p $SYNCTHING_DISCOVERY_LISTEN_PORT:$SYNCTHING_DISCOVERY_LISTEN_PORT/tcp \
+  -p 127.0.0.1:$SYNCTHING_DISCOVERY_LISTEN_PORT:$SYNCTHING_DISCOVERY_LISTEN_PORT/tcp \
   docker.io/syncthing/discosrv:latest \
   ${SYNCTHING_SSL_OPTIONS[@]} \
   --listen ":$SYNCTHING_DISCOVERY_LISTEN_PORT" \

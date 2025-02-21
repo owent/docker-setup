@@ -101,7 +101,7 @@ podman run -d --name syncthing-relay-pool --security-opt label=disable \
   -e "GEOIP_LICENSE_KEY=$GEOIP_LICENSE_KEY" -e "GEOIP_ACCOUNT_ID=$GEOIP_ACCOUNT_ID" \
   --mount type=bind,source=$SYNCTHING_SSL_DIR,target=/syncthing/ssl/ \
   --mount type=bind,source=$SYNCTHING_DATA_DIR,target=/syncthing/data/ \
-  -p $SYNCTHING_RELAY_POOL_LISTEN_PORT:$SYNCTHING_RELAY_POOL_LISTEN_PORT/tcp \
+  -p 127.0.0.1:$SYNCTHING_RELAY_POOL_LISTEN_PORT:$SYNCTHING_RELAY_POOL_LISTEN_PORT/tcp \
   docker.io/syncthing/strelaypoolsrv:latest \
   ${SYNCTHING_RELAYPOOL_EXT_OPTIONS[@]} \
   -listen ":$SYNCTHING_RELAY_POOL_LISTEN_PORT" \
