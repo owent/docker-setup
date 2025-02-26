@@ -2,17 +2,17 @@
   "log": {
     "disabled": false,
     "level": "info",
-    "output": "/var/log/vbox/box.log",
+    // "output": "/var/log/vbox/box.log",
     "timestamp": true
   },
   "dns": {
     // When proxy server support ipv4 only
-    "strategy": "prefer_ipv4", // prefer_ipv4,prefer_ipv6,ipv4_only,ipv6_only
+    // "strategy": "prefer_ipv4", // prefer_ipv4,prefer_ipv6,ipv4_only,ipv6_only
     "servers": [
       {
         "tag": "dns-proxy",
-        "address": "tls://8.8.8.8",
-        "strategy": "ipv4_only"
+        "address": "tls://8.8.8.8" // ,
+        // "strategy": "ipv4_only"
       },
       // {
       //   "tag": "dns-proxy",
@@ -87,9 +87,7 @@
       "tag": "in-tun",
       "interface_name": "tun-vbox",
       "address": ["172.19.0.1/30", "fdfe:dcba:9876::1/126"],
-      "sniff": true,
       "mtu": 9000,
-      "gso": true,
       "auto_route": true,
       "iproute2_table_index": 2022,
       "iproute2_rule_index": 9000,
@@ -196,30 +194,18 @@
     {
       "type": "direct",
       "tag": "direct"
-    },
-    {
-      "type": "dns",
-      "tag": "dns-out"
-    },
-    {
-      "type": "block",
-      "tag": "block"
     }
   ],
   "route": {
     "rules": [
       {
-        "type": "logical",
-        "mode": "or",
-        "rules": [
-          {
-            "protocol": "dns"
-          },
-          {
-            "port": 53
-          }
-        ],
-        "outbound": "dns-out"
+        "inbound": "in-tun",
+        "action": "sniff",
+        "timeout": "1s"
+      },
+      {
+        "protocol": "dns",
+        "action": "hijack-dns"
       },
       {
         "source_ip_cidr": "172.22.0.0/16",
@@ -231,7 +217,7 @@
       },
       {
         "rule_set": ["geosite-category-ads-all"],
-        "outbound": "block"
+        "action": "reject"
       },
       {
         "protocol": ["bittorrent"],
@@ -252,7 +238,7 @@
             "protocol": "stun"
           }
         ],
-        "outbound": "block"
+        "action": "reject"
       },
       {
         "port": [67, 68, 123, 546, 547],
@@ -287,11 +273,6 @@
           "test-ipv6.com",
           "ipv6-test.com"
         ],
-        "outbound": "direct"
-      },
-      // When proxy server support ipv4 only
-      {
-        "ip_version": 6,
         "outbound": "direct"
       }
     ],

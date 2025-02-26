@@ -2,17 +2,17 @@
   "log": {
     "disabled": false,
     "level": "info",
-    "output": "/var/log/vbox/box.log",
+    // "output": "/var/log/vbox/box.log",
     "timestamp": true
   },
   "dns": {
     // When proxy server support ipv4 only
-    "strategy": "prefer_ipv4", // prefer_ipv4,prefer_ipv6,ipv4_only,ipv6_only
+    // "strategy": "prefer_ipv4", // prefer_ipv4,prefer_ipv6,ipv4_only,ipv6_only
     "servers": [
       {
         "tag": "dns-proxy",
-        "address": "tls://8.8.8.8",
-        "strategy": "ipv4_only"
+        "address": "tls://8.8.8.8" // ,
+        // "strategy": "ipv4_only"
       },
       // {
       //   "tag": "dns-proxy",
@@ -154,14 +154,6 @@
     {
       "type": "direct",
       "tag": "direct"
-    },
-    {
-      "type": "dns",
-      "tag": "dns-out"
-    },
-    {
-      "type": "block",
-      "tag": "block"
     }
   ],
   "route": {
@@ -174,7 +166,7 @@
         "rule_set": [
           "geosite-category-ads-all"
         ],
-        "outbound": "block"
+        "action": "reject"
       },
       {
         "protocol": [
@@ -218,11 +210,6 @@
           "letsencrypt.org",
           "zerossl.com"
         ],
-        "outbound": "direct"
-      },
-      // When proxy server support ipv4 only
-      {
-        "ip_version": 6,
         "outbound": "direct"
       }
     ],

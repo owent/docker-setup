@@ -2,17 +2,17 @@
   "log": {
     "disabled": false,
     "level": "info",
-    "output": "/var/log/vbox/box.log",
+    // "output": "/var/log/vbox/box.log",
     "timestamp": true
   },
   "dns": {
     // When proxy server support ipv4 only
-    "strategy": "prefer_ipv4", // prefer_ipv4,prefer_ipv6,ipv4_only,ipv6_only
+    // "strategy": "prefer_ipv4", // prefer_ipv4,prefer_ipv6,ipv4_only,ipv6_only
     "servers": [
       {
         "tag": "dns-proxy",
-        "address": "tls://8.8.8.8",
-        "strategy": "ipv4_only"
+        "address": "tls://8.8.8.8" // ,
+        // "strategy": "ipv4_only"
       },
       // {
       //   "tag": "dns-proxy",
@@ -82,8 +82,6 @@
       "tag": "in-vmess",
       "listen": "::",
       "listen_port": 8371,
-      "sniff_override_destination": true,
-      "sniff": true,
       "tcp_fast_open": false,
       "proxy_protocol": false,
       "users": [
@@ -145,8 +143,6 @@
       "tag": "in-vless",
       "listen": "::",
       "listen_port": 8373,
-      "sniff_override_destination": true,
-      "sniff": true,
       "tcp_fast_open": false,
       "proxy_protocol": false,
       "users": [
@@ -177,21 +173,18 @@
     {
       "type": "direct",
       "tag": "direct"
-    },
-    {
-      "type": "dns",
-      "tag": "dns-out"
-    },
-    {
-      "type": "block",
-      "tag": "block"
     }
   ],
   "route": {
     "rules": [
       {
+        "inbound": ["in-vmess", "in-vless"],
+        "action": "sniff",
+        "timeout": "1s"
+      },
+      {
         "protocol": "dns",
-        "outbound": "dns-out"
+        "outbound": "hijack-dns"
       }
     ],
     "rule_set": [
