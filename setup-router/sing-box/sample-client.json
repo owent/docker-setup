@@ -201,7 +201,7 @@
       {
         "inbound": "in-tun",
         "action": "sniff",
-        "timeout": "1s"
+        "timeout": "3s"
       },
       {
         "protocol": "dns",

@@ -72,13 +72,15 @@ fi
 # Start systemd service
 
 if [[ -z "$ROUTER_NET_LOCAL_ENABLE_VBOX" ]] || [[ $ROUTER_NET_LOCAL_ENABLE_VBOX -eq 0 ]]; then
-  podman generate systemd vbox-client \
-    | tee /lib/systemd/system/vbox-client.service
+  podman generate systemd vbox-client |
+    sed "/PIDFile=/a ExecStopPost=/bin/bash $SCRIPT_DIR/setup-client-pod-whitelist-rules.sh clear" |
+    sed "/PIDFile=/a ExecStartPost=/bin/bash $SCRIPT_DIR/setup-client-pod-whitelist-rules.sh" |
+    tee /lib/systemd/system/vbox-client.service
 else
-  podman generate systemd vbox-client \
-    | sed "/PIDFile=/a ExecStopPost=/bin/bash $SCRIPT_DIR/setup-client-pod-ip-nft.sh clear" \
-    | sed "/PIDFile=/a ExecStartPost=/bin/bash $SCRIPT_DIR/setup-client-pod-ip-nft.sh" \
-    | tee /lib/systemd/system/vbox-client.service
+  podman generate systemd vbox-client |
+    sed "/PIDFile=/a ExecStopPost=/bin/bash $SCRIPT_DIR/setup-client-pod-ip-nft.sh clear" |
+    sed "/PIDFile=/a ExecStartPost=/bin/bash $SCRIPT_DIR/setup-client-pod-ip-nft.sh" |
+    tee /lib/systemd/system/vbox-client.service
 fi
 
 podman container stop vbox-client
