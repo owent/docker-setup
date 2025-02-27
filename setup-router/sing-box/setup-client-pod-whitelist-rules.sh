@@ -27,10 +27,6 @@ fi
 
 function vbox_setup_whitelist_ipv4() {
   WHITELIST_TABLE_ID=$(($VBOX_TUN_TABLE_ID + 1))
-  TABLE_RULE=($(ip -4 route show table $VBOX_TUN_TABLE_ID | tail -n 1 | awk '{$1="";print $0}'))
-  for CIDR in "${VBOX_TUN_PROXY_WHITELIST_IPV4[@]}"; do
-    ip -4 route add "$CIDR" "${TABLE_RULE[@]}" table $WHITELIST_TABLE_ID
-  done
 
   # Checking luupup/nop rule
   FIND_PROIRITY=""
@@ -52,7 +48,12 @@ function vbox_setup_whitelist_ipv4() {
     WHITELIST_PROIRITY=$(($FIND_PROIRITY + 1))
   fi
 
-  ip -4 rule add priority $WHITELIST_PROIRITY lookup $WHITELIST_TABLE_ID
+  ip -4 rule add priority $WHITELIST_PROIRITY lookup $WHITELIST_TABLE_ID || return 1
+
+  TABLE_RULE=($(ip -4 route show table $VBOX_TUN_TABLE_ID | tail -n 1 | awk '{$1="";print $0}'))
+  for CIDR in "${VBOX_TUN_PROXY_WHITELIST_IPV4[@]}"; do
+    ip -4 route add "$CIDR" "${TABLE_RULE[@]}" table $WHITELIST_TABLE_ID
+  done
 }
 
 function vbox_setup_whitelist_ipv6() {
