@@ -67,21 +67,20 @@ CMD [ \"redis-server\", \"/usr/local/etc/redis/redis.conf\" ]
 podman rmi local_redis || true
 podman build -t local_redis -f redis.Dockerfile
 
-if [[ ! -z "$REDIS_PRIVATE_NETWORK_NAME" ]] && [[ ! -z "$REDIS_PRIVATE_NETWORK_IP" ]]; then
-  REDIS_PRIVATE_GATEWAY_IP=$(echo $REDIS_PRIVATE_NETWORK_IP | sed -E 's;[0-9]+$;1;')
-  # --dns $ROUTER_INTERNAL_IPV4/--disable-dns
-  podman network exists $REDIS_PRIVATE_NETWORK_NAME \
-    || podman network create --driver bridge --ipam-driver host-local \
-      --dns $ROUTER_INTERNAL_IPV4 --subnet 10.85.0.0/16 \
-      $REDIS_PRIVATE_NETWORK_NAME
-  REDIS_NETWORK_OPTIONS=(--network=$REDIS_PRIVATE_NETWORK_NAME --ip=$REDIS_PRIVATE_NETWORK_IP)
+REDIS_OPTIONS=(
+  --mount type=bind,source=$REDIS_DATA_DIR,target=/data
+)
+
+if [[ ! -z "$REDIS_NETWORK" ]]; then
+  for network in ${REDIS_NETWORK[@]}; do
+    REDIS_OPTIONS+=("--network=$network")
+  done
 else
-  REDIS_NETWORK_OPTIONS=(-p $REDIS_PORT:6379/tcp)
+  REDIS_OPTIONS+=(-p $REDIS_PORT:6379/tcp)
 fi
 
 podman run -d --name redis --security-opt label=disable \
-  --mount type=bind,source=$REDIS_DATA_DIR,target=/data \
-  ${REDIS_NETWORK_OPTIONS[@]} \
+  "${REDIS_OPTIONS[@]}" \
   local_redis
 
 podman stop redis

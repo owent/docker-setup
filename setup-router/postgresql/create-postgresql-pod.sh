@@ -14,40 +14,40 @@ if [[ "x$RUN_USER" == "x" ]]; then
 fi
 RUN_HOME=$(cat /etc/passwd | awk "BEGIN{FS=\":\"} \$1 == \"$RUN_USER\" { print \$6 }")
 
-if [[ "x$RUN_HOME" == "x" ]]; then
+if [[ -z "$RUN_HOME" ]]; then
   RUN_HOME="$HOME"
 fi
 
-if [[ "x$POSTGRESQL_ETC_DIR" == "x" ]]; then
+if [[ -z "$POSTGRESQL_ETC_DIR" ]]; then
   POSTGRESQL_ETC_DIR="$RUN_HOME/postgresql/etc"
 fi
 mkdir -p "$POSTGRESQL_ETC_DIR"
 
-if [[ "x$POSTGRESQL_ADMIN_USER" == "x" ]]; then
+if [[ -z "$POSTGRESQL_ADMIN_USER" ]]; then
   POSTGRESQL_ADMIN_USER=owent
 fi
 
-if [[ "x$POSTGRESQL_SHM_SIZE" == "x" ]]; then
+if [[ -z "$POSTGRESQL_SHM_SIZE" ]]; then
   POSTGRESQL_SHM_SIZE=256
 fi
 
-if [[ "x$POSTGRESQL_EFFECTIVE_CACHE_SIZE" == "x" ]]; then
+if [[ -z "$POSTGRESQL_EFFECTIVE_CACHE_SIZE" ]]; then
   POSTGRESQL_EFFECTIVE_CACHE_SIZE=512
 fi
 
-if [[ "x$POSTGRESQL_WORK_MEM" == "x" ]]; then
+if [[ -z "$POSTGRESQL_WORK_MEM" ]]; then
   POSTGRESQL_WORK_MEM=16
 fi
 
-if [[ "x$POSTGRESQL_MAINTENANCE_WORK_MEM" == "x" ]]; then
+if [[ -z "$POSTGRESQL_MAINTENANCE_WORK_MEM" ]]; then
   POSTGRESQL_MAINTENANCE_WORK_MEM=64
 fi
 
-if [[ "x$POSTGRESQL_WAL_LEVEL" == "x" ]]; then
+if [[ -z "$POSTGRESQL_WAL_LEVEL" ]]; then
   POSTGRESQL_WAL_LEVEL=minimal
 fi
 
-if [[ "x$POSTGRESQL_MAX_WAL_SENDERS" == "x" ]]; then
+if [[ -z "$POSTGRESQL_MAX_WAL_SENDERS" ]]; then
   if [[ $POSTGRESQL_WAL_LEVEL == "logical" ]] || [[ $POSTGRESQL_WAL_LEVEL == "replica" ]]; then
     POSTGRESQL_MAX_WAL_SENDERS=8
   else
@@ -55,30 +55,35 @@ if [[ "x$POSTGRESQL_MAX_WAL_SENDERS" == "x" ]]; then
   fi
 fi
 
-if [[ "x$POSTGRESQL_FSYNC" == "x" ]]; then
+if [[ -z "$POSTGRESQL_FSYNC" ]]; then
   POSTGRESQL_FSYNC=off
 fi
 
-if [[ "x$POSTGRESQL_RANDOM_PAGE_COST" == "x" ]]; then
+if [[ -z "$POSTGRESQL_RANDOM_PAGE_COST" ]]; then
   # 1.1 for SSD, 4 for HDD
   POSTGRESQL_RANDOM_PAGE_COST=1.1
 fi
 
-if [[ "x$POSTGRESQL_MAX_CONNECTIONS" == "x" ]]; then
+if [[ -z "$POSTGRESQL_MAX_CONNECTIONS" ]]; then
   POSTGRESQL_MAX_CONNECTIONS=256
 fi
 
-if [[ "x$POSTGRESQL_PORT" == "x" ]]; then
+if [[ -z "$POSTGRESQL_PORT" ]]; then
   POSTGRESQL_PORT=5432
 fi
 
-if [[ "x$POSTGRESQL_DATA_DIR" == "x" ]]; then
+if [[ -z "$POSTGRESQL_IMAGE" ]]; then
+  POSTGRESQL_IMAGE="docker.io/postgres:latest"
+  # POSTGRESQL_IMAGE="docker.io/pgvector/pgvector:pg17"
+fi
+
+if [[ -z "$POSTGRESQL_DATA_DIR" ]]; then
   POSTGRESQL_DATA_DIR="$HOME/postgresql/data"
 fi
 mkdir -p "$POSTGRESQL_DATA_DIR"
 
-if [[ "x$POSTGRESQL_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman pull docker.io/postgres:latest
+if [[ -n "$POSTGRESQL_UPDATE" ]] || [[ -n "$ROUTER_IMAGE_UPDATE" ]]; then
+  podman pull $POSTGRESQL_IMAGE
 fi
 
 systemctl --user --all | grep -F container-postgresql.service
@@ -108,14 +113,25 @@ if [[ "x$ADMIN_TOKEN" == "x" ]]; then
   echo "$ADMIN_TOKEN" >"$POSTGRESQL_ETC_DIR/admin-token"
 fi
 
+POSTGRES_OPTIONS=(
+  -e POSTGRES_PASSWORD=$ADMIN_TOKEN -e POSTGRES_USER=$POSTGRESQL_ADMIN_USER
+  -e PGDATA=/var/lib/postgresql/data/pgdata
+  -e POSTGRES_INITDB_WALDIR=/var/lib/postgresql/data/wal
+  --shm-size ${POSTGRESQL_SHM_SIZE}m
+  -v $POSTGRESQL_DATA_DIR:/var/lib/postgresql/data/:Z
+)
+
+if [[ ! -z "$POSTGRESQL_NETWORK" ]]; then
+  for network in ${POSTGRESQL_NETWORK[@]}; do
+    POSTGRES_OPTIONS+=("--network=$network")
+  done
+else
+  POSTGRES_OPTIONS+=(-p $POSTGRESQL_PORT:5432/tcp)
+fi
+
 podman run -d --name postgresql --security-opt label=disable \
-  -e POSTGRES_PASSWORD=$ADMIN_TOKEN -e POSTGRES_USER=$POSTGRESQL_ADMIN_USER \
-  -e PGDATA=/var/lib/postgresql/data/pgdata \
-  -e POSTGRES_INITDB_WALDIR=/var/lib/postgresql/data/wal \
-  --shm-size ${POSTGRESQL_SHM_SIZE}m \
-  -v $POSTGRESQL_DATA_DIR:/var/lib/postgresql/data/:Z \
-  -p $POSTGRESQL_PORT:5432/tcp \
-  docker.io/postgres:latest \
+  "${POSTGRES_OPTIONS[@]}" \
+  $POSTGRESQL_IMAGE \
   -c shared_buffers=${POSTGRESQL_SHM_SIZE}MB \
   -c effective_cache_size=${POSTGRESQL_EFFECTIVE_CACHE_SIZE}MB \
   -c work_mem=${POSTGRESQL_WORK_MEM}MB \

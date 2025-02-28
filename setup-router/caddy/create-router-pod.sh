@@ -79,18 +79,34 @@ if [[ "x$ARIA2_DATA_ROOT" == "x" ]]; then
 fi
 mkdir -p "$ARIA2_DATA_ROOT"
 
-CADDY_MOUNT_DIRS=("--mount" "type=bind,source=$ARIA2_DATA_ROOT,target=/data/website/html/downloads")
+CADDY_OPTIONS=(
+  --mount type=bind,source=$ACMESH_SSL_DIR,target=/data/ssl,ro=true
+  --mount type=bind,source=$ROUTER_LOG_ROOT_DIR/caddy,target=/var/log/caddy
+  "--mount" "type=bind,source=$ARIA2_DATA_ROOT,target=/data/website/html/downloads"
+)
 
 if [[ "x$NEXTCLOUD_REVERSE_ROOT_DIR" != "x" ]]; then
-  CADDY_MOUNT_DIRS=(${CADDY_MOUNT_DIRS[@]}
+  CADDY_OPTIONS+=(
     "--mount" "type=bind,source=$NEXTCLOUD_REVERSE_ROOT_DIR/nextcloud,target=/data/website/html/nextcloud"
-    "--mount" "type=bind,source=$NEXTCLOUD_APPS_DIR,target=/data/website/html/nextcloud/custom_apps")
+    "--mount" "type=bind,source=$NEXTCLOUD_APPS_DIR,target=/data/website/html/nextcloud/custom_apps"
+  )
+fi
+
+if [[ ! -z "$CADDY_NETWORK" ]]; then
+  for network in ${CADDY_NETWORK[@]}; do
+    CADDY_OPTIONS+=("--network=$network")
+  done
+  if [[ ! -z "$CADDY_PUBLISH" ]]; then
+    for publish in ${CADDY_PUBLISH[@]}; do
+      CADDY_OPTIONS+=(-p "$publish")
+    done
+  fi
+else
+  CADDY_OPTIONS+=(--network=host)
 fi
 
 podman run -d --name router-caddy --security-opt label=disable \
-  --mount type=bind,source=$ACMESH_SSL_DIR,target=/data/ssl,ro=true \
-  --mount type=bind,source=$ROUTER_LOG_ROOT_DIR/caddy,target=/var/log/caddy \
-  ${CADDY_MOUNT_DIRS[@]} \
+  ${CADDY_OPTIONS[@]} \
   --network=host local-caddy
 
 podman generate systemd router-caddy | tee -p "$SYSTEMD_SERVICE_DIR/router-caddy.service"

@@ -1,0 +1,247 @@
+appflowy.x-ha.com {
+	# 可以在这里全局限制请求体大小
+	# 若部分路径需要更大限额，会在对应 handle 中再度覆盖
+	request_body {
+		max_size 10MB
+	}
+
+	# --------------------------------------------------------------------------
+	# GoTrue - /gotrue/
+	# --------------------------------------------------------------------------
+	@options_gotrue {
+		method OPTIONS
+		path /gotrue*
+	}
+	handle @options_gotrue {
+		header Access-Control-Allow-Origin {http.request.header.Origin}
+		header Access-Control-Allow-Credentials true
+		header Access-Control-Allow-Headers *
+		header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+		header Access-Control-Max-Age 3600
+		header Content-Type "text/plain; charset=UTF-8"
+		header Content-Length 0
+		respond 204
+	}
+
+	handle /gotrue* {
+		# strip_prefix 可以代替 Nginx 中 rewrite ^/gotrue(/.*)$ $1 break
+		uri strip_prefix /gotrue
+		reverse_proxy http://appflowy_gotrue:9999 {
+			# 可以显式传递主机头
+			header_up Host {http.request.host}
+			# 其余请求头可默认透传
+		}
+	}
+
+	# --------------------------------------------------------------------------
+	# WebSocket - /ws
+	# --------------------------------------------------------------------------
+	handle /ws* {
+		# 在 Caddy 里，升级到 WebSocket 通常只需要 reverse_proxy 即可
+		reverse_proxy http://appflowy_cloud:8000 {
+			header_up Host {host}
+			header_up Upgrade {http.request.header.Upgrade}
+			header_up Connection {http.request.header.Connection}
+			stream_timeout 86400s
+			# 让数据实时向客户端输出，不做缓冲
+			flush_interval -1
+		}
+	}
+
+	# --------------------------------------------------------------------------
+	# AppFlowy Cloud - /api
+	# --------------------------------------------------------------------------
+	# 先匹配 /api 下的 OPTIONS 并返回 CORS 头
+	@options_api {
+		method OPTIONS
+		path /api*
+	}
+	handle @options_api {
+		header Access-Control-Allow-Origin {http.request.header.Origin}
+		header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+		header Access-Control-Allow-Headers "Content-Type, Authorization, Accept, Client-Version, Device-Id"
+		header Access-Control-Max-Age 3600
+		respond 204
+	}
+
+	# 对 /api/workspace/([a-zA-Z0-9_-]+)/publish 特殊处理
+	@workspace_publish {
+		path_regexp wspub ^/api/workspace/([a-zA-Z0-9_-]+)/publish$
+	}
+	handle @workspace_publish {
+		# 覆盖单一路径的最大请求体大小
+		request_body {
+			max_size 256MB
+		}
+
+		# 同时对该路径也要配CORS - OPTIONS
+		@workspace_publish_options {
+			method OPTIONS
+			path_regexp wspub ^/api/workspace/([a-zA-Z0-9_-]+)/publish$
+		}
+		handle @workspace_publish_options {
+			header Access-Control-Allow-Origin {http.request.header.Origin}
+			header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+			header Access-Control-Allow-Headers "Content-Type, Authorization, Accept, Client-Version, Device-Id"
+			header Access-Control-Max-Age 3600
+			respond 204
+		}
+
+		header Access-Control-Allow-Origin {http.request.header.Origin}
+		header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+		header Access-Control-Allow-Headers "Content-Type, Authorization, Accept, Client-Version, Device-Id"
+		header Access-Control-Max-Age 3600
+
+		reverse_proxy http://appflowy_cloud:8000
+	}
+
+	# /api/chat 支持 SSE/流式输出
+	@api_chat path /api/chat*
+	handle @api_chat {
+		reverse_proxy http://appflowy_cloud:8000 {
+			header_up Connection ""
+			# WebSocket 及 SSE 常常需要禁用缓冲
+			flush_interval -1
+			transport http {
+				read_timeout 600s
+				write_timeout 600s
+				dial_timeout 600s
+			}
+		}
+	}
+
+	# /api/import 大文件上传
+	@api_import path /api/import*
+	handle @api_import {
+		# CORS
+		header Access-Control-Allow-Origin {http.request.header.Origin}
+		header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+		header Access-Control-Allow-Headers "Content-Type, Authorization, Accept, Device-Id"
+		header Access-Control-Max-Age 3600
+
+		# 更大请求体
+		request_body {
+			max_size 2GB
+		}
+
+		# 增大超时时间
+		reverse_proxy http://appflowy_cloud:8000 {
+			header_up X-Request-Id {http.request_id}
+			header_up Host {http.request.host}
+			transport http {
+				read_timeout 600s
+				write_timeout 600s
+				dial_timeout 600s
+			}
+			flush_interval -1
+		}
+	}
+
+	# 其余 /api* 请求
+	handle /api* {
+		header Access-Control-Allow-Origin {http.request.header.Origin}
+		header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+		header Access-Control-Allow-Headers "Content-Type, Authorization, Accept, Client-Version, Device-Id"
+		header Access-Control-Max-Age 3600
+
+		reverse_proxy http://appflowy_cloud:8000 {
+			header_up X-Request-Id {http.request_id}
+			header_up Host {http.request.host}
+		}
+	}
+
+	# --------------------------------------------------------------------------
+	# AppFlowy AI - /ai
+	# --------------------------------------------------------------------------
+	handle /ai* {
+		reverse_proxy http://appflowy_ai:5001 {
+			header_up Host {host}
+		}
+	}
+
+	# --------------------------------------------------------------------------
+	# MinIO Web UI - /minio/
+	# --------------------------------------------------------------------------
+	@minio path /minio/*
+	handle @minio {
+		uri strip_prefix /minio
+		reverse_proxy http://appflowy_minio:9001 {
+			header_up Host {http.request.host}
+			header_up X-Real-IP {http.request.remote}
+			header_up X-Forwarded-For {http.request.header.X-Forwarded-For}
+			header_up X-NginX-Proxy true
+			# 如果需要 WebSocket 支持
+			header_up Upgrade {http.request.header.Upgrade}
+			header_up Connection {http.request.header.Connection}
+
+			transport http {
+				dial_timeout 300s
+			}
+			flush_interval -1
+		}
+	}
+
+	# --------------------------------------------------------------------------
+	# MinIO API - /minio-api/
+	# （用于 presigned URL 等）
+	# --------------------------------------------------------------------------
+	@minio_api path /minio-api/*
+	handle @minio_api {
+		uri strip_prefix /minio-api
+		reverse_proxy http://appflowy_minio:9000 {
+			# 与内部签名时的 host 对齐
+			header_up Host "appflowy_minio:9000"
+			header_up X-Real-IP {http.request.remote}
+			header_up X-Forwarded-For {http.request.header.X-Forwarded-For}
+
+			transport http {
+				dial_timeout 300s
+			}
+			flush_interval -1
+		}
+	}
+
+	#---------------------------
+	# Optional Module, PgAdmin (/pgadmin)
+	#---------------------------
+	@pgadmin path /pgadmin/*
+	handle @pgadmin {
+		uri strip_prefix /pgadmin
+		reverse_proxy http://appflowy_pgadmin:80 {
+			header_up X-Script-Name /pgadmin
+			header_up X-Scheme {http.request.scheme}
+			header_up Host {host}
+			# Caddy 默认不会自动修改返回头中 location，可根据需要做 header_down 规则
+		}
+	}
+
+	#---------------------------
+	# Optional Module, Portainer (/portainer)
+	#---------------------------
+	@portainer path /portainer/*
+	handle @portainer {
+		uri strip_prefix /portainer
+		reverse_proxy http://appflowy_portainer:9000
+	}
+
+	#---------------------------
+	# Optional Module, Admin Frontend (/console)
+	#---------------------------
+	@console path /console*
+	handle @console {
+		reverse_proxy http://appflowy_admin_frontend:3000 {
+			header_up X-Scheme {http.request.scheme}
+			header_up Host {host}
+		}
+	}
+
+	#---------------------------
+	# 默认根路径 (/) → AppFlowy Web
+	#---------------------------
+	handle {
+		reverse_proxy http://appflowy_web:80 {
+			header_up X-Scheme {http.request.scheme}
+			header_up Host {host}
+		}
+	}
+}

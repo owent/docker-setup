@@ -77,14 +77,30 @@ if [[ "x$CADDY_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman image prune -a -f --filter "until=240h"
 fi
 
+CADDY_OPTIONS=(
+  --cap-add=NET_ADMIN --cap-add=NET_BIND_SERVICE
+  --mount type=bind,source=$CADDY_LOG_DIR,target=/var/log/caddy
+  --mount type=bind,source=$CADDY_DATA_DIR,target=/data/caddy
+  -e "DNSPOD_TOKEN=$PROXY_CADDY_DNSPOD_TOKEN"
+  -e "CF_API_TOKEN=$PROXY_CADDY_CLOUDFLARE_API_TOKEN"
+)
+
+if [[ ! -z "$CADDY_NETWORK" ]]; then
+  for network in ${CADDY_NETWORK[@]}; do
+    CADDY_OPTIONS+=("--network=$network")
+  done
+  if [[ ! -z "$CADDY_PUBLISH" ]]; then
+    for publish in ${CADDY_PUBLISH[@]}; do
+      CADDY_OPTIONS+=(-p "$publish")
+    done
+  fi
+else
+  CADDY_OPTIONS+=(--network=host)
+fi
+
 podman run -d --name proxy-caddy --security-opt label=disable \
-  ${PODMAN_COMMON_OPTIONS[@]} \
-  --cap-add=NET_ADMIN --cap-add=NET_BIND_SERVICE \
-  --mount type=bind,source=$CADDY_LOG_DIR,target=/var/log/caddy \
-  --mount type=bind,source=$CADDY_DATA_DIR,target=/data/caddy \
-  -e "DNSPOD_TOKEN=$PROXY_CADDY_DNSPOD_TOKEN" \
-  -e "CF_API_TOKEN=$PROXY_CADDY_CLOUDFLARE_API_TOKEN" \
-  --network=host local-caddy
+  ${PODMAN_COMMON_OPTIONS[@]} "${CADDY_OPTIONS[@]}" \
+  local-caddy
 
 podman generate systemd proxy-caddy | tee -p "$SYSTEMD_SERVICE_DIR/proxy-caddy.service"
 podman container stop proxy-caddy
