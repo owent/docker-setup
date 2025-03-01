@@ -18,6 +18,7 @@ if [[ "x$RUN_HOME" == "x" ]]; then
   RUN_HOME="$HOME"
 fi
 
+#REDIS_NETWORK=(internal-backend)
 if [[ "x$REDIS_PORT" == "x" ]]; then
   REDIS_PORT=6379
 fi

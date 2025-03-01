@@ -15,6 +15,7 @@ if [[ "x$RUN_HOME" == "x" ]]; then
   RUN_HOME="$HOME"
 fi
 
+#POSTGRESQL_NETWORK=(internal-backend)
 if [[ "x$POSTGRESQL_UPGRADE_FROM" == "x" ]]; then
   POSTGRESQL_UPGRADE_FROM="15"
 fi
@@ -112,12 +113,31 @@ for OLD_UPGRADE_DIR in "$POSTGRESQL_DATA_DIR/pgdata.upgrade.old" "$POSTGRESQL_DA
   fi
 done
 
+POSTGRES_OPTIONS_OLD=(
+  -e POSTGRES_PASSWORD=$ADMIN_TOKEN -e POSTGRES_USER=$POSTGRESQL_ADMIN_USER
+  -e PGDATA=/var/lib/postgresql/data/pgdata.upgrade.old
+  -e POSTGRES_INITDB_WALDIR=/var/lib/postgresql/data/wal.upgrade.old
+  --shm-size ${POSTGRESQL_SHM_SIZE}m
+  -v $POSTGRESQL_DATA_DIR:/var/lib/postgresql/data/:Z
+)
+
+POSTGRES_OPTIONS_NEW=(
+  -e POSTGRES_PASSWORD=$ADMIN_TOKEN -e POSTGRES_USER=$POSTGRESQL_ADMIN_USER
+  -e PGDATA=/var/lib/postgresql/data/pgdata.upgrade.new
+  -e POSTGRES_INITDB_WALDIR=/var/lib/postgresql/data/wal.upgrade.new
+  --shm-size ${POSTGRESQL_SHM_SIZE}m
+  -v $POSTGRESQL_DATA_DIR:/var/lib/postgresql/data/:Z
+)
+
+if [[ ! -z "$POSTGRESQL_NETWORK" ]]; then
+  for network in ${POSTGRESQL_NETWORK[@]}; do
+    POSTGRES_OPTIONS_OLD+=("--network=$network")
+    POSTGRES_OPTIONS_NEW+=("--network=$network")
+  done
+fi
+
 podman run -d --name postgresql-upgrade-from --security-opt label=disable \
-  -e POSTGRES_PASSWORD=$ADMIN_TOKEN -e POSTGRES_USER=$POSTGRESQL_ADMIN_USER \
-  -e PGDATA=/var/lib/postgresql/data/pgdata.upgrade.old \
-  -e POSTGRES_INITDB_WALDIR=/var/lib/postgresql/data/wal.upgrade.old \
-  --shm-size ${POSTGRESQL_SHM_SIZE}m \
-  -v $POSTGRESQL_DATA_DIR:/var/lib/postgresql/data/:Z \
+  "${POSTGRES_OPTIONS_OLD[@]}" \
   docker.io/postgres:$POSTGRESQL_UPGRADE_FROM \
   -c shared_buffers=${POSTGRESQL_SHM_SIZE}MB \
   -c effective_cache_size=${POSTGRESQL_EFFECTIVE_CACHE_SIZE}MB \
@@ -135,11 +155,7 @@ podman run -d --name postgresql-upgrade-from --security-opt label=disable \
   -c default_statistics_target = 100
 
 podman run -d --name postgresql-upgrade-to --security-opt label=disable \
-  -e POSTGRES_PASSWORD=$ADMIN_TOKEN -e POSTGRES_USER=$POSTGRESQL_ADMIN_USER \
-  -e PGDATA=/var/lib/postgresql/data/pgdata.upgrade.new \
-  -e POSTGRES_INITDB_WALDIR=/var/lib/postgresql/data/wal.upgrade.new \
-  --shm-size ${POSTGRESQL_SHM_SIZE}m \
-  -v $POSTGRESQL_DATA_DIR:/var/lib/postgresql/data/:Z \
+  "${POSTGRES_OPTIONS_NEW[@]}" \
   docker.io/postgres:latest \
   -c shared_buffers=${POSTGRESQL_SHM_SIZE}MB \
   -c effective_cache_size=${POSTGRESQL_EFFECTIVE_CACHE_SIZE}MB \

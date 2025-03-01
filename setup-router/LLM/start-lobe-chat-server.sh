@@ -5,6 +5,7 @@
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
 LLM_LOBECHAT_IMAGE_URL=docker.io/lobehub/lobe-chat:latest
+#LLM_LOBE_CHAT_NETWORK=(internal-frontend)
 
 if [[ "x$LLM_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman pull $LLM_LOBECHAT_IMAGE_URL
@@ -215,9 +216,23 @@ for TEST_ENV in "${LLM_LOBE_CHAT_TEST_ENV[@]}"; do
   fi
 done
 
+LLM_LOBE_CHAT_OPTIONS=()
+LLM_LOBE_CHAT_HAS_HOST_NETWORK=0
+if [[ ! -z "$LLM_LOBE_CHAT_NETWORK" ]]; then
+  for network in ${LLM_LOBE_CHAT_NETWORK[@]}; do
+    LLM_LOBE_CHAT_OPTIONS+=("--network=$network")
+    if [[ $network == "host" ]]; then
+      LLM_LOBE_CHAT_HAS_HOST_NETWORK=1
+    fi
+  done
+fi
+if [[ $LLM_LOBE_CHAT_HAS_HOST_NETWORK -eq 0 ]]; then
+  LLM_LOBE_CHAT_OPTIONS+=(-p $LLM_LOBE_CHAT_PORT:$LLM_LOBE_CHAT_PORT)
+fi
+
 podman run -d --name llm-lobechat --security-opt label=disable \
   "${LLM_LOBE_CHAT_ENV[@]}" \
-  -p $LLM_LOBE_CHAT_PORT:3210 \
+  "${LLM_LOBE_CHAT_OPTIONS[@]}" \
   $LLM_LOBECHAT_IMAGE_URL
 
 podman generate systemd llm-lobechat | tee -p "$SYSTEMD_SERVICE_DIR/llm-lobechat.service"

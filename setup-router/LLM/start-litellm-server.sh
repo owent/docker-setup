@@ -13,6 +13,7 @@ if [[ "x$LLM_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   fi
 fi
 
+#LLM_LITELLM_NETWORK=(internal-frontend)
 if [[ -z "$LLM_LITELLM_WORKER_COUNT" ]]; then
   LLM_LITELLM_WORKER_COUNT=4
 fi
@@ -131,11 +132,23 @@ if [[ ! -z "$LLM_LITELLM_SMTP_SENDER_EMAIL" ]]; then
   LLM_LITELLM_ENV=("${LLM_LITELLM_ENV[@]}" -e SMTP_SENDER_EMAIL="$LLM_LITELLM_SMTP_SENDER_EMAIL")
 fi
 
+LLM_LITELLM_OPTIONS=(--mount type=bind,source=$LLM_LITELLM_DATA_DIR,target=/etc/litellm)
+LLM_LITELLM_HAS_HOST_NETWORK=0
+if [[ ! -z "$LLM_LITELLM_NETWORK" ]]; then
+  for network in ${LLM_LITELLM_NETWORK[@]}; do
+    LLM_LITELLM_OPTIONS+=("--network=$network")
+    if [[ $network == "host" ]]; then
+      LLM_LITELLMT_HAS_HOST_NETWORK=1
+    fi
+  done
+fi
+if [[ $LLM_LITELLM_HAS_HOST_NETWORK -eq 0 ]]; then
+  LLM_LITELLM_OPTIONS+=(-p $LLM_LITELLM_PORT:$LLM_LITELLM_PORT)
+fi
+
 podman run -d --name llm-litellm --security-opt label=disable \
-  "${LLM_LITELLM_ENV[@]}" \
-  --mount type=bind,source=$LLM_LITELLM_DATA_DIR,target=/etc/litellm \
-  -p $LLM_LITELLM_PORT:4000 \
-  ghcr.io/berriai/litellm:main-latest --port 4000 --config /etc/litellm/litellm-config.yaml --num_workers $LLM_LITELLM_WORKER_COUNT
+  "${LLM_LITELLM_ENV[@]}" "${LLM_LITELLM_OPTIONS[@]}" \
+  ghcr.io/berriai/litellm:main-latest --port $LLM_LITELLM_PORT --config /etc/litellm/litellm-config.yaml --num_workers $LLM_LITELLM_WORKER_COUNT
 
 podman generate systemd llm-litellm | tee -p "$SYSTEMD_SERVICE_DIR/llm-litellm.service"
 podman container stop llm-litellm

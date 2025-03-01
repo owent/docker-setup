@@ -107,7 +107,7 @@ fi
 
 podman run -d --name router-caddy --security-opt label=disable \
   ${CADDY_OPTIONS[@]} \
-  --network=host local-caddy
+  local-caddy
 
 podman generate systemd router-caddy | tee -p "$SYSTEMD_SERVICE_DIR/router-caddy.service"
 podman container stop router-caddy

@@ -18,6 +18,7 @@ if [[ -z "$RUN_HOME" ]]; then
   RUN_HOME="$HOME"
 fi
 
+#POSTGRESQL_NETWORK=(internal-backend)
 if [[ -z "$POSTGRESQL_ETC_DIR" ]]; then
   POSTGRESQL_ETC_DIR="$RUN_HOME/postgresql/etc"
 fi
