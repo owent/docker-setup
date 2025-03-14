@@ -105,6 +105,9 @@ else
   CADDY_OPTIONS+=(--network=host)
 fi
 
+unset http_proxy
+unset https_proxy
+
 podman run -d --name router-caddy --security-opt label=disable \
   ${CADDY_OPTIONS[@]} \
   local-caddy

@@ -46,6 +46,8 @@
 | `INSTALL_K3S_SKIP_SELINUX_RPM`  | 如果设置为 `true` 将跳过 k3s RPM 的自动安装。                                                                                                                |
 | `INSTALL_K3S_CHANNEL_URL`       | 用于获取 K3s 下载 URL 的 Channel URL。默认为 https://update.k3s.io/v1-release/channels。                                                                     |
 | `INSTALL_K3S_CHANNEL`           | 用于获取 K3s 下载 URL 的 Channel。默认为 "stable"。可选项：`stable`、`latest`、`testing`。                                                                   |
+| `SERVER_EXTERNAL_IP`            | Server的外网IP。                                                                                                                                             |
+| `AGENT_EXTERNAL_IP`             | Agent的外网IP。                                                                                                                                              |
 
 代理环境变量:
 
@@ -67,8 +69,9 @@ CONTAINERD_NO_PROXY=127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
 
 重要选项和注意事项:
 
-+ `--cluster-cidr=10.42.0.0/16` : CIDR每个节点不能冲突。用于 pod IP 的 IPv4/IPv6 网络 CIDR。
-+ `--service-cidr=10.43.0.0/16` : 用于服务 IP 的 IPv4/IPv6 网络 CIDR
++ `--cluster-cidr=10.42.0.0/16,2001:cafe:42::/56` : CIDR每个节点不能冲突。用于 pod IP 的 IPv4/IPv6 网络 CIDR。
++ `--service-cidr=10.43.0.0/16,2001:cafe:43::/112` : 用于服务 IP 的 IPv4/IPv6 网络 CIDR
++ `--node-external-ip=<SERVER_EXTERNAL_IP>` : 外网IP
 + `--cluster-domain=cluster.local` : 集群域名
 + `--tls-san=hostname` : 在 TLS 证书上添加其他主机名或 IPv4/IPv6 地址作为 Subject Alternative Name
 + `--config FILE, -c FILE` : 配置路径(/etc/rancher/k3s/config.yaml), `$K3S_CONFIG_FILE`

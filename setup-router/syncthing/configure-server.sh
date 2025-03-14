@@ -16,6 +16,7 @@ SYNCTHING_RELAY_POOL_ADDRESS=https://$SYNCTHING_RELAY_POOL_DOMAIN
 # Where ot find client's ip:port. Only meaningful when running behind a reverse proxy.
 #   This must be passed by reverse proxy
 SYNCTHING_RELAY_POOL_IP_HEADER=X-Client-Address
+SYNCTHING_RELAY_SERVER_EXT_ADDRSS= # relay://xxx.xxx:6349
 SYNCTHING_RELAY_SERVER_LISTEN_PORT=6349
 SYNCTHING_RELAY_SERVER_STATUS_PORT=6350
 

@@ -1,17 +1,19 @@
 syncthing-relays.shkits.com {
-  request_body {
-	  max_size 128M
-  }
+	request_body {
+		max_size 128M
+	}
 
-  tls /data/website/ssl/shkits.com_ecc/fullchain.cer /data/website/ssl/shkits.com_ecc/shkits.com.key {
-    client_auth {
-      mode request
-    }
-  }
+	tls /data/website/ssl/shkits.com_ecc/fullchain.cer /data/website/ssl/shkits.com_ecc/shkits.com.key {
+		client_auth {
+			mode request
+		}
+	}
 
-  reverse_proxy {
-    to http://127.0.0.1:6345
-    header_up X-Client-Port {http.request.remote.port}
-    header_up X-Tls-Client-Cert-Der-Base64 {http.request.tls.client.certificate_der_base64}
-  }
+	reverse_proxy {
+		to http://127.0.0.1:6345
+		header_up X-Real-IP {http.request.remote.host}
+		header_up X-Client-Port {http.request.remote.port}
+		header_up X-Client-Address {http.request.remote.host}:{http.request.remote.port}
+		header_up X-Tls-Client-Cert-Der-Base64 {http.request.tls.client.certificate_der_base64}
+	}
 }
