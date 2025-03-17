@@ -72,7 +72,7 @@ ExecStart=podman-compose -f $SCRIPT_DIR/$COMPOSE_CONFIGURE up -d
 ExecStop=podman-compose -f $SCRIPT_DIR/$COMPOSE_CONFIGURE down
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
 " | tee $APPFLOWY_ETC_DIR/container-appflowy-cloud.service
 
 systemctl --user enable $APPFLOWY_ETC_DIR/container-appflowy-cloud.service

@@ -11,7 +11,7 @@ syncthing-discovery.shkits.com {
 	}
 
 	reverse_proxy {
-		to http://127.0.0.1:6341t
+		to http://127.0.0.1:6341
 		header_up X-Real-IP {http.request.remote.host}
 		header_up X-Client-Port {http.request.remote.port}
 		header_up X-Client-Address {http.request.remote.host}:{http.request.remote.port}
