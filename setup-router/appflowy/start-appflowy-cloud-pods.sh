@@ -27,6 +27,7 @@ cd "$SCRIPT_DIR"
 COMPOSE_CONFIGURE=docker-compose.yml
 COMPOSE_ENV_FILE=.env
 APPFLOWY_VERSION=
+APPFLOWY_GIT_URL=https://github.com/AppFlowy-IO/AppFlowy-Cloud.git
 
 if [[ "x$APPFLOWY_ETC_DIR" == "x" ]]; then
   APPFLOWY_ETC_DIR="$RUN_HOME/appflowy/etc"
@@ -47,6 +48,22 @@ if [[ ! -z "$APPFLOWY_UPDATE" ]] || [[ ! -z "$ROUTER_IMAGE_UPDATE" ]] || [[ ! -e
   echo $APPFLOWY_VERSION >appflowy.version
 else
   APPFLOWY_VERSION=$(cat appflowy.version)
+fi
+
+if [[ ! -e "AppFlowy-Cloud" ]]; then
+  git clone --depth 1000 -b $APPFLOWY_VERSION "$APPFLOWY_GIT_URL" AppFlowy-Cloud
+  if [[ $? -ne 0 ]]; then
+    echo "Error: Unable to clone AppFlowy repository"
+    rm -rf AppFlowy-Cloud
+    exit 1
+  fi
+else
+  git fetch --depth 1000 origin $APPFLOWY_VERSION
+  git checkout -b $APPFLOWY_VERSION origin/$APPFLOWY_VERSION
+  if [[ $? -ne 0 ]]; then
+    echo "Error: Unable to checkout AppFlowy version $APPFLOWY_VERSION"
+    exit 1
+  fi
 fi
 
 systemctl --user --all | grep -F container-appflowy-cloud.service

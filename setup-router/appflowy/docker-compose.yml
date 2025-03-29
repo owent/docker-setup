@@ -24,8 +24,8 @@ services:
     volumes:
       - appflowy_minio_data:/data
     networks:
-      - internal-frontend
-      - internal-backend
+      - frontend
+      - backend
 
   # postgres:
   #   restart: on-failure
@@ -53,7 +53,7 @@ services:
   appflowy_gotrue:
     restart: on-failure
     build:
-      context: docker/gotrue
+      context: AppFlowy-Cloud/docker/gotrue
       dockerfile: Dockerfile
     # depends_on:
     #   postgres:
@@ -65,6 +65,7 @@ services:
       retries: 12
     image: appflowyinc/gotrue:${GOTRUE_VERSION:-latest}
     environment:
+      - GOPROXY=${GOPROXY}
       # There are a lot of options to configure GoTrue. You can reference the example config:
       # https://github.com/supabase/gotrue/blob/master/example.env
       - GOTRUE_ADMIN_EMAIL=${GOTRUE_ADMIN_EMAIL}
@@ -109,12 +110,13 @@ services:
       - GOTRUE_EXTERNAL_DISCORD_SECRET=${GOTRUE_EXTERNAL_DISCORD_SECRET}
       - GOTRUE_EXTERNAL_DISCORD_REDIRECT_URI=${GOTRUE_EXTERNAL_DISCORD_REDIRECT_URI}
     networks:
-      - internal-frontend
-      - internal-backend
+      - frontend
+      - backend
 
   appflowy_cloud:
     restart: on-failure
     environment:
+      - GOPROXY=${GOPROXY}
       - RUST_LOG=${RUST_LOG:-info}
       - APPFLOWY_ENVIRONMENT=production
       - APPFLOWY_DATABASE_URL=${APPFLOWY_DATABASE_URL}
@@ -147,7 +149,7 @@ services:
       - APPFLOWY_ADMIN_FRONTEND_PATH_PREFIX=${ADMIN_FRONTEND_PATH_PREFIX}
       - APPFLOWY_WEB_URL=${APPFLOWY_WEB_URL}
     build:
-      context: .
+      context: AppFlowy-Cloud
       dockerfile: Dockerfile
       args:
         FEATURES: ""
@@ -156,16 +158,17 @@ services:
       appflowy_gotrue:
         condition: service_healthy
     networks:
-      - internal-frontend
-      - internal-backend
+      - frontend
+      - backend
 
   appflowy_admin_frontend:
     restart: on-failure
     build:
-      context: .
+      context: AppFlowy-Cloud
       dockerfile: ./admin_frontend/Dockerfile
     image: appflowyinc/admin_frontend:${APPFLOWY_ADMIN_FRONTEND_VERSION:-latest}
     environment:
+      - GOPROXY=${GOPROXY}
       - RUST_LOG=${RUST_LOG:-info}
       - ADMIN_FRONTEND_REDIS_URL=${ADMIN_FRONTEND_REDIS_URL:-redis://redis:6379}
       - ADMIN_FRONTEND_GOTRUE_URL=${ADMIN_FRONTEND_GOTRUE_URL:-http://appflowy_gotrue:9999}
@@ -175,8 +178,8 @@ services:
       appflowy_cloud:
         condition: service_started
     networks:
-      - internal-frontend
-      - internal-backend
+      - frontend
+      - backend
 
   appflowy_ai:
     restart: on-failure
@@ -190,16 +193,17 @@ services:
     #   postgres:
     #     condition: service_healthy
     networks:
-      - internal-frontend
-      - internal-backend
+      - frontend
+      - backend
 
   appflowy_worker:
     restart: on-failure
     image: appflowyinc/appflowy_worker:${APPFLOWY_WORKER_VERSION:-latest}
     build:
-      context: .
+      context: AppFlowy-Cloud
       dockerfile: ./services/appflowy-worker/Dockerfile
     environment:
+      - GOPROXY=${GOPROXY}
       - RUST_LOG=${RUST_LOG:-info}
       - APPFLOWY_ENVIRONMENT=production
       - APPFLOWY_WORKER_REDIS_URL=${APPFLOWY_WORKER_REDIS_URL:-redis://redis:6379}
@@ -222,8 +226,8 @@ services:
     #   postgres:
     #     condition: service_healthy
     networks:
-      - internal-frontend
-      - internal-backend
+      - frontend
+      - backend
 
   appflowy_web:
     restart: on-failure
@@ -234,8 +238,8 @@ services:
       - AF_BASE_URL=${FQDN}
       - AF_GOTRUE_URL=${API_EXTERNAL_URL}
     networks:
-      - internal-frontend
-      - internal-backend
+      - frontend
+      - backend
 
   # appflowy_pgadmin:
   #   restart: on-failure
@@ -246,8 +250,8 @@ services:
   #   volumes:
   #     - ./docker/pgadmin/servers.json:/pgadmin4/servers.json
   #   networks:
-  #     - internal-frontend
-  #     - internal-backend
+  #     - frontend
+  #     - backend
 volumes:
   # appflowy_postgres_data:
   appflowy_minio_data:
