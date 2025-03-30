@@ -13,8 +13,7 @@ Hint: `podman exec -it postgresql bash`
 ```bash
 psql -h localhost -U postgres <<-EOSQL
 
-  CREATE USER appflowydb WITH PASSWORD '<密码>' CREATEDB;
-  ALTER USER appflowydb WITH CREATEROLE;
+  CREATE USER appflowydb WITH PASSWORD '<密码>' CREATEDB CREATEROLE;
   CREATE DATABASE appflowy_data TEMPLATE template0 ENCODING 'UTF8';
   \c appflowy_data;
   ALTER DATABASE appflowy_data OWNER TO appflowydb;

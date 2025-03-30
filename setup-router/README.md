@@ -460,6 +460,50 @@ location = "mirror.ccs.tencentyun.com"
 }
 ```
 
+## Rust公共代理
+
+```bash
+if [[ -z "$RUSTUP_DIST_SERVER" ]]; then
+  export RUSTUP_DIST_SERVER="https://rsproxy.cn"
+  # export RUSTUP_DIST_SERVER=https://mirrors.ustc.edu.cn/rust-static
+  # export RUSTUP_DIST_SERVER=https://mirrors.tuna.tsinghua.edu.cn/rustup
+fi
+if [[ -z "$RUSTUP_UPDATE_ROOT" ]]; then
+  export RUSTUP_UPDATE_ROOT="https://rsproxy.cn/rustup"
+  # export RUSTUP_UPDATE_ROOT=https://mirrors.ustc.edu.cn/rust-static/rustup
+  # export RUSTUP_UPDATE_ROOT=https://mirrors.tuna.tsinghua.edu.cn/rustup/rustup
+fi
+```
+
+```toml
+[source.crates-io]
+replace-with = 'rsproxy-sparse'
+# replace-with = 'ustc'
+# replace-with = 'tuna'
+[source.rsproxy]
+registry = "https://rsproxy.cn/crates.io-index"
+[source.rsproxy-sparse]
+registry = "sparse+https://rsproxy.cn/index/"
+[registries.rsproxy]
+index = "https://rsproxy.cn/crates.io-index"
+[net]
+git-fetch-with-cli = true
+
+# USTC
+[source.ustc]
+registry = "sparse+https://mirrors.ustc.edu.cn/crates.io-index/"
+
+[registries.ustc]
+index = "sparse+https://mirrors.ustc.edu.cn/crates.io-index/"
+
+# TUNA
+[source.tuna]
+registry = "sparse+https://mirrors.tuna.tsinghua.edu.cn/crates.io-index/"
+
+[registries.tuna]
+index = "sparse+https://mirrors.tuna.tsinghua.edu.cn/crates.io-index/"
+```
+
 [1]: https://tools.ietf.org/html/rfc8484 "RFC 8484"
 [2]: https://tools.ietf.org/html/rfc7858 "RFC 7858"
 [3]: https://dnscrypt.info/ "DNSCrypt"

@@ -5,6 +5,17 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 export XDG_RUNTIME_DIR="/run/user/$UID"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
 
+if [[ -z "$RUSTUP_DIST_SERVER" ]]; then
+  export RUSTUP_DIST_SERVER="https://rsproxy.cn"
+  # export RUSTUP_DIST_SERVER=https://mirrors.ustc.edu.cn/rust-static
+  # export RUSTUP_DIST_SERVER=https://mirrors.tuna.tsinghua.edu.cn/rustup
+fi
+if [[ -z "$RUSTUP_UPDATE_ROOT" ]]; then
+  export RUSTUP_UPDATE_ROOT="https://rsproxy.cn/rustup"
+  # export RUSTUP_UPDATE_ROOT=https://mirrors.ustc.edu.cn/rust-static/rustup
+  # export RUSTUP_UPDATE_ROOT=https://mirrors.tuna.tsinghua.edu.cn/rustup/rustup
+fi
+
 if [[ -z "$RUN_USER" ]]; then
   export RUN_USER=$(id -un)
 fi

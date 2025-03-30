@@ -14,6 +14,8 @@ podman exec -it postgresql psql -h localhost -d postgres -U postgres/或其他�
   \q
 ```
 
+更多许用户权限： `CREATE USER <用户名> WITH PASSWORD '<密码>' SUPERUSER CREATEDB CREATEROLE INHERIT LOGIN REPLICATION BYPASSRLS;`
+
 注意: 需要分配入站地址权限:
 
 ```bash
