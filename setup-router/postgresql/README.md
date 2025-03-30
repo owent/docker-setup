@@ -59,3 +59,13 @@ podman run --rm --network=host --mount type=bind,source=$PWD,target=/data/postgr
 
 管理员账号密码由启动时 `-e POSTGRES_PASSWORD=$ADMIN_TOKEN` 和 `-e POSTGRES_USER=$POSTGRESQL_ADMIN_USER` 指定。
 
+## 常用指令
+
++ 切换数据库: `\c <数据库名>`
++ 查看表结构: `\d <表名>` / `\d+ <表名>`
++ 查看用户权限: `\dn+`
++ 查看所有表(public): `SELECT * FROM information_schema.tables WHERE table_schema = 'public';`
++ 查看权限表: `SELECT * FROM pg_roles WHERE rolname = current_user;`
++ 查看Role表: `SELECT * FROM pg_catalog.pg_class WHERE relname = '<relation_name>';`
++ 更改所有者: `ALTER TABLE <relation_name> OWNER TO <new_owner>;`
++ 中数据库的所有Session: `SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity WHERE pg_stat_activity.datname = '<database>';`

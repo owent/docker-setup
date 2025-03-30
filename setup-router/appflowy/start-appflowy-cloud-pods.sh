@@ -50,6 +50,8 @@ else
   APPFLOWY_VERSION=$(cat appflowy.version)
 fi
 
+sed -i -E "s;[[:space:]]*APPFLOWY_CLOUD_VERSION=.*;APPFLOWY_CLOUD_VERSION=$APPFLOWY_VERSION" .env
+
 if [[ ! -e "AppFlowy-Cloud" ]]; then
   git clone --depth 1000 -b $APPFLOWY_VERSION "$APPFLOWY_GIT_URL" AppFlowy-Cloud
   if [[ $? -ne 0 ]]; then
