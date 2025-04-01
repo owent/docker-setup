@@ -184,7 +184,7 @@ services:
       - frontend
       - backend
 
-  ai:
+  appflowy_ai:
     restart: on-failure
     image: appflowyinc/appflowy_ai:${APPFLOWY_AI_VERSION:-latest}
     environment:
