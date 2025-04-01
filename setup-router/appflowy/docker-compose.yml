@@ -13,13 +13,14 @@ services:
   #     - ./nginx/ssl/private_key.key:/etc/nginx/ssl/private_key.key
 
   # You do not need this if you have configured to use your own s3 file storage
-  appflowy_minio:
+  minio:
     restart: on-failure
     image: minio/minio
     environment:
       - MINIO_BROWSER_REDIRECT_URL=${APPFLOWY_BASE_URL}/minio
       - MINIO_ROOT_USER=${APPFLOWY_S3_ACCESS_KEY:-minioadmin}
       - MINIO_ROOT_PASSWORD=${APPFLOWY_S3_SECRET_KEY:-minioadmin}
+      - MINIO_REGION_NAME=${APPFLOWY_S3_REGION}
     command: server /data --console-address ":9001"
     volumes:
       - appflowy_minio_data:/data
@@ -50,7 +51,7 @@ services:
   #   restart: on-failure
   #   image: redis
 
-  appflowy_gotrue:
+  gotrue:
     restart: on-failure
     build:
       context: AppFlowy-Cloud/docker/gotrue
@@ -155,13 +156,15 @@ services:
         FEATURES: ""
     image: appflowyinc/appflowy_cloud:${APPFLOWY_CLOUD_VERSION:-latest}
     depends_on:
-      appflowy_gotrue:
+      gotrue:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     networks:
       - frontend
       - backend
 
-  appflowy_admin_frontend:
+  admin_frontend:
     restart: on-failure
     build:
       context: AppFlowy-Cloud
@@ -171,7 +174,7 @@ services:
       - GOPROXY=${GOPROXY}
       - RUST_LOG=${RUST_LOG:-info}
       - ADMIN_FRONTEND_REDIS_URL=${ADMIN_FRONTEND_REDIS_URL:-redis://redis:6379}
-      - ADMIN_FRONTEND_GOTRUE_URL=${ADMIN_FRONTEND_GOTRUE_URL:-http://appflowy_gotrue:9999}
+      - ADMIN_FRONTEND_GOTRUE_URL=${ADMIN_FRONTEND_GOTRUE_URL:-http://gotrue:9999}
       - ADMIN_FRONTEND_APPFLOWY_CLOUD_URL=${ADMIN_FRONTEND_APPFLOWY_CLOUD_URL:-http://appflowy_cloud:8000}
       - ADMIN_FRONTEND_PATH_PREFIX=${ADMIN_FRONTEND_PATH_PREFIX:-}
     depends_on:
@@ -181,11 +184,11 @@ services:
       - frontend
       - backend
 
-  appflowy_ai:
+  ai:
     restart: on-failure
     image: appflowyinc/appflowy_ai:${APPFLOWY_AI_VERSION:-latest}
     environment:
-      - OPENAI_API_KEY=${AI_OPENAI_API_KEY}
+      - OPENAI_API_KEY=${AI_OPENAI_API_KEY:-${AI_OPENAI_API_KEY_FALLBACK}}
       - APPFLOWY_AI_SERVER_PORT=${AI_SERVER_PORT}
       - APPFLOWY_AI_DATABASE_URL=${AI_DATABASE_URL}
       - APPFLOWY_AI_REDIS_URL=${AI_REDIS_URL}
@@ -256,6 +259,8 @@ services:
 volumes:
   # appflowy_postgres_data:
   appflowy_minio_data:
+    external: true
+    name: ${APPFLOWY_MINIO_VOLUME_NAME:-appflowy_minio_data}
 
 networks:
   frontend:

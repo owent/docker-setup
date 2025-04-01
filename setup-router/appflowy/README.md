@@ -16,6 +16,7 @@ psql -h localhost -U postgres <<-EOSQL
   CREATE USER appflowydb WITH PASSWORD '<密码>' CREATEDB CREATEROLE;
   CREATE DATABASE appflowy_data TEMPLATE template0 ENCODING 'UTF8';
   \c appflowy_data;
+  CREATE EXTENSION vector;
   ALTER DATABASE appflowy_data OWNER TO appflowydb;
   GRANT ALL PRIVILEGES ON DATABASE appflowy_data TO appflowydb;
   GRANT ALL PRIVILEGES ON SCHEMA public TO appflowydb;
@@ -79,7 +80,7 @@ Option 1:
 ```bash
 psql -U supabase_auth_admin -d appflowy_data <<-EOSQL
   ALTER ROLE supabase_auth_admin SET search_path TO auth,public;
-  ALTER ROLE appflowydb SET search_path TO auth,public;
+  ALTER ROLE appflowydb SET search_path TO public,auth;
 EOSQL
 ```
 
@@ -101,13 +102,17 @@ psql -U postgres -d appflowy_data <<-EOSQL
   GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA auth TO appflowydb;
   GRANT ALL PRIVILEGES ON ALL PROCEDURES IN SCHEMA auth TO appflowydb;
   GRANT ALL PRIVILEGES ON ALL ROUTINES IN SCHEMA auth TO appflowydb;
-  GRANT ALL PRIVILEGES ON SCHEMA auth TO supabase_auth_admin;
-  GRANT ALL PRIVILEGES ON SCHEMA public TO supabase_auth_admin;
   GRANT ALL PRIVILEGES ON DATABASE appflowy_data TO supabase_auth_admin;
+  GRANT ALL PRIVILEGES ON SCHEMA auth TO supabase_auth_admin;
   GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA auth TO supabase_auth_admin;
   GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA auth TO supabase_auth_admin;
   GRANT ALL PRIVILEGES ON ALL PROCEDURES IN SCHEMA auth TO supabase_auth_admin;
   GRANT ALL PRIVILEGES ON ALL ROUTINES IN SCHEMA auth TO supabase_auth_admin;
+  GRANT ALL PRIVILEGES ON SCHEMA public TO supabase_auth_admin;
+  GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO supabase_auth_admin;
+  GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO supabase_auth_admin;
+  GRANT ALL PRIVILEGES ON ALL PROCEDURES IN SCHEMA public TO supabase_auth_admin;
+  GRANT ALL PRIVILEGES ON ALL ROUTINES IN SCHEMA public TO supabase_auth_admin;
 EOSQL
 ```
 
@@ -118,3 +123,38 @@ psql -U supabase_auth_admin -d appflowy_data <<-EOSQL
   ALTER TABLE auth.users OWNER TO appflowydb;
 EOSQL
 ```
+
+## Mirror
+
++ github: `git config --global url."https://kkgithub.com/".insteadOf https://github.com/`
++ golang: `export GOPROXY=https://goproxy.io,direct`
++ rust: `export RUSTUP_DIST_SERVER="https://rsproxy.cn" RUSTUP_UPDATE_ROOT="https://rsproxy.cn/rustup"`
+
+File: `~/.cargo/config`
+
+```toml
+[source.crates-io]
+replace-with = 'rsproxy-sparse'
+# replace-with = 'ustc'
+# replace-with = 'tuna'
+[source.rsproxy]
+registry = "https://rsproxy.cn/crates.io-index"
+[source.rsproxy-sparse]
+registry = "sparse+https://rsproxy.cn/index/"
+[registries.rsproxy]
+index = "https://rsproxy.cn/crates.io-index"
+[net]
+git-fetch-with-cli = true
+```
+
+## Rust compiling OOM
+
++ Reduce parallel jobs: `export CARGO_BUILD_JOBS=1` / `cargo build --jobs 1` / `cargo install --jobs 1`
++ Using lld: `export RUSTFLAGS="-C link-arg=-fuse-ld=lld`
++ Optimize compiler configuration: edit `Cargo.toml`
+
+>```toml
+>[profile.release]
+>codegen-units = 1
+>```
+>

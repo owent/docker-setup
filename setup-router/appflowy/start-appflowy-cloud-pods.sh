@@ -39,6 +39,11 @@ COMPOSE_CONFIGURE=docker-compose.yml
 COMPOSE_ENV_FILE=.env
 APPFLOWY_VERSION=
 APPFLOWY_GIT_URL=https://github.com/AppFlowy-IO/AppFlowy-Cloud.git
+APPFLOWY_MINIO_VOLUME_NAME=appflowy_minio_data
+if [[ -z "$APPFLOWY_MINIO_VOLUME_PATH" ]]; then
+  APPFLOWY_MINIO_VOLUME_PATH="$RUN_HOME/appflowy/minio/data"
+fi
+mkdir -p "$APPFLOWY_MINIO_VOLUME_PATH"
 
 if [[ "x$APPFLOWY_ETC_DIR" == "x" ]]; then
   APPFLOWY_ETC_DIR="$RUN_HOME/appflowy/etc"
@@ -87,6 +92,11 @@ if [[ $? -eq 0 ]]; then
 fi
 
 podman-compose -f $COMPOSE_CONFIGURE down
+
+podman volume inspect $APPFLOWY_MINIO_VOLUME_NAME >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  podman volume create --label app=appflowy --driver local --opt type=none --opt o=bind --opt device=${APPFLOWY_MINIO_VOLUME_PATH} $APPFLOWY_MINIO_VOLUME_NAME
+fi
 
 if [[ ! -z "$APPFLOWY_UPDATE" ]] || [[ ! -z "$ROUTER_IMAGE_UPDATE" ]]; then
   podman image prune -a -f --filter "until=240h"

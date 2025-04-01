@@ -475,6 +475,8 @@ if [[ -z "$RUSTUP_UPDATE_ROOT" ]]; then
 fi
 ```
 
+文件: `~/.cargo/config`
+
 ```toml
 [source.crates-io]
 replace-with = 'rsproxy-sparse'
@@ -503,6 +505,18 @@ registry = "sparse+https://mirrors.tuna.tsinghua.edu.cn/crates.io-index/"
 [registries.tuna]
 index = "sparse+https://mirrors.tuna.tsinghua.edu.cn/crates.io-index/"
 ```
+
+## Rust 编译OOM问题
+
++ 降低编译并发数: `export CARGO_BUILD_JOBS=1` / `cargo build --jobs 1` / `cargo install --jobs 1`
++ 使用内存占用更低的链接器: `export RUSTFLAGS="-C link-arg=-fuse-ld=lld"`
++ 降低代码单元数: 编译 `Cargo.toml` 文件
+
+>```toml
+>[profile.release]
+>codegen-units = 1
+>```
+>
 
 [1]: https://tools.ietf.org/html/rfc8484 "RFC 8484"
 [2]: https://tools.ietf.org/html/rfc7858 "RFC 7858"
