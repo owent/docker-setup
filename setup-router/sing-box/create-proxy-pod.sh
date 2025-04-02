@@ -66,8 +66,10 @@ if [[ "x$VBOX_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman image prune -a -f --filter "until=240h"
 fi
 
-podman run -d --name vbox-proxy --cap-add=NET_BIND_SERVICE \
-  --network=host --security-opt label=disable \
+podman run -d --name vbox-proxy --cap-add=NET_BIND_SERVICE --security-opt label=disable \
+  --network=internal-frontend --network=internal-backend \
+  -p 127.0.0.1:1080:1080 -p 127.0.0.1:3128:3128 -p 8371:8371/tcp -p 8371:8371/udp \
+  -p 8372:8372/tcp -p 8372:8372/udp -p 8373:8373/tcp -p 8373:8373/udp \
   --mount type=bind,source=$VBOX_ETC_DIR,target=/etc/vbox/,ro=true \
   --mount type=bind,source=$VBOX_DATA_DIR,target=/var/lib/vbox \
   --mount type=bind,source=$VBOX_LOG_DIR,target=/var/log/vbox \

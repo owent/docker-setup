@@ -80,12 +80,12 @@
     {
       "type": "socks",
       "tag": "in-socks",
-      "listen": "127.0.0.1",
+      "listen": "::",
       "listen_port": 1080
     }, {
       "type": "http",
       "tag": "in-http",
-      "listen": "127.0.0.1",
+      "listen": "::",
       "listen_port": 3128
     }, {
       "type": "trojan",

@@ -3,30 +3,22 @@
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 
+CADDY_IMAGE_URL="ghcr.io/owent/caddy:latest"
+# CADDY_IMAGE_URL="docker.io/owt5008137:latest"
+
 # Require net.ipv4.ip_unprivileged_port_start=80 in /etc/sysctl.d/*.conf
 # See https://github.com/containers/podman/blob/master/rootless.md
 
 if [[ "x$CADDY_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman pull docker.io/caddy:builder
-  podman pull docker.io/caddy:latest
+  podman pull $CADDY_IMAGE_URL
   if [[ $? -ne 0 ]]; then
-    echo "Pull docker.io/caddy:builder and docker.io/caddy:latest failed"
+    echo "Pull $CADDY_IMAGE_URL failed"
     exit 1
   fi
 fi
 
 if [[ ! -e "Caddyfile" ]]; then
   cp -f sample.Caddyfile Caddyfile
-fi
-
-podman build --env GOPROXY=https://mirrors.cloud.tencent.com/go/,https://goproxy.io,direct --layers --force-rm --tag local-caddy -f build.Dockerfile .
-
-if [[ $? -ne 0 ]]; then
-  exit 1
-fi
-
-if [[ $? -ne 0 ]]; then
-  exit 1
 fi
 
 if [[ "root" == "$(id -un)" ]]; then
@@ -82,6 +74,7 @@ mkdir -p "$ARIA2_DATA_ROOT"
 CADDY_OPTIONS=(
   --mount type=bind,source=$ACMESH_SSL_DIR,target=/data/ssl,ro=true
   --mount type=bind,source=$ROUTER_LOG_ROOT_DIR/caddy,target=/var/log/caddy
+  -v ./Caddyfile:/etc/caddy/Caddyfile
   "--mount" "type=bind,source=$ARIA2_DATA_ROOT,target=/data/website/html/downloads"
 )
 
@@ -110,7 +103,7 @@ unset https_proxy
 
 podman run -d --name router-caddy --security-opt label=disable \
   ${CADDY_OPTIONS[@]} \
-  local-caddy
+  $CADDY_IMAGE_URL
 
 podman generate systemd router-caddy | tee -p "$SYSTEMD_SERVICE_DIR/router-caddy.service"
 podman container stop router-caddy
