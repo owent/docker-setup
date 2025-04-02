@@ -39,12 +39,15 @@ appflowy.x-ha.com {
   handle /ws* {
     # 在 Caddy 里，升级到 WebSocket 通常只需要 reverse_proxy 即可
     reverse_proxy http://appflowy-cloud:8000 {
-      header_up Host {host}
-      header_up Upgrade {http.request.header.Upgrade}
-      header_up Connection {http.request.header.Connection}
+      header_up Host {http.request.host}
+			header_up X-Real-IP {http.request.remote}
       stream_timeout 86400s
       # 让数据实时向客户端输出，不做缓冲
       flush_interval -1
+      transport http {
+        dial_timeout 86400s
+        versions 1.1
+      }
     }
   }
 
@@ -155,7 +158,7 @@ appflowy.x-ha.com {
   # --------------------------------------------------------------------------
   handle /ai* {
     reverse_proxy http://appflowy-ai:5001 {
-      header_up Host {host}
+      header_up Host {http.request.host}
     }
   }
 
@@ -169,12 +172,10 @@ appflowy.x-ha.com {
       header_up Host {http.request.host}
       header_up X-Real-IP {http.request.remote}
       header_up X-NginX-Proxy true
-      # 如果需要 WebSocket 支持
-      header_up Upgrade {http.request.header.Upgrade}
-      header_up Connection {http.request.header.Connection}
 
       transport http {
         dial_timeout 300s
+        versions 1.1
       }
       flush_interval -1
     }
@@ -208,7 +209,7 @@ appflowy.x-ha.com {
     reverse_proxy http://appflowy-pgadmin:80 {
       header_up X-Script-Name /pgadmin
       header_up X-Scheme {http.request.scheme}
-      header_up Host {host}
+      header_up Host {http.request.host}
       # Caddy 默认不会自动修改返回头中 location，可根据需要做 header_down 规则
     }
   }
@@ -229,7 +230,7 @@ appflowy.x-ha.com {
   handle @console {
     reverse_proxy http://appflowy-admin-frontend:3000 {
       header_up X-Scheme {http.request.scheme}
-      header_up Host {host}
+      header_up Host {http.request.host}
     }
   }
 
@@ -239,7 +240,7 @@ appflowy.x-ha.com {
   handle {
     reverse_proxy http://appflowy-web:80 {
       header_up X-Scheme {http.request.scheme}
-      header_up Host {host}
+      header_up Host {http.request.host}
     }
   }
 }
