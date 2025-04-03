@@ -1,0 +1,30 @@
+affine.x-ha.com {
+  request_body {
+    max_size 100MB
+  }
+
+  #---------------------------
+  # Optional Module, PgAdmin (/pgadmin)
+  #---------------------------
+  @pgadmin path /pgadmin*
+  handle @pgadmin {
+    uri strip_prefix /pgadmin
+    reverse_proxy http://affine-pgadmin:80 {
+      header_up X-Script-Name /pgadmin
+      header_up X-Scheme {http.request.scheme}
+      header_up Host {http.request.host}
+    }
+  }
+
+  handle {
+    reverse_proxy http://affine-server:3010 {
+      header_up X-Scheme {http.request.scheme}
+      header_up Host {http.request.host}
+      header_up X-Real-IP {http.request.remote}
+      stream_timeout 86400s
+      transport http {
+        versions 1.1
+      }
+    }
+  }
+}
