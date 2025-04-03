@@ -91,3 +91,4 @@ Hint: `podman exec -it postgresql psql -U affinedb`
   > + reason这个项可以随便写，记录权限描述的项
   > + 依次插入4,5,16
 + 修改成员数: `update features set configs = '{"name":"Lifetime Pro","blobLimit":104857600,"storageQuota":1099511627776,"historyPeriod":2592000000,"memberLimit":1000,"copilotActionLimit":10}' where id = 16;`
+  + 如果无效，直接改Pro的授权限制

@@ -86,6 +86,11 @@ elif [[ ! -z "$APPFLOWY_UPDATE" ]] || [[ ! -z "$ROUTER_IMAGE_UPDATE" ]] || [[ ! 
   cd ..
 fi
 
+if [[ ! -z "$APPFLOWY_UPDATE" ]] || [[ ! -z "$ROUTER_IMAGE_UPDATE" ]]; then
+  podman-compose -f $COMPOSE_CONFIGURE pull
+  podman-compose -f $COMPOSE_CONFIGURE build
+fi
+
 systemctl --user --all | grep -F container-appflowy-cloud.service
 
 if [[ $? -eq 0 ]]; then
