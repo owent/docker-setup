@@ -75,6 +75,10 @@ if [[ ! -e "AppFlowy-Cloud" ]]; then
     rm -rf AppFlowy-Cloud
     exit 1
   fi
+  cd AppFlowy-Cloud
+  git apply -c core.autocrlf=true ../mirror.patch
+  cp -f ../cargo-config ./
+  cd ..
 elif [[ ! -z "$APPFLOWY_UPDATE" ]] || [[ ! -z "$ROUTER_IMAGE_UPDATE" ]] || [[ ! -e "appflowy.version" ]]; then
   cd AppFlowy-Cloud
   git fetch --depth 1000 origin $APPFLOWY_VERSION
@@ -83,6 +87,8 @@ elif [[ ! -z "$APPFLOWY_UPDATE" ]] || [[ ! -z "$ROUTER_IMAGE_UPDATE" ]] || [[ ! 
     echo "Error: Unable to checkout AppFlowy version $APPFLOWY_VERSION"
     exit 1
   fi
+  git apply -c core.autocrlf=true ../mirror.patch
+  cp -f ../cargo-config ./
   cd ..
 fi
 

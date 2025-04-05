@@ -26,6 +26,7 @@ services:
       - MAILER_PASSWORD=${MAILER_PASSWORD}
       - MAILER_SENDER=${MAILER_SENDER}
       - MAILER_IGNORE_TLS=${MAILER_IGNORE_TLS}
+      - MAILER_SECURE=${MAILER_SECURE}
       - DATABASE_URL=postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST:-postgres}:${DB_PORT:-5432}/${DB_DATABASE:-affine}
     networks:
       - frontend
@@ -54,6 +55,7 @@ services:
       - MAILER_PASSWORD=${MAILER_PASSWORD}
       - MAILER_SENDER=${MAILER_SENDER}
       - MAILER_IGNORE_TLS=${MAILER_IGNORE_TLS}
+      - MAILER_SECURE=${MAILER_SECURE}
       - DATABASE_URL=postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST:-postgres}:${DB_PORT:-5432}/${DB_DATABASE:-affine}
     networks:
       - frontend
