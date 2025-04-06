@@ -4,7 +4,7 @@
 
 1. Setup container networks. ([../docker-network](../docker-network))
 2. Set environment in `.env`
-3. Initialize DB users: `appflowydb`, `supabase_auth_admin` and DB: `appflowy_data`
+3. Initialize DB users: `appflowydb` and DB: `appflowy_data`
 
 ## postgresql
 
@@ -13,7 +13,7 @@ Hint: `podman exec -it postgresql bash`
 ```bash
 psql -h localhost -U postgres <<-EOSQL
 
-  CREATE USER appflowydb WITH PASSWORD '<密码>' CREATEDB CREATEROLE;
+  CREATE USER appflowydb WITH PASSWORD '<密码>' CREATEDB CREATEROLE BYPASSRLS;
   CREATE DATABASE appflowy_data TEMPLATE template0 ENCODING 'UTF8';
   \c appflowy_data;
   CREATE EXTENSION vector;
@@ -121,6 +121,56 @@ EOSQL
 ```bash
 psql -U supabase_auth_admin -d appflowy_data <<-EOSQL
   ALTER TABLE auth.users OWNER TO appflowydb;
+EOSQL
+```
+
++ Shows `Only roles with the CREATEROLE attribute and the ADMIN option on role "supabase_auth_admin" may alter this role.`
+
+```bash
+psql -U supabase_auth_admin -d appflowy_data <<-EOSQL
+  GRANT appflowydb TO supabase_auth_admin WITH ADMIN TRUE; 
+EOSQL
+```
+
++ Shows `Failed to run migrations: migration XXX was previously applied but has been modified`
+
+```bash
+psql -U postgres -d appflowy_data <<-EOSQL
+  DROP TABLE _sqlx_migrations;
+EOSQL
+```
+
++ Shows `error returned from database: duplicate key value violates unique constraint "<constraint_name>"`
+
+Remove constraint.
+
+```bash
+psql -U postgres -d appflowy_data <<-EOSQL
+  ALTER TABLE IF EXISTS <table_name>
+    ALTER TABLE users DROP CONSTRAINT <constraint_name>;
+EOSQL
+```
+
+Restore constraint.
+
+```bash
+psql -U postgres -d appflowy_data <<-EOSQL
+  ALTER TABLE IF EXISTS <table_name>
+    ADD CONSTRAINT <constraint_name> UNIQUE (...);
+EOSQL
+```
+
+> + Fix scheme and backup/restore data only(If migrations can not run successfuly)
+>
+> + Backup: `podman exec -it postgresql pg_dump –-data-only -U postgres -d appflowy_data > backup.sql`
+> + Remove the datas in _sqlx_migrations and rebuild the database.(`DROP database appflowy_data; CREATE DATABASE appflowy_data TEMPLATE template0 ENCODING 'UTF8';`)
+> + Restore: `cat backup.sql | podman exec -it postgresql psql -U postgres -d appflowy_data`
+
++ Shows `ERROR:  must be able to SET ROLE "supabase_auth_admin"`
+
+```bash
+psql -U postgres -d appflowy_data <<-EOSQL
+  GRANT supabase_auth_admin to postgres;
 EOSQL
 ```
 
