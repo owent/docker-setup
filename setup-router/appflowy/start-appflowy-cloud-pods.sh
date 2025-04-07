@@ -94,7 +94,15 @@ fi
 
 if [[ ! -z "$APPFLOWY_UPDATE" ]] || [[ ! -z "$ROUTER_IMAGE_UPDATE" ]]; then
   podman-compose -f $COMPOSE_CONFIGURE pull
+  if [[ $? -ne 0 ]]; then
+    echo "Error: Unable to pull AppFlowy images"
+    exit 1
+  fi
   podman-compose -f $COMPOSE_CONFIGURE build
+  if [[ $? -ne 0 ]]; then
+    echo "Error: Unable to build AppFlowy images"
+    exit 1
+  fi
 fi
 
 systemctl --user --all | grep -F container-appflowy-cloud.service
