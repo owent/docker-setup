@@ -1,5 +1,9 @@
 # LLM集成
 
+## MCP in LiteLLM gateway
+
+<https://github.com/BerriAI/litellm/pull/9426>
+
 ## Azure OpenAI模型和可用区域
 
 https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models#standard-deployment-model-availability
@@ -16,7 +20,7 @@ host    all     all             172.22.1.10/16                 trust" >> /var/li
 su postgres -- pg_ctl reload
 ```
 
-For LiteLLM
+### For LiteLLM
 
 ```bash
 podman exec -it postgresql psql -h localhost -d postgres -U postgres/或其他默认用户
@@ -34,7 +38,7 @@ GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO llm;
   \q
 ```
 
-For OpenWebUI
+### For OpenWebUI
 
 ```bash
 podman exec -it postgresql psql -h localhost -d postgres -U postgres/或其他默认用户

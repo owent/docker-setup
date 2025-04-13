@@ -6,6 +6,26 @@
 2. Set environment in `.env`
 3. Initialize DB users: `affinedb` and DB: `affine_data`
 
+## 导入配置
+
++ vim `~/affine/etc/config.schema.json`
+
+```json
+{
+    "$schema": "https://github.com/toeverything/affine/releases/latest/download/config.schema.json",
+    "copilot": {
+      "enabled": true,
+      "providers.openai": {
+        "apiKey": "sk-xxxx",
+        "baseURL": "<baseURL>"
+      }
+    }
+}
+```
+
++ Importing: `podman exec affine-server node --import ./scripts/register.js ./dist/data/index.js import-config /root/.affine/config/config.schema.json`
++ Restart server: `podman restart affine-server`
+
 ## postgresql
 
 Hint: `podman exec -it postgresql bash`

@@ -34,6 +34,10 @@ COMPOSE_ENV_FILE=.env
 
 if [[ ! -z "$AFFINE_UPDATE" ]] || [[ ! -z "$ROUTER_IMAGE_UPDATE" ]]; then
   podman-compose -f $COMPOSE_CONFIGURE pull
+  if [[ $? -ne 0 ]]; then
+    echo "Pull $COMPOSE_CONFIGURE failed"
+    exit 1
+  fi
 fi
 
 systemctl --user --all | grep -F container-affine-server.service
