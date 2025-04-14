@@ -17,7 +17,7 @@ fi
 
 #POSTGRESQL_NETWORK=(internal-backend)
 if [[ "x$POSTGRESQL_UPGRADE_FROM" == "x" ]]; then
-  POSTGRESQL_UPGRADE_FROM="15"
+  POSTGRESQL_UPGRADE_FROM="16"
 fi
 if [[ "x$POSTGRESQL_UPGRADE_TO" == "x" ]]; then
   POSTGRESQL_UPGRADE_TO="latest"
@@ -116,7 +116,6 @@ done
 POSTGRES_OPTIONS_OLD=(
   -e POSTGRES_PASSWORD=$ADMIN_TOKEN -e POSTGRES_USER=$POSTGRESQL_ADMIN_USER
   -e PGDATA=/var/lib/postgresql/data/pgdata.upgrade.old
-  -e POSTGRES_INITDB_WALDIR=/var/lib/postgresql/data/wal.upgrade.old
   --shm-size ${POSTGRESQL_SHM_SIZE}m
   -v $POSTGRESQL_DATA_DIR:/var/lib/postgresql/data/:Z
 )
@@ -124,7 +123,6 @@ POSTGRES_OPTIONS_OLD=(
 POSTGRES_OPTIONS_NEW=(
   -e POSTGRES_PASSWORD=$ADMIN_TOKEN -e POSTGRES_USER=$POSTGRESQL_ADMIN_USER
   -e PGDATA=/var/lib/postgresql/data/pgdata.upgrade.new
-  -e POSTGRES_INITDB_WALDIR=/var/lib/postgresql/data/wal.upgrade.new
   --shm-size ${POSTGRESQL_SHM_SIZE}m
   -v $POSTGRESQL_DATA_DIR:/var/lib/postgresql/data/:Z
 )
@@ -186,7 +184,7 @@ UPGRADE_SCRIPT="$UPGRADE_SCRIPT su postgres -c \"pg_upgrade -U $POSTGRESQL_ADMIN
 podman exec postgresql-upgrade-to bash -c "$UPGRADE_SCRIPT"
 
 echo "Please mv date from /tmp/upgrade_data/* into /var/lib/postgresql/data/pgdata/ with user postgres"
-podman exec -it postgresql-upgrade-to bash -c "su postgres"
+podman exec -it postgresql-upgrade-to bash -c "su postgres -c 'cp -rf /tmp/upgrade_data/* /var/lib/postgresql/data/pgdata/'"
 
 podman stop postgresql-upgrade-from
 podman rm postgresql-upgrade-from

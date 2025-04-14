@@ -45,7 +45,8 @@ if [[ -z "$POSTGRESQL_MAINTENANCE_WORK_MEM" ]]; then
 fi
 
 if [[ -z "$POSTGRESQL_WAL_LEVEL" ]]; then
-  POSTGRESQL_WAL_LEVEL=minimal
+  #POSTGRESQL_WAL_LEVEL=minimal
+  POSTGRESQL_WAL_LEVEL=replica
 fi
 
 if [[ -z "$POSTGRESQL_MAX_WAL_SENDERS" ]]; then
@@ -83,6 +84,11 @@ if [[ -z "$POSTGRESQL_DATA_DIR" ]]; then
 fi
 mkdir -p "$POSTGRESQL_DATA_DIR"
 
+if [[ -z "$POSTGRESQL_LOG_DIR" ]]; then
+  POSTGRESQL_LOG_DIR="$HOME/postgresql/log"
+fi
+mkdir -p "$POSTGRESQL_LOG_DIR"
+
 if [[ -n "$POSTGRESQL_UPDATE" ]] || [[ -n "$ROUTER_IMAGE_UPDATE" ]]; then
   podman pull $POSTGRESQL_IMAGE
 fi
@@ -117,9 +123,9 @@ fi
 POSTGRES_OPTIONS=(
   -e POSTGRES_PASSWORD=$ADMIN_TOKEN -e POSTGRES_USER=$POSTGRESQL_ADMIN_USER
   -e PGDATA=/var/lib/postgresql/data/pgdata
-  -e POSTGRES_INITDB_WALDIR=/var/lib/postgresql/data/wal
   --shm-size ${POSTGRESQL_SHM_SIZE}m
   -v $POSTGRESQL_DATA_DIR:/var/lib/postgresql/data/:Z
+  -v $POSTGRESQL_LOG_DIR:/var/lib/postgresql/data/pgdata/log:Z
 )
 
 if [[ ! -z "$POSTGRESQL_NETWORK" ]]; then
