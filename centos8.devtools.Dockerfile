@@ -20,7 +20,7 @@ RUN /bin/bash /opt/docker-setup/replace-source.sh ;                             
     localectl set-locale LANG=en_GB.utf8 ;                                                                          \
     timedatectl set-timezone Asia/Shanghai;                                                                         \
     timedatectl set-ntp true;                                                                                       \
-    useradd -u 29998 -g 29998 -m tools -s /bin/bash ;                                                               \
+    groupadd -g 29998 tools; useradd -u 29998 -g 29998 -m tools -s /bin/bash ;                                      \
     # hwclock -w;                                                                                                   \
     # ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                     \
     /bin/bash /opt/docker-setup/centos8.install-devtools.sh;                                                        \

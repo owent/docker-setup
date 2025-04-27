@@ -28,7 +28,7 @@ RUN set -ex ;                                                                   
     sed -i -r 's/#?DNSStubListener[[:space:]]*=.*/DNSStubListener=no/g'  /etc/systemd/resolved.conf ;           \
     rm -rf /var/lib/pacman/sync/* /var/cache/pacman/pkg/* ;                                                     \
     echo "" > /var/log/pacman.log ;                                                                             \
-    useradd -u 29998 -g 29998 -m tools -s /bin/bash ;
+    groupadd -g 29998 tools; useradd -u 29998 -g 29998 -m tools -s /bin/bash ;
 
 
 CMD [ "/lib/systemd/systemd" ]

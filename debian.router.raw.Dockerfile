@@ -17,7 +17,7 @@ RUN cp -f /etc/apt/sources.list /etc/apt/sources.list.bak ;                     
     timedatectl set-ntp true;                                                                                   \
     systemctl enable systemd-timesyncd.service || true ;                                                        \
     systemctl start systemd-timesyncd.service || true ;                                                         \
-    useradd -u 29998 -g 29998 -m tools -s /bin/bash ;                                                           \
+    groupadd -g 29998 tools; useradd -u 29998 -g 29998 -m tools -s /bin/bash ;                                  \
     # hwclock -w;                                                                                                 \
     # ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                   \
     rm -rf /var/lib/apt/lists/*

@@ -19,7 +19,7 @@ RUN /bin/bash /opt/docker-setup/replace-source.sh ;                             
     apt install -y systemd-coredump python3-setuptools python3-pip python3-mako perl automake gdb valgrind unzip lunzip ; \
     apt install -y p7zip-full autoconf libtool build-essential pkg-config gettext asciidoc xmlto xmltoman expat ;         \
     apt install -y re2c gettext zlibc zlib1g chrpath yq jq;                                                     \
-    useradd -u 29998 -g 29998 -m tools -s /bin/bash ;                                                           \
+    groupadd -g 29998 tools; useradd -u 29998 -g 29998 -m tools -s /bin/bash ;                                  \
     locale-gen en_US.UTF-8; localectl set-locale LANG=en_GB.utf8 ;                                              \
     timedatectl set-timezone Asia/Shanghai;                                                                     \
     timedatectl set-ntp true;                                                                                   \
