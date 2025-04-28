@@ -34,7 +34,7 @@ for MOD_FOR_ROUTER in $(cat /etc/modules-load.d/tproxy.conf); do
 done
 
 # iptable_nat must not be loaded
-for MOD_FOR_ROUTER in $(cat /etc/modules-load.d/ppp.conf); do
+for MOD_FOR_ROUTER in $(cat /etc/modules-load.d/network-basic.conf); do
     modprobe $MOD_FOR_ROUTER;
 done
 
