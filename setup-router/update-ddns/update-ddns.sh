@@ -1,7 +1,10 @@
 #!/bin/bash
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
+
+if [[ "$(dirname "$SCRIPT_DIR")/configure-router.sh" ]]; then
+  source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
+fi
 
 SET_IP_PARAMETERS=()
 BAN_INERFACES=( ppp1 ) # ppp0 ppp1
