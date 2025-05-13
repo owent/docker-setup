@@ -38,9 +38,9 @@ mkdir -p "$ACMESH_SSL_DIR"
 
 # podman exec acme.sh acme.sh --register-account -m $CF_Email
 
-if [[ "x$ACMESH_ACTION" == "renewx" ]]; then
+if [[ "x$ACMESH_ACTION" == "xrenew" ]]; then
   ACMESH_ACTION_OPTIONS=(--renew-all)
-elif [[ "x$ACMESH_ACTION" == "registerx" ]]; then
+elif [[ "x$ACMESH_ACTION" == "xregister" ]]; then
   ACMESH_ACTION_OPTIONS=(--register-account -m $CF_Email)
 else
   ACMESH_ACTION_OPTIONS=(--renew-all)

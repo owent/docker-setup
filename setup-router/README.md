@@ -109,7 +109,7 @@ user.max_user_namespaces=28633
 sysctl -p ;
 
 # Check and enable bbr
-find /lib/modules/ -type f -name '*.ko*' | awk '{if (match($0, /^\/lib\/modules\/([^\/]+).*\/([^\/]+)\.ko(\.[^\/\.]+)?$/, m)) {print m[1] " : " m[2];}}' | sort | uniq | grep tcp_bbr ;
+find "/lib/modules/$(uname -r)" -type f -name '*.ko*' | awk '{if (match($0, /^\/lib\/modules\/([^\/]+).*\/([^\/]+)\.ko(\.[^\/\.]+)?$/, m)) {print m[1] " : " m[2];}}' | sort | uniq | grep tcp_bbr ;
 if [ $? -eq 0 ]; then
     modprobe tcp_bbr ;
     if [ $? -eq 0 ]; then
@@ -121,6 +121,119 @@ if [ $? -eq 0 ]; then
 net.ipv4.tcp_congestion_control = bbr" >> /etc/sysctl.d/91-forwarding.conf ;
     fi
 fi
+
+# IOMMU, IO直通()
+## /etc/default/grub 的GRUB_CMDLINE_LINUX_DEFAULT里开 "quiet iommu=pt pcie_acs_override=downstream,multifunction pci=nommconf"
+## # update-grub
+### + For Intel CPUs (VT-d) set intel_iommu=on, unless your kernel sets the CONFIG_INTEL_IOMMU_DEFAULT_ON config option.
+### + For AMD CPUs (AMD-Vi), IOMMU support is enabled automatically if the kernel detects IOMMU hardware support from the BIOS.
+## # 对于 Intel CPU
+## GRUB_CMDLINE_LINUX_DEFAULT="quiet intel_iommu=on iommu=pt initcall_blacklist=sysfb_init pcie_acs_override=downstream,multifunction pci=nommconf"
+## # 对于 AMD CPU
+## GRUB_CMDLINE_LINUX_DEFAULT="quiet iommu=pt initcall_blacklist=sysfb_init pcie_acs_override=downstream,multifunction pci=nommconf"
+## # 其他的一些写法(如果是AMD处理器,将intel改为amd)
+## GRUB_CMDLINE_LINUX_DEFAULT="quiet intel_iommu=on iommu=pt i915.enable_gvt=1 video=efifb:off" # 这是GVT模式，也就是共享模式，少部分cpu支持，但体验很好
+## GRUB_CMDLINE_LINUX_DEFAULT="quiet intel_iommu=on iommu=pt video=efifb:off" # 这是独占模式，都支持，但显示器没有pve的控制台输出，也只能直通个一个虚拟机
+## GRUB_CMDLINE_LINUX_DEFAULT="quiet intel_iommu=on iommu=pt pcie_acs_override=downstream,multifunction"
+## GRUB_CMDLINE_LINUX_DEFAULT="quiet intel_iommu=on initcall_blacklist=sysfb_init pcie_acs_override=downstream,multifunction"
+## # 参数释义
+## 1.iommu=pt：启用 Intel VT-d 或 AMD-Vi 的 IOMMU。这是一种硬件功能，用于管理设备对系统内存的访问。在虚拟化环境中，启用 IOMMU 后，可以将物理设备直通到虚拟机中，以便虚拟机可以直接访问硬件设备。“iommu=pt”不是必须的，PT模式只在必要的时候开启设备的IOMMU转换，可以提高未直通设备PCIe的性能，建议添加。
+## 2.initcall_blacklist=sysfb_init：禁用 sysfb_init 内核初始化函数。这个函数通常用于在内核启动过程中初始化系统帧缓冲。在使用 GPU 直通的情况下，这个函数可能会干扰直通操作，因此需要禁用它。
+## 3.i915.enable_gvt=1：启用 Intel GVT-g 虚拟 GPU 技术。这个选项用于创建一个虚拟的 Intel GPU 设备，以便多个虚拟机可以共享物理 GPU 设备。启用 GVT-g 需要在支持虚拟 GPU 的 Intel CPU 和主板上运行，并且需要正确配置内核和虚拟机。想开启GVT-g的就添加这条，显卡直通的就不要添加了。
+## 4.initcall_blacklist=sysfb_init：屏蔽掉pve7.2以上的一个bug，方便启动时候就屏蔽核显等设备驱动；
+## 5.pcie_acs_override=downstream,multifunction：便于iommu每个设备单独分组，以免直通导致物理机卡死等问题
+## 6.pci=nommconf：意思是禁用pci配置空间的内存映射,所有的 PCI 设备都有一个描述该设备的区域（您可以看到lspci -vv），访问该区域的最初方法是通过 I/O 端口，而 PCIe 允许将此空间映射到内存以便更简单地访问。
+ 
+IOMMU_MODULES=($(find "/lib/modules/$(uname -r)" -type f -name '*.ko*' | awk '{if (match($0, /^\/lib\/modules\/([^\/]+).*\/([^\/]+)\.ko(\.[^\/\.]+)?$/, m)) {print m[2];}}' | sort | uniq | grep -E '^(vfio|virtio)'))
+## 模块 vfio,vfio_iommu_type1,vfio-pci/vfio_pci
+if [ ${#IOMMU_MODULES[@]} -gt 0 ]; then
+    modprobe ${IOMMU_MODULES[@]}
+    if [ $? -eq 0 ]; then
+        for MOD_NAME in ${IOMMU_MODULES[@]}; do
+          sed -i "/$MOD_NAME/d" /etc/modules-load.d/*.conf 
+        done
+        echo "$(echo ${IOMMU_MODULES[@]} | tr ' ' '\n')" >> /etc/modules-load.d/91-vm.conf
+    fi
+fi
+## 检查IO直通
+## @see https://wiki.archlinux.org/title/PCI_passthrough_via_OVMF
+## @see https://forum.proxmox.com/threads/pci-gpu-passthrough-on-proxmox-ve-8-installation-and-configuration.130218/
+dmesg | grep -e DMAR -e IOMMU
+dmesg | grep 'remapping'
+### 如果不支持 Interrupt remapping, 可以通过以下选项开启(注意可能和上面生成的模块加载选项冲突)
+### echo "options vfio_iommu_type1 allow_unsafe_interrupts=1" > /etc/modprobe.d/iommu_unsafe_interrupts.conf
+### 查询PCI接口设备
+lspci -nn
+for ETH_ID in $(lspci -nn | grep -i "Ethernet" | awk '{print $1}'); do
+  lspci -vv -s $ETH_ID # Initial VFs: 64 表示最大支持 64 个 VF
+done
+### 查询虚拟分组
+for g in $(find /sys/kernel/iommu_groups/* -maxdepth 0 -type d | sort -V); do
+    echo "IOMMU Group ${g##*/}:"
+    for d in $g/devices/*; do
+        echo -e "\t$(lspci -nns ${d##*/})"
+    done;
+done;
+## 创建 VF
+### 手动创建
+# 开启 8 个虚拟设置
+echo 8 > /sys/class/net/${physic interface}/device/sriov_numvfs
+
+# 关闭
+echo 0 > /sys/class/net/${physic interface}/device/sriov_numvfs
+### 自动创建
+apt install sysfsutils -y
+cat > /etc/sysfs.d/sr-iov.conf <<EOF
+class/net/${physic interface}/device/sriov_numvfs = 8
+EOF
+systemctl enable sysfsutils --now
+
+## r8125 驱动 (开启 debian的bookworm/non-free包和PVE的 bookworm/pve-no-subscription)
+### 源码包
+apt install -y r8125-dkms
+### 安装编译依赖(PVE)
+apt install -y dkms proxmox-default-headers
+### 安装依赖(Debian)
+apt install -y dkms linux-headers-amd64
+### 编译(PVE,Debian不用编译)
+dkms install \
+  $(dkms status | grep r8125 | head -n 1 | awk '{print $1}' | awk 'BEGIN{FS=","}{print $1}')  \
+  -k $(dpkg -l | awk '/^ii.+kernel-[0-9]+\.[0-9]+\.[0-9]/{gsub(/proxmox-kernel-|pve-kernel-|-signed/, ""); print $2}')
+### 驱动签名(Debian不用编译也不用签名,自带的有签名)
+mkdir -p /data/dkms
+if [[ ! -e "/data/dkms/uefi-secure-boot-mok.der" ]]; then
+  openssl req -new -x509 \
+      -newkey rsa:2048 \
+      -keyout /data/dkms/uefi-secure-boot-mok.key \
+      -outform DER \
+      -out /data/dkms/uefi-secure-boot-mok.der \
+      -nodes -days 10950 \
+      -subj "/CN=DKMS Signing MOK UEFI Secure Boot"
+
+  # 密码需要反复输入，但是只需要一次（hg?）
+  mokutil --import /data/dkms/uefi-secure-boot-mok.der
+  # 然后需要去物理机器上启动，再Mok控制台输入这个密码
+fi
+
+echo '#!/bin/bash
+
+KERNELVER=${KERNELVER:-$(uname -r)}
+
+/lib/modules/"$KERNELVER"/build/scripts/sign-file sha512 /data/dkms/uefi-secure-boot-mok.key /data/dkms/uefi-secure-boot-mok.der "$2"
+' > /data/dkms/sign-tool.sh
+chmod +x /data/dkms/sign-tool.sh
+sed -i 's;#[[:space:]]*sign_file[[:space:]]*=.*;sign_file="/data/dkms/sign-tool.sh";' /etc/dkms/framework.conf
+dpkg-reconfigure r8125-dkms
+
+## 启用驱动（务必重启后确认内核模块中包含 r8125: lsmod | grep r8125）
+sed -i "/r8169/d" /etc/modprobe.d/dkms.conf
+echo 'alias r8169 off' >> /etc/modprobe.d/dkms.conf
+sed -i "/r8125/d" /etc/initramfs-tools/modules
+sed -i "/r8169/d" /etc/initramfs-tools/modules
+echo 'r8125' >> /etc/initramfs-tools/modules
+echo 'r8169' >> /etc/initramfs-tools/modules
+update-initramfs -k all -u
+# reboot
 
 # 开启 PMTUD
 # @see https://wiki.archlinux.org/index.php/Ppp#Masquerading_seems_to_be_working_fine_but_some_sites_do_not_work
