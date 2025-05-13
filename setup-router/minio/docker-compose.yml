@@ -1,0 +1,26 @@
+version: "3"
+
+networks:
+  minio:
+    external: false
+
+services:
+  server:
+    # quay.io/minio/minio or docker.io/minio/minio
+    image: minio/minio:latest
+    container_name: minio
+    restart: always
+    networks:
+      - minio
+    volumes:
+      - "./data:/data"
+      - "./etc/minio:/etc/config.env"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=adminPassword
+      - MINIO_VOLUMES="/data-{1...4}"
+      - MINIO_OPTS="--console-address :9001"
+      - MINIO_CONFIG_ENV_FILE=/etc/config.env

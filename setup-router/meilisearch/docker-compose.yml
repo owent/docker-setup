@@ -1,0 +1,20 @@
+version: "3"
+
+networks:
+  meilisearch:
+    external: false
+
+services:
+  server:
+    image: getmeili/meilisearch:latest
+    container_name: meilisearch
+    restart: always
+    networks:
+      - meilisearch
+    volumes:
+      - "./data:/meili_data"
+    ports:
+      - "7700:7700"
+    environment:
+      - MEILI_MASTER_KEY=master key
+    command: ["meilisearch", "--schedule-snapshot=86400"]
