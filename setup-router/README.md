@@ -253,7 +253,7 @@ update-initramfs -k all -u
 #     目的地选项包头(Destination Options Header): 最小8字节
 #   建议MSS: 1400/1380/1220
 # 有一些VPN、代理还有额外数据帧包头。需要参考其协议继续缩减
-```bash
+
 # nftables: nft add rule inet nat FORWARD tcp flags syn counter tcp option maxseg size set rt mtu
 # 这个选项也可以合入其他规则,没必要单独起一个
 mkdir -p "/etc/nftables.conf.d"
@@ -626,9 +626,20 @@ location = "mirror.ccs.tencentyun.com"
 
 ```toml
 [storage]
-  driver = "overlay"
-  runroot = "/data/docker-container"
-  graphroot = "/data/docker-image"
+driver = "overlay"
+runroot = "/data/disk1/docker-container"
+graphroot = "/data/disk1/docker-image"
+rootless_storage_path = "/data/disk1/docker-storage/$USER"
+```
+
+文件: `/etc/containers/libpod.conf` 或 `$HOME/.config/containers/libpod.conf`
+
+### podman 限制日志大小
+
+文件: `/etc/containers/libpod.conf` 或 `$HOME/.config/containers/libpod.conf`
+
+```toml
+max_log_size = 134217728 # 128MB
 ```
 
 ### docker 存储
@@ -640,6 +651,22 @@ location = "mirror.ccs.tencentyun.com"
     "graph": "/data/docker-data",
     "storage-driver": "overlay",
     "insecure-registries" : [ "docker.io" ]
+}
+```
+
+### docker 限制日志大小
+
+文件: `/etc/docker/daemon.json`
+
+```json
+{
+  "log-driver": "json-file",
+    "log-opts": {
+      "max-size": "128m",
+      "max-file": "3",
+      "labels": "production_status",
+      "env": "os,customer"
+    }
 }
 ```
 

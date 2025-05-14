@@ -128,8 +128,8 @@ Description=container-appflowy-cloud
 After=network.target
 
 [Service]
-Type=forking
-ExecStart=podman-compose -f $SCRIPT_DIR/$COMPOSE_CONFIGURE up -d
+Type=simple
+ExecStart=podman-compose -f $SCRIPT_DIR/$COMPOSE_CONFIGURE up
 ExecStop=podman-compose -f $SCRIPT_DIR/$COMPOSE_CONFIGURE down
 
 [Install]

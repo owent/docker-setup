@@ -1,0 +1,31 @@
+{
+	log {
+		output file /var/log/caddy/caddy.log {
+			roll_size 100MiB
+			roll_uncompressed
+			roll_local_time
+			roll_keep 10
+			roll_keep_for 2160h
+		}
+		format json
+		level ERROR # INFO/ERROR
+	}
+
+	# auto_https off
+	# servers :8375 {
+	# 	protocols h1 h2 h2c h3
+	# }
+}
+
+media.x-ha.com {
+	reverse_proxy {
+		to http://127.0.0.1:8096
+		header_up Host {http.request.host}
+		header_up X-Real-IP {http.request.remote}
+		header_up X-Forwarded-Port {http.request.port}
+	}
+
+	tls /data/ssl/shkits.com_ecc/fullchain.cer /data/ssl/shkits.com_ecc/shkits.com.key {
+		protocols tls1.2 tls1.3
+	}
+}

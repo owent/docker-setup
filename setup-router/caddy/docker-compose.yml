@@ -1,0 +1,21 @@
+version: "3"
+
+networks:
+  caddy:
+    external: false
+
+services:
+  server:
+    # image: docker.io/owt5008137:latest
+    image: ghcr.io/owent/caddy:latest
+    container_name: caddy
+    restart: always
+    networks:
+      - caddy
+    volumes:
+      - "./etc:/etc/caddy"
+      - "./data/ssl:/data/ssl"
+      - "./log:/var/log/caddy"
+    ports:
+      - "80:80"
+      - "443:443"

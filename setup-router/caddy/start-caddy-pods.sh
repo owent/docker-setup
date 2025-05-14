@@ -24,10 +24,10 @@ fi
 
 cd "$SCRIPT_DIR"
 
-if [[ -z "$LLDAP_ETC_DIR" ]]; then
-  LLDAP_ETC_DIR="$SCRIPT_DIR/etc"
+if [[ -z "$CADDY_ETC_DIR" ]]; then
+  CADDY_ETC_DIR="$SCRIPT_DIR/etc"
 fi
-mkdir -p "$LLDAP_ETC_DIR"
+mkdir -p "$CADDY_ETC_DIR"
 
 COMPOSE_CONFIGURE=docker-compose.yml
 COMPOSE_ENV_FILE=.env
@@ -45,11 +45,11 @@ if [[ ! -z "$ROUTER_IMAGE_UPDATE" ]]; then
   fi
 fi
 
-systemctl --user --all | grep -F container-lldap.service
+systemctl --user --all | grep -F container-caddy.service
 
 if [[ $? -eq 0 ]]; then
-  systemctl --user stop container-lldap
-  systemctl --user disable container-lldap
+  systemctl --user stop container-caddy
+  systemctl --user disable container-caddy
 fi
 
 podman-compose -f $COMPOSE_CONFIGURE down
@@ -59,7 +59,7 @@ if [[ ! -z "$ROUTER_IMAGE_UPDATE" ]]; then
 fi
 
 echo "[Unit]
-Description=container-lldap
+Description=container-caddy
 After=network.target
 
 [Service]
@@ -69,8 +69,8 @@ ExecStop=podman-compose -f $SCRIPT_DIR/$COMPOSE_CONFIGURE down
 
 [Install]
 WantedBy=default.target
-" | tee $LLDAP_ETC_DIR/container-lldap.service
+" | tee $CADDY_ETC_DIR/container-caddy.service
 
-systemctl --user enable $LLDAP_ETC_DIR/container-lldap.service
+systemctl --user enable $CADDY_ETC_DIR/container-caddy.service
 systemctl --user daemon-reload
-systemctl --user restart container-lldap.service
+systemctl --user restart container-caddy.service
