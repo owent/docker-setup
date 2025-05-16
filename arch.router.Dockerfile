@@ -14,7 +14,9 @@ RUN set -ex ;                                                                   
     yes y | pacman -S iptables nftables ebtables ipset chrony;                                                  \
     pacman -Syy --noconfirm ca-certificates tzdata bash vim dnsmasq ppp networkmanager;                         \
     pacman -Syy --noconfirm rp-pppoe;                                                                           \
-    timedatectl set-timezone Asia/Shanghai || true;                                                             \
+    echo "LANG=en_US.UTF-8" >  /etc/default/locale;                                                             \
+    echo "LANGUAGE=en_US.UTF-8" >> /etc/default/locale;                                                         \
+    ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/timezone;                                                      \
     timedatectl set-ntp true || true;                                                                           \
     systemctl enable systemd-timesyncd.service || true ;                                                        \
     systemctl start systemd-timesyncd.service || true ;                                                         \

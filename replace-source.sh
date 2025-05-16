@@ -35,6 +35,13 @@ elif [ "x$DISTRIBUTE_NAME" == "xubuntu" ]; then
   sed -i -r 's;#?https?://security.ubuntu.com/ubuntu/?[[:space:]];http://mirrors.tencent.com/ubuntu/ ;g' /etc/apt/sources.list
   sed -i -r 's;#?https?://archive.ubuntu.com/ubuntu/?[[:space:]];http://mirrors.tencent.com/ubuntu/ ;g' /etc/apt/sources.list
 
+  if [[ -e /etc/apt/sources.list.d ]]; then
+    for source_file in /etc/apt/sources.list.d/*; do
+      sed -i -r 's;security.ubuntu.com/ubuntu;mirrors.tencent.com/ubuntu;g' $source_file
+      sed -i -r 's;archive.ubuntu.com/ubuntu;mirrors.tencent.com/ubuntu;g' $source_file
+    done
+  fi
+
   apt update -y
 elif [ "x$DISTRIBUTE_NAME" == "xdebian" ] || [[ "${DISTRIBUTE_LIKE_NAMES[@]}" =~ "debian" ]]; then
   if [ -e "/etc/apt/sources.list" ]; then

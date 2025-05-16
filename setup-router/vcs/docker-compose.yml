@@ -1,0 +1,57 @@
+version: "3"
+
+networks:
+  vcs:
+    external: false
+
+services:
+  git:
+    image: docker.gitea.com/gitea:latest-rootless
+    container_name: gitea
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+    restart: always
+    networks:
+      - vcs
+    volumes:
+      - /data/performance/gitea:/data/performance
+      - /data/archive/gitea:/data/archive
+      - ./etc/gitea:/etc/gitea
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "3221:3000"
+      - "6022:2222"
+  p4d:
+    image: p4d
+    build:
+      context: dockerfile
+      dockerfile: ./p4d.Dockerfile
+    container_name: p4d
+    restart: always
+    networks:
+      - vcs
+    environment:
+      - P4SSLDIR=/data/performance/ssl
+      - P4PORT=ssl:8666
+      - P4ROOT=/data/performance/root
+      - P4LOG=/data/archive/log/p4d.log
+      - P4JOURNAL=/data/archive/log/journal.log
+    volumes:
+      - /data/performance/p4d:/data/performance
+      - /data/archive/p4d:/data/archive
+      - ./etc/p4d:/etc/p4d
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+      - type: bind
+        source: /data/acme.sh/ssl/fullchain.cer
+        target: /data/performance/ssl/certificate.txt
+        read_only: true
+      - type: bind
+        source: /data/acme.sh/ssl/example.org.key
+        target: /data/performance/ssl/privatekey.txt
+        read_only: true
+    ports:
+      - "8666:8666/tcp"
+      - "8666:8666/udp"

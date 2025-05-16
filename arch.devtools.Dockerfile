@@ -13,7 +13,9 @@ RUN sed -i -r '/Server\s*=\s*.*tencent.com/d' /etc/pacman.d/mirrorlist;         
     pacman -Syyu --noconfirm ;                                                                                  \
     yes y | pacman -S iptables nftables ebtables ipset ;                                                        \
     pacman -Syy --noconfirm ca-certificates tzdata bash vim ipset man-db;                                       \
-    timedatectl set-timezone Asia/Shanghai || true;                                                             \
+    echo "LANG=en_US.UTF-8" >  /etc/default/locale;                                                             \
+    echo "LANGUAGE=en_US.UTF-8" >> /etc/default/locale;                                                         \
+    ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/timezone;                                                      \
     timedatectl set-ntp true || true;                                                                           \
     systemctl enable systemd-timesyncd.service || true ;                                                        \
     systemctl start systemd-timesyncd.service || true ;                                                         \

@@ -18,8 +18,9 @@ RUN /bin/bash /opt/docker-setup/replace-source.sh ;                             
     apt install -y man-db locales tzdata less iproute2 gawk lsof systemd-cron openssh-client openssh-server systemd dnsutils ; \
     apt install -y vim wget curl ca-certificates telnet iotop htop knot-dnsutils  ;                                         \
     apt install -y traceroute tcptraceroute tcpdump netcat-openbsd ncat nftables yq jq;                                     \
-    localectl set-locale LANGUAGE=en_US.UTF-8; localectl set-locale LANG=en_US.UTF-8 ;                                      \
-    timedatectl set-timezone Asia/Shanghai;                                                                                 \
+    echo "LANG=en_US.UTF-8" >  /etc/default/locale;                                                                         \
+    echo "LANGUAGE=en_US.UTF-8" >> /etc/default/locale;                                                                     \
+    ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/timezone;                                                                  \
     timedatectl set-ntp true;                                                                                               \
     systemctl enable systemd-timesyncd.service || true ;                                                                    \
     systemctl start systemd-timesyncd.service || true ;                                                                     \

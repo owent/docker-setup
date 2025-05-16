@@ -20,8 +20,9 @@ RUN /bin/bash /opt/docker-setup/replace-source.sh ;                             
     apt install -y p7zip-full autoconf libtool build-essential pkg-config gettext asciidoc xmlto xmltoman expat ;         \
     apt install -y re2c gettext zlibc zlib1g chrpath yq jq;                                                     \
     groupadd -g 29998 tools; useradd -u 29998 -g 29998 -m tools -s /bin/bash ;                                  \
-    locale-gen en_US.UTF-8; localectl set-locale LANG=en_GB.utf8 ;                                              \
-    timedatectl set-timezone Asia/Shanghai;                                                                     \
+    echo "LANG=en_US.UTF-8" >  /etc/default/locale;                                                             \
+    echo "LANGUAGE=en_US.UTF-8" >> /etc/default/locale;                                                         \
+    ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/timezone;                                                      \
     timedatectl set-ntp true;                                                                                   \
     /bin/bash /opt/docker-setup/cleanup.devtools.sh
 
