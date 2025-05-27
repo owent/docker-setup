@@ -1,0 +1,15 @@
+version: "3"
+
+services:
+  haproxy:
+    image: haproxy:alpine
+    container_name: haproxy
+    restart: always
+    volumes:
+      - ./etc:/etc/haproxy
+    ports:
+      - "8666:8666"
+      - "6022:6022"
+      - "6023:6023"
+    command: >
+      haproxy -f /etc/haproxy/haproxy.cfg
