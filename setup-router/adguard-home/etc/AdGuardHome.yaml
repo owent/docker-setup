@@ -10,14 +10,14 @@ users:
 dns:
   upstream_dns:
     # - quic://8.8.8.8:784
-    - tls://8.8.8.8
-    - tls://1.1.1.1
     - tls://dns.alidns.com
     - tls://dot.pub
-    - "/*.shkits.com/223.5.5.5"
-    - "/*.x-ha.com/223.5.5.5"
-    - "/*.w-oa.com/223.5.5.5"
-    - "/*.r-ci.com/223.5.5.5"
+    - tls://8.8.8.8
+    - tls://1.1.1.1
+    - "[/shkits.com/]223.5.5.5"
+    - "[/x-ha.com/]223.5.5.5"
+    - "[/w-oa.com/]223.5.5.5"
+    - "[/r-ci.com/]223.5.5.5"
   bootstrap_dns:
     - 223.5.5.5:53
     - 119.29.29.29:53
@@ -26,9 +26,16 @@ dns:
     - 119.29.29.29:53
   edns_client_subnet:
     enabled: true
-    use_custom: false
+    use_custom: true
     # custom_ip:  "116.228.111.118" # 上海电信
     custom_ip: "210.22.70.3" # 上海联通
+  trusted_proxies:
+    - 127.0.0.0/8
+    - ::1/128
+  cache_size: 4194304
+  cache_ttl_min: 0
+  cache_ttl_max: 86400
+  cache_optimistic: true
 tls:
   enabled: true
   server_name: dns.example.org
@@ -36,8 +43,9 @@ tls:
   port_https: 443
   port_dns_over_tls: 853
   port_dns_over_quic: 853
-  port_dnscrypt: 5443
+  # port_dnscrypt: 5443
+  port_dnscrypt: 0 # disabled
   allow_unencrypted_doh: true
   strict_sni_check: false
-  certificate_chain: /opt/adguardhome/AdGuardHome/ssl/fullchain.pem
-  private_key: /opt/adguardhome/AdGuardHome/ssl/privkey.pem
+  certificate_path: /opt/adguardhome/ssl/fullchain.cer
+  private_key_path: /opt/adguardhome/ssl/privkey.key

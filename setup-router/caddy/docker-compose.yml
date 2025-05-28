@@ -1,8 +1,10 @@
 version: "3"
 
 networks:
-  caddy:
-    external: false
+  internal-backend:
+    external: true
+  internal-frontend:
+    external: true
 
 services:
   server:
@@ -11,7 +13,8 @@ services:
     container_name: caddy
     restart: unless-stopped
     networks:
-      - caddy
+      - internal-backend
+      - internal-frontend
     volumes:
       - "./etc:/etc/caddy"
       - "./data/ssl:/data/ssl"

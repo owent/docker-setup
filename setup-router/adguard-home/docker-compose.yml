@@ -1,13 +1,19 @@
 version: "3"
 
+networks:
+  internal-backend:
+    external: true
+  internal-frontend:
+    external: true
+
 services:
   adguardhome:
     image: adguard/adguardhome:latest
     container_name: adguardhome
     restart: unless-stopped
     volumes:
-      - ./etc:/opt/adguardhome/AdGuardHome/conf
-      - ./ssl:/opt/adguardhome/AdGuardHome/ssl
+      - ./etc:/opt/adguardhome/conf
+      - ./ssl:/opt/adguardhome/ssl
       - ./data:/opt/adguardhome/work
     cap_add:
       - NET_BIND_SERVICE # 绑定到1024以下的端口
@@ -15,6 +21,9 @@ services:
       # - NET_RAW # (DHCP)创建原始套接字
       # - NET_BROADCAST # (DHCP) 发送广播包
     # network_mode: host # DHCP
+    networks:
+      - internal-backend
+      - internal-frontend
     security_opt:
       - label=disable
       - seccomp=unconfined

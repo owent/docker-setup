@@ -1,0 +1,24 @@
+dns-admin.x-ha.com {
+    handle /dns-query* {
+        reverse_proxy {
+            uri strip_prefix /dns-query
+            to http://adguardhome:6392
+            header_up Host {http.request.host}
+            header_up X-Real-IP {http.request.remote}
+            header_up X-Forwarded-Port {http.request.port}
+        }
+    }
+
+    handle {
+        reverse_proxy {
+            to http://adguardhome:6393
+            header_up Host {http.request.host}
+            header_up X-Real-IP {http.request.remote}
+            header_up X-Forwarded-Port {http.request.port}
+        }
+    }
+
+    tls /data/ssl/fullchain.cer /data/ssl/x-ha.com.key {
+        protocols tls1.2 tls1.3
+    }
+}
