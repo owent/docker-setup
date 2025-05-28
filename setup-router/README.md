@@ -304,7 +304,8 @@ systemctl enable pmtu-clamping
 systemctl start pmtu-clamping
 ```
 
-# systemd-resolved will listen 53 and will conflict with our dnsmasq.service/smartdns.service
+**systemd-resolved will listen 53 and will conflict with our dnsmasq.service/smartdns.service**
+
 sed -i -r 's/#?DNSStubListener[[:space:]]*=.*/DNSStubListener=no/g'  /etc/systemd/resolved.conf ;
 
 systemctl disable systemd-resolved ;

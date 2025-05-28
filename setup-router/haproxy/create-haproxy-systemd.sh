@@ -14,7 +14,8 @@ RUN_HOME=$(cat /etc/passwd | awk "BEGIN{FS=\":\"} \$1 == \"$RUN_USER\" { print \
 if [[ "x$RUN_HOME" == "x" ]]; then
   RUN_HOME="$HOME"
 fi
-
+# HAPROXY_NETWORK=(host)
+# HAPROXY_RUN_USER=(root)
 if [[ -z "$HAPROXY_ETC_DIR" ]]; then
   HAPROXY_ETC_DIR="$SCRIPT_DIR/etc"
 fi
@@ -24,7 +25,7 @@ if [[ -z "$HAPROXY_IMAGE" ]]; then
   HAPROXY_IMAGE="haproxy:alpine"
 fi
 if [[ "x$HAPROXY_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman pull $HAPROXY_ZERO_TRUST_TUNNEL_IMAGE
+  podman pull $HAPROXY_IMAGE
 fi
 
 systemctl --user --all | grep -F container-haproxy.service
@@ -45,11 +46,37 @@ if [[ "x$REDIS_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman image prune -a -f --filter "until=240h"
 fi
 
+HAPROXY_OPTIONS=(-e "TZ=Asia/Shanghai" --mount "type=bind,source=$PWD/etc,target=/etc/haproxy")
+HAPROXY_HAS_HOST_NETWORK=0
+if [[ ! -z "$HAPROXY_NETWORK" ]]; then
+  for network in ${HAPROXY_NETWORK[@]}; do
+    HAPROXY_OPTIONS+=("--network=$network")
+    if [[ $network == "host" ]]; then
+      HAPROXY_HAS_HOST_NETWORK=1
+    fi
+  done
+fi
+if [[ $HAPROXY_HAS_HOST_NETWORK -eq 0 ]]; then
+  if [[ ! -z "$HAPROXY_PORT" ]]; then
+    for bing_port in ${HAPROXY_PORT[@]}; do
+      HAPROXY_OPTIONS+=(-p "$bing_port")
+    done
+  fi
+fi
+
+if [[ ! -z "$HAPROXY_RUN_USER" ]]; then
+  HAPROXY_OPTIONS+=("--user=$HAPROXY_RUN_USER")
+fi
+
 podman run -d --name haproxy --security-opt label=disable \
-  -e "TZ=Asia/Shanghai" \
-  --mount "type=bind,source=$PWD/etc,target=/etc/haproxy" \
+  "${HAPROXY_OPTIONS[@]}" \
   $HAPROXY_IMAGE \
-  haproxy -c -f /etc/haproxy/haproxy.cfg
+  haproxy -f /etc/haproxy/haproxy.cfg
+
+if [[ $? -ne 0 ]]; then
+  echo "Error: Unable to start haproxy container"
+  exit 1
+fi
 
 podman stop haproxy
 

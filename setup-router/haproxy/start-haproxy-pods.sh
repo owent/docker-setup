@@ -38,11 +38,6 @@ if [[ ! -z "$ROUTER_IMAGE_UPDATE" ]]; then
     echo "Error: Unable to pull images"
     exit 1
   fi
-  podman-compose -f $COMPOSE_CONFIGURE build
-  if [[ $? -ne 0 ]]; then
-    echo "Error: Unable to build images"
-    exit 1
-  fi
 fi
 
 systemctl --user --all | grep -F container-haproxy.service
