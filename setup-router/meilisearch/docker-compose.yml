@@ -8,7 +8,7 @@ services:
   server:
     image: getmeili/meilisearch:latest
     container_name: meilisearch
-    restart: always
+    restart: unless-stopped
     networks:
       - meilisearch
     volumes:

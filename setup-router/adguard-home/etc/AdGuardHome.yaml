@@ -1,0 +1,43 @@
+http:
+  address: 0.0.0.0:3000
+  session_ttl: 3h
+  pprof:
+    enabled: true
+    port: 6060
+users:
+  - name: admin
+    password: "$(bcrypt $ADMIN_TOKEN)" # BCrypt-encrypted password. https://bcrypt.online/
+dns:
+  upstream_dns:
+    # - quic://8.8.8.8:784
+    - tls://8.8.8.8
+    - tls://1.1.1.1
+    - tls://dns.alidns.com
+    - tls://dot.pub
+    - "/*.shkits.com/223.5.5.5"
+    - "/*.x-ha.com/223.5.5.5"
+    - "/*.w-oa.com/223.5.5.5"
+    - "/*.r-ci.com/223.5.5.5"
+  bootstrap_dns:
+    - 223.5.5.5:53
+    - 119.29.29.29:53
+  fallback_dns:
+    - 223.5.5.5:53
+    - 119.29.29.29:53
+  edns_client_subnet:
+    enabled: true
+    use_custom: false
+    # custom_ip:  "116.228.111.118" # 上海电信
+    custom_ip: "210.22.70.3" # 上海联通
+tls:
+  enabled: true
+  server_name: dns.example.org
+  force_https: false
+  port_https: 443
+  port_dns_over_tls: 853
+  port_dns_over_quic: 853
+  port_dnscrypt: 5443
+  allow_unencrypted_doh: true
+  strict_sni_check: false
+  certificate_chain: /opt/adguardhome/AdGuardHome/ssl/fullchain.pem
+  private_key: /opt/adguardhome/AdGuardHome/ssl/privkey.pem

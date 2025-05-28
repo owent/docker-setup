@@ -9,7 +9,7 @@ services:
     # quay.io/minio/minio or docker.io/minio/minio
     image: minio/minio:latest
     container_name: minio
-    restart: always
+    restart: unless-stopped
     networks:
       - minio
     volumes:

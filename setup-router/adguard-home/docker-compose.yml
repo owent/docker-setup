@@ -1,0 +1,39 @@
+version: "3"
+
+services:
+  adguardhome:
+    image: adguard/adguardhome:latest
+    container_name: adguardhome
+    restart: unless-stopped
+    volumes:
+      - ./etc:/opt/adguardhome/AdGuardHome/conf
+      - ./ssl:/opt/adguardhome/AdGuardHome/ssl
+      - ./data:/opt/adguardhome/work
+    cap_add:
+      - NET_BIND_SERVICE # 绑定到1024以下的端口
+      # - NET_ADMIN # (DHCP)网络管理权限，可能需要用于配置网络接口
+      # - NET_RAW # (DHCP)创建原始套接字
+      # - NET_BROADCAST # (DHCP) 发送广播包
+    # network_mode: host # DHCP
+    security_opt:
+      - label=disable
+      - seccomp=unconfined
+    ports:
+      - "53:53/tcp" # Plain DNS
+      - "53:53/udp" # Plain DNS
+      - "853:853/tcp" # DoT: DNS over TLS
+      - "853:853/udp" # DoQ: DNS over QUIC
+      - "784:784/udp" # DoQ: DNS over QUIC
+      - "8853:8853/udp" # DoQ: DNS over QUIC
+      - "6392:443/tcp" # DoH: DNS over HTTPS
+      - "6392:443/udp" # DoH: DNS over HTTPS
+      # - "5443:5443/tcp" # DNSCrypt
+      # - "5443:5443/udp" # DNSCrypt
+      - "6391:80/tcp" # AdGuard Home Web UI
+      - "6393:3000/tcp" # AdGuard Home Web UI
+      - "6393:3000/udp" # AdGuard Home Web UI
+      # - "6393:6060/tcp" # AdGuard HTTP (pprof)
+      # - "6393:6060/udp" # AdGuard HTTP (pprof)
+      # - "67:67/udp" # DHCP server
+      # - "68:68/udp" # DHCP Client
+    # command: ["--no-check-update","-c", "/opt/adguardhome/conf/AdGuardHome.yaml", "-w", "/opt/adguardhome/work"]

@@ -640,6 +640,7 @@ rootless_storage_path = "/data/disk1/docker-storage/$USER"
 
 ```toml
 max_log_size = 134217728 # 128MB
+# max_log_size = 33554432 # 32MB
 ```
 
 ### docker 存储

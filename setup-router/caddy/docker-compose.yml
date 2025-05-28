@@ -9,7 +9,7 @@ services:
     # image: docker.io/owt5008137:latest
     image: ghcr.io/owent/caddy:latest
     container_name: caddy
-    restart: always
+    restart: unless-stopped
     networks:
       - caddy
     volumes:
