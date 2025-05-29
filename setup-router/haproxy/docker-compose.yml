@@ -7,6 +7,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./etc:/etc/haproxy
+      # - ./ssl:/etc/haproxy/ssl
     ports:
       - "8666:8666"
       - "6022:6022"

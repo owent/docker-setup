@@ -46,7 +46,12 @@ if [[ "x$REDIS_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman image prune -a -f --filter "until=240h"
 fi
 
-HAPROXY_OPTIONS=(-e "TZ=Asia/Shanghai" --mount "type=bind,source=$PWD/etc,target=/etc/haproxy")
+HAPROXY_OPTIONS=(-e "TZ=Asia/Shanghai"
+  --mount "type=bind,source=$HAPROXY_ETC_DIR,target=/etc/haproxy"
+)
+if [[ ! -z "$HAPROXY_SSL_DIR" ]]; then
+  HAPROXY_OPTIONS+=(--mount "type=bind,source=$HAPROXY_SSL_DIR,target=/etc/haproxy/ssl")
+fi
 HAPROXY_HAS_HOST_NETWORK=0
 if [[ ! -z "$HAPROXY_NETWORK" ]]; then
   for network in ${HAPROXY_NETWORK[@]}; do

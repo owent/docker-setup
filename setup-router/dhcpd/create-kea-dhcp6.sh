@@ -39,7 +39,7 @@ if [[ "x$KEA_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   fi
 fi
 
-podman build --network=host --tag local-kea -f kea-dhcp6.Dockerfile .
+podman build --network=host --tag local-kea -f kea.Dockerfile .
 if [[ $? -ne 0 ]]; then
   exit 1
 fi

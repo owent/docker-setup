@@ -247,8 +247,8 @@ function vbox_iniitialize_rule_table() {
   nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP meta l4proto != '{tcp, udp}' jump POLICY_MARK_GOTO_DEFAULT
 
   ## DNS always goto tun
-  nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP udp dport '{53, 853}' jump POLICY_MARK_GOTO_TUN
-  nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP tcp dport '{53, 853}' jump POLICY_MARK_GOTO_TUN
+  nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP udp dport '{53, 784, 853, 8853}' jump POLICY_MARK_GOTO_TUN
+  nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP tcp dport '{53, 784, 853, 8853}' jump POLICY_MARK_GOTO_TUN
 
   nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP ip version 4 jump POLICY_VBOX_IPV4
   nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP ip6 version 6 jump POLICY_VBOX_IPV6
