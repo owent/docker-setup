@@ -386,33 +386,33 @@ Accept: */*
 
 ## nftables Hook
 
-|  Type  |       Families          |      Hooks                             |        Description                                     |
-|--------|-------------------------|----------------------------------------|--------------------------------------------------------|
-| filter | all                     | all                                    | Standard chain type to use in doubt.                   |
-| nat    | ip, ip6, inet           | prerouting, input, output, postrouting | Chains of this type perform Native Address Translation based on conntrack entries. Only the first packet of a connection actually traverses this chain - its rules usually define details of the created conntrack entry (NAT statements for instance). |
-| route  | ip, ip6                 | output                                 | If a packet has traversed a chain of this type and is about to be accepted, a new route lookup is performed if relevant parts of the IP header have changed. This allows to e.g. implement policy routing selectors in nftables. |
+| Type   | Families      | Hooks                                  | Description                                                                                                                                                                                                                                             |
+| ------ | ------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| filter | all           | all                                    | Standard chain type to use in doubt.                                                                                                                                                                                                                    |
+| nat    | ip, ip6, inet | prerouting, input, output, postrouting | Chains of this type perform Native Address Translation based on conntrack entries. Only the first packet of a connection actually traverses this chain - its rules usually define details of the created conntrack entry (NAT statements for instance). |
+| route  | ip, ip6       | output                                 | If a packet has traversed a chain of this type and is about to be accepted, a new route lookup is performed if relevant parts of the IP header have changed. This allows to e.g. implement policy routing selectors in nftables.                        |
 
 ## Standard priority names, family and hook compatibility matrix
 
 > The priority parameter accepts a signed integer value or a standard priority name which specifies the order in which chains with same hook value are traversed. The ordering is ascending, i.e. lower priority values have precedence over higher ones.
 
-| Name      | Value | Families                   | Hooks       |
-|-----------|-------|----------------------------|-------------|
-| raw       | -300  | ip, ip6, inet              | all         |
-| mangle    | -150  | ip, ip6, inet              | all         |
-| dstnat    | -100  | ip, ip6, inet              | prerouting  |
-| filter    | 0     | ip, ip6, inet, arp, netdev | all         |
-| security  | 50    | ip, ip6, inet              | all         |
-| srcnat    | 100   | ip, ip6, inet              | postrouting |
+| Name     | Value | Families                   | Hooks       |
+| -------- | ----- | -------------------------- | ----------- |
+| raw      | -300  | ip, ip6, inet              | all         |
+| mangle   | -150  | ip, ip6, inet              | all         |
+| dstnat   | -100  | ip, ip6, inet              | prerouting  |
+| filter   | 0     | ip, ip6, inet, arp, netdev | all         |
+| security | 50    | ip, ip6, inet              | all         |
+| srcnat   | 100   | ip, ip6, inet              | postrouting |
 
 ## Standard priority names and hook compatibility for the bridge family
 
-|Name   | Value | Hooks       |
-|-------|-------|-------------|
-|dstnat | -300  | prerouting  |
-|filter | -200  | all         |
-|out    | 100   | output      |
-|srcnat | 300   | postrouting |
+| Name   | Value | Hooks       |
+| ------ | ----- | ----------- |
+| dstnat | -300  | prerouting  |
+| filter | -200  | all         |
+| out    | 100   | output      |
+| srcnat | 300   | postrouting |
 
 ## Public DNS
 
@@ -621,6 +621,14 @@ location = "mirror.ccs.tencentyun.com"
 
 ## Podman/docker 存储设置
 
+### 文件系统
+
+| 类型  | 应用场景 | 建议选项                                                                  |
+| ----- | -------- | ------------------------------------------------------------------------- |
+| btrfs | SSD      | rw,noatime,compress=zstd:1,ssd,autodefrag,user_subvol_rm_allowed,subvol=/ |
+| xfs   | SSD      | rw,noatime,largeio,inode64,allocsize=128m,logbufs=8,logbsize=256k,noquota |
+| xfs   | 网络存储 | rw,noatime,largeio,inode64,allocsize=128m,logbufs=8,swalloc,noquota       |
+
 ### podman 存储
 
 文件: `/etc/containers/storage.conf` 或 `$HOME/.config/containers/storage.conf`
@@ -633,7 +641,12 @@ graphroot = "/data/disk1/docker-image"
 rootless_storage_path = "/data/disk1/docker-storage/$USER"
 ```
 
-文件: `/etc/containers/libpod.conf` 或 `$HOME/.config/containers/libpod.conf`
+临时目录 - 文件: `/etc/containers/containers.conf` 或 `$HOME/.config/containers/containers.conf`
+
+```toml
+[engine]
+env = ["TMPDIR=/data/disk1/docker-tmp"]
+```
 
 ### podman 限制日志大小
 

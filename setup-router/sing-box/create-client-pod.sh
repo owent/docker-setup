@@ -3,6 +3,8 @@
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 
+DOCKER_EXEC=$((which podman > /dev/null 2>&1 && echo podman) || (which docker > /dev/null 2>&1 && echo docker))
+
 if [[ -z "$VBOX_ETC_DIR" ]]; then
   VBOX_ETC_DIR="$HOME/vbox/etc"
 fi
@@ -25,7 +27,7 @@ mkdir -p "$VBOX_DATA_DIR"
 mkdir -p "$VBOX_LOG_DIR"
 
 if [[ "x$VBOX_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman pull "$VBOX_IMAGE_URL"
+  $DOCKER_EXEC pull "$VBOX_IMAGE_URL"
   if [[ $? -ne 0 ]]; then
     exit 1
   fi
@@ -34,17 +36,17 @@ fi
 systemctl disable vbox-client || true
 systemctl stop vbox-client || true
 
-podman container inspect vbox-client >/dev/null 2>&1
+$DOCKER_EXEC container inspect vbox-client >/dev/null 2>&1
 if [[ $? -eq 0 ]]; then
-  podman stop vbox-client
-  podman rm -f vbox-client
+  $DOCKER_EXEC stop vbox-client
+  $DOCKER_EXEC rm -f vbox-client
 fi
 
 if [[ "x$VBOX_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman image prune -a -f --filter "until=240h"
+  $DOCKER_EXEC image prune -a -f --filter "until=240h"
 fi
 
-podman run -d --name vbox-client --cap-add=NET_ADMIN --cap-add=NET_BIND_SERVICE \
+$DOCKER_EXEC run -d --name vbox-client --cap-add=NET_ADMIN --cap-add=NET_BIND_SERVICE \
   --network=host --security-opt label=disable \
   --device /dev/net/tun:/dev/net/tun \
   --mount type=bind,source=$VBOX_ETC_DIR,target=/etc/vbox/,ro=true \
@@ -72,18 +74,18 @@ fi
 # Start systemd service
 
 if [[ -z "$ROUTER_NET_LOCAL_ENABLE_VBOX" ]] || [[ $ROUTER_NET_LOCAL_ENABLE_VBOX -eq 0 ]]; then
-  podman generate systemd vbox-client |
+  $DOCKER_EXEC generate systemd vbox-client |
     sed "/PIDFile=/a ExecStopPost=/bin/bash $SCRIPT_DIR/setup-client-pod-whitelist-rules.sh clear" |
     sed "/PIDFile=/a ExecStartPost=/bin/bash $SCRIPT_DIR/setup-client-pod-whitelist-rules.sh" |
     tee /lib/systemd/system/vbox-client.service
 else
-  podman generate systemd vbox-client |
+  $DOCKER_EXEC generate systemd vbox-client |
     sed "/PIDFile=/a ExecStopPost=/bin/bash $SCRIPT_DIR/setup-client-pod-ip-nft.sh clear" |
     sed "/PIDFile=/a ExecStartPost=/bin/bash $SCRIPT_DIR/setup-client-pod-ip-nft.sh" |
     tee /lib/systemd/system/vbox-client.service
 fi
 
-podman container stop vbox-client
+$DOCKER_EXEC container stop vbox-client
 
 systemctl daemon-reload
 

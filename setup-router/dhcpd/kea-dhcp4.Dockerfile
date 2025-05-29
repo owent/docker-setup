@@ -1,4 +1,4 @@
-FROM docker.io/alpine:latest
+FROM alpine:latest
 
 # podman build --layers --force-rm --tag local-aria2 -f aria2.Dockerfile .
 # docker build --force-rm --tag local-aria2 -f aria2.Dockerfile .
@@ -8,6 +8,7 @@ LABEL maintainer "OWenT <admin@owent.net>"
 VOLUME ["/etc/kea", "/var/lib/kea/"]
 
 RUN set -ex ; \
+  sed -i.bak -r 's#dl-cdn.alpinelinux.org#mirrors.tencent.com#g' /etc/apk/repositories; \
   apk add --no-cache bash kea kea-dhcp4 kea-ctrl-agent supervisor
 
 RUN set -ex ; \
