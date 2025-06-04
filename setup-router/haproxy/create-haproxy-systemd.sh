@@ -1,7 +1,9 @@
 #!/bin/bash
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
+if [[ -e "$(dirname "$SCRIPT_DIR")/configure-router.sh" ]]; then
+  source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
+fi
 
 export XDG_RUNTIME_DIR="/run/user/$UID"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
@@ -15,7 +17,7 @@ if [[ "x$RUN_HOME" == "x" ]]; then
   RUN_HOME="$HOME"
 fi
 # HAPROXY_NETWORK=(host)
-# HAPROXY_RUN_USER=(root)
+# HAPROXY_RUN_USER=root
 if [[ -z "$HAPROXY_ETC_DIR" ]]; then
   HAPROXY_ETC_DIR="$SCRIPT_DIR/etc"
 fi

@@ -43,7 +43,8 @@
           "ifconfig.io",
           "api.myip.la",
           "getip.icu",
-          "ip.threep.top ip.sb",
+          "ip.threep.top",
+          "ip.sb",
           "test-ipv6.com",
           "ipv6-test.com"
         ],
@@ -79,14 +80,19 @@
         "outbound": "any",
         "server": "dns-proxy"
       }
-    ]
+    ],
+    "fakeip": {
+      "enabled": true,
+      "inet4_range": "172.24.0.0/16",
+      "inet6_range": "fd08:0:0:ac18::/64"
+    }
   },
   "inbounds": [
     {
       "type": "tun",
       "tag": "in-tun",
       "interface_name": "tun-vbox",
-      "address": ["172.19.0.1/30", "fdfe:dcba:9876::1/126"],
+      "address": ["172.19.0.1/30", "fd08:0:0:ac13::1/126"],
       "mtu": 9000,
       "auto_route": true,
       "iproute2_table_index": 2022,
@@ -269,7 +275,8 @@
           "ifconfig.io",
           "api.myip.la",
           "getip.icu",
-          "ip.threep.top ip.sb",
+          "ip.threep.top",
+          "ip.sb",
           "test-ipv6.com",
           "ipv6-test.com"
         ],

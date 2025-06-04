@@ -1,5 +1,16 @@
 version: "3"
 
+networks:
+  internal-frontend:
+    external: true
+  haproxy:
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: 10.90.0.0/24
+        - subnet: fd32:1:2:9000:0:0:1:0/112
+    driver: bridge
+
 services:
   haproxy:
     image: haproxy:alpine
@@ -16,6 +27,9 @@ services:
       - TZ=Asia/Shanghai
     # user: root
     # network_mode: host
+    networks:
+      - internal-frontend
+      - haproxy
     cap_add:
       - NET_BIND_SERVICE
       - NET_ADMIN
