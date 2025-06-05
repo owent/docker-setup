@@ -12,6 +12,10 @@ unifi.x-ha.com {
       header_up Host {http.request.host}
       header_up X-Real-IP {http.request.remote}
       header_up X-Forwarded-Port {http.request.port}
+      header_up X-Forwarded-Host {http.request.host}
+      header_up -Origin
+      header_up -Referer
+      header_up -Authorization
       transport http {
         tls
         tls_insecure_skip_verify
