@@ -8,6 +8,12 @@ DEBUG_WATCH_IPV4_SADDR=(${DEBUG_WATCH_IPV4_DADDR[@]})
 DEBUG_WATCH_IPV6_DADDR=() #(2402:4e00:: 2400:3200:baba::1)
 DEBUG_WATCH_IPV6_SADDR=() #(${DEBUG_WATCH_IP6_DADDR[@]})
 
+DEBUG_WATCH_TCP_DPORT=()
+DEBUG_WATCH_TCP_SPORT=(${DEBUG_WATCH_TCP_DPORT[@]})
+
+DEBUG_WATCH_UDP_DPORT=()
+DEBUG_WATCH_UDP_SPORT=(${DEBUG_WATCH_UDP_DPORT[@]})
+
 DEBUG_TPROXY_IPV4_ADDR=()
 DEBUG_TPROXY_IPV6_ADDR=()
 DEBUG_TPROXY_TABLE_ID=89
@@ -68,6 +74,64 @@ function init_debug_ip_sets() {
   for ip in ${DEBUG_TPROXY_IPV6_ADDR[@]}; do
     nft add element $FAMILY_NAME debug WATCH_TPROXY_IPV6_ADDR "{ $ip }"
   done
+
+  nft list set $FAMILY_NAME debug WATCH_TCP_DPORT >/dev/null 2>&1
+  if [[ $? -ne 0 ]]; then
+    nft add set $FAMILY_NAME debug WATCH_TCP_DPORT '{ type inet_service; }'
+  fi
+  nft flush set $FAMILY_NAME debug WATCH_TCP_DPORT
+  for ip in ${DEBUG_WATCH_TCP_DPORT[@]}; do
+    nft add element $FAMILY_NAME debug WATCH_TCP_DPORT "{ $ip }"
+  done
+  nft list set $FAMILY_NAME debug WATCH_TCP_SPORT >/dev/null 2>&1
+  if [[ $? -ne 0 ]]; then
+    nft add set $FAMILY_NAME debug WATCH_TCP_SPORT '{ type inet_service; }'
+  fi
+  nft flush set $FAMILY_NAME debug WATCH_TCP_SPORT
+  for ip in ${DEBUG_WATCH_TCP_SPORT[@]}; do
+    nft add element $FAMILY_NAME debug WATCH_TCP_SPORT "{ $ip }"
+  done
+
+  nft list set $FAMILY_NAME debug WATCH_UDP_DPORT >/dev/null 2>&1
+  if [[ $? -ne 0 ]]; then
+    nft add set $FAMILY_NAME debug WATCH_UDP_DPORT '{ type inet_service; }'
+  fi
+  nft flush set $FAMILY_NAME debug WATCH_UDP_DPORT
+  for ip in ${DEBUG_WATCH_UDP_DPORT[@]}; do
+    nft add element $FAMILY_NAME debug WATCH_UDP_DPORT "{ $ip }"
+  done
+  nft list set $FAMILY_NAME debug WATCH_UDP_SPORT >/dev/null 2>&1
+  if [[ $? -ne 0 ]]; then
+    nft add set $FAMILY_NAME debug WATCH_UDP_SPORT '{ type inet_service; }'
+  fi
+  nft flush set $FAMILY_NAME debug WATCH_UDP_SPORT
+  for ip in ${DEBUG_WATCH_UDP_SPORT[@]}; do
+    nft add element $FAMILY_NAME debug WATCH_UDP_SPORT "{ $ip }"
+  done
+}
+
+function setup_debug_trace_rule_with_ports() {
+  if [[ ${#DEBUG_WATCH_TCP_DPORT[@]} -gt 0 ]] || [[ ${#DEBUG_WATCH_TCP_SPORT[@]} -gt 0 ]] || [[ ${#DEBUG_WATCH_UDP_SPORT[@]} -gt 0 ]] || [[ ${#DEBUG_WATCH_UDP_DPORT[@]} -gt 0 ]]; then
+    if [[ ${#DEBUG_WATCH_TCP_DPORT[@]} -gt 0 ]]; then
+      "$@" tcp dport @WATCH_TCP_DPORT meta nftrace set 1
+      "$@" tcp dport @WATCH_TCP_DPORT log prefix "\"[DEBUG PACKET]: $6:\"" level debug flags all
+    fi
+    if [[ ${#DEBUG_WATCH_TCP_SPORT[@]} -gt 0 ]]; then
+      "$@" tcp sport @WATCH_TCP_SPORT meta nftrace set 1
+      "$@" tcp sport @WATCH_TCP_SPORT log prefix "\"[DEBUG PACKET]: $6:\"" level debug flags all
+    fi
+    if [[ ${#DEBUG_WATCH_UDP_DPORT[@]} -gt 0 ]]; then
+      "$@" udp dport @WATCH_UDP_DPORT meta nftrace set 1
+      "$@" udp dport @WATCH_UDP_DPORT log prefix "\"[DEBUG PACKET]: $6:\"" level debug flags all
+    fi
+    if [[ ${#DEBUG_WATCH_UDP_SPORT[@]} -gt 0 ]]; then
+      "$@" udp sport @WATCH_UDP_SPORT meta nftrace set 1
+      "$@" udp sport @WATCH_UDP_SPORT log prefix "\"[DEBUG PACKET]: $6:\"" level debug flags all
+    fi
+  else
+    "$@" meta nftrace set 1
+    "$@" log prefix "\"[DEBUG PACKET]: $6:\"" level debug flags all
+  fi
 }
 
 # Setup debug chain for inet
@@ -81,28 +145,21 @@ nft list chain inet debug FORWARD >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   nft add chain inet debug FORWARD { type filter hook forward priority mangle - 99 \; }
 fi
-nft add rule inet debug FORWARD ip saddr @WATCH_IPV4_SADDR meta nftrace set 1
-nft add rule inet debug FORWARD ip saddr @WATCH_IPV4_SADDR log prefix '"[DEBUG PACKET]: FORWARD:"' level debug flags all
-nft add rule inet debug FORWARD ip6 saddr @WATCH_IPV6_SADDR meta nftrace set 1
-nft add rule inet debug FORWARD ip6 saddr @WATCH_IPV6_SADDR log prefix '"[DEBUG PACKET]: FORWARD:"' level debug flags all
-nft add rule inet debug FORWARD ip daddr @WATCH_IPV4_DADDR meta nftrace set 1
-nft add rule inet debug FORWARD ip daddr @WATCH_IPV4_DADDR log prefix '"[DEBUG PACKET]: FORWARD:"' level debug flags all
-nft add rule inet debug FORWARD ip6 daddr @WATCH_IPV6_DADDR meta nftrace set 1
-nft add rule inet debug FORWARD ip6 daddr @WATCH_IPV6_DADDR log prefix '"[DEBUG PACKET]: FORWARD:"' level debug flags all
+
+setup_debug_trace_rule_with_ports nft add rule inet debug FORWARD ip saddr @WATCH_IPV4_SADDR
+setup_debug_trace_rule_with_ports nft add rule inet debug FORWARD ip6 saddr @WATCH_IPV6_SADDR
+setup_debug_trace_rule_with_ports nft add rule inet debug FORWARD ip daddr @WATCH_IPV4_DADDR
+setup_debug_trace_rule_with_ports nft add rule inet debug FORWARD ip6 daddr @WATCH_IPV6_DADDR
 
 nft list chain inet debug PREROUTING >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   nft add chain inet debug PREROUTING { type filter hook prerouting priority raw + 1 \; }
 fi
 nft flush chain inet debug PREROUTING
-nft add rule inet debug PREROUTING ip saddr @WATCH_IPV4_SADDR meta nftrace set 1
-nft add rule inet debug PREROUTING ip saddr @WATCH_IPV4_SADDR log prefix '"[DEBUG PACKET]: PREROUTING:"' level debug flags all
-nft add rule inet debug PREROUTING ip6 saddr @WATCH_IPV6_SADDR meta nftrace set 1
-nft add rule inet debug PREROUTING ip6 saddr @WATCH_IPV6_SADDR log prefix '"[DEBUG PACKET]: PREROUTING:"' level debug flags all
-nft add rule inet debug PREROUTING ip daddr @WATCH_IPV4_DADDR meta nftrace set 1
-nft add rule inet debug PREROUTING ip daddr @WATCH_IPV4_DADDR log prefix '"[DEBUG PACKET]: PREROUTING:"' level debug flags all
-nft add rule inet debug PREROUTING ip6 daddr @WATCH_IPV6_DADDR meta nftrace set 1
-nft add rule inet debug PREROUTING ip6 daddr @WATCH_IPV6_DADDR log prefix '"[DEBUG PACKET]: PREROUTING:"' level debug flags all
+setup_debug_trace_rule_with_ports nft add rule inet debug PREROUTING ip saddr @WATCH_IPV4_SADDR
+setup_debug_trace_rule_with_ports nft add rule inet debug PREROUTING ip6 saddr @WATCH_IPV6_SADDR
+setup_debug_trace_rule_with_ports nft add rule inet debug PREROUTING ip daddr @WATCH_IPV4_DADDR
+setup_debug_trace_rule_with_ports nft add rule inet debug PREROUTING ip6 daddr @WATCH_IPV6_DADDR
 
 nft list table ip debug >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
@@ -115,8 +172,7 @@ if [[ $? -ne 0 ]]; then
 fi
 nft flush chain ip debug PREROUTING
 
-nft add rule ip debug PREROUTING ip daddr @WATCH_TPROXY_IPV4_ADDR meta nftrace set 1
-nft add rule ip debug PREROUTING ip daddr @WATCH_TPROXY_IPV4_ADDR log prefix '"[DEBUG PACKET]: PREROUTING:"' level debug flags all
+setup_debug_trace_rule_with_ports nft add rule ip debug PREROUTING ip daddr @WATCH_TPROXY_IPV4_ADDR
 nft add rule ip debug PREROUTING mark and 0x70 == 0x70 return
 nft add rule ip debug PREROUTING ip daddr @WATCH_TPROXY_IPV4_ADDR meta l4proto "{udp, tcp}" tproxy to :$DEBUG_TPROXY_PORT meta mark set mark and 0xffffff80 xor 0x7e accept
 
@@ -131,8 +187,7 @@ if [[ $? -ne 0 ]]; then
 fi
 nft flush chain ip6 debug PREROUTING
 
-nft add rule ip6 debug PREROUTING ip6 daddr @WATCH_TPROXY_IPV6_ADDR meta nftrace set 1
-nft add rule ip6 debug PREROUTING ip6 daddr @WATCH_TPROXY_IPV6_ADDR log prefix '"[DEBUG PACKET]: PREROUTING:"' level debug flags all
+setup_debug_trace_rule_with_ports nft add rule ip6 debug PREROUTING ip6 daddr @WATCH_TPROXY_IPV6_ADDR
 
 nft add rule ip6 debug PREROUTING mark and 0x70 == 0x70 return
 nft add rule ip6 debug PREROUTING ip6 daddr @WATCH_TPROXY_IPV6_ADDR meta l4proto "{udp, tcp}" tproxy to :$DEBUG_TPROXY_PORT meta mark set mark and 0xffffff80 xor 0x7e accept
@@ -142,14 +197,10 @@ if [[ $? -ne 0 ]]; then
   nft add chain inet debug OUTPUT { type filter hook output priority filter - 99 \; }
 fi
 nft flush chain inet debug OUTPUT
-nft add rule inet debug OUTPUT ip saddr @WATCH_IPV4_SADDR meta nftrace set 1
-nft add rule inet debug OUTPUT ip saddr @WATCH_IPV4_SADDR log prefix '"[DEBUG PACKET]: OUTPUT:"' level debug flags all
-nft add rule inet debug OUTPUT ip6 saddr @WATCH_IPV6_SADDR meta nftrace set 1
-nft add rule inet debug OUTPUT ip6 saddr @WATCH_IPV6_SADDR log prefix '"[DEBUG PACKET]: OUTPUT:"' level debug flags all
-nft add rule inet debug OUTPUT ip daddr @WATCH_IPV4_DADDR meta nftrace set 1
-nft add rule inet debug OUTPUT ip daddr @WATCH_IPV4_DADDR log prefix '"[DEBUG PACKET]: OUTPUT:"' level debug flags all
-nft add rule inet debug OUTPUT ip6 daddr @WATCH_IPV6_DADDR meta nftrace set 1
-nft add rule inet debug OUTPUT ip6 daddr @WATCH_IPV6_DADDR log prefix '"[DEBUG PACKET]: OUTPUT:"' level debug flags all
+setup_debug_trace_rule_with_ports nft add rule inet debug OUTPUT ip saddr @WATCH_IPV4_SADDR
+setup_debug_trace_rule_with_ports nft add rule inet debug OUTPUT ip6 saddr @WATCH_IPV6_SADDR
+setup_debug_trace_rule_with_ports nft add rule inet debug OUTPUT ip daddr @WATCH_IPV4_DADDR
+setup_debug_trace_rule_with_ports nft add rule inet debug OUTPUT ip6 daddr @WATCH_IPV6_DADDR
 
 nft list chain ip debug OUTPUT >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
@@ -157,8 +208,7 @@ if [[ $? -ne 0 ]]; then
 fi
 nft flush chain ip debug OUTPUT
 
-nft add rule ip debug OUTPUT ip daddr @WATCH_TPROXY_IPV4_ADDR meta nftrace set 1
-nft add rule ip debug OUTPUT ip daddr @WATCH_TPROXY_IPV4_ADDR log prefix '"[DEBUG PACKET]: OUTPUT:"' level debug flags all
+setup_debug_trace_rule_with_ports nft add rule ip debug OUTPUT ip daddr @WATCH_TPROXY_IPV4_ADDR
 nft add rule ip debug OUTPUT mark and 0x70 == 0x70 return
 nft add rule ip debug OUTPUT ip daddr @WATCH_TPROXY_IPV4_ADDR mark and 0x1f != 0x1e meta l4proto {tcp, udp} mark set mark and 0xffffffe0 xor 0x1e return
 
@@ -168,10 +218,39 @@ if [[ $? -ne 0 ]]; then
 fi
 nft flush chain ip6 debug OUTPUT
 
-nft add rule ip6 debug OUTPUT ip6 daddr @WATCH_TPROXY_IPV6_ADDR meta nftrace set 1
-nft add rule ip6 debug OUTPUT ip6 daddr @WATCH_TPROXY_IPV6_ADDR log prefix '"[DEBUG PACKET]: OUTPUT:"' level debug flags all
+setup_debug_trace_rule_with_ports nft add rule ip6 debug OUTPUT ip6 daddr @WATCH_TPROXY_IPV6_ADDR
 nft add rule ip6 debug OUTPUT mark and 0x70 == 0x70 return
 nft add rule ip6 debug OUTPUT ip6 daddr @WATCH_TPROXY_IPV6_ADDR mark and 0x1f != 0x1e meta l4proto {tcp, udp} mark set mark and 0xffffffe0 xor 0x1e return
+
+nft list chain inet debug INPUT >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add chain inet debug INPUT { type filter hook input priority filter - 99 \; }
+fi
+nft flush chain inet debug INPUT
+setup_debug_trace_rule_with_ports nft add rule inet debug INPUT ip saddr @WATCH_IPV4_SADDR
+setup_debug_trace_rule_with_ports nft add rule inet debug INPUT ip6 saddr @WATCH_IPV6_SADDR
+setup_debug_trace_rule_with_ports nft add rule inet debug INPUT ip daddr @WATCH_IPV4_DADDR
+setup_debug_trace_rule_with_ports nft add rule inet debug INPUT ip6 daddr @WATCH_IPV6_DADDR
+
+nft list chain ip debug INPUT >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add chain ip debug INPUT { type nat hook input priority mangle - 1 \; }
+fi
+nft flush chain ip debug INPUT
+
+setup_debug_trace_rule_with_ports nft add rule ip debug INPUT ip daddr @WATCH_TPROXY_IPV4_ADDR
+nft add rule ip debug INPUT mark and 0x70 == 0x70 return
+nft add rule ip debug INPUT ip daddr @WATCH_TPROXY_IPV4_ADDR mark and 0x1f != 0x1e meta l4proto {tcp, udp} mark set mark and 0xffffffe0 xor 0x1e return
+
+nft list chain ip6 debug INPUT >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add chain ip6 debug INPUT { type nat hook output priority mangle - 1 \; }
+fi
+nft flush chain ip6 debug INPUT
+
+setup_debug_trace_rule_with_ports nft add rule ip6 debug INPUT ip6 daddr @WATCH_TPROXY_IPV6_ADDR
+nft add rule ip6 debug INPUT mark and 0x70 == 0x70 return
+nft add rule ip6 debug INPUT ip6 daddr @WATCH_TPROXY_IPV6_ADDR mark and 0x1f != 0x1e meta l4proto {tcp, udp} mark set mark and 0xffffffe0 xor 0x1e return
 
 # Setup debug chain for bridge
 nft list table bridge debug >/dev/null 2>&1
@@ -187,20 +266,14 @@ fi
 init_debug_ip_sets bridge
 
 nft flush chain bridge debug PREROUTING
-nft add rule bridge debug PREROUTING ip saddr @WATCH_IPV4_SADDR meta nftrace set 1
-nft add rule bridge debug PREROUTING ip saddr @WATCH_IPV4_SADDR log prefix '"[DEBUG PACKET]: TCP>>PREROUTING:"' level debug flags all
-nft add rule bridge debug PREROUTING ip6 saddr @WATCH_IPV6_SADDR meta nftrace set 1
-nft add rule bridge debug PREROUTING ip6 saddr @WATCH_IPV6_SADDR log prefix '"[DEBUG PACKET]: TCP>>PREROUTING:"' level debug flags all
-nft add rule bridge debug PREROUTING ip daddr @WATCH_IPV4_DADDR meta nftrace set 1
-nft add rule bridge debug PREROUTING ip daddr @WATCH_IPV4_DADDR log prefix '"[DEBUG PACKET]: TCP>>PREROUTING:"' level debug flags all
-nft add rule bridge debug PREROUTING ip6 daddr @WATCH_IPV6_DADDR meta nftrace set 1
-nft add rule bridge debug PREROUTING ip6 daddr @WATCH_IPV6_DADDR log prefix '"[DEBUG PACKET]: TCP>>PREROUTING:"' level debug flags all
+setup_debug_trace_rule_with_ports nft add rule bridge debug PREROUTING ip saddr @WATCH_IPV4_SADDR
+setup_debug_trace_rule_with_ports nft add rule bridge debug PREROUTING ip6 saddr @WATCH_IPV6_SADDR
+setup_debug_trace_rule_with_ports nft add rule bridge debug PREROUTING ip daddr @WATCH_IPV4_DADDR
+setup_debug_trace_rule_with_ports nft add rule bridge debug PREROUTING ip6 daddr @WATCH_IPV6_DADDR
 
-nft add rule bridge debug PREROUTING ip daddr @WATCH_TPROXY_IPV4_ADDR meta nftrace set 1
-nft add rule bridge debug PREROUTING ip daddr @WATCH_TPROXY_IPV4_ADDR log prefix '"[DEBUG PACKET]: TCP>>PREROUTING:"' level debug flags all
+setup_debug_trace_rule_with_ports nft add rule bridge debug PREROUTING ip daddr @WATCH_TPROXY_IPV4_ADDR
 nft add rule bridge debug PREROUTING ip daddr @WATCH_TPROXY_IPV4_ADDR meta pkttype set unicast
-nft add rule bridge debug PREROUTING ip6 daddr @WATCH_TPROXY_IPV6_ADDR meta nftrace set 1
-nft add rule bridge debug PREROUTING ip6 daddr @WATCH_TPROXY_IPV6_ADDR log prefix '"[DEBUG PACKET]: TCP>>PREROUTING:"' level debug flags all
+setup_debug_trace_rule_with_ports nft add rule bridge debug PREROUTING ip6 daddr @WATCH_TPROXY_IPV6_ADDR
 nft add rule bridge debug PREROUTING ip6 daddr @WATCH_TPROXY_IPV6_ADDR meta pkttype set unicast
 
 # Debug tproxy

@@ -27,6 +27,6 @@ if [[ $? -ne 0 ]]; then
 fi
 
 # 开启DNS
-# apt install podman open-infrastructure-container-tools -y
+# apt install containernetworking-plugins golang-github-containernetworking-plugin-dnsname -y
 # Test DNS
 # podman run --network internal-backend --rm alpine nslookup live-frontend
