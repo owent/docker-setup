@@ -157,3 +157,6 @@ fi
 if [[ $VBOX_SETUP_IP_RULE_CLEAR -eq 0 ]] && [[ ${#VBOX_TUN_PROXY_WHITELIST_IPV6[@]} -gt 0 ]]; then
   vbox_setup_whitelist_ipv6
 fi
+
+# clear DNS server cache
+# su tools -l -c 'env XDG_RUNTIME_DIR="/run/user/$UID" DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus" systemctl --user restart container-adguard-home'

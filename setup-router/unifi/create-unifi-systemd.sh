@@ -29,8 +29,8 @@ if [[ "x$UNIFI_CONTROLLER_ETC_DIR" == "x" ]]; then
 fi
 mkdir -p "$UNIFI_CONTROLLER_ETC_DIR"
 
-UNIFI_CONTROLLER_IMAGE="lscr.io/linuxserver/unifi-controller:latest"
-# UNIFI_CONTROLLER_IMAGE="docker.io/linuxserver/unifi-controller:latest"
+UNIFI_CONTROLLER_IMAGE="lscr.io/linuxserver/unifi-network-application"
+# UNIFI_CONTROLLER_IMAGE="docker.io/linuxserver/unifi-network-application:latest"
 
 if [[ "x$UNIFI_CONTROLLER_UPDATE" != "x" ]] || [[ "x$UNIFI_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman pull $UNIFI_CONTROLLER_IMAGE

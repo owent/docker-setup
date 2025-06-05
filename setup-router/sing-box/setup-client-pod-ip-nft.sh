@@ -341,6 +341,10 @@ if [ $VBOX_SETUP_IP_RULE_CLEAR -ne 0 ]; then
       GEOIP_CN_ADDRESS_START=$GEOIP_CN_ADDRESS_COUNT
     fi
   done
+
+  # clear DNS server cache
+  # su tools -l -c 'env XDG_RUNTIME_DIR="/run/user/$UID" DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus" systemctl --user restart container-adguard-home'
+
 else
   nft delete chain inet vbox PREROUTING >/dev/null 2>&1
   nft delete chain inet vbox OUTPUT >/dev/null 2>&1
@@ -355,3 +359,4 @@ else
   nft flush set bridge vbox GEOIP_CN_IPV4
   nft flush set bridge vbox GEOIP_CN_IPV6
 fi
+
