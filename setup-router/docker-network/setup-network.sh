@@ -25,3 +25,8 @@ if [[ $? -ne 0 ]]; then
     --subnet $INTERNAL_BACKEND_IPV4 --gateway $INTERNAL_BACKEND_GATEWAY \
     internal-backend
 fi
+
+# 开启DNS
+# apt install podman open-infrastructure-container-tools -y
+# Test DNS
+# podman run --pod live-echo --network internal-backend --rm alpine nslookup live-frontend
