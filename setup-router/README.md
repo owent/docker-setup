@@ -122,6 +122,17 @@ net.ipv4.tcp_congestion_control = bbr" >> /etc/sysctl.d/91-forwarding.conf ;
     fi
 fi
 
+# 设置NetworkManager关闭ipv6的隐私模式（允许DHCPv6）
+## ipv6.addr-gen-mode = default/stable-privacy/eui64
+## 全局编辑 /etc/NetworkManager/NetworkManager.conf 添加
+sudo bash -c 'echo "
+[connection]
+ipv6.addr-gen-mode=eui64
+" >> /etc/NetworkManager/NetworkManager.conf'
+
+## 单独iface
+sudo nmcli conn modify "<iface>" ipv6.addr-gen-mode eui64
+
 # IOMMU, IO直通()
 ## /etc/default/grub 的GRUB_CMDLINE_LINUX_DEFAULT里开 "quiet iommu=pt pcie_acs_override=downstream,multifunction pci=nommconf"
 ## # update-grub
