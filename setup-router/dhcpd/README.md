@@ -45,3 +45,16 @@ WantedBy=multi-user.target
   - CAP: NET_BIND_SERVICE, NET_RAW, NET_ADMIN , NET_BROADCAST。
   - rootless下无法赋予 NET_RAW ，所以dhcp服务必须在 rootful 模式下运行。
 - DHCP 服务必须使用 `--network=host` 来管理原始 interface 。
+
+## 测试
+
+```bash
+# 测试 DHCPv6 客户端请求
+sudo dhclient -6 -v eth0
+
+# 释放 DHCPv6 地址
+sudo dhclient -6 -r eth0
+
+# 指定配置文件测试
+sudo dhclient -6 -cf /etc/dhcp/dhclient6.conf eth0
+```
