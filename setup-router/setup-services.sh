@@ -66,3 +66,7 @@ if [[ "x$ROUTER_CONFIG_ON_FINISH_RUN" != "x" ]]; then
   chmod +x "$ROUTER_CONFIG_ON_FINISH_RUN"
   "$ROUTER_CONFIG_ON_FINISH_RUN"
 fi
+
+if [[ -e /etc/sysctl.d/95-interface-forwarding.conf ]]; then
+  sysctl -p /etc/sysctl.d/95-interface-forwarding.conf
+fi

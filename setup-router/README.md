@@ -1,5 +1,20 @@
 # README for router
 
+## 虚拟机
+
+### Clone后操作
+
+改网卡UUID，否则ipv6走SLAAC会地址冲突。
+
+```bash
+sudo apt update -y && sudo apt upgrade -y
+sudo apt install -y uuid
+sudo bash -c '
+for NM_IF in /etc/NetworkManager/system-connections/*.nmconnection; do
+  NEW_UUID=$(uuid 2>&1 || uuidgen) && sed -i -E "s;uuid=[0-9A-Fa-f\\-]+;uuid=$NEW_UUID;I" "$NM_IF" && echo "$NM_IF -> uuid=$NEW_UUID";
+done'
+```
+
 ## Host machine
 
 Lan bridge:  br0
@@ -93,13 +108,25 @@ net.ipv4.conf.enp1s0f1.route_localnet=1
 net.ipv6.conf.all.proxy_ndp=1
 net.ipv6.conf.default.proxy_ndp=1
 net.ipv6.conf.br0.autoconf=0
-## ================= Untest =================
-# Disable local-link address for internal bridge(For IPv6 NAT)
-net.ipv6.conf.br0.forwarding=1
-net.ipv6.conf.br0.proxy_ndp=1
-net.ipv6.conf.br0.accept_ra=2
-# For all other interfaces set these 3 options
 " | sudo tee /etc/sysctl.d/91-forwarding.conf ;
+
+echo "
+# Disable local-link address for internal bridge(For IPv6 NAT)
+# 接口启动可能在内核初始化 sysctl 之前，最好加到启动或刷新网络的回调里
+# /etc/sysctl.d/95-interface-forwarding.conf : sysctl -p /etc/sysctl.d/95-interface-forwarding.conf
+net.ipv6.conf.eno1.forwarding=1
+net.ipv6.conf.eno1.proxy_ndp=1
+# 开启转发的接口内核会关闭掉RA，需要重新设置一下
+net.ipv6.conf.eno1.accept_ra=2
+net.ipv6.conf.enp2s0.forwarding=1
+net.ipv6.conf.enp2s0.proxy_ndp=1
+net.ipv6.conf.enp2s0.accept_ra=2
+# 配置里.是目录分隔符，要名字里包含.采用/代替(这里实际设备名是 enp2s0.5)
+net.ipv6.conf.enp2s0/5.forwarding=1
+net.ipv6.conf.enp2s0/5.proxy_ndp=1
+net.ipv6.conf.enp2s0/5.accept_ra=2
+# For all other interfaces set these 3 options
+" | sudo tee /etc/sysctl.d/95-interface-forwarding.conf ;
 
 echo "net.ipv4.ip_unprivileged_port_start=67
 kernel.unprivileged_userns_clone=1
@@ -742,6 +769,12 @@ index = "sparse+https://mirrors.tuna.tsinghua.edu.cn/crates.io-index/"
 >codegen-units = 1
 >```
 >
+
+## ipv6 国内测试
+
+- <https://testipv6.cn/>
+- <https://ipw.cn/>
+- <https://ipv6ready.me/>
 
 [1]: https://tools.ietf.org/html/rfc8484 "RFC 8484"
 [2]: https://tools.ietf.org/html/rfc7858 "RFC 7858"
