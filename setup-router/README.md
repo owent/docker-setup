@@ -781,11 +781,45 @@ index = "sparse+https://mirrors.tuna.tsinghua.edu.cn/crates.io-index/"
 >```
 >
 
+### ipv6
+
 ## ipv6 国内测试
 
 - <https://testipv6.cn/>
 - <https://ipw.cn/>
 - <https://ipv6ready.me/>
+
+## DHCPv6测试
+
+```bash
+# 测试 DHCPv6 客户端请求
+sudo dhclient -6 -v eth0
+
+# 释放 DHCPv6 地址
+sudo dhclient -6 -r eth0
+
+# 指定配置文件测试
+sudo dhclient -6 -cf /etc/dhcp/dhclient6.conf eth0
+```
+
+## RA测试
+
+```bash
+
+# apt install ndisc6
+# 发送路由器请求并监听RA
+rdisc6 eth0
+
+# 指定接口监听RA
+rdisc6 -1 eth0  # 只接收一个RA包后退出
+
+#################################################
+# 抓取ICMPv6包（包含RA）
+tcpdump -vv -tttt -i eth0 icmp6
+
+# 更具体的RA包过滤
+tcpdump -vv -tttt -i eth0 'icmp6 and ip6[40] == 134'
+```
 
 [1]: https://tools.ietf.org/html/rfc8484 "RFC 8484"
 [2]: https://tools.ietf.org/html/rfc7858 "RFC 7858"
