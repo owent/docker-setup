@@ -9,7 +9,7 @@ RUN cp -f /etc/apt/sources.list /etc/apt/sources.list.bak ;                     
     apt update -y;                                                                                              \
     apt install -y procps locales tzdata less iproute2 gawk lsof systemd-cron openssh-client openssh-server systemd  ; \
     apt install -y vim wget curl ca-certificates telnet iotop htop knot-dnsutils dnsutils ;                     \
-    apt install -y dnsmasq dnsmasq-utils ppp pppconfig pppoe pppoeconf ca-certificates ipset chrony ;           \
+    apt install -y dnsmasq dnsmasq-utils ppp pppconfig pppoe pppoeconf ca-certificates ipset chrony ndisc6;     \
     apt install -y traceroute tcptraceroute tcpdump netcat-openbsd ncat network-manager nftables;               \
     apt install -y systemd-timesyncd yq jq;                                                                     \
     echo "LANG=en_US.UTF-8" >  /etc/default/locale;                                                             \
