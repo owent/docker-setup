@@ -162,6 +162,17 @@ curl -sfL https://get.k3s.io | K3S_URL=https://k3s.example.com K3S_TOKEN=mypassw
 
 ## 集群设置
 
+### 常用命令
+
+```bash
+kubectl logs -n kube-system <name> -f
+kubectl get nodes -o wide
+kubectl get pods -o wide -A
+
+# 查看事件日志
+kubectl get events --sort-by='.lastTimestamp' -n kube-system | grep coredns
+```
+
 ### 存储类
 
 ```bash
@@ -196,7 +207,7 @@ helm upgrade cilium cilium/cilium --namespace kube-system --values current-value
 kubectl patch configmap cilium-config -n kube-system --patch='
 data:
   cluster-pool-ipv4-mask-size: "22"
-  cluster-pool-ipv6-mask-size: "100"
+  cluster-pool-ipv6-mask-size: "116"
 '
 
 ## 检查服务使配置

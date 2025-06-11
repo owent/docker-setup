@@ -1,0 +1,82 @@
+operator:
+  unmanagedPodWatcher:
+    restart: true # Migration: Don't restart unmigrated pods
+routingMode: "native"
+autoDirectNodeRoutes: true
+endpointRoutes:
+  enabled: true
+# IPv6基本配置
+ipv6:
+  enabled: true
+# IPv4保持启用（双栈）
+ipv4:
+  enabled: true
+ipv4NativeRoutingCIDR: "10.32.0.0/12"
+ipv6NativeRoutingCIDR: "fd01:0:1:0a20::1/100"
+ipam:
+  mode: "cluster-pool"
+  operator:
+    clusterPoolIPv4MaskSize: 22
+    clusterPoolIPv6MaskSize: 116
+    clusterPoolIPv4PodCIDRList:
+      - "10.32.0.0/12" # Migration: Ensure this is distinct and unused
+    clusterPoolIPv6PodCIDRList:
+      - "fd01:0:1:0a20::1/100"
+
+# 关键配置：不强制要求IPv6 PodCIDR
+k8s:
+  requireIPv6PodCIDR: false
+
+hubble:
+  enabled: true
+  relay:
+    enabled: true
+  ui:
+    enabled: true
+
+# 替代kube-proxy (https://docs.cilium.io/en/stable/network/kubernetes/kubeproxy-free/#kube-proxy-hybrid-modes)
+## kubectl -n kube-system delete ds kube-proxy
+## # Delete the configmap as well to avoid kube-proxy being reinstalled during a Kubeadm upgrade (works only for K8s 1.19 and newer)
+## kubectl -n kube-system delete cm kube-proxy
+## # Run on each node with root permissions:
+## iptables-save | grep -v KUBE | iptables-restore
+## # Clear ipvs
+## ipvsadm -C
+#k8sServiceHost: "auto"
+#k8sServicePort: 6443
+kubeProxyReplacement: true
+socketLB:
+  enabled: true
+nodePort:
+  enabled: true
+  enableHealthCheck: false
+  # range: "30000,32767"
+externalIPs:
+  enabled: true
+hostPort:
+  enabled: true
+ingressController:
+  enabled: true
+  # -- Set cilium ingress controller to be the default ingress controller
+  # This will let cilium ingress controller route entries without ingress class set
+  default: true
+bpf:
+  masquerade: true
+  tproxy: true
+  preallocateMaps: true
+bpfClockProbe: true
+localRedirectPolicy: true
+egressGateway:
+  enabled: true
+wellKnownIdentities:
+  enabled: true
+# Install Iptables rules to skip netfilter connection tracking on all pod traffic. This option is only effective when Cilium is running in direct routing and full KPR mode. Moreover, this option cannot be enabled when Cilium is running in a managed Kubernetes environment or in a chained CNI setup.
+installNoConntrackIptablesRules: true
+loadBalancer:
+  # acceleration使用native需要查询网卡是否支持: lspci | grep Ethernet
+  # https://docs.cilium.io/en/stable/reference-guides/bpf/progtypes/#xdp-drivers
+  acceleration: best-effort
+  mode: hybrid
+
+enableLBIPAM: true
+# defaultLBServiceIPAM: lbipam # lbipam, nodeipam, none
