@@ -1,8 +1,51 @@
 # Kubernetes
 
-## K3S
+## 系统环境准备
 
-[k3s.io](https://k3s.io/)
+```bash
+# 依赖包
+sudo apt install -y sudo openssl curl socat conntrack ebtables ipset ipvsadm ethtool chrony
+sudo systemctl enable chrony --now
+sudo systemctl disable dnsmasq
+sudo systemctl stop dnsmasq
+sudo systemctl stop systemd-resolved
+sudo systemctl disable systemd-resolved
+
+# 存储位置
+K8S_DATA_DIR=/data/disk1
+sudo mkdir -p $K8S_DATA_DIR/containerd && sudo rm -rf /var/lib/containerd && sudo ln -sf $K8S_DATA_DIR/containerd /var/lib/containerd && sudo dpkg-reconfigure containerd
+sudo mkdir -p $K8S_DATA_DIR/k8s/containerd $K8S_DATA_DIR/k8s/docker $K8S_DATA_DIR/k8s/registry $K8S_DATA_DIR/etcd $K8S_DATA_DIR/openebs/local
+sudo chmod 777 $K8S_DATA_DIR/containerd $K8S_DATA_DIR/k8s $K8S_DATA_DIR/k8s/containerd $K8S_DATA_DIR/k8s/docker $K8S_DATA_DIR/k8s/registry $K8S_DATA_DIR/etcd $K8S_DATA_DIR/openebs $K8S_DATA_DIR/openebs/local
+sudo rm -rf /var/openebs && sudo ln -sf $K8S_DATA_DIR/openebs /var/openebs
+sudo rm -rf /var/lib/etcd && sudo ln -sf $K8S_DATA_DIR/etcd /var/lib/etcd
+
+## openebs需要
+## 开启内核选项: nvme_core.multipath=Y
+## - debian/RH 似乎默认开启
+## - 查看: cat /sys/module/nvme_core/parameters/multipath
+echo vm.nr_hugepages = 2048 | sudo tee /etc/sysctl.d/92-container-openebs.conf
+sudo sysctl -p /etc/sysctl.d/92-container-openebs.conf
+```
+
+NetworkManager 忽略CNI接口
+
+```bash
+echo '[keyfile]
+unmanaged-devices=interface-name:cali*;interface-name:flannel*;interface-name:nodelocaldns;interface-name:eth*,except:interface-name:eth0' | sudo tee '/etc/NetworkManager/conf.d/k8s.conf'
+
+echo '
+[Match]
+Name=eth[1-9]*
+
+[Link]
+Unmanaged=yes
+' | sudo tee /etc/systemd/network/99-unmanaged-devices.network
+```
+
+## K3S/RKE2
+
+- [k3s.io](https://k3s.io/)
+- [rke2.io](https://rke2.io/)
 
 ### 初始化
 
@@ -31,6 +74,8 @@
 
 文档: <https://docs.k3s.io/zh/installation/configuration>
 
+#### K3S环境变量
+
 | 环境变量                        | 描述                                                                                                                                                         |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `INSTALL_K3S_SKIP_DOWNLOAD`     | 如果设置为 `true` 将不会下载 K3s 哈希或二进制文件。                                                                                                          |
@@ -51,7 +96,17 @@
 | `SERVER_EXTERNAL_IP`            | Server的外网IP。                                                                                                                                             |
 | `AGENT_EXTERNAL_IP`             | Agent的外网IP。                                                                                                                                              |
 
-代理环境变量:
+#### RKE2环境变量
+
+| 环境变量                   | 描述                                                                                                                                                                                   |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `INSTALL_RKE2_VERSION`     | 从 GitHub 下载的 RKE2 版本。如果未指定，将尝试从 stable channel 下载最新版本。如果在基于 RPM 的系统上安装并且 stable channel 中不存在所需的版本，则也应设置 INSTALL_RKE2_CHANNEL。件。 |
+| `INSTALL_RKE2_TYPE`        | 要创建的 systemd 服务类型，可以是 "server" 或 "agent"，默认值是 "server"。                                                                                                             |
+| `INSTALL_RKE2_CHANNEL_URL` | 用于获取 RKE2 下载 URL 的 Channel URL。默认为 <https://update.rke2.io/v1-release/channels>。                                                                                           |
+| `INSTALL_RKE2_CHANNEL`     | 用于获取 RKE2 下载 URL 的 Channel。默认为 stable。可选项：stable、latest、testing。                                                                                                    |
+| `INSTALL_RKE2_METHOD`      | 安装方法。默认是基于 RPM 的系统 rpm，所有其他系统都是  tar。                                                                                                                           |
+
+#### 代理环境变量
 
 ```bash
 # 全局
@@ -81,12 +136,62 @@ CONTAINERD_NO_PROXY=127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
 服务器示例:
 
 ```bash
+# K3S
 curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server" sh -s - --flannel-backend none --token 12345
 curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server --flannel-backend none" K3S_TOKEN=12345 sh -s -
 curl -sfL https://get.k3s.io | K3S_TOKEN=12345 sh -s - server --flannel-backend none
 # server is assumed below because there is no K3S_URL
 curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--flannel-backend none --token 12345" sh -s - 
 curl -sfL https://get.k3s.io | sh -s - --flannel-backend none --token 12345
+
+# RKE2
+curl -sfL https://rancher-mirror.rancher.cn/rke2/install.sh -o install.sh && chmod +x install.sh
+
+K8S_DATA_DIR=/data/disk1
+sudo mkdir -p $K8S_DATA_DIR/rancher/rke2-data $K8S_DATA_DIR/rancher/rke2-var
+sudo chmod 777 $K8S_DATA_DIR/rancher/rke2-data $K8S_DATA_DIR/rancher/rke2-var
+sudo rm -rf /var/lib/rancher && sudo ln -sf $K8S_DATA_DIR/rancher/rke2-var /var/lib/rancher
+sudo rm -rf /etc/rancher/rke2 && sudo mkdir -p /etc/rancher && sudo ln -s $PWD/etc /etc/rancher/rke2
+if [[ -e "$PWD/setup" ]]; then
+  sudo cp -rf "$PWD/setup/"* /var/lib/rancher/
+fi
+sudo cp -f "$PWD/config.yaml" /etc/rancher/rke2/
+
+## Setup server
+sudo env INSTALL_RKE2_MIRROR=cn INSTALL_RKE2_CHANNEL=latest RKE2_CONFIG_FILE=$PWD/config.yaml ./install.sh
+sudo sed -i '/RKE2_CONFIG_FILE=/d' /usr/local/lib/systemd/system/rke2-server.env
+sudo sed -i '/INSTALL_RKE2_MIRROR=/d' /usr/local/lib/systemd/system/rke2-server.env
+echo "RKE2_CONFIG_FILE=$PWD/config.yaml
+INSTALL_RKE2_MIRROR=cn" | sudo tee -a /usr/local/lib/systemd/system/rke2-server.env
+sudo systemctl start rke2-server && sudo systemctl enable rke2-server
+
+## Setup agent
+sudo env INSTALL_RKE2_MIRROR=cn INSTALL_RKE2_CHANNEL=latest INSTALL_RKE2_TYPE="agent" RKE2_CONFIG_FILE=$PWD/config.yaml  ./
+sudo sed -i '/RKE2_CONFIG_FILE=/d' /usr/local/lib/systemd/system/rke2-agent.env
+sudo sed -i '/INSTALL_RKE2_MIRROR=/d' /usr/local/lib/systemd/system/rke2-agent.env
+echo "RKE2_CONFIG_FILE=$PWD/config.yaml
+INSTALL_RKE2_MIRROR=cn" | sudo tee -a /usr/local/lib/systemd/system/rke2-agent.env
+sudo systemctl start rke2-agent && sudo systemctl enable rke2-agent
+
+# master
+systemctl enable rke2-server.service
+## 配置 rke2-server 服务
+mkdir -p /etc/rancher/rke2/
+vim $PWD/config.yaml
+### 镜像配置位于 /etc/rancher/rke2/registries.yaml
+### 镜像配置位于 /etc/rancher/rke2/
+## 启动节点
+systemctl start rke2-server.service
+## kubeconfig 文件将写入 /etc/rancher/rke2/rke2.yaml
+## 节点令牌在 /var/lib/rancher/rke2/server/node-token
+
+# agent
+systemctl enable rke2-agent.service
+## 配置 rke2-agent 服务
+mkdir -p /etc/rancher/rke2/
+vim $PWD/config.yaml
+## 启动节点
+systemctl start rke2-agent.service
 ```
 
 ##### 启动集群(HA,etcd)
@@ -165,12 +270,34 @@ curl -sfL https://get.k3s.io | K3S_URL=https://k3s.example.com K3S_TOKEN=mypassw
 ### 常用命令
 
 ```bash
-kubectl logs -n kube-system <name> -f
+kubectl logs -n kube-system [$ANY_TYPE/]$ANY_NAME -f
 kubectl get nodes -o wide
-kubectl get pods -o wide -A
+
+# 检查节点状态
+kubectl get nodes -o wide
+
+# 检查API Server日志
+kubectl logs -n kube-system $(kubectl get pods -n kube-system -l component=kube-apiserver -o name | head -1)
+
+# 检查etcd状态
+kubectl get pods -n kube-system -l component=etcd
 
 # 查看事件日志
-kubectl get events --sort-by='.lastTimestamp' -n kube-system | grep coredns
+kubectl get events -n kube-system --sort-by='.lastTimestamp'
+kubectl get events --sort-by='.lastTimestamp' -n kube-system --field-selector involvedObject.name=$POD_NAME
+
+# 强制重建
+kubectl rollout restart daemonset/cilium -n kube-system
+kubectl rollout status daemonset/cilium -n kube-system
+
+# 查看Pod创建事件
+kubectl describe ds -n kube-system $POD_NAME
+
+# 检查ConfigMap
+kubectl get configmap -n kube-system $CONFIGMAP_NAME -o yaml
+
+# 强制移除命名空间
+kubectl get namespace $REMOVE_NAMESPACE_NAME -o json | jq '.spec.finalizers = []' | kubectl replace --raw "/api/v1/namespaces/$REMOVE_NAMESPACE_NAME/finalize" -f -
 ```
 
 ### 存储类
@@ -201,13 +328,13 @@ kubectl -n kube-system exec ds/cilium -- cilium endpoint list
 ## 导出当前配置
 helm get values cilium -n kube-system > current-values.yaml
 ## 使用修改后的配置升级
-helm upgrade cilium cilium/cilium --namespace kube-system --values current-values.yaml
+helm upgrade --force cilium cilium/cilium --namespace kube-system --values current-values.yaml
 
 # 设置每节点CIDR能分配的Mask
 kubectl patch configmap cilium-config -n kube-system --patch='
 data:
   cluster-pool-ipv4-mask-size: "22"
-  cluster-pool-ipv6-mask-size: "116"
+  cluster-pool-ipv6-mask-size: "118"
 '
 
 ## 检查服务使配置
@@ -259,6 +386,16 @@ ip link set tunl0 down
 # rm -rf /etc/cni/net.d/*
 ```
 
+重新配置集群网络
+
+```bash
+# 检查集群 CIDR 配置
+kubectl get cm -n kube-system kubeadm-config -o yaml
+
+# 检查 kube-controller-manager
+kubectl get pod -n kube-system kube-controller-manager-* -o yaml | grep -A5 -B5 cluster-cidr
+```
+
 ## 常用Helm仓库
 
 - Hub - <https://artifacthub.io/>
@@ -291,3 +428,104 @@ ip link set tunl0 down
 
 - openebs: `sudo ln -s /data/disk1/openebs /var/openebs`
 - helm: `sudo helm plugin install https://github.com/komodorio/helm-dashboard.git`
+
+## 完全删除集群并清理
+
+```bash
+K8S_DATA_DIR=/data/disk1
+sudo systemctl stop kubelet
+sudo kubeadm reset -f
+
+sudo rm -rf /etc/cni/net.d/*
+sudo ipvsadm --clear
+sudo rm -f /root/.kube/config
+sudo rm -rf rm -rf /etc/kubernetes/
+sudo rm -rf /etc/systemd/system/kubelet.service.d
+sudo rm -rf /etc/systemd/system/kubelet.service
+sudo rm -rf $K8S_DATA_DIR/etcd/member
+
+# sudo rm -rf /usr/bin/kube*
+# sudo rm -rf rm -rf /etc/cni /opt/cni
+# sudo rm -rf /var/lib/etcd
+
+# 清空containerd目录
+ps aux | grep /usr/bin/containerd | grep -v grep | awk '{print $2}' | sudo xargs kill
+sudo rm -rf $K8S_DATA_DIR/containerd/*
+sudo dpkg-reconfigure containerd
+
+# Clear iptables
+sudo iptables-save | grep -v KUBE | sudo iptables-restore
+# Clear ipvs
+sudo ipvsadm -C
+
+# 删除k8s images
+sudo ctr -n k8s.io i rm $(sudo ctr -n k8s.io i ls -q)
+# 删除k8s containers
+sudo ctr -n k8s.io c rm $(sudo ctr -n k8s.io c ls -q)
+# 删除k8s snapshot
+sudo ctr -n k8s.io snapshots rm $(sudo ctr -n k8s.io snapshots ls | grep -o -E "sha[0-9]+:[0-9a-fA-F]+")
+# 删除k8s task
+sudo ctr -n k8s.io t rm $(sudo ctr -n k8s.io t ls -q)
+# 删除k8s content
+sudo ctr -n k8s.io content rm $(sudo ctr -n k8s.io content ls -q)
+
+# 删除openebs数据
+sudo rm -rf $K8S_DATA_DIR/openebs/*/*
+# 删除etcd数据
+sudo rm -rf $K8S_DATA_DIR/etcd/*
+```
+
+## 常见问题
+
+### cilium重启后pod启动失败
+
+```bash
+Warning   FailedCreate             replicaset/hubble-relay-7b4c9d4474      Error creating: Timeout: request did not complete within requested timeout - context deadline exceeded
+Warning   FailedCreate             daemonset/cilium                        Error creating: Timeout: request did not complete within requested timeout - context deadline exceeded
+Warning   FailedCreate             daemonset/cilium-envoy                  Error creating: Timeout: request did not complete within requested timeout - context deadline exceeded
+Warning   FailedCreate             replicaset/hubble-ui-76d4965bb6         Error creating: Timeout: request did not complete within requested timeout - context deadline exceeded
+Warning   FailedCreate             replicaset/cilium-operator-799d64575b   Error creating: Timeout: request did not complete within requested timeout - context deadline exceeded
+Warning   FailedCreate             replicaset/hubble-ui-76d4965bb6         Error creating: pods "hubble-ui-76d4965bb6-vvvdq" is forbidden: error looking up service account kube-system/hubble-ui: serviceaccount "hubble-ui" not found
+Warning   FailedCreate             replicaset/cilium-operator-799d64575b   Error creating: pods "cilium-operator-799d64575b-dmvr7" is forbidden: error looking up service account kube-system/cilium-operator: serviceaccount "cilium-operator" not found
+Warning   FailedCreate             replicaset/hubble-relay-7b4c9d4474      Error creating: pods "hubble-relay-7b4c9d4474-g24lg" is forbidden: error looking up service account kube-system/hubble-relay: serviceaccount "hubble-relay" not found
+Warning   FailedCreate             daemonset/cilium-envoy                  Error creating: pods "cilium-envoy-f55k2" is forbidden: error looking up service account kube-system/cilium-envoy: serviceaccount "cilium-envoy" not found
+Warning   FailedCreate             daemonset/cilium                        Error creating: pods "cilium-72jj9" is forbidden: error looking up service account kube-system/cilium: serviceaccount "cilium" not found
+```
+
+
+```bash
+# 检查现有的ServiceAccount
+kubectl get serviceaccount -n kube-system | grep cilium
+
+# 如果ServiceAccount不存在，手动创建
+kubectl create serviceaccount cilium -n kube-system
+kubectl create serviceaccount cilium-operator -n kube-system
+kubectl create serviceaccount hubble-ui -n kube-system
+kubectl create serviceaccount hubble-relay -n kube-system
+kubectl create serviceaccount cilium-envoy -n kube-system
+```
+
+### CNI可执行文件位置错误
+
+debian内cni插件默认指向 `/usr/lib/cni` 但是,k8s安转的cni位于 `/opt/cni/bin`
+编辑 `/etc/containerd/config.toml` ，（软连接补全也可以，某些发行版可能配置在 `/etc/cni/net.d/10-calico.conflist` 里）
+
+```toml
+version = 2
+
+[plugins]
+  [plugins."io.containerd.grpc.v1.cri"]
+    [plugins."io.containerd.grpc.v1.cri".cni]
+      bin_dir = "/opt/cni/bin"  # 原来是 /usr/lib/cni
+      conf_dir = "/etc/cni/net.d"
+  [plugins."io.containerd.internal.v1.opt"]
+    path = "/var/lib/containerd/opt"
+```
+
+
+### 未知原因nodelocaldns起不来
+
+```bash
+sudo kubectl rollout restart daemonset nodelocaldns -n kube-system
+```
+

@@ -1,8 +1,32 @@
-operator:
-  unmanagedPodWatcher:
-    restart: true # Migration: Don't restart unmigrated pods
-routingMode: "native"
+# 参考
+# - https://docs.cilium.io/en/stable/installation/k8s-install-helm/#k8s-install-helm
+# - https://docs.cilium.io/en/stable/helm-reference/
+# Test:
+# - kubectl apply -n cilium-test -f https://raw.githubusercontent.com/cilium/cilium/1.17.4/examples/kubernetes/connectivity-check/connectivity-check.yaml
+# - kubectl get pods -n cilium-test
+# - kubectl delete ns cilium-test
+# 从其他插件迁移到 cilium 先把 operator.unmanagedPodWatcher.restart 改成 true，迁移完后改回false
+# 修改配置: kubectl edit configmap -n kube-system cilium-config
+# operator:
+#   unmanagedPodWatcher:
+#     restart: true # Migration: Don't restart unmigrated pods
+# -- Make Cilium take ownership over the `/etc/cni/net.d` directory on the
+# node, renaming all non-Cilium CNI configurations to `*.cilium_bak`.
+# This ensures no Pods can be scheduled using other CNI plugins during Cilium
+# agent downtime.
+# 如果要使用Multus支持多接口，exclusive 要设置未false
+# exclusive: true
+routingMode: "native" # "native" or "tunnel"
+# enableIPv4Masquerade,enableIPv6Masquerade 和 routingMode 相关
+# 如果 routingMode 是 "tunnel"，则enableIPv4Masquerade,enableIPv6Masquerade 必须开启
+enableIPv4Masquerade: true
+enableIPv6Masquerade: true
+# Enable installation of PodCIDR routes between worker nodes if worker nodes share a common L2 network segment.
+# 如果内部Pod ip对其他节点不可达，主要关闭这个选项
 autoDirectNodeRoutes: true
+# cni:
+#   customConf: true # Migration: Don't install a CNI configuration file
+#   uninstall: false # Migration: Don't remove CNI configuration on shutdown
 endpointRoutes:
   enabled: true
 # IPv6基本配置
@@ -11,17 +35,22 @@ ipv6:
 # IPv4保持启用（双栈）
 ipv4:
   enabled: true
-ipv4NativeRoutingCIDR: "10.32.0.0/12"
-ipv6NativeRoutingCIDR: "fd01:0:1:0a20::1/100"
+# NativeRouting 要求宿主机能够直通这些网段
+# 如果使用 eni 模式，ipam.mode 也要配置为 "eni" 。ENI模式需要平台支持, AWS 下推荐eni模式
+# eni:
+#   enabled: true
+#ipv4NativeRoutingCIDR: "10.32.0.0/12"
+#ipv6NativeRoutingCIDR: "fd01:0:1:0a20::1/96"
 ipam:
   mode: "cluster-pool"
   operator:
+    # 单个Node的Pod数默认限制为 110 , 但是可以改大。太大也没啥意义
     clusterPoolIPv4MaskSize: 22
     clusterPoolIPv6MaskSize: 116
     clusterPoolIPv4PodCIDRList:
-      - "10.32.0.0/12" # Migration: Ensure this is distinct and unused
+      - "10.32.0.0/16"
     clusterPoolIPv6PodCIDRList:
-      - "fd01:0:1:0a20::1/100"
+      - "fd01:0:1:0a20:20::/96"
 
 # 关键配置：不强制要求IPv6 PodCIDR
 k8s:
@@ -34,7 +63,7 @@ hubble:
   ui:
     enabled: true
 
-# 替代kube-proxy (https://docs.cilium.io/en/stable/network/kubernetes/kubeproxy-free/#kube-proxy-hybrid-modes)
+# 替代卸载kube-proxy (https://docs.cilium.io/en/stable/network/kubernetes/kubeproxy-free/#kube-proxy-hybrid-modes)
 ## kubectl -n kube-system delete ds kube-proxy
 ## # Delete the configmap as well to avoid kube-proxy being reinstalled during a Kubeadm upgrade (works only for K8s 1.19 and newer)
 ## kubectl -n kube-system delete cm kube-proxy
@@ -42,7 +71,10 @@ hubble:
 ## iptables-save | grep -v KUBE | iptables-restore
 ## # Clear ipvs
 ## ipvsadm -C
-#k8sServiceHost: "auto"
+## # 重启后验证ipvs和iptables不会再自动创建
+## iptables-save | grep KUBE
+## ipvsadm -ln
+k8sServiceHost: "auto"
 #k8sServicePort: 6443
 kubeProxyReplacement: true
 socketLB:
@@ -70,8 +102,6 @@ egressGateway:
   enabled: true
 wellKnownIdentities:
   enabled: true
-# Install Iptables rules to skip netfilter connection tracking on all pod traffic. This option is only effective when Cilium is running in direct routing and full KPR mode. Moreover, this option cannot be enabled when Cilium is running in a managed Kubernetes environment or in a chained CNI setup.
-installNoConntrackIptablesRules: true
 loadBalancer:
   # acceleration使用native需要查询网卡是否支持: lspci | grep Ethernet
   # https://docs.cilium.io/en/stable/reference-guides/bpf/progtypes/#xdp-drivers

@@ -1,6 +1,0 @@
-write-kubeconfig-mode: "0644"
-tls-san:
-  - "k3s.x-ha.com"
-node-label:
-  - "area.region=cn"
-  - "area.district=sh"

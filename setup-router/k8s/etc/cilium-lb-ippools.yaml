@@ -9,9 +9,9 @@ metadata:
 spec:
   blocks:
     - cidr: "10.100.0.0/24"
-    - cidr: "fd01:0:1:0a40:0064:0:0:1/112"
+    - cidr: "fd01:0:1:0a40:0064:0:0::/112"
     - cidr: "10.100.1.0/24"
-    - cidr: "fd01:0:1:0a40:0064:0:1:1/112"
+    - cidr: "fd01:0:1:0a40:0064:0:1::/112"
   # disabled: false
   # serviceSelector:
   #   matchExpressions:

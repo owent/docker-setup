@@ -1,7 +1,65 @@
+# https://docs.rke2.io/zh/reference/server_config
+# /etc/rancher/rke2/config.yaml
 write-kubeconfig-mode: "0644"
+token: "<TOKEN>"
+# server: https://my-kubernetes-domain.com:9345 # 高可用后续节点
 tls-san:
-  - "k3s.x-ha.com"
+  - "k8s.x-ha.com"
+  - "k8s-master-01.x-ha.com"
+  - "k8s-master-02.x-ha.com"
+  - "k8s-master-03.x-ha.com"
+  - "k8s-agent-01.x-ha.com"
+  - "k8s-agent-02.x-ha.com"
+  - "k8s-agent-03.x-ha.com"
+  - k8s-master-01
+  - k8s-master-02
+  - k8s-master-03
+  - k8s-agent-01
+  - k8s-agent-02
+  - k8s-agent-03
+  - 10.68.0.1
+  - 10.68.0.2
+  - 10.68.0.3
+  - 10.68.64.1
+  - 10.68.64.2
+  - 10.68.64.3
+node-name: k8s-master-01
+node-ip: 10.68.0.1
+# node-external-ip: # (agent/networking) IPv4/IPv6 external IP addresses to advertise for node
 node-label:
-  - "area.region=us"
-  - "area.district=sv"
+  - "cloud.platform=devops_rke2"
+  - "cloud.provider=rke2"
+  - "cloud.region=cn-east-1"
+  - "deployment.environment.name=devops"
 cluster-init: true
+data-dir: /data/disk1/rancher/rke2 # (default: "/var/lib/rancher/rke2")，可能会影响 manifests 安装目录?
+# advertise-address: # IPv4 address that apiserver uses to advertise to members of the cluster (default: node-external-ip/node-ip)
+cluster-cidr:
+  - 10.32.0.0/16
+  - fd01:0:1:0a20:20::/96
+service-cidr:
+  - 10.48.0.0/16
+  - fd01:0:1:0a20:30::/96
+kube-controller-manager-arg: # (flags) Customized flag for kube-controller-manager process
+  - "node-cidr-mask-size-ipv4=22"
+  - "node-cidr-mask-size-ipv6=116"
+service-node-port-range: "30000-32767"
+cluster-dns: "10.48.0.10,fd01:0:1:0a20:30::a" # (networking) IPv4 Cluster IP for coredns service. Should be in your service-cidr range (default: 10.43.0.10)
+cluster-domain: cluster.devops
+cni: cilium
+disable-kube-proxy: true
+# etcd-s3: true
+# etcd-s3-endpoint: "s3.cn-shanghai.aliyuncs.com"
+# etcd-s3-endpoint-ca: "/etc/rancher/rke2/certs/ca.pem"
+# etcd-s3-skip-ssl-verify: false
+# etcd-s3-access-key: "<ETCD_S3_ACCESS_KEY>"
+# etcd-s3-secret-key: "<ETCD_S3_SECRET>"
+# etcd-s3-bucket: "rke2-etcd-backup"
+# etcd-s3-region: "cn"
+# etcd-s3-folder: "rke2"
+# (components) Do not deploy packaged components and delete any deployed components (valid items: rke2-coredns, rke2-ingress-nginx, rke2-metrics-server)
+# disable: []
+
+# Reset
+# cluster-reset: true              (experimental/cluster) Forget all peers and become sole member of a new cluster [$RKE2_CLUSTER_RESET]
+# cluster-reset-restore-path: path (db) Path to snapshot file to be restored
