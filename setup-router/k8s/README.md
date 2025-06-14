@@ -183,6 +183,7 @@ sudo cp -f "$PWD/config.yaml" /etc/rancher/rke2/
 # sudo mount -a
 if [[ -e "$PWD/setup" ]]; then
   sudo cp -rf "$PWD/setup/"* /var/lib/rancher/
+  sudo cp -rf "$PWD/setup/rke2/"* $K8S_DATA_DIR/rancher/storage/data/
 fi
 if [[ -e "$PWD/config.yaml.d/registries.yaml" ]]; then
   sudo cp -f "$PWD/config.yaml.d/registries.yaml" /etc/rancher/rke2/registries.yaml
@@ -384,7 +385,7 @@ helm upgrade --force cilium cilium/cilium --namespace kube-system --values curre
 kubectl patch configmap cilium-config -n kube-system --patch='
 data:
   cluster-pool-ipv4-mask-size: "22"
-  cluster-pool-ipv6-mask-size: "118"
+  cluster-pool-ipv6-mask-size: "116"
 '
 
 ## 检查服务使配置
@@ -451,8 +452,19 @@ kubectl get pod -n kube-system kube-controller-manager-* -o yaml | grep -A5 -B5 
 - Hub - <https://artifacthub.io/>
 - kubesphere-stable: <https://charts.kubesphere.io/stable>
 - rancher: <https://releases.rancher.com/server-charts/>
+  - `helm repo add rancher-stable https://releases.rancher.com/server-charts/stable`
+  - `helm repo add jetstack https://charts.jetstack.io`
+  - `helm repo update`
+  - `helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --set crds.enabled=true`
+  - `kubectl create namespace cattle-system`
+  - `helm upgrade --install rancher rancher-stable/rancher --namespace cattle-system --set hostname=rancher.w-oa.com --set bootstrapPassword=admin`
+  - `kubectl get secret --namespace cattle-system bootstrap-secret -o go-template='{{.data.bootstrapPassword|base64decode}}{{ "\n" }}'`
 - bitnami: <https://charts.bitnami.com/bitnami>
 - openebs: <https://openebs.github.io/openebs>
+  - `helm repo add openebs https://openebs.github.io/openebs && helm repo update`
+  - `helm upgrade --install openebs --namespace openebs openebs/openebs --create-namespace --set engines.local.zfs.enabled=false --set engines.local.lvm.enabled=false --set mayastor.localpv-provisioner.enabled=true --set openebs-crds.csi.volumeSnapshots.enabled=false --set mayastor.etcd.clusterDomain=cluster.devops`
+  - (Optional): `kubectl patch openebs-hostpath standard -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'`
+  - `kubectl get storageclass -o wide`
 - metallb: <https://metallb.github.io/metallb>
 - cilium: <https://helm.cilium.io/>
 - prometheus-community: <https://prometheus-community.github.io/helm-charts>
@@ -476,7 +488,6 @@ kubectl get pod -n kube-system kube-controller-manager-* -o yaml | grep -A5 -B5 
 
 ## 新增节点后操作
 
-- openebs: `sudo ln -s /data/disk1/openebs /var/openebs`
 - helm: `sudo helm plugin install https://github.com/komodorio/helm-dashboard.git`
 
 ## 完全删除集群并清理

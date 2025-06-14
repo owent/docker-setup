@@ -1,4 +1,5 @@
 # /var/lib/rancher/rke2/server/manifests/rke2-cilium-config.yaml
+# /data/disk1/rancher/storage/data/server/manifests/rke2-cilium-config.yaml
 ---
 apiVersion: helm.cattle.io/v1
 kind: HelmChartConfig
@@ -10,7 +11,7 @@ spec:
     # 如果要使用Multus支持多接口，exclusive 要设置未false
     # exclusive: true
     # "native" or "tunnel"
-    routingMode: "native"
+    # routingMode: "native"
     # enableIPv4Masquerade,enableIPv6Masquerade 和 routingMode 相关
     # 如果 routingMode 是 "tunnel"，则enableIPv4Masquerade,enableIPv6Masquerade 必须开启
     enableIPv4Masquerade: true
@@ -19,10 +20,8 @@ spec:
     # 如果内部Pod ip对其他节点不可达，主要关闭这个选项, autoDirectNodeRoutes 必须和 ipv4NativeRoutingCIDR,ipv6NativeRoutingCIDR 搭配
     # autoDirectNodeRoutes: true
     # routingMode: "native" 要求必须配置内地路由
-    ipv4NativeRoutingCIDR: "10.68.0.1/10"
-    ipv6NativeRoutingCIDR: "fd01:0:1:a40:0:44:0:1/64"
-    endpointRoutes:
-      enabled: true
+    # ipv4NativeRoutingCIDR: "10.68.0.1/10"
+    # ipv6NativeRoutingCIDR: "fd01:0:1:a40:0:44:0:1/64"
     # IPv6基本配置
     ipv6:
       enabled: true
@@ -30,13 +29,13 @@ spec:
     ipv4:
       enabled: true
     # NativeRouting 要求宿主机能够直通这些网段
-    #ipv4NativeRoutingCIDR: "10.32.0.0/12"
-    #ipv6NativeRoutingCIDR: "fd01:0:1:0a20::1/96"
     # 如果使用 eni 模式，ipam.mode 也要配置为 "eni" 。ENI模式需要平台支持, AWS 下推荐eni模式
     # eni:
     #   enabled: true
     ipam:
-      mode: "cluster-pool"
+      mode: "kubernetes"
+      # mode: "cluster-pool"
+      # 下面选项在使用 cluster-pool 模式时才需要
       operator:
         # 单个Node的Pod数默认限制为 110 , 但是可以改大。太大也没啥意义
         # mask size - crdi <= 16, @see https://github.com/kubernetes/kubernetes/blob/master/pkg/controller/nodeipam/ipam/cidrset/cidr_set.go
@@ -47,23 +46,19 @@ spec:
           - "10.32.0.0/16"
         clusterPoolIPv6PodCIDRList:
           - "fd01:0:1:0a20:20::/104"
-
-    # 关键配置：不强制要求IPv6 PodCIDR
     k8s:
       requireIPv6PodCIDR: false
-
     hubble:
       enabled: true
       relay:
         enabled: true
       ui:
         enabled: true
-
-    # 替代卸载kube-proxy (https://docs.cilium.io/en/stable/network/kubernetes/kubeproxy-free/#kube-proxy-hybrid-modes)
+    # 替代kube-proxy (https://docs.cilium.io/en/stable/network/kubernetes/kubeproxy-free/#kube-proxy-hybrid-modes)
     # 不能使用auto，必须指定IP。否则启动会自依赖
     k8sServiceHost: "10.68.0.1"
     k8sServicePort: 6443
-    kubeProxyReplacement: "true"
+    # kubeProxyReplacement: "true"
     socketLB:
       enabled: true
     nodePort:
@@ -84,9 +79,6 @@ spec:
       tproxy: true
       preallocateMaps: true
     bpfClockProbe: true
-    localRedirectPolicy: true
-    egressGateway:
-      enabled: true
     wellKnownIdentities:
       enabled: true
     loadBalancer:
@@ -94,6 +86,5 @@ spec:
       # https://docs.cilium.io/en/stable/reference-guides/bpf/progtypes/#xdp-drivers
       acceleration: best-effort
       mode: hybrid
-
     enableLBIPAM: true
     # defaultLBServiceIPAM: lbipam # lbipam, nodeipam, none

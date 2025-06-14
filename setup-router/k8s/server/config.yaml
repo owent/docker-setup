@@ -30,7 +30,8 @@ node-label:
   - "cloud.provider=rke2"
   - "cloud.region=cn-east-1"
   - "deployment.environment.name=devops"
-data-dir: /data/disk1/rancher/storage/data # (default: "/var/lib/rancher/rke2")，可能会影响 manifests 安装目录?
+# 可能会影响 manifests 安装目录?导致 cilium 无法正确安装
+# data-dir: /data/disk1/rancher/storage/data # (default: "/var/lib/rancher/rke2")
 # advertise-address: # IPv4 address that apiserver uses to advertise to members of the cluster (default: node-external-ip/node-ip)
 
 # mask size - crdi <= 16, @see https://github.com/kubernetes/kubernetes/blob/master/pkg/controller/nodeipam/ipam/cidrset/cidr_set.go
@@ -46,6 +47,9 @@ cluster-dns: "10.48.0.10,fd01:0:1:0a20:30::a" # (networking) IPv4 Cluster IP for
 cluster-domain: cluster.devops
 cni: cilium
 # RKE不支持安装的时候关闭 kube-proxy，必须在安装后手动关闭
+# - kubectl -n kube-system delete ds kube-proxy
+# - kubectl -n kube-system delete cm kube-proxy
+# - iptables-save | grep -v KUBE | iptables-restore
 # disable-kube-proxy: true
 # etcd-s3: true
 # etcd-s3-endpoint: "s3.cn-shanghai.aliyuncs.com"
