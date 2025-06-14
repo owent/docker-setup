@@ -2,11 +2,11 @@
 # mirrors:
 #   <REGISTRY>:
 #     endpoint:
-#       - https://<REGISTRY>/v2
+#       - https://<MIRROR_REGISTRY>/v2
 #     rewrite:
 #       "^rancher/(.*)": "mirrorproject/rancher-images/$1"
 # configs:
-#   <REGISTRY>:
+#   <MIRROR_REGISTRY>:
 #     auth:
 #       username: <BASIC AUTH USERNAME>
 #       password: <BASIC AUTH PASSWORD>
@@ -19,4 +19,45 @@
 mirrors:
   docker.io:
     endpoint:
-      - "https://mirror.ccs.tencentyun.com"
+      # - "https://mirror.ccs.tencentyun.com"
+      - "https://docker.xuanyuan.me"
+      - "https://docker.1ms.run"
+      # - "https://docker.xuanyuan.dev" # VIP
+      # - "https://docker-vip.1ms.run" # VIP
+  registry.k8s.io:
+    endpoint:
+      - "https://k8s.1ms.run"
+      - "https://k8s.xuanyuan.dev"
+  gcr.io:
+    endpoint:
+      - "https://gcr.1ms.run"
+      - "https://gcr.xuanyuan.dev"
+  ghcr.io":
+    endpoint:
+      - "https://ghcr.1ms.run"
+      - "https://ghcr.xuanyuan.dev"
+  quay.io:
+    endpoint:
+      - "https://quay.1ms.run"
+      - "https://quay.xuanyuan.dev"
+  mcr.microsoft.com:
+    endpoint:
+      - "https://mcr.1ms.run"
+      - "https://mcr.xuanyuan.dev"
+  docker.elastic.co:
+    endpoint:
+      - "https://elastic.1ms.run"
+      - "https://elastic.xuanyuan.dev"
+configs:
+  "https://docker-vip.1ms.run":
+    auth:
+      username: <BASIC AUTH USERNAME>
+      password: <BASIC AUTH PASSWORD>
+    tls:
+      insecure_skip_verify: true
+  "https://docker.xuanyuan.dev":
+    auth:
+      username: <BASIC AUTH USERNAME>
+      password: <BASIC AUTH PASSWORD>
+    tls:
+      insecure_skip_verify: true

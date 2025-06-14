@@ -4,7 +4,7 @@
 
 ```bash
 # 依赖包
-sudo apt install -y sudo openssl curl socat conntrack ebtables ipset ipvsadm ethtool chrony
+sudo apt install -y sudo openssl curl socat conntrack ebtables ipset ipvsadm ethtool chrony ndisc6 sysstat
 sudo systemctl enable chrony --now
 sudo systemctl disable dnsmasq
 sudo systemctl stop dnsmasq
@@ -13,11 +13,38 @@ sudo systemctl disable systemd-resolved
 
 # 存储位置
 K8S_DATA_DIR=/data/disk1
-sudo mkdir -p $K8S_DATA_DIR/containerd && sudo rm -rf /var/lib/containerd && sudo ln -sf $K8S_DATA_DIR/containerd /var/lib/containerd && sudo dpkg-reconfigure containerd
-sudo mkdir -p $K8S_DATA_DIR/k8s/containerd $K8S_DATA_DIR/k8s/docker $K8S_DATA_DIR/k8s/registry $K8S_DATA_DIR/etcd $K8S_DATA_DIR/openebs/local
-sudo chmod 777 $K8S_DATA_DIR/containerd $K8S_DATA_DIR/k8s $K8S_DATA_DIR/k8s/containerd $K8S_DATA_DIR/k8s/docker $K8S_DATA_DIR/k8s/registry $K8S_DATA_DIR/etcd $K8S_DATA_DIR/openebs $K8S_DATA_DIR/openebs/local
-sudo rm -rf /var/openebs && sudo ln -sf $K8S_DATA_DIR/openebs /var/openebs
-sudo rm -rf /var/lib/etcd && sudo ln -sf $K8S_DATA_DIR/etcd /var/lib/etcd
+
+sudo systemctl stop docker
+sudo rm -rf /var/lib/containerd /var/openebs /var/lib/kubelet /var/lib/etcd /var/lib/rancher
+sudo mkdir -p /var/lib/containerd /var/openebs /var/lib/kubelet /var/lib/etcd /var/lib/rancher
+sudo mkdir -p $K8S_DATA_DIR/k8s/storage/etcd $K8S_DATA_DIR/k8s/storage/kubelet $K8S_DATA_DIR/k8s/storage/containerd \
+  $K8S_DATA_DIR/openebs/storage/var $K8S_DATA_DIR/rancher/storage/var $K8S_DATA_DIR/rancher/storage/data
+```
+
+准备bind目录 `/etc/fstab`
+
+```bash
+# 主 XFS 文件系统，
+## XFS文件系统优化选项: largeio,inode64,allocsize=64m,logbsize=256k
+## SSD 优化选项 noatime,nodiratime,discard
+/dev/nvme0n1p1 /data/disk1 xfs noatime,nodiratime,largeio,inode64,allocsize=64m,logbufs=8,logbsize=512k,noquota 0 2
+
+# Kubernetes 组件 bind mount
+/data/disk1/k8s/storage/etcd /var/lib/etcd none bind,noatime,nodiratime,nodev,nosuid,noexec 0 0
+/data/disk1/k8s/storage/kubelet /var/lib/kubelet none bind,noatime,nodiratime,nodev,nosuid 0 0
+/data/disk1/k8s/storage/containerd /var/lib/containerd none bind,noatime,nodiratime,nodev,nosuid 0 0
+/data/disk1/openebs/storage/var /var/openebs none bind,noatime,nodiratime,nodev,nosuid 0 0
+/data/disk1/rancher/storage/var /var/lib/rancher none bind,noatime,nodiratime,nodev,nosuid 0 0
+
+# 配置文件只读绑定
+# /data/disk1/k8s/storage/k8s/etc /etc/kubernetes none bind,ro,nodev,nosuid,noexec 0 0
+```
+
+```bash
+
+sudo systemctl daemon-reload
+sudo mount -a
+sudo dpkg-reconfigure containerd
 
 ## openebs需要
 ## 开启内核选项: nvme_core.multipath=Y
@@ -31,7 +58,7 @@ NetworkManager 忽略CNI接口
 
 ```bash
 echo '[keyfile]
-unmanaged-devices=interface-name:cali*;interface-name:flannel*;interface-name:nodelocaldns;interface-name:eth*,except:interface-name:eth0' | sudo tee '/etc/NetworkManager/conf.d/k8s.conf'
+unmanaged-devices=interface-name:cali*;interface-name:flannel*;interface-name:eth*,except:interface-name:eth0' | sudo tee '/etc/NetworkManager/conf.d/k8s.conf'
 
 echo '
 [Match]
@@ -145,32 +172,42 @@ curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--flannel-backend none --token 
 curl -sfL https://get.k3s.io | sh -s - --flannel-backend none --token 12345
 
 # RKE2
-curl -sfL https://rancher-mirror.rancher.cn/rke2/install.sh -o install.sh && chmod +x install.sh
+## 不要用 INSTALL_RKE2_MIRROR=cn 镜像有缺失
+curl -sfL https://get.rke2.io -o install.sh && chmod +x install.sh
+# curl -sfL https://rancher-mirror.rancher.cn/rke2/install.sh -o install.sh && chmod +x install.sh
 
 K8S_DATA_DIR=/data/disk1
-sudo mkdir -p $K8S_DATA_DIR/rancher/rke2-data $K8S_DATA_DIR/rancher/rke2-var
-sudo chmod 777 $K8S_DATA_DIR/rancher/rke2-data $K8S_DATA_DIR/rancher/rke2-var
-sudo rm -rf /var/lib/rancher && sudo ln -sf $K8S_DATA_DIR/rancher/rke2-var /var/lib/rancher
-sudo rm -rf /etc/rancher/rke2 && sudo mkdir -p /etc/rancher && sudo ln -s $PWD/etc /etc/rancher/rke2
+sudo chmod 777 $K8S_DATA_DIR/rancher/storage/data $K8S_DATA_DIR/rancher/storage/var
+sudo mkdir -p /etc/rancher/rke2
+sudo cp -f "$PWD/config.yaml" /etc/rancher/rke2/
+# sudo mount -a
 if [[ -e "$PWD/setup" ]]; then
   sudo cp -rf "$PWD/setup/"* /var/lib/rancher/
 fi
-sudo cp -f "$PWD/config.yaml" /etc/rancher/rke2/
+if [[ -e "$PWD/config.yaml.d/registries.yaml" ]]; then
+  sudo cp -f "$PWD/config.yaml.d/registries.yaml" /etc/rancher/rke2/registries.yaml
+fi
 
 ## Setup server
-sudo env INSTALL_RKE2_MIRROR=cn INSTALL_RKE2_CHANNEL=latest RKE2_CONFIG_FILE=$PWD/config.yaml ./install.sh
+## 不要用 INSTALL_RKE2_MIRROR=cn 镜像有缺失
+sudo env INSTALL_RKE2_CHANNEL=stable RKE2_CONFIG_FILE=/etc/rancher/rke2/config.yaml ./install.sh
 sudo sed -i '/RKE2_CONFIG_FILE=/d' /usr/local/lib/systemd/system/rke2-server.env
 sudo sed -i '/INSTALL_RKE2_MIRROR=/d' /usr/local/lib/systemd/system/rke2-server.env
-echo "RKE2_CONFIG_FILE=$PWD/config.yaml
-INSTALL_RKE2_MIRROR=cn" | sudo tee -a /usr/local/lib/systemd/system/rke2-server.env
+sudo sed -i '/INSTALL_RKE2_VERSION=/d' /usr/local/lib/systemd/system/rke2-server.env
+echo "RKE2_CONFIG_FILE=/etc/rancher/rke2/config.yaml
+INSTALL_RKE2_CHANNEL=stable
+" | sudo tee -a /usr/local/lib/systemd/system/rke2-server.env
 sudo systemctl start rke2-server && sudo systemctl enable rke2-server
 
 ## Setup agent
-sudo env INSTALL_RKE2_MIRROR=cn INSTALL_RKE2_CHANNEL=latest INSTALL_RKE2_TYPE="agent" RKE2_CONFIG_FILE=$PWD/config.yaml  ./
+## 不要用 INSTALL_RKE2_MIRROR=cn 镜像有缺失
+sudo env INSTALL_RKE2_CHANNEL=stable INSTALL_RKE2_TYPE="agent" RKE2_CONFIG_FILE=$PWD/config.yaml  ./
 sudo sed -i '/RKE2_CONFIG_FILE=/d' /usr/local/lib/systemd/system/rke2-agent.env
 sudo sed -i '/INSTALL_RKE2_MIRROR=/d' /usr/local/lib/systemd/system/rke2-agent.env
+sudo sed -i '/INSTALL_RKE2_VERSION=/d' /usr/local/lib/systemd/system/rke2-agent.env
 echo "RKE2_CONFIG_FILE=$PWD/config.yaml
-INSTALL_RKE2_MIRROR=cn" | sudo tee -a /usr/local/lib/systemd/system/rke2-agent.env
+INSTALL_RKE2_CHANNEL=stable
+" | sudo tee -a /usr/local/lib/systemd/system/rke2-agent.env
 sudo systemctl start rke2-agent && sudo systemctl enable rke2-agent
 
 # master
@@ -183,6 +220,8 @@ vim $PWD/config.yaml
 ## 启动节点
 systemctl start rke2-server.service
 ## kubeconfig 文件将写入 /etc/rancher/rke2/rke2.yaml
+## 可执行文件位于 $K8S_DATA_DIR/rancher/storage/data/bin 或 /var/lib/rancher/rke2/bin
+## crictl 配置位于 $K8S_DATA_DIR/rancher/storage/data/agent/etc/crictl.yaml 或 /var/lib/rancher/rke2/agent/etc/crictl.yaml
 ## 节点令牌在 /var/lib/rancher/rke2/server/node-token
 
 # agent
@@ -266,6 +305,17 @@ curl -sfL https://get.k3s.io | K3S_URL=https://k3s.example.com K3S_TOKEN=mypassw
 ```
 
 ## 集群设置
+
+### 底层容器命令
+
+```bash
+K8S_DATA_DIR=/data/disk1
+export CRI_CONFIG_FILE=$K8S_DATA_DIR/rancher/storage/data/agent/etc/crictl.yaml
+export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
+crictl ps -a
+crictl logs $(crictl ps -a | grep apiserver | awk '{print $1}') # Container log
+crictl events # Find event log path
+```
 
 ### 常用命令
 

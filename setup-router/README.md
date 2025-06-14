@@ -38,7 +38,7 @@ blacklist ip6table_nat
 # Upper script will disable auto load , or using scripts below to force disable modules
 # install iptable_nat /bin/true
 # install ip6table_nat /bin/true
-" | tee /etc/modprobe.d/disable-iptables.conf
+" | sudo tee /etc/modprobe.d/disable-iptables.conf
 
 cp -f kernel-modules-tproxy.conf /etc/modules-load.d/tproxy.conf ;
 cp -f kernel-modules-ppp.conf /etc/modules-load.d/ppp.conf ;

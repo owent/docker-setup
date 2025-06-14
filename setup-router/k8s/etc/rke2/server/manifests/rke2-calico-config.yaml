@@ -1,0 +1,29 @@
+# /var/lib/rancher/rke2/server/manifests/rke2-calico-config.yaml
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: rke2-calico
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    installation:
+      calicoNetwork:
+        linuxDataplane: BPF
+        variant: Calico
+    ipPools:
+    - blockSize: 22
+      cidr: 10.32.0.0/16
+      encapsulation: VXLANCrossSubnet
+      natOutgoing: Enabled
+      nodeSelector: all()
+    # mask size - crdi <= 16, @see https://github.com/kubernetes/kubernetes/blob/master/pkg/controller/nodeipam/ipam/cidrset/cidr_set.go
+    # bits - ones <= maxCIDRBits(20)
+    - blockSize: 116
+      cidr: fd01:0:1:0a20:20::/104
+      encapsulation: VXLANCrossSubnet
+      natOutgoing: Enabled
+      nodeSelector: all()
+    nodeAddressAutodetectionV4:
+      interface: "eth.*"
+    nodeAddressAutodetectionV6:
+      interface: "eth.*"

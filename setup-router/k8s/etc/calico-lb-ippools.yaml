@@ -1,0 +1,28 @@
+# https://docs.tigera.io/calico/latest/reference/resources/ippool
+# kubectl apply -f calico-lb-ippools
+# kubectl get ippools
+# kubectl describe ippools/default-lb-pool
+---
+# ipv4-pool.yaml
+apiVersion: projectcalico.org/v3
+kind: IPPool
+metadata:
+  name: default-ipv4-ippool
+spec:
+  cidr: 10.100.0.0/24
+  blockSize: 22
+  ipipMode: CrossSubnet
+  natOutgoing: true
+  nodeSelector: all()
+---
+# ipv6-pool.yaml
+apiVersion: projectcalico.org/v3
+kind: IPPool
+metadata:
+  name: default-ipv6-ippool
+spec:
+  cidr: fd01:0:1:0a40:0064:0:0::/112
+  blockSize: 116
+  ipipMode: Never
+  natOutgoing: true
+  nodeSelector: all()
