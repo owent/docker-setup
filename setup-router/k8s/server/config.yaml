@@ -3,6 +3,7 @@
 # debug: true
 write-kubeconfig-mode: "0644"
 token: "<TOKEN>"
+# 完全替代kube-proxy的模式中，还要修改cilium配置 k8sServiceHost/k8sServicePort 为本机的外部IP/6443，否则会自依赖无法启动
 # server: https://my-kubernetes-domain.com:9345 # 高可用后续节点
 tls-san:
   - "k8s.x-ha.com"
@@ -44,7 +45,8 @@ service-node-port-range: "30000-32767"
 cluster-dns: "10.48.0.10,fd01:0:1:0a20:30::a" # (networking) IPv4 Cluster IP for coredns service. Should be in your service-cidr range (default: 10.43.0.10)
 cluster-domain: cluster.devops
 cni: cilium
-disable-kube-proxy: true
+# RKE不支持安装的时候关闭 kube-proxy，必须在安装后手动关闭
+# disable-kube-proxy: true
 # etcd-s3: true
 # etcd-s3-endpoint: "s3.cn-shanghai.aliyuncs.com"
 # etcd-s3-endpoint-ca: "/etc/rancher/rke2/certs/ca.pem"

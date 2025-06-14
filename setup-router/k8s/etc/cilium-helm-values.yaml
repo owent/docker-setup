@@ -16,14 +16,17 @@
 # agent downtime.
 # 如果要使用Multus支持多接口，exclusive 要设置未false
 # exclusive: true
-routingMode: "native" # "native" or "tunnel"
+# "native" or "tunnel"
+routingMode: "native"
 # enableIPv4Masquerade,enableIPv6Masquerade 和 routingMode 相关
 # 如果 routingMode 是 "tunnel"，则enableIPv4Masquerade,enableIPv6Masquerade 必须开启
 enableIPv4Masquerade: true
 enableIPv6Masquerade: true
 # Enable installation of PodCIDR routes between worker nodes if worker nodes share a common L2 network segment.
-# 如果内部Pod ip对其他节点不可达，主要关闭这个选项
+# 如果内部Pod ip对其他节点不可达，主要关闭这个选项, autoDirectNodeRoutes 必须和 ipv4NativeRoutingCIDR,ipv6NativeRoutingCIDR 搭配
 autoDirectNodeRoutes: true
+ipv4NativeRoutingCIDR: "10.68.0.1/10"
+ipv6NativeRoutingCIDR: "fd01:0:1:a40:0:44:0:1/64"
 # cni:
 #   customConf: true # Migration: Don't install a CNI configuration file
 #   uninstall: false # Migration: Don't remove CNI configuration on shutdown
@@ -39,8 +42,6 @@ ipv4:
 # 如果使用 eni 模式，ipam.mode 也要配置为 "eni" 。ENI模式需要平台支持, AWS 下推荐eni模式
 # eni:
 #   enabled: true
-#ipv4NativeRoutingCIDR: "10.32.0.0/12"
-#ipv6NativeRoutingCIDR: "fd01:0:1:0a20::1/96"
 ipam:
   mode: "cluster-pool"
   operator:
@@ -68,7 +69,7 @@ hubble:
 # 替代卸载kube-proxy (https://docs.cilium.io/en/stable/network/kubernetes/kubeproxy-free/#kube-proxy-hybrid-modes)
 k8sServiceHost: "auto"
 #k8sServicePort: 6443
-kubeProxyReplacement: true
+kubeProxyReplacement: "true"
 socketLB:
   enabled: true
 nodePort:

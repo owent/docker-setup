@@ -1,0 +1,9 @@
+# https://docs.tigera.io/calico/latest/operations/ebpf/enabling-ebpf#enabling-ebpf
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: kubernetes-services-endpoint
+  namespace: kube-system
+data:
+  KUBERNETES_SERVICE_HOST: "<API server host>"
+  KUBERNETES_SERVICE_PORT: "<API server port>"

@@ -55,6 +55,42 @@ configs:
       password: <BASIC AUTH PASSWORD>
     tls:
       insecure_skip_verify: true
+  "https://k8s.1ms.run":
+    auth:
+      username: <BASIC AUTH USERNAME>
+      password: <BASIC AUTH PASSWORD>
+    tls:
+      insecure_skip_verify: true
+  "https://gcr.1ms.run":
+    auth:
+      username: <BASIC AUTH USERNAME>
+      password: <BASIC AUTH PASSWORD>
+    tls:
+      insecure_skip_verify: true
+  "https://ghcr.1ms.run":
+    auth:
+      username: <BASIC AUTH USERNAME>
+      password: <BASIC AUTH PASSWORD>
+    tls:
+      insecure_skip_verify: true
+  "https://quay.1ms.run":
+    auth:
+      username: <BASIC AUTH USERNAME>
+      password: <BASIC AUTH PASSWORD>
+    tls:
+      insecure_skip_verify: true
+  "https://mcr.1ms.run":
+    auth:
+      username: <BASIC AUTH USERNAME>
+      password: <BASIC AUTH PASSWORD>
+    tls:
+      insecure_skip_verify: true
+  "https://elastic.1ms.run":
+    auth:
+      username: <BASIC AUTH USERNAME>
+      password: <BASIC AUTH PASSWORD>
+    tls:
+      insecure_skip_verify: true
   "https://docker.xuanyuan.dev":
     auth:
       username: <BASIC AUTH USERNAME>

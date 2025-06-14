@@ -1,4 +1,6 @@
 # /var/lib/rancher/rke2/server/manifests/rke2-calico-config.yaml
+#
+---
 apiVersion: helm.cattle.io/v1
 kind: HelmChartConfig
 metadata:
@@ -9,21 +11,32 @@ spec:
     installation:
       calicoNetwork:
         linuxDataplane: BPF
+        hostPorts: Enabled
         variant: Calico
-    ipPools:
-    - blockSize: 22
-      cidr: 10.32.0.0/16
-      encapsulation: VXLANCrossSubnet
-      natOutgoing: Enabled
-      nodeSelector: all()
-    # mask size - crdi <= 16, @see https://github.com/kubernetes/kubernetes/blob/master/pkg/controller/nodeipam/ipam/cidrset/cidr_set.go
-    # bits - ones <= maxCIDRBits(20)
-    - blockSize: 116
-      cidr: fd01:0:1:0a20:20::/104
-      encapsulation: VXLANCrossSubnet
-      natOutgoing: Enabled
-      nodeSelector: all()
-    nodeAddressAutodetectionV4:
-      interface: "eth.*"
-    nodeAddressAutodetectionV6:
-      interface: "eth.*"
+      ipPools:
+      - blockSize: 22
+        cidr: 10.32.0.0/16
+        encapsulation: VXLANCrossSubnet
+        natOutgoing: Enabled
+        nodeSelector: all()
+      # mask size - crdi <= 16, @see https://github.com/kubernetes/kubernetes/blob/master/pkg/controller/nodeipam/ipam/cidrset/cidr_set.go
+      # bits - ones <= maxCIDRBits(20)
+      - blockSize: 116
+        cidr: fd01:0:1:0a20:20::/104
+        encapsulation: VXLANCrossSubnet
+        natOutgoing: Enabled
+        nodeSelector: all()
+      nodeAddressAutodetectionV4:
+        interface: "eth.*"
+      nodeAddressAutodetectionV6:
+        interface: "eth.*"
+      felixConfiguration:
+        featureDetectOverride: "ChecksumOffloadBroken=false"
+
+# https://docs.tigera.io/calico/latest/operations/ebpf/install
+# After install
+### Create the Config Map
+### Tweak and apply installation Custom Resources
+## kubectl patch installation.operator.tigera.io default --type merge -p '{"spec":{"calicoNetwork":{"linuxDataplane":"BPF", "hostPorts":null}}}'
+### Disable kube-proxy (or avoid conflicts)
+## kubectl patch ds -n kube-system kube-proxy -p '{"spec":{"template":{"spec":{"nodeSelector":{"non-calico": "true"}}}}}'

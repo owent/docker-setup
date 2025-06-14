@@ -1,4 +1,5 @@
 # /var/lib/rancher/rke2/server/manifests/rke2-cilium-config.yaml
+---
 apiVersion: helm.cattle.io/v1
 kind: HelmChartConfig
 metadata:
@@ -8,14 +9,18 @@ spec:
   valuesContent: |-
     # 如果要使用Multus支持多接口，exclusive 要设置未false
     # exclusive: true
-    routingMode: "native" # "native" or "tunnel"
+    # "native" or "tunnel"
+    routingMode: "native"
     # enableIPv4Masquerade,enableIPv6Masquerade 和 routingMode 相关
     # 如果 routingMode 是 "tunnel"，则enableIPv4Masquerade,enableIPv6Masquerade 必须开启
     enableIPv4Masquerade: true
     enableIPv6Masquerade: true
     # Enable installation of PodCIDR routes between worker nodes if worker nodes share a common L2 network segment.
-    # 如果内部Pod ip对其他节点不可达，主要关闭这个选项
-    autoDirectNodeRoutes: true
+    # 如果内部Pod ip对其他节点不可达，主要关闭这个选项, autoDirectNodeRoutes 必须和 ipv4NativeRoutingCIDR,ipv6NativeRoutingCIDR 搭配
+    # autoDirectNodeRoutes: true
+    # routingMode: "native" 要求必须配置内地路由
+    ipv4NativeRoutingCIDR: "10.68.0.1/10"
+    ipv6NativeRoutingCIDR: "fd01:0:1:a40:0:44:0:1/64"
     endpointRoutes:
       enabled: true
     # IPv6基本配置
@@ -55,9 +60,10 @@ spec:
         enabled: true
 
     # 替代卸载kube-proxy (https://docs.cilium.io/en/stable/network/kubernetes/kubeproxy-free/#kube-proxy-hybrid-modes)
-    k8sServiceHost: "auto"
-    #k8sServicePort: 6443
-    kubeProxyReplacement: true
+    # 不能使用auto，必须指定IP。否则启动会自依赖
+    k8sServiceHost: "10.68.0.1"
+    k8sServicePort: 6443
+    kubeProxyReplacement: "true"
     socketLB:
       enabled: true
     nodePort:
