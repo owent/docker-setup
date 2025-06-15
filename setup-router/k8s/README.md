@@ -16,9 +16,9 @@ K8S_DATA_DIR=/data/disk1
 
 sudo systemctl stop docker
 sudo rm -rf /var/lib/containerd /var/openebs /var/lib/kubelet /var/lib/etcd /var/lib/rancher
-sudo mkdir -p /var/lib/containerd /var/openebs /var/lib/kubelet /var/lib/etcd /var/lib/rancher
+sudo mkdir -p /var/lib/containerd /var/openebs /var/lib/kubelet /var/lib/etcd /var/lib/rancher /var/local/openebs
 sudo mkdir -p $K8S_DATA_DIR/k8s/storage/etcd $K8S_DATA_DIR/k8s/storage/kubelet $K8S_DATA_DIR/k8s/storage/containerd \
-  $K8S_DATA_DIR/openebs/storage/var $K8S_DATA_DIR/rancher/storage/var $K8S_DATA_DIR/rancher/storage/data
+  $K8S_DATA_DIR/openebs/storage/var $K8S_DATA_DIR/openebs/storage/local-var $K8S_DATA_DIR/rancher/storage/var $K8S_DATA_DIR/rancher/storage/data
 ```
 
 准备bind目录 `/etc/fstab`
@@ -34,6 +34,7 @@ sudo mkdir -p $K8S_DATA_DIR/k8s/storage/etcd $K8S_DATA_DIR/k8s/storage/kubelet $
 /data/disk1/k8s/storage/kubelet /var/lib/kubelet none bind,noatime,nodiratime,nodev,nosuid 0 0
 /data/disk1/k8s/storage/containerd /var/lib/containerd none bind,noatime,nodiratime,nodev,nosuid 0 0
 /data/disk1/openebs/storage/var /var/openebs none bind,noatime,nodiratime,nodev,nosuid 0 0
+/data/disk1/openebs/storage/local-var /var/local/openebs none bind,noatime,nodiratime,nodev,nosuid 0 0
 /data/disk1/rancher/storage/var /var/lib/rancher none bind,noatime,nodiratime,nodev,nosuid 0 0
 
 # 配置文件只读绑定
@@ -374,6 +375,8 @@ kubectl -n kube-system exec ds/cilium -- cilium node list
 kubectl -n kube-system exec ds/cilium -- cilium service list
 ## 查看对应cilium所处node上面的endpoint信息
 kubectl -n kube-system exec ds/cilium -- cilium endpoint list
+## Test
+cilium connectivity test
 
 ## 导出当前配置
 helm get values cilium -n kube-system > current-values.yaml
