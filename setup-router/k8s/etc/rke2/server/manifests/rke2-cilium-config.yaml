@@ -1,4 +1,5 @@
 # /var/lib/rancher/rke2/server/manifests/rke2-cilium-config.yaml
+# https://docs.cilium.io/en/stable/helm-reference/
 ---
 apiVersion: helm.cattle.io/v1
 kind: HelmChartConfig
@@ -9,18 +10,18 @@ spec:
   valuesContent: |-
     # 如果要使用Multus支持多接口，exclusive 要设置未false
     # exclusive: true
-    # "native" or "tunnel"
-    routingMode: "native"
     # enableIPv4Masquerade,enableIPv6Masquerade 和 routingMode 相关
     # 如果 routingMode 是 "tunnel"，则enableIPv4Masquerade,enableIPv6Masquerade 必须开启
     enableIPv4Masquerade: true
     enableIPv6Masquerade: true
+    # native模式要求必须配置本地路由，由于本地路由只支持一组，不符合复杂的多vlan需求，我们使用 "tunnel" 模式
+    # routingMode: "native" # "native" or "tunnel", 默认 tunnel
+    # ipv4NativeRoutingCIDR: "10.68.0.1/10"
+    # ipv6NativeRoutingCIDR: "fd01:0:1:a40:0:44:0:1/64"
     # Enable installation of PodCIDR routes between worker nodes if worker nodes share a common L2 network segment.
     # 如果内部Pod ip对其他节点不可达，主要关闭这个选项, autoDirectNodeRoutes 必须和 ipv4NativeRoutingCIDR,ipv6NativeRoutingCIDR 搭配
+    # 非BGP模式下，如果开启 routingMode: "native"，必须开启自动节点路由
     # autoDirectNodeRoutes: true
-    # routingMode: "native" 要求必须配置内地路由
-    ipv4NativeRoutingCIDR: "10.68.0.1/10"
-    ipv6NativeRoutingCIDR: "fd01:0:1:a40:0:44:0:1/64"
     endpointRoutes:
       enabled: true
     # IPv6基本配置
@@ -47,18 +48,15 @@ spec:
           - "10.32.0.0/16"
         clusterPoolIPv6PodCIDRList:
           - "fd01:0:1:0a20:20::/104"
-
-    # 关键配置：不强制要求IPv6 PodCIDR
+    # 不强制要求IPv6 PodCIDR
     k8s:
       requireIPv6PodCIDR: false
-
     hubble:
       enabled: true
       relay:
         enabled: true
       ui:
         enabled: true
-
     # 替代卸载kube-proxy (https://docs.cilium.io/en/stable/network/kubernetes/kubeproxy-free/#kube-proxy-hybrid-modes)
     # 不能使用auto，必须指定IP。否则启动会自依赖
     k8sServiceHost: "10.68.0.1"
@@ -79,6 +77,13 @@ spec:
       # -- Set cilium ingress controller to be the default ingress controller
       # This will let cilium ingress controller route entries without ingress class set
       default: true
+      # 暴露ClusterIP的端口到宿主机，可能有安全问题，默认不开启
+      # hostNetwork:
+      #   enabled: true
+      # 用于ingress的负载均衡, "shared" or "dedicated", 默认 dedicated
+      loadbalancerMode: "dedicated"
+      # 支持代理协议,默认 false
+      enableProxyProtocol: true
     bpf:
       masquerade: true
       tproxy: true
@@ -93,7 +98,12 @@ spec:
       # acceleration使用native需要查询网卡是否支持: lspci | grep Ethernet
       # https://docs.cilium.io/en/stable/reference-guides/bpf/progtypes/#xdp-drivers
       acceleration: best-effort
-      mode: hybrid
+      # 负载均衡模式,非SNAT模式需要开启: routingMode: "native"
+      # - snat(默认)
+      # - dsr
+      # - annotation
+      # - hybrid （TCP走snat, UDP走dsr(不影响MTU)）
+      # mode: hybrid
 
     enableLBIPAM: true
     # defaultLBServiceIPAM: lbipam # lbipam, nodeipam, none
