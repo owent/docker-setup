@@ -90,7 +90,8 @@ spec:
       preallocateMaps: true
     bpfClockProbe: true
     localRedirectPolicy: true
-    egressGateway:
+    # 重要，开启2层网络公告
+    l2announcements:
       enabled: true
     wellKnownIdentities:
       enabled: true

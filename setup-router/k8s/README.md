@@ -334,7 +334,7 @@ kubectl logs -n kube-system $(kubectl get pods -n kube-system -l component=kube-
 kubectl get pods -n kube-system -l component=etcd
 
 # 查看事件日志
-kubectl get events -n kube-system --sort-by='.lastTimestamp'
+kubectl get events --sort-by='.lastTimestamp' -n kube-system
 kubectl get events --sort-by='.lastTimestamp' -n kube-system --field-selector involvedObject.name=$POD_NAME
 
 # 强制重建
@@ -383,18 +383,15 @@ helm get values cilium -n kube-system > current-values.yaml
 ## 使用修改后的配置升级
 helm upgrade --force cilium cilium/cilium --namespace kube-system --values current-values.yaml
 
-# 设置每节点CIDR能分配的Mask
-kubectl patch configmap cilium-config -n kube-system --patch='
-data:
-  cluster-pool-ipv4-mask-size: "22"
-  cluster-pool-ipv6-mask-size: "118"
-'
-
 ## 检查服务使配置
 ### 查看当前Cilium配置
 kubectl get configmap cilium-config -n kube-system -o yaml | grep -E "(cluster-pool|ipv4|ipv6)"
 ### 查看Cilium operator配置
 kubectl logs -n kube-system deployment/cilium-operator | grep -i "cluster-pool\|cidr"
+# 确认要开启2层网络公告
+kubectl -n kube-system exec ds/cilium -- cilium-dbg config --all | grep EnableL2Announcements
+kubectl -n kube-system exec ds/cilium -- cilium-dbg config --all | grep KubeProxyReplacement
+kubectl -n kube-system exec ds/cilium -- cilium-dbg config --all | grep EnableExternalIPs
 
 ## 重启服务使配置生效
 kubectl rollout restart deployment/cilium-operator -n kube-system
@@ -582,3 +579,24 @@ version = 2
 sudo kubectl rollout restart daemonset nodelocaldns -n kube-system
 ```
 
+### 清理openebs资源
+
+```bash
+# Check what OpenEBS resources exist
+kubectl get all -n openebs
+kubectl get sa,clusterrole,clusterrolebinding -A | grep openebs
+
+# Delete the specific resources that are causing conflicts
+kubectl delete sa openebs-localpv-provisioner -n openebs --ignore-not-found
+kubectl delete clusterrole openebs-localpv-provisioner --ignore-not-found
+kubectl delete clusterrolebinding openebs-localpv-provisioner --ignore-not-found
+kubectl delete deployment openebs-localpv-provisioner -n openebs --ignore-not-found
+
+
+# Remove all OpenEBS resources
+kubectl delete namespace openebs
+kubectl delete crd -l app=openebs
+
+# Wait for namespace deletion to complete
+kubectl get namespace openebs
+```
