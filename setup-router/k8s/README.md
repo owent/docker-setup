@@ -1,5 +1,8 @@
 # Kubernetes
 
+默认集群限制： <https://kubernetes.io/docs/setup/best-practices/cluster-large/> 。
+可以根据需要自己改。
+
 ## 系统环境准备
 
 ```bash

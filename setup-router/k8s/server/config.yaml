@@ -63,6 +63,11 @@ cni: cilium
 # (components) Do not deploy packaged components and delete any deployed components (valid items: rke2-coredns, rke2-ingress-nginx, rke2-metrics-server)
 # disable: []
 
+kubelet-arg:
+  # 如果不隔离控制平面和工作节点，建议改大max-pods（k8s默认值 110 ， https://kubernetes.io/docs/setup/best-practices/cluster-large/ ）。
+  # 我这里3 server 节点安装完 cilium 和 openebs 后，还没装监控组件就 68/330 了。
+  # 主机配置如果比较高，上面ip数量也比默认值放大了4倍,所以这里也可以放大4倍后取整
+  - "max-pods=500"
 # Reset
 # cluster-reset: true              (experimental/cluster) Forget all peers and become sole member of a new cluster [$RKE2_CLUSTER_RESET]
 # cluster-reset-restore-path: path (db) Path to snapshot file to be restored
