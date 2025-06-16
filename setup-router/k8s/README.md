@@ -47,7 +47,7 @@ sudo systemctl daemon-reload
 sudo mount -a
 sudo dpkg-reconfigure containerd
 
-## openebs需要
+## openebs需要 ( https://openebs.io/docs/quickstart-guide/prerequisites )
 ## 开启内核选项: nvme_core.multipath=Y
 ## - debian/RH 似乎默认开启
 ## - 查看: cat /sys/module/nvme_core/parameters/multipath
@@ -321,9 +321,15 @@ crictl events # Find event log path
 
 ### 常用命令
 
+内置短名称: <https://kubernetes.io/docs/reference/kubectl/#resource-types> 。
+所有支持的短名称: `kubectl api-resources | awk 'NF<=4 {printf "%s\n", $1} NF>4 {printf "%-64s%s\n", $1, $2}'`
+
 ```bash
-kubectl logs -n kube-system [$ANY_TYPE/]$ANY_NAME -f
-kubectl get nodes -o wide
+# Busybox包含常用工具，可以用来网络测试
+kubectl run -it --rm --image=busybox -n kube-system -- bash
+
+# 日志
+kubectl logs -n kube-system $ANY_TYPE/$ANY_NAME -f
 
 # 检查节点状态
 kubectl get nodes -o wide
@@ -461,10 +467,35 @@ kubectl get pod -n kube-system kube-controller-manager-* -o yaml | grep -A5 -B5 
   - `kubectl get secret --namespace cattle-system bootstrap-secret -o go-template='{{.data.bootstrapPassword|base64decode}}{{ "\n" }}'`
 - bitnami: <https://charts.bitnami.com/bitnami>
 - openebs: <https://openebs.github.io/openebs>
-  - `helm repo add openebs https://openebs.github.io/openebs && helm repo update`
-  - `helm upgrade --install openebs --namespace openebs openebs/openebs --create-namespace --set engines.local.zfs.enabled=false --set engines.local.lvm.enabled=false --set mayastor.localpv-provisioner.enabled=true --set openebs-crds.csi.volumeSnapshots.enabled=false --set mayastor.etcd.clusterDomain=cluster.devops`
-  - (Optional): `kubectl patch openebs-hostpath standard -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'`
-  - `kubectl get storageclass -o wide`
+
+```bash
+# openebs, 如果 快照卷已存在，则用 --set openebs-crds.csi.volumeSnapshots.enabled=false
+helm repo add openebs https://openebs.github.io/charts
+# helm install ...
+# helm upgrade --install --reuse-values ...
+helm upgrade --install --namespace openebs openebs openebs/openebs --create-namespace --set mayastor.etcd.clusterDomain=cluster.devops \
+  --set engines.local.lvm.enabled=false --set engines.local.zfs.enabled=false --set openebs-crds.csi.volumeSnapshots.enabled=false \
+  --set mayastor.localpv-provisioner.enabled=true --set loki.minio.persistence.size=20Gi
+
+# 当前版本（4.3.0）的 alloy 配置似乎有问题，会报 serviceaccounts "openebs-alloy" not found ，按道理应该由helm charts创建。
+# 先不开指标功能，以后有需要再开
+--set mayastor.alloy.enabled=true --set mayastor.loki.enabled=true
+
+# 如果kubelet使用非标准目录，要改下面选项 (mount -l | grep /kubelet)
+# --set mayastor.csi.node.kubeletDir="/var/lib/kubelet"
+# --set lvm-localpv.lvmNode.kubeletDir="/var/lib/kubelet"
+# --set zfs-localpv.zfsNode.kubeletDir="/var/lib/kubelet"
+kubectl patch storageclass mayastor-etcd-localpv -p '{"allowVolumeExpansion": true}'
+kubectl patch storageclass openebs-hostpath -p '{"allowVolumeExpansion": true}'
+kubectl patch storageclass openebs-loki-localpv -p '{"allowVolumeExpansion": true}'
+kubectl patch storageclass openebs-minio-localpv -p '{"allowVolumeExpansion": true}'
+kubectl patch storageclass openebs-hostpath -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+# openebs 的多副本存储(mayastor)配置了反亲和性（topologyKey: kubernetes.io/hostname），必须至少要3哥节点才能正常工作
+
+# 检查存储卷
+kubectl get storageclass -o wide
+```
+
 - metallb: <https://metallb.github.io/metallb>
 - cilium: <https://helm.cilium.io/>
 - prometheus-community: <https://prometheus-community.github.io/helm-charts>
@@ -595,13 +626,13 @@ sudo kubectl rollout restart daemonset nodelocaldns -n kube-system
 ```bash
 # Check what OpenEBS resources exist
 kubectl get all -n openebs
-kubectl get sa,clusterrole,clusterrolebinding -A | grep openebs
+kubectl get sa,clusterrole,clusterrolebinding,cm,secrets,svc,ds,deployments,sts -A | grep openebs
 
 # Delete the specific resources that are causing conflicts
 kubectl delete sa openebs-localpv-provisioner -n openebs --ignore-not-found
-kubectl delete clusterrole openebs-localpv-provisioner --ignore-not-found
-kubectl delete clusterrolebinding openebs-localpv-provisioner --ignore-not-found
-kubectl delete deployment openebs-localpv-provisioner -n openebs --ignore-not-found
+kubectl get clusterrole -A | grep openebs | awk '{print $1}' | xargs -r kubectl delete clusterrole
+kubectl get clusterrolebinding -A | grep openebs | awk '{print $1}' | xargs -r kubectl delete clusterrolebinding
+kubectl get deployment -A | grep openebs | awk '{print $1}' | xargs -r kubectl delete deployment
 
 
 # Remove all OpenEBS resources
