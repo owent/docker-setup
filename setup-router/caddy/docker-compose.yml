@@ -12,6 +12,7 @@ services:
     image: ghcr.io/owent/caddy:latest
     container_name: caddy
     restart: unless-stopped
+    # network_mode: host
     networks:
       - internal-backend
       - internal-frontend

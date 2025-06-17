@@ -1,76 +1,117 @@
 # Auto HTTPS: Internal
 example.domain {
-  root * /home/user/public_html
+	root * /home/user/public_html
 
-  tls {
-    protocols tls1.2 tls1.3
-    key_type p256
-    issuer internal
-  }
+	tls {
+		protocols tls1.2 tls1.3
+		key_type p256
+		issuer internal
+	}
+
+	email eab_account@example.org
+	# 注意: wildcard和多域名证书要求在域名注册商哪里开启DNSSEC验证
+	cert_issuer acme {
+		dir https://acme.zerossl.com/v2/DV90
+		email eab_account@example.org
+		# https://zerossl.com/documentation/acme/
+		# https://app.zerossl.com/developer
+		eab <key_id> <mac_key>
+	}
 }
 
 # Auto HTTPS: https://caddyserver.com/download?package=github.com%2Fcaddy-dns%2Fcloudflare
 example.domain {
-  file_server {
-    hide  .git
-    root /home/user/public_html
-    index index.html index index.htm
-  }
+	file_server {
+		hide .git
+		root /home/user/public_html
+		index index.html index index.htm
+	}
 
-  tls {
-    protocols tls1.2 tls1.3
-    key_type p256
-    dns cloudflare {env.CF_API_TOKEN} # Require Zone.Zone READ, Zone.DNS EDIT
-  }
+	tls {
+		protocols tls1.2 tls1.3
+		key_type p256
+		# 注意: wildcard和多域名证书要求在域名注册商哪里开启DNSSEC验证
+		# dns dnspod {env.DNSPOD_TOKEN}
+		dns cloudflare {env.CF_API_TOKEN} # Require Zone.Zone READ, Zone.DNS EDIT
+		# issuer internal
+		on_demand
+	}
+}
+
+example.domain {
+	file_server {
+		hide .git
+		root /home/user/public_html
+		index index.html index index.htm
+	}
+
+	tls {
+		protocols tls1.2 tls1.3
+		key_type p256
+		# 注意: wildcard和多域名证书要求在域名注册商哪里开启DNSSEC验证
+		# 新版本dns要放在 issuer 里
+		issuer acme {
+			dir https://acme.zerossl.com/v2/DV90
+			email eab_account@example.org
+			# https://zerossl.com/documentation/acme/
+			# https://app.zerossl.com/developer
+			eab <key_id> <mac_key>
+			# dns dnspod {env.DNSPOD_TOKEN}
+			dns cloudflare {env.CF_API_TOKEN} # Require Zone.Zone READ, Zone.DNS EDIT
+		}
+		on_demand
+	}
 }
 
 # Auto HTTPS: https://caddyserver.com/download?package=github.com%2Fcaddy-dns%2Fcloudflare&package=github.com%2Fcaddy-dns%2Fdnspod
 example.domain {
-  reverse_proxy {
-    to http://127.0.0.1:7860
-    header_up Host {http.request.host}
-    header_up X-Real-IP {http.request.remote}
-    header_up X-Forwarded-For {http.request.remote}
-    header_up X-Forwarded-Port {http.request.port}
-    header_up X-Forwarded-Proto {http.request.scheme}
-  }
+	reverse_proxy {
+		to http://127.0.0.1:7860
+		header_up Host {http.request.host}
+		header_up X-Real-IP {http.request.remote}
+		header_up X-Forwarded-For {http.request.remote}
+		header_up X-Forwarded-Port {http.request.port}
+		header_up X-Forwarded-Proto {http.request.scheme}
+	}
 
-  tls {
-    protocols tls1.2 tls1.3
-    key_type p256
-    dns dnspod {env.DNSPOD_TOKEN}
-  }
+	tls {
+		protocols tls1.2 tls1.3
+		key_type p256
+		# 注意: wildcard和多域名证书要求在域名注册商哪里开启DNSSEC验证
+		dns dnspod {env.DNSPOD_TOKEN}
+		# issuer internal/acme/zerossl
+		on_demand
+	}
 }
 
 # Wbsocket reverse proxy
 {
-  auto_https disable_redirects
-  auto_https off
-  # http_port 8999
+	auto_https disable_redirects
+	auto_https off
+	# http_port 8999
 }
 example.domain {
-  reverse_proxy /ws ws://localhost:8443 {
-    header_up Host {http.request.host}
-    header_up X-Real-IP {http.request.remote}
-    header_up X-Forwarded-For {http.request.remote}
-    header_up X-Forwarded-Port {http.request.port}
-    header_up X-Forwarded-Proto {http.request.scheme}
-    header_up Access-Control-Allow-Origin "*"
-    # transport http {
-    #   versions "1.1 2"
-    # }
-  }
+	reverse_proxy /ws ws://localhost:8443 {
+		header_up Host {http.request.host}
+		header_up X-Real-IP {http.request.remote}
+		header_up X-Forwarded-For {http.request.remote}
+		header_up X-Forwarded-Port {http.request.port}
+		header_up X-Forwarded-Proto {http.request.scheme}
+		header_up Access-Control-Allow-Origin "*"
+		# transport http {
+		#   versions "1.1 2"
+		# }
+	}
 }
-
 
 # h2c
 {
-  auto_https off
-  servers :8375 {
-    protocols h1 h2 h2c h3
-  }
+	auto_https off
+	servers :8375 {
+		protocols h1 h2 h2c h3
+	}
 }
 example.domain:8375 {
-  header Content-Type "text/html; charset=utf-8"
-  redir https://owent.net{uri} html
+	header Content-Type "text/html; charset=utf-8"
+	redir https://owent.net{uri} html
 }

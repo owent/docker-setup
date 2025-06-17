@@ -6,7 +6,7 @@
 `podman/docker info | grep network` 输出 networkBackend: cni 时有效。
 
 1. 确认安装了依赖插件: `sudo apt install containernetworking-plugins golang-github-containernetworking-plugin-dnsname -y`
-2. 确保 `/etc/cni/net.d/87-podman-bridge.conflist` 内包含 `dnsname` 。
+2. 确保 `/etc/cni/net.d/87-podman-bridge.conflist` 内包含 `dnsname` 和  。
 
 ```json
 {
@@ -27,6 +27,11 @@
             {
               "subnet": "10.88.0.0/16",
               "gateway": "10.88.0.1"
+            },
+            // 增加ipv6配置
+            {
+              "subnet": "fd02:0:0:1:3::/96",
+              "gateway": "fd02:0:0:1:3::1"
             }
           ]
         ]

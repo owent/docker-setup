@@ -24,21 +24,24 @@ if [[ ! -e "$KEEPALIVED_ETC_DIR/keepalived.conf" ]]; then
     exit 1
 fi
 
+DOCKER_EXEC=podman
+which podman >/dev/null 2>&1 || DOCKER_EXEC=docker
+
 if [[ "x$KEA_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-    # podman pull docker.cloudsmith.io/isc/docker/kea-dhcp4:latest
-    podman pull alpine:latest
+    # $DOCKER_EXEC pull docker.cloudsmith.io/isc/docker/kea-dhcp4:latest
+    $DOCKER_EXEC pull alpine:latest
     if [[ $? -ne 0 ]]; then
         exit 1
     fi
 
-    podman build --network=host --tag local-keepalived -f keepalived.Dockerfile .
+    $DOCKER_EXEC build --network=host --tag local-keepalived -f keepalived.Dockerfile .
     if [[ $? -ne 0 ]]; then
         exit 1
     fi
 else
-    podman image inspect local-keepalived >/dev/null 2>&1
+    $DOCKER_EXEC image inspect local-keepalived >/dev/null 2>&1
     if [[ $? -ne 0 ]]; then
-        podman build --network=host --tag local-keepalived -f keepalived.Dockerfile .
+        $DOCKER_EXEC build --network=host --tag local-keepalived -f keepalived.Dockerfile .
         if [[ $? -ne 0 ]]; then
             exit 1
         fi
@@ -52,15 +55,15 @@ if [[ $? -eq 0 ]]; then
     systemctl disable container-keepalived
 fi
 
-podman container exists keepalived >/dev/null 2>&1
+$DOCKER_EXEC container inspect keepalived >/dev/null 2>&1
 
 if [[ $? -eq 0 ]]; then
-    podman stop keepalived
-    podman rm -f keepalived
+    $DOCKER_EXEC stop keepalived
+    $DOCKER_EXEC rm -f keepalived
 fi
 
 if [[ "x$REDIS_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-    podman image prune -a -f --filter "until=240h"
+    $DOCKER_EXEC image prune -a -f --filter "until=240h"
 fi
 
 KEEPALIVED_OPTIONS=(-e "TZ=Asia/Shanghai"
@@ -70,8 +73,8 @@ KEEPALIVED_OPTIONS=(-e "TZ=Asia/Shanghai"
     --mount "type=bind,source=$KEEPALIVED_ETC_DIR,target=/etc/keepalived"
 )
 
-podman run -d --name keepalived --security-opt label=disable \
-    "${KEEPALIVED_OPTIONS[@]}" \
+$DOCKER_EXEC run -d --name keepalived --security-opt label=disable \
+    --restart=unless-stopped "${KEEPALIVED_OPTIONS[@]}" \
     local-keepalived \
     keepalived --dont-fork --log-console -f /etc/keepalived/keepalived.conf
 
@@ -80,9 +83,11 @@ if [[ $? -ne 0 ]]; then
     exit 1
 fi
 
-podman stop keepalived
+if [[ "$$DOCKER_EXEC" == "podman" ]]; then
+    podman stop keepalived
 
-podman generate systemd --name keepalived | tee $KEEPALIVED_ETC_DIR/container-keepalived.service
+    podman generate systemd --name keepalived | tee $KEEPALIVED_ETC_DIR/container-keepalived.service
 
-systemctl enable $KEEPALIVED_ETC_DIR/container-keepalived.service
-systemctl restart container-keepalived
+    systemctl enable $KEEPALIVED_ETC_DIR/container-keepalived.service
+    systemctl restart container-keepalived
+fi
