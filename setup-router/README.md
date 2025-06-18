@@ -15,6 +15,24 @@ for NM_IF in /etc/NetworkManager/system-connections/*.nmconnection; do
 done'
 ```
 
+重置Host SSH key(debian/ubuntu)
+
+```bash
+sudo rm -rf /etc/ssh/ssh_host_*
+sudo dpkg-reconfigure openssh-server
+```
+
+rlimit
+
+```bash
+echo "
+*          hard    nofile     1048576
+*          soft    nofile     4194304
+root          hard    nofile     1048576
+root          soft    nofile     4194304
+" | sudo tee /etc/security/limits.d/80-nofile.conf
+```
+
 ## Host machine
 
 Lan bridge:  br0
@@ -149,6 +167,84 @@ net.ipv4.tcp_congestion_control = bbr" >> /etc/sysctl.d/91-forwarding.conf ;
     fi
 fi
 
+# rlimit
+echo "
+*          hard    nofile     1048576
+*          soft    nofile     4194304
+root          hard    nofile     1048576
+root          soft    nofile     4194304
+" | sudo tee /etc/security/limits.d/80-nofile.conf
+
+
+# 开启 PMTUD
+# @see https://wiki.archlinux.org/index.php/Ppp#Masquerading_seems_to_be_working_fine_but_some_sites_do_not_work
+# @see https://www.mankier.com/8/nft#Statements-Extension_Header_Statement
+# ipv4/tcp MSS: 1452=1500(max)-8(ppp)-20(ipv4)-20(tcp)
+#   ipv4最多60字节扩展包头，实际使用建议至少减去常见扩展包头(VLAN数据帧（4字节）+MSS(4字节)+TSOPT(10字节)+对齐=20字节)
+#   (ipv4最小MTU 576字节)
+#   建议MSS: 1432/1412/1380
+# ipv6/tcp MSS: 1432=1500(max)-8(ppp)-40(ipv6)-20(tcp)
+#   ipv6动态扩展包头(对齐到8字节)+PMTU调整分片，但建议至少减去VLAN数据帧（4字节）
+#   (ipv4最小MTU 1280字节)
+#   基础包头长度:
+#     逐跳选项包头(Hop-by-Hop Options Header): 最小8字节
+#     路由包头(Routing Header): 典型值: 24/32字节
+#     分片包头(Fragment Header): 8字节
+#     认证包头(Authentication Header): 典型值: 24字节
+#     目的地选项包头(Destination Options Header): 最小8字节
+#   建议MSS: 1400/1380/1220
+# 有一些VPN、代理还有额外数据帧包头。需要参考其协议继续缩减
+
+# nftables: nft add rule inet nat FORWARD tcp flags syn counter tcp option maxseg size set rt mtu
+# 这个选项也可以合入其他规则,没必要单独起一个
+mkdir -p "/etc/nftables.conf.d"
+echo "table inet network_basic {
+  chain FORWARD {
+    type filter hook forward priority filter; policy accept;
+    tcp flags syn counter tcp option maxseg size set rt mtu
+  }
+}
+" > /etc/nftables.conf.d/network-basic.conf
+echo '[Unit]
+Description=PMTU clamping for pppoe
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/nft -f /etc/nftables.conf.d/network-basic.conf
+# oneshot will call stop after started immediately
+# ExecStop=/usr/sbin/nft delete table inet network_basic
+
+[Install]
+WantedBy=multi-user.target
+' > /lib/systemd/system/pmtu-clamping.service
+systemctl enable pmtu-clamping
+systemctl start pmtu-clamping
+
+nft list chain inet nat FORWARD >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add chain inet nat FORWARD '{ type filter hook forward priority filter ; }'
+fi
+nft add rule inet nat FORWARD tcp flags syn counter tcp option maxseg size set rt mtu
+
+# iptables: iptables -I FORWARD -o ppp0 -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
+echo '[Unit]
+Description=PMTU clamping for pppoe
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/iptables -I FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
+
+[Install]
+WantedBy=multi-user.target
+' > /lib/systemd/system/pmtu-clamping.service
+systemctl enable pmtu-clamping
+systemctl start pmtu-clamping
+```
+
 # 设置NetworkManager关闭ipv6的隐私模式（允许DHCPv6）
 ## ipv6.addr-gen-mode = default/stable-privacy/eui64
 ## 全局编辑 /etc/NetworkManager/NetworkManager.conf 添加
@@ -272,75 +368,6 @@ echo 'r8125' >> /etc/initramfs-tools/modules
 echo 'r8169' >> /etc/initramfs-tools/modules
 update-initramfs -k all -u
 # reboot
-
-# 开启 PMTUD
-# @see https://wiki.archlinux.org/index.php/Ppp#Masquerading_seems_to_be_working_fine_but_some_sites_do_not_work
-# @see https://www.mankier.com/8/nft#Statements-Extension_Header_Statement
-# ipv4/tcp MSS: 1452=1500(max)-8(ppp)-20(ipv4)-20(tcp)
-#   ipv4最多60字节扩展包头，实际使用建议至少减去常见扩展包头(VLAN数据帧（4字节）+MSS(4字节)+TSOPT(10字节)+对齐=20字节)
-#   (ipv4最小MTU 576字节)
-#   建议MSS: 1432/1412/1380
-# ipv6/tcp MSS: 1432=1500(max)-8(ppp)-40(ipv6)-20(tcp)
-#   ipv6动态扩展包头(对齐到8字节)+PMTU调整分片，但建议至少减去VLAN数据帧（4字节）
-#   (ipv4最小MTU 1280字节)
-#   基础包头长度:
-#     逐跳选项包头(Hop-by-Hop Options Header): 最小8字节
-#     路由包头(Routing Header): 典型值: 24/32字节
-#     分片包头(Fragment Header): 8字节
-#     认证包头(Authentication Header): 典型值: 24字节
-#     目的地选项包头(Destination Options Header): 最小8字节
-#   建议MSS: 1400/1380/1220
-# 有一些VPN、代理还有额外数据帧包头。需要参考其协议继续缩减
-
-# nftables: nft add rule inet nat FORWARD tcp flags syn counter tcp option maxseg size set rt mtu
-# 这个选项也可以合入其他规则,没必要单独起一个
-mkdir -p "/etc/nftables.conf.d"
-echo "table inet network_basic {
-  chain FORWARD {
-    type filter hook forward priority filter; policy accept;
-    tcp flags syn counter tcp option maxseg size set rt mtu
-  }
-}
-" > /etc/nftables.conf.d/network-basic.conf
-echo '[Unit]
-Description=PMTU clamping for pppoe
-Requires=network-online.target
-After=network-online.target
-
-[Service]
-Type=oneshot
-ExecStart=/usr/sbin/nft -f /etc/nftables.conf.d/network-basic.conf
-# oneshot will call stop after started immediately
-# ExecStop=/usr/sbin/nft delete table inet network_basic
-
-[Install]
-WantedBy=multi-user.target
-' > /lib/systemd/system/pmtu-clamping.service
-systemctl enable pmtu-clamping
-systemctl start pmtu-clamping
-
-nft list chain inet nat FORWARD >/dev/null 2>&1
-if [[ $? -ne 0 ]]; then
-  nft add chain inet nat FORWARD '{ type filter hook forward priority filter ; }'
-fi
-nft add rule inet nat FORWARD tcp flags syn counter tcp option maxseg size set rt mtu
-
-# iptables: iptables -I FORWARD -o ppp0 -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
-echo '[Unit]
-Description=PMTU clamping for pppoe
-Requires=network-online.target
-After=network-online.target
-
-[Service]
-Type=oneshot
-ExecStart=/usr/sbin/iptables -I FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
-
-[Install]
-WantedBy=multi-user.target
-' > /lib/systemd/system/pmtu-clamping.service
-systemctl enable pmtu-clamping
-systemctl start pmtu-clamping
-```
 
 **systemd-resolved will listen 53 and will conflict with our dnsmasq.service/smartdns.service**
 
