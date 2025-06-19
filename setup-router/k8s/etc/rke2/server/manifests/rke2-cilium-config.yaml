@@ -99,7 +99,8 @@ spec:
     loadBalancer:
       # acceleration使用native需要查询网卡是否支持: lspci | grep Ethernet
       # https://docs.cilium.io/en/stable/reference-guides/bpf/progtypes/#xdp-drivers
-      acceleration: best-effort
+      # acceleration: best-effort
+      acceleration: disabled
       # 负载均衡模式,非SNAT模式需要开启: routingMode: "native"
       # - snat(默认)
       # - dsr

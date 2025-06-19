@@ -78,6 +78,7 @@ net.core.rmem_max = 16777216
 net.core.wmem_default = 1048576
 net.core.wmem_max = 16777216
 net.core.optmem_max = 65536
+net.core.netdev_max_backlog = 16384
 net.ipv4.tcp_rmem = 4096 262144 33554432
 net.ipv4.tcp_wmem = 4096 65536 16777216
 net.ipv4.udp_rmem_min = 8192
@@ -149,6 +150,9 @@ net.ipv6.conf.enp2s0/5.accept_ra=2
 echo "net.ipv4.ip_unprivileged_port_start=67
 kernel.unprivileged_userns_clone=1
 user.max_user_namespaces=28633
+
+fs.inotify.max_user_instances=16384
+fs.inotify.max_user_watches=1048576
 " | sudo tee /etc/sysctl.d/92-container.conf ;
 
 sysctl -p ;

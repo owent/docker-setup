@@ -42,6 +42,8 @@ service-cidr: "10.48.0.0/16,fd01:0:1:0a20:30::/108"
 kube-controller-manager-arg: # (flags) Customized flag for kube-controller-manager process
   - "node-cidr-mask-size-ipv4=22"
   - "node-cidr-mask-size-ipv6=116"
+  - "kube-api-qps=200"
+  - "kube-api-burst=8000"
 service-node-port-range: "30000-32767"
 cluster-dns: "10.48.0.10,fd01:0:1:0a20:30::a" # (networking) IPv4 Cluster IP for coredns service. Should be in your service-cidr range (default: 10.43.0.10)
 cluster-domain: cluster.devops
@@ -69,6 +71,22 @@ kubelet-arg:
   # 上面ip数量也比默认值放大了4倍，主机配置如果比较高可以再放大，不过内存和CPU也要跟上(目前48G内存节省点可以调到250)。
   # 如果已经安装好了直接改 /etc/rancher/rke2/config.yaml 这个文件然后 systemctl restart rke2-server 即可。
   - "max-pods=250"
+  - "kube-api-qps=200"
+  - "kube-api-burst=8000"
+kube-apiserver-arg:
+  # 默认值 100；用于 List-Watch 的缓存池；建议 1000 或更多；
+  - "default-watch-cache-size=2048"
+  # 默认值 1；用于提升 namesapce 清理速度，有利于多租户场景；建议 20；
+  - "delete-collection-workers=20"
+  # 默认值 1h0m0s；用于控制保留 events 的时长；集群 events 较多时建议 30m，以避免 etcd 增长过快；
+  - "event-ttl=30m"
+  # 默认值 200；用于 write 请求的访问频率限制；建议 800 或更高；
+  - "max-mutating-requests-inflight=4000"
+  # "默认值 400；用于 read 请求的访问频率限制；建议 1600 或更高；"
+  - "max-requests-inflight=4000"
+kube-scheduler-arg:
+  - "kube-api-qps=200"
+  - "kube-api-burst=8000"
 # Reset
 # cluster-reset: true              (experimental/cluster) Forget all peers and become sole member of a new cluster [$RKE2_CLUSTER_RESET]
 # cluster-reset-restore-path: path (db) Path to snapshot file to be restored
