@@ -80,12 +80,13 @@
         "outbound": "any",
         "server": "dns-proxy"
       }
-    ],
-    "fakeip": {
-      "enabled": true,
-      "inet4_range": "172.24.0.0/16",
-      "inet6_range": "fd08:0:0:ac18::/64"
-    }
+    ]// ,
+    // 如果上面路由规则里有配置fakeip,请确保fakeip的路由要转入 tun
+    // "fakeip": {
+    //   "enabled": true,
+    //   "inet4_range": "172.28.0.1/14",
+    //   "inet6_range": "fd02:0:1:ac1c::1/64"
+    // }
   },
   "inbounds": [
     {

@@ -461,13 +461,19 @@ kubectl get pod -n kube-system kube-controller-manager-* -o yaml | grep -A5 -B5 
 - Hub - <https://artifacthub.io/>
 - kubesphere-stable: <https://charts.kubesphere.io/stable>
 - rancher: <https://releases.rancher.com/server-charts/>
-  - `helm repo add rancher-stable https://releases.rancher.com/server-charts/stable`
-  - `helm repo add jetstack https://charts.jetstack.io`
-  - `helm repo update`
-  - `helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --set crds.enabled=true`
-  - `kubectl create namespace cattle-system`
-  - `helm upgrade --install rancher rancher-stable/rancher --namespace cattle-system --set hostname=rancher.w-oa.com --set bootstrapPassword=admin`
-  - `kubectl get secret --namespace cattle-system bootstrap-secret -o go-template='{{.data.bootstrapPassword|base64decode}}{{ "\n" }}'`
+
+```bash
+helm repo add rancher-stable https://releases.rancher.com/server-charts/stable
+helm repo add jetstack https://charts.jetstack.io
+helm repo update
+helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --set crds.enabled=true
+kubectl create namespace cattle-system
+helm upgrade --install rancher rancher-stable/rancher --namespace cattle-system \
+  --set hostname=rancher.w-oa.com --set bootstrapPassword=admin \
+  --set privateCA=true --set tls=external
+
+kubectl get secret --namespace cattle-system bootstrap-secret -o go-template='{{.data.bootstrapPassword|base64decode}}{{ "\n" }}'
+```
 - bitnami: <https://charts.bitnami.com/bitnami>
 - openebs: <https://openebs.github.io/openebs>
 
