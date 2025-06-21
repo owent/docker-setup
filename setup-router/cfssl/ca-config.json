@@ -1,0 +1,173 @@
+{
+    "signing": {
+        "default": {
+            "expiry": "1128h"
+        },
+        "profiles": {
+            "root-ca-30y": {
+                "expiry": "262800h",
+                "usages": [
+                    "signing",
+                    "digital signature",
+                    "key encipherment",
+                    "key agreement",
+                    "data encipherment",
+                    "cert sign",
+                    "crl sign"
+                ],
+                "ca_constraint": {
+                    "is_ca": true,
+                    "max_path_len": 2
+                }
+            },
+            "sub-ca-3y": {
+                "expiry": "26280h",
+                "usages": [
+                    "signing",
+                    "digital signature",
+                    "key encipherment",
+                    "key agreement",
+                    "data encipherment",
+                    "cert sign",
+                    "crl sign"
+                ],
+                "ca_constraint": {
+                    "is_ca": true,
+                    "max_path_len": 1
+                }
+            },
+            "sub-ca-5y": {
+                "expiry": "43800h",
+                "usages": [
+                    "signing",
+                    "digital signature",
+                    "key encipherment",
+                    "key agreement",
+                    "data encipherment",
+                    "cert sign",
+                    "crl sign"
+                ],
+                "ca_constraint": {
+                    "is_ca": true,
+                    "max_path_len": 1
+                }
+            },
+            "sub-ca-10y": {
+                "expiry": "87600h",
+                "usages": [
+                    "signing",
+                    "digital signature",
+                    "key encipherment",
+                    "key agreement",
+                    "data encipherment",
+                    "cert sign",
+                    "crl sign"
+                ],
+                "ca_constraint": {
+                    "is_ca": true,
+                    "max_path_len": 1
+                }
+            },
+            "server-20y": {
+                "expiry": "175200h",
+                "usages": [
+                    "signing",
+                    "key encipherment",
+                    "server auth"
+                ]
+            },
+            "client-20y": {
+                "expiry": "175200h",
+                "usages": [
+                    "signing",
+                    "key encipherment",
+                    "client auth"
+                ]
+            },
+            "peer-20y": {
+                "expiry": "175200h",
+                "usages": [
+                    "signing",
+                    "key encipherment",
+                    "server auth",
+                    "client auth"
+                ]
+            },
+            "server": {
+                "expiry": "9552h",
+                "usages": [
+                    "signing",
+                    "key encipherment",
+                    "server auth"
+                ]
+            },
+            "client": {
+                "expiry": "9552h",
+                "usages": [
+                    "signing",
+                    "key encipherment",
+                    "client auth"
+                ]
+            },
+            "peer": {
+                "expiry": "9552h",
+                "usages": [
+                    "signing",
+                    "key encipherment",
+                    "server auth",
+                    "client auth"
+                ]
+            },
+            "server-100d": {
+                "expiry": "2400h",
+                "usages": [
+                    "signing",
+                    "key encipherment",
+                    "server auth"
+                ]
+            },
+            "client-100d": {
+                "expiry": "2400h",
+                "usages": [
+                    "signing",
+                    "key encipherment",
+                    "client auth"
+                ]
+            },
+            "peer-100d": {
+                "expiry": "2400h",
+                "usages": [
+                    "signing",
+                    "key encipherment",
+                    "server auth",
+                    "client auth"
+                ]
+            },
+            "server-47d": {
+                "expiry": "1128h",
+                "usages": [
+                    "signing",
+                    "key encipherment",
+                    "server auth"
+                ]
+            },
+            "client-47d": {
+                "expiry": "1128h",
+                "usages": [
+                    "signing",
+                    "key encipherment",
+                    "client auth"
+                ]
+            },
+            "peer-47d": {
+                "expiry": "1128h",
+                "usages": [
+                    "signing",
+                    "key encipherment",
+                    "server auth",
+                    "client auth"
+                ]
+            }
+        }
+    }
+}

@@ -468,12 +468,36 @@ helm repo add jetstack https://charts.jetstack.io
 helm repo update
 helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --set crds.enabled=true
 kubectl create namespace cattle-system
-helm upgrade --install rancher rancher-stable/rancher --namespace cattle-system \
+helm upgrade --install rancher rancher-stable/rancher --namespace cattle-system --reuse-values \
   --set hostname=rancher.w-oa.com --set bootstrapPassword=admin \
-  --set privateCA=true --set tls=external
+  --set privateCA=true --set ingress.tls.source=secret --set tls=external
 
+# 设置使用私有CA证书需要手动添加CA证书到secret (--set privateCA=true)
+# 设置CA: https://ranchermanager.docs.rancher.com/getting-started/installation-and-upgrade/resources/add-tls-secrets
+# 注意：文件名必须是 cacerts.pem （rancher的坑，否则会报 failed to setup TLS listener: read /etc/rancher/ssl/cacerts.pem: is a directory ）
+kubectl -n cattle-system create secret generic tls-ca --from-file=cacerts.pem
+
+# 更新证书: https://ranchermanager.docs.rancher.com/getting-started/installation-and-upgrade/resources/update-rancher-certificate
+# 更新CA
+# 注意：文件名必须是 cacerts.pem （rancher的坑，否则会报 failed to setup TLS listener: read /etc/rancher/ssl/cacerts.pem: is a directory ）
+kubectl -n cattle-system create secret generic tls-ca \
+  --from-file=cacerts.pem \
+  --dry-run --save-config -o yaml | kubectl apply -f -
+
+# 更新ingress证书(--set ingress.tls.source=secret)
+# 不确定文件是不是必须一致，以防万一最好还是保持 tls.crt 和 tls.key
+kubectl -n cattle-system create secret tls tls-rancher-ingress \
+  --cert=tls.crt \
+  --key=tls.key \
+  --dry-run --save-config -o yaml | kubectl apply -f -
+
+# 更新完证书后要重置一下
+kubectl rollout restart deploy/rancher -n cattle-system
+
+# 查看初始密码
 kubectl get secret --namespace cattle-system bootstrap-secret -o go-template='{{.data.bootstrapPassword|base64decode}}{{ "\n" }}'
 ```
+
 - bitnami: <https://charts.bitnami.com/bitnami>
 - openebs: <https://openebs.github.io/openebs>
 
@@ -529,6 +553,38 @@ kubectl get storageclass -o wide
 ## 新增节点后操作
 
 - helm: `sudo helm plugin install https://github.com/komodorio/helm-dashboard.git`
+
+## 证书轮换
+
+```bash
+# RKE2
+## 所有
+systemctl stop rke2-server
+rke2 cert rotate
+systemctl start rke2-server
+## 指定服务
+rke2 cert rotate --service kubelet
+## CA
+rke2 cert rotate --rotate-ca
+
+# Rancher
+```
+
+### 证书已过期导致无法连接 K8S
+
+```bash
+# 关闭ntp同步，不然时间会自动更新
+timedatectl set-ntp false
+# 修改节点时间
+timedatectl set-time '2019-01-01 00:00:00'
+
+#### 升级完证书后 ####
+# 恢复ntp同步
+timedatectl set-ntp true
+# 检查
+openssl x509 -in /etc/kubernetes/ssl/kube-apiserver.pem -noout -dates
+```
+
 
 ## 完全删除集群并清理
 

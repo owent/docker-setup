@@ -1,0 +1,18 @@
+{
+    "key": {
+        // rsa/ecdsa/ed25519
+        "algo": "ed25519",
+        // rsa: (2048/4096/8192), ecdsa: (256/384/521), ed25519: 256
+        "size": 256
+    },
+    "CN": "Home CA",
+    "names": [
+        {
+            "C":  "CN",
+            "L":  "ShangHai",
+            "O":  "OWenT",
+            "OU": "OWenT",
+            "ST": "ShangHai"
+        }
+    ]
+}
