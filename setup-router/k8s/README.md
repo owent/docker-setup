@@ -536,6 +536,7 @@ kubectl get storageclass -o wide
 - elastic: <https://helm.elastic.co>
 - komodorio: <https://helm-charts.komodor.io>
   - `helm upgrade --install helm-dashboard komodorio/helm-dashboard`
+- drone: <https://charts.drone.io>
 
 ### 额外docker镜像拉取代理域名
 
