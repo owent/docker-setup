@@ -29,17 +29,22 @@ if [[ -z "$VBOX_ETC_DIR" ]]; then
   VBOX_ETC_DIR="$HOME/vbox/etc"
 fi
 
-### 策略路由(占用mark的后4位,RPDB变化均会触发重路由, meta mark and 0x0f != 0x0 都跳过重路由):
-###   不需要重路由设置: meta mark and 0x0f != 0x0
-###   走 tun: 设置 fwmark = 0x03/0x03 (0011)
-###   直接跳转到默认路由: 跳过 fwmark = 0x0c/0x0c (1100)
-###     (vbox会设置511,0x1ff), 避开 meta mark and 0x0f != 0x0 规则 (防止循环重定向)
+### 策略路由(占用mark的后4位,RPDB变化均会触发重路由, meta mark and 0xf != 0x0 都跳过重路由):
+###   不需要重路由设置: meta mark and 0xf != 0x0
+###   走 tun: 设置 fwmark = 0x3/0x3 (0011)
+###   直接跳转到默认路由: 跳过 fwmark = 0xc/0xc (1100)
+###     (vbox会设置511,0x1ff), 避开 meta mark and 0xf != 0x0 规则 (防止循环重定向)
 
 if [[ -z "$ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY" ]]; then
-  ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY=20901
+  ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY=9091
 fi
+
 if [[ -z "$VBOX_SKIP_IP_RULE_PRIORITY" ]]; then
   VBOX_SKIP_IP_RULE_PRIORITY=8123
+fi
+
+if [[ -z "$VBOX_TUN_TABLE_ID" ]]; then
+  VBOX_TUN_TABLE_ID=2022
 fi
 
 if [[ -z "$VBOX_TUN_PROXY_BLACKLIST_IFNAME" ]]; then
@@ -116,7 +121,7 @@ function vbox_setup_rule_marks() {
     nft add chain $FAMILY $TABLE POLICY_MARK_GOTO_DEFAULT
   fi
   nft flush chain $FAMILY $TABLE POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_MARK_GOTO_DEFAULT meta mark set meta mark and 0xfffffff0 xor 0x0c
+  nft add rule $FAMILY $TABLE POLICY_MARK_GOTO_DEFAULT meta mark set meta mark and 0xfffffff0 xor 0xc
   nft add rule $FAMILY $TABLE POLICY_MARK_GOTO_DEFAULT ct mark set meta mark accept
 
   # POLICY_MARK_GOTO_TUN
@@ -125,7 +130,7 @@ function vbox_setup_rule_marks() {
     nft add chain $FAMILY $TABLE POLICY_MARK_GOTO_TUN
   fi
   nft flush chain $FAMILY $TABLE POLICY_MARK_GOTO_TUN
-  nft add rule $FAMILY $TABLE POLICY_MARK_GOTO_TUN meta mark set meta mark and 0xfffffff0 xor 0x03
+  nft add rule $FAMILY $TABLE POLICY_MARK_GOTO_TUN meta mark set meta mark and 0xfffffff0 xor 0x3
   nft add rule $FAMILY $TABLE POLICY_MARK_GOTO_TUN ct mark set meta mark accept
 }
 
@@ -266,7 +271,7 @@ function vbox_iniitialize_rule_table() {
   nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP meta mark and 0x0f != 0x0 ct mark and 0x0f == 0x0 ct mark set meta mark accept
   nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP meta mark and 0x0f != 0x0 accept
   nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP ct mark and 0x0f != 0x0 meta mark set ct mark accept
-  nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP meta mark and 0x0c == 0x0c jump POLICY_MARK_GOTO_DEFAULT
+  nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP meta mark and 0xc == 0xc jump POLICY_MARK_GOTO_DEFAULT
 
   ### skip internal services
   nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP meta l4proto != '{tcp, udp}' jump POLICY_MARK_GOTO_DEFAULT
@@ -323,8 +328,10 @@ if [ $VBOX_SETUP_IP_RULE_CLEAR -ne 0 ]; then
 
   ip -4 rule add nop priority $ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY
   ip -6 rule add nop priority $ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY
-  ip -4 rule add fwmark 0x0c/0x0c goto $ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY priority $VBOX_SKIP_IP_RULE_PRIORITY
-  ip -6 rule add fwmark 0x0c/0x0c goto $ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY priority $VBOX_SKIP_IP_RULE_PRIORITY
+  ip -4 rule add fwmark 0xc/0xc goto $ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY priority $VBOX_SKIP_IP_RULE_PRIORITY
+  ip -6 rule add fwmark 0xc/0xc goto $ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY priority $VBOX_SKIP_IP_RULE_PRIORITY
+  ip -4 rule add fwmark 0x3/0x3 lookup $VBOX_TUN_TABLE_ID priority $VBOX_SKIP_IP_RULE_PRIORITY
+  ip -6 rule add fwmark 0x3/0x3 lookup $VBOX_TUN_TABLE_ID priority $VBOX_SKIP_IP_RULE_PRIORITY
 
   # Update GEOIP
   if [[ ! -e "$VBOX_DATA_DIR/geoip-cn.json" ]]; then
