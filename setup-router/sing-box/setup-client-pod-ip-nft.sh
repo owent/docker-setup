@@ -25,6 +25,10 @@ if [[ -z "$VBOX_DATA_DIR" ]]; then
   VBOX_DATA_DIR="$HOME/vbox/data"
 fi
 
+if [[ -z "$VBOX_ETC_DIR" ]]; then
+  VBOX_ETC_DIR="$HOME/vbox/etc"
+fi
+
 ### 策略路由(占用mark的后4位,RPDB变化均会触发重路由, meta mark and 0x0f != 0x0 都跳过重路由):
 ###   不需要重路由设置: meta mark and 0x0f != 0x0
 ###   走 tun: 设置 fwmark = 0x03/0x03 (0011)
@@ -36,6 +40,10 @@ if [[ -z "$ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY" ]]; then
 fi
 if [[ -z "$VBOX_SKIP_IP_RULE_PRIORITY" ]]; then
   VBOX_SKIP_IP_RULE_PRIORITY=8123
+fi
+
+if [[ -z "$VBOX_TUN_PROXY_BLACKLIST_IFNAME" ]]; then
+  VBOX_TUN_PROXY_BLACKLIST_IFNAME=()
 fi
 
 if [[ $ROUTER_NET_LOCAL_ENABLE_VBOX -ne 0 ]] && [[ "x$1" != "xclear" ]]; then
@@ -54,6 +62,23 @@ if [ $VBOX_SETUP_IP_RULE_CLEAR -ne 0 ]; then
 
   $DOCKER_EXEC exec -it vbox-client vbox geoip export cn -f /usr/share/vbox/geoip.db -o /usr/share/vbox/geoip-cn.json
   $DOCKER_EXEC cp vbox-client:/usr/share/vbox/geoip-cn.json "$VBOX_DATA_DIR/geoip-cn.json" || mv -f "$VBOX_DATA_DIR/geoip-cn.json.bak" "$VBOX_DATA_DIR/geoip-cn.json"
+
+  # 这里为了保持和 setup-client-pod-ip-rules 同行为
+  PATCH_CONF_FILES=($(find "$VBOX_ETC_DIR" -maxdepth 1 -name "*.json.template"))
+  mkdir -p "$SCRIPT_DIR/patch"
+  if [ ${#PATCH_CONF_FILES[@]} -gt 0 ]; then
+    for PATCH_CONF_FILE in "${PATCH_CONF_FILES[@]}"; do
+      TARGET_CONF_FILE="$SCRIPT_DIR/patch/$(basename "$PATCH_CONF_FILE" | sed -E 's;.template$;;')"
+      cp -f "$PATCH_CONF_FILE" "$TARGET_CONF_FILE"
+
+      sed -i -E 's;(//[[:space:]]*)?"auto_redirect":[^,]+,;"auto_redirect": false,;g' "$TARGET_CONF_FILE"
+      sed -i -E 's;(//[[:space:]]*)?"default_mark":([^,]+),;"default_mark":\2,;g' "$TARGET_CONF_FILE"
+      sed -i -E 's;(//[[:space:]]*)?"routing_mark":([^,]+),;"routing_mark":\2,;g' "$TARGET_CONF_FILE"
+
+      echo "Copy patched configure file: $TARGET_CONF_FILE to $VBOX_ETC_DIR/"
+      cp -f "$TARGET_CONF_FILE" "$VBOX_ETC_DIR/"
+    done
+  fi
 fi
 
 # Sing-box has poor performance, we route by ip first
@@ -245,6 +270,10 @@ function vbox_iniitialize_rule_table() {
 
   ### skip internal services
   nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP meta l4proto != '{tcp, udp}' jump POLICY_MARK_GOTO_DEFAULT
+  ### skip blacklist interfaces
+  if [[ ${#VBOX_TUN_PROXY_BLACKLIST_IFNAME[@]} -gt 0 ]]; then
+    nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP iifname "${VBOX_TUN_PROXY_BLACKLIST_IFNAME// /,}" jump POLICY_MARK_GOTO_DEFAULT
+  fi
 
   ## DNS always goto tun
   nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP udp dport '{53, 784, 853, 8853}' jump POLICY_MARK_GOTO_TUN

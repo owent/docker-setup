@@ -20,7 +20,11 @@ if [[ -z "$VBOX_SKIP_IP_RULE_PRIORITY" ]]; then
 fi
 
 if [[ -z "$VBOX_TUN_TABLE_ID" ]]; then
-  VBOX_TUN_TABLE_ID=2035
+  VBOX_TUN_TABLE_ID=2022
+fi
+
+if [[ -z "$VBOX_TUN_PROXY_BLACKLIST_IFNAME" ]]; then
+  VBOX_TUN_PROXY_BLACKLIST_IFNAME=()
 fi
 
 if [[ "x$1" != "xclear" ]]; then
@@ -32,15 +36,19 @@ fi
 function vbox_setup_whitelist_ipv4() {
   WHITELIST_TABLE_ID=$(($VBOX_TUN_TABLE_ID + 1))
 
-  # Checking luupup/nop rule
+  # Checking lookup/nop rule
   FIND_PROIRITY=""
-  for ((i = 0; i < 5; i++)); do
+  for ((i = 0; i < 10; i++)); do
     FIND_PROIRITY=$(ip -4 rule | grep -E "lookup[[:space:]]+$VBOX_TUN_TABLE_ID" | tail -n 1 | awk 'BEGIN{FS=":"}{print $1}')
     if [[ ! -z "$FIND_PROIRITY" ]]; then
       break
     fi
     sleep 1
   done
+  if [[ -z "$FIND_PROIRITY" ]]; then
+    echo "No priority found for lookup table $VBOX_TUN_TABLE_ID"
+    return 1
+  fi
   FIND_NOP_PROIRITY=$(ip -4 rule | grep -E '\bnop\b' | tail -n 1 | awk 'BEGIN{FS=":"}{print $1}')
   if [[ -z "$FIND_PROIRITY" ]]; then
     FIND_PROIRITY=$FIND_NOP_PROIRITY
@@ -69,20 +77,27 @@ function vbox_setup_whitelist_ipv4() {
   for SERVICE_PORT in $(echo $ROUTER_INTERNAL_SERVICE_PUBLIC_PORT_UDP | tr ',' ' '); do
     ip -4 rule add priority $VBOX_SKIP_IP_RULE_PRIORITY ipproto udp sport $SERVICE_PORT goto $FIND_NOP_PROIRITY
   done
+  for BLACKLIST_IFNAME in $(echo $VBOX_TUN_PROXY_BLACKLIST_IFNAME | tr ',' ' '); do
+    ip -4 rule add priority $VBOX_SKIP_IP_RULE_PRIORITY iif $BLACKLIST_IFNAME goto $FIND_NOP_PROIRITY
+  done
 }
 
 function vbox_setup_whitelist_ipv6() {
   WHITELIST_TABLE_ID=$(($VBOX_TUN_TABLE_ID + 1))
 
-  # Checking luupup/nop rule
+  # Checking lookup/nop rule
   FIND_PROIRITY=""
-  for ((i = 0; i < 5; i++)); do
+  for ((i = 0; i < 10; i++)); do
     FIND_PROIRITY=$(ip -6 rule | grep -E "lookup[[:space:]]+$VBOX_TUN_TABLE_ID" | tail -n 1 | awk 'BEGIN{FS=":"}{print $1}')
     if [[ ! -z "$FIND_PROIRITY" ]]; then
       break
     fi
     sleep 1
   done
+  if [[ -z "$FIND_PROIRITY" ]]; then
+    echo "No priority found for lookup table $VBOX_TUN_TABLE_ID"
+    return 1
+  fi
   FIND_NOP_PROIRITY=$(ip -6 rule | grep -E '\bnop\b' | tail -n 1 | awk 'BEGIN{FS=":"}{print $1}')
   if [[ -z "$FIND_PROIRITY" ]]; then
     FIND_PROIRITY=$FIND_NOP_PROIRITY
@@ -110,6 +125,9 @@ function vbox_setup_whitelist_ipv6() {
   done
   for SERVICE_PORT in $(echo $ROUTER_INTERNAL_SERVICE_PUBLIC_PORT_UDP | tr ',' ' '); do
     ip -6 rule add priority $VBOX_SKIP_IP_RULE_PRIORITY ipproto udp sport $SERVICE_PORT goto $FIND_NOP_PROIRITY
+  done
+  for BLACKLIST_IFNAME in $(echo $VBOX_TUN_PROXY_BLACKLIST_IFNAME | tr ',' ' '); do
+    ip -6 rule add priority $VBOX_SKIP_IP_RULE_PRIORITY iif $BLACKLIST_IFNAME goto $FIND_NOP_PROIRITY
   done
 }
 
@@ -152,6 +170,10 @@ vbox_cleanup_whitelist_ipv6
 
 if [[ $VBOX_SETUP_IP_RULE_CLEAR -eq 0 ]] && [[ ${#VBOX_TUN_PROXY_WHITELIST_IPV4[@]} -gt 0 ]]; then
   vbox_setup_whitelist_ipv4
+  if [[ $? -ne 0 ]]; then
+    echo "Failed to setup IPv4 whitelist rules."
+    exit 1
+  fi
 fi
 
 if [[ $VBOX_SETUP_IP_RULE_CLEAR -eq 0 ]] && [[ ${#VBOX_TUN_PROXY_WHITELIST_IPV6[@]} -gt 0 ]]; then

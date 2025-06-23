@@ -47,6 +47,7 @@ function vbox_setup_patch_configures_without_auto_redirect() {
   $DOCKER_EXEC exec -it vbox-client vbox geoip export cn -f /usr/share/vbox/geoip.db -o /usr/share/vbox/geoip-cn.json
   $DOCKER_EXEC cp vbox-client:/usr/share/vbox/geoip-cn.json "$VBOX_DATA_DIR/geoip-cn.json" || mv -f "$VBOX_DATA_DIR/geoip-cn.json.bak" "$VBOX_DATA_DIR/geoip-cn.json"
 
+  # tun排除规则性能非常差，尽量还是走 ip-nft 模式自己来吧
   GEOIP_CN_ADDRESS=($(jq '.rules[].ip_cidr[]' -r "$VBOX_DATA_DIR/geoip-cn.json"))
 
   if [[ -e "$SCRIPT_DIR/patch" ]]; then
@@ -56,13 +57,14 @@ function vbox_setup_patch_configures_without_auto_redirect() {
 
   for PATCH_CONF_FILE in "${PATCH_CONF_FILES[@]}"; do
     TARGET_CONF_FILE="$SCRIPT_DIR/patch/$(basename "$PATCH_CONF_FILE" | sed -E 's;.template$;;')"
+    # tun排除规则性能非常差，尽量还是走 ip-nft 模式自己来吧
     GEOIP_ADDRESS_PLACEHOLDER=$(grep -nr ROUTE_EXLUCDE_ADDRESS_PLACEHOLDER "$PATCH_CONF_FILE" | awk 'BEGIN{FS=":"}{print $1}')
-
+    
     if [[ -z "$GEOIP_ADDRESS_PLACEHOLDER" ]]; then
       echo "No placeholder found in $PATCH_CONF_FILE"
       continue
     fi
-
+    
     sed -n "1,$((GEOIP_ADDRESS_PLACEHOLDER - 1))p" "$PATCH_CONF_FILE" >"$TARGET_CONF_FILE"
     for IP_CIDR in "${GEOIP_CN_ADDRESS[@]}"; do
       echo "        ,\"$IP_CIDR\"" >>"$TARGET_CONF_FILE"
@@ -71,6 +73,8 @@ function vbox_setup_patch_configures_without_auto_redirect() {
     sed -n "$((GEOIP_ADDRESS_PLACEHOLDER + 1)),$ p" "$PATCH_CONF_FILE" >>"$TARGET_CONF_FILE"
 
     sed -i -E 's;(//[[:space:]]*)?"auto_redirect":[^,]+,;"auto_redirect": false,;g' "$TARGET_CONF_FILE"
+    sed -i -E 's;(//[[:space:]]*)?"default_mark":([^,]+),;"default_mark":\2,;g' "$TARGET_CONF_FILE"
+    sed -i -E 's;(//[[:space:]]*)?"routing_mark":([^,]+),;"routing_mark":\2,;g' "$TARGET_CONF_FILE"
 
     echo "Copy patched configure file: $TARGET_CONF_FILE to $VBOX_ETC_DIR/"
     cp -f "$TARGET_CONF_FILE" "$VBOX_ETC_DIR/"
@@ -96,8 +100,8 @@ function vbox_setup_patch_configures_with_auto_redirect() {
     sed -i -E 's;(//[[:space:]]*)?"auto_route":[^,]+,;"auto_route": true,;g' "$TARGET_CONF_FILE"
     sed -i -E 's;(//[[:space:]]*)?"route_address_set":;"route_address_set":;g' "$TARGET_CONF_FILE"
     sed -i -E 's;(//[[:space:]]*)?"route_exclude_address_set":;"route_exclude_address_set":;g' "$TARGET_CONF_FILE"
-    sed -i -E 's;(//[[:space:]]*)?"default_mark":[^,]+,;"default_mark": true,;g' "$TARGET_CONF_FILE"
-    sed -i -E 's;(//[[:space:]]*)?"routing_mark":[^,]+,;"routing_mark": true,;g' "$TARGET_CONF_FILE"
+    sed -i -E 's;(//[[:space:]]*)?"default_mark":([^,]+),;// "default_mark":\2,;g' "$TARGET_CONF_FILE"
+    sed -i -E 's;(//[[:space:]]*)?"routing_mark":([^,]+),;// "routing_mark":\2,;g' "$TARGET_CONF_FILE"
 
     echo "Copy patched configure file: $TARGET_CONF_FILE to $VBOX_ETC_DIR/"
     cp -f "$TARGET_CONF_FILE" "$VBOX_ETC_DIR/"

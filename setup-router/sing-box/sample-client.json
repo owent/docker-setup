@@ -74,7 +74,7 @@
         "server": "dns-proxy",
         // "client_subnet": "114.114.114.114/24" // Any China client IP address
         // "client_subnet": "202.96.209.133/24" // Shanghai ChinaNet IP address
-        "client_subnet": "210.22.70.3/24" // Shanghai ChinaUnion IP address
+        "client_subnet": "210.22.70.3/24"
       },
       {
         "outbound": "any",
@@ -106,6 +106,7 @@
       "strict_route": true,
       "stack": "gvisor",
       // "endpoint_independent_nat": false,
+      // 开启ROUTER_NET_LOCAL_ENABLE_VBOX时尽量关闭tun的include和excelude规则，性能很差
       // include_interface": ["enp2s0"],
       "exclude_interface": ["vlan.enp2s0"],
       "route_exclude_address": [

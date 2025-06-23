@@ -14,6 +14,8 @@ RUN_HOME=$(cat /etc/passwd | awk "BEGIN{FS=\":\"} \$1 == \"$RUN_USER\" { print \
 if [[ "x$RUN_HOME" == "x" ]]; then
   RUN_HOME="$HOME"
 fi
+
+# 非 --network=host 下会导致丢失DNS请求来源信息
 # ADGUARD_HOME_NETWORK=(host)
 # ADGUARD_HOME_RUN_USER=(root)
 if [[ -z "$ADGUARD_HOME_ETC_DIR" ]]; then

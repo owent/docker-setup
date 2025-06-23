@@ -10,6 +10,8 @@ if [[ -z "$RUN_USER" ]]; then
 fi
 
 # sudo loginctl enable-linger $RUN_USER
+# podman-compose 在 --network=host 下有兼容性问题
+# 非 --network=host 下会导致丢失DNS请求来源信息
 
 if [[ -z "$RUN_USER" ]] || [[ "$RUN_USER" == "root" ]]; then
   echo -e "\033[1;32m$0 can not run with\033[0;m \033[1;31m$RUN_USER\033[0;m"

@@ -5,15 +5,7 @@
         // rsa: (2048/4096/8192), ecdsa: (256/384/521), ed25519: 256
         "size": 256
     },
-    "CN": "x-ha.com",
-    "hosts": [
-        "x-ha.com",
-        "*.x-ha.com",
-        "w-oa.com",
-        "*.w-oa.com",
-        "r-ci.com",
-        "*.r-ci.com"
-    ],
+    "CN": "Root CA for x-ha.com",
     "names": [
         {
             "C":  "CN",

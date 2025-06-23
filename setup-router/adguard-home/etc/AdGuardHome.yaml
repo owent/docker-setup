@@ -1,5 +1,5 @@
 http:
-  address: 0.0.0.0:3000
+  address: 0.0.0.0:6393 # 0.0.0.0:3000
   session_ttl: 3h
   pprof:
     enabled: true
@@ -40,7 +40,7 @@ tls:
   enabled: true
   server_name: dns.example.org
   force_https: false
-  port_https: 443
+  port_https: 6392 # 443
   port_dns_over_tls: 853
   port_dns_over_quic: 853
   # port_dnscrypt: 5443
