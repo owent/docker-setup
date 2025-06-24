@@ -57,7 +57,7 @@ else
   VBOX_SETUP_IP_RULE_CLEAR=0
 fi
 
-if [ $VBOX_SETUP_IP_RULE_CLEAR -ne 0 ]; then
+function vbox_patch_configure() {
   if [[ -e "$VBOX_DATA_DIR/geoip-cn.json" ]] && [[ -e "$VBOX_DATA_DIR/geoip-cn.json.bak" ]]; then
     rm -f "$VBOX_DATA_DIR/geoip-cn.json.bak"
   fi
@@ -84,32 +84,122 @@ if [ $VBOX_SETUP_IP_RULE_CLEAR -ne 0 ]; then
       cp -f "$TARGET_CONF_FILE" "$VBOX_ETC_DIR/"
     done
   fi
-fi
+}
 
-# Sing-box has poor performance, we route by ip first
-ROUTER_IP_RULE_LOOPUP_PRIORITY_NOP=$(ip -4 rule show priority $ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY | awk 'END {print NF}')
-while [[ 0 -ne $ROUTER_IP_RULE_LOOPUP_PRIORITY_NOP ]]; do
-  ip -4 rule delete priority $ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY
-  ROUTER_IP_RULE_LOOPUP_PRIORITY_NOP=$(ip -4 rule show priority $ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY | awk 'END {print NF}')
-done
+function vbox_get_last_tun_lookup_priority() {
+  IP_FAMILY="$1"
+  FIND_PROIRITY=""
+  for ((i = 0; i < 10; i++)); do
+    FIND_PROIRITY=$(ip $IP_FAMILY rule list | grep -E "\\blookup[[:space:]]+$VBOX_TUN_TABLE_ID\$" | tail -n 1 | awk 'BEGIN{FS=":"}{print $1}')
+    if [[ ! -z "$FIND_PROIRITY" ]]; then
+      break
+    fi
+    sleep 1
+  done
+  if [[ -z "$FIND_PROIRITY" ]]; then
+    return 1
+  fi
 
-ROUTER_IP_RULE_LOOPUP_PRIORITY_NOP=$(ip -6 rule show priority $ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY | awk 'END {print NF}')
-while [[ 0 -ne $ROUTER_IP_RULE_LOOPUP_PRIORITY_NOP ]]; do
-  ip -6 rule delete priority $ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY
-  ROUTER_IP_RULE_LOOPUP_PRIORITY_NOP=$(ip -6 rule show priority $ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY | awk 'END {print NF}')
-done
+  echo "$FIND_PROIRITY"
+}
 
-ROUTER_IP_RULE_LOOPUP_VBOX_SKIP_PRIORITY=$(ip -4 rule show priority $VBOX_SKIP_IP_RULE_PRIORITY | awk 'END {print NF}')
-while [[ 0 -ne $ROUTER_IP_RULE_LOOPUP_VBOX_SKIP_PRIORITY ]]; do
-  ip -4 rule delete priority $VBOX_SKIP_IP_RULE_PRIORITY
-  ROUTER_IP_RULE_LOOPUP_VBOX_SKIP_PRIORITY=$(ip -4 rule show priority $VBOX_SKIP_IP_RULE_PRIORITY | awk 'END {print NF}')
-done
+function vbox_get_first_nop_lookup_priority_after_tun() {
+  IP_FAMILY="$1"
+  TUN_PRIORITY=$2
+  FIND_PROIRITY=""
+  if [[ -z "$TUN_PRIORITY" ]]; then
+    for ((i = 0; i < 10; i++)); do
+      FIND_PROIRITY=$(ip $IP_FAMILY rule show | grep -E '\bnop$' | tail -n 1 | awk 'BEGIN{FS=":"}{print $1}')
+      if [[ ! -z "$FIND_PROIRITY" ]]; then
+        break
+      fi
+      sleep 1
+    done
+  else
+    for ((i = 0; i < 10; i++)); do
+      FIND_PROIRITY=$(ip $IP_FAMILY rule show | grep -E '\bnop$' | awk "BEGIN{FS=\":\"} \$1>$TUN_PRIORITY {print \$1}" | head -n 1)
+      if [[ ! -z "$FIND_PROIRITY" ]]; then
+        break
+      fi
+      sleep 1
+    done
+  fi
+  if [[ -z "$FIND_PROIRITY" ]]; then
+    return 1
+  fi
 
-ROUTER_IP_RULE_LOOPUP_VBOX_SKIP_PRIORITY=$(ip -6 rule show priority $VBOX_SKIP_IP_RULE_PRIORITY | awk 'END {print NF}')
-while [[ 0 -ne $ROUTER_IP_RULE_LOOPUP_VBOX_SKIP_PRIORITY ]]; do
-  ip -6 rule delete priority $VBOX_SKIP_IP_RULE_PRIORITY
-  ROUTER_IP_RULE_LOOPUP_VBOX_SKIP_PRIORITY=$(ip -6 rule show priority $VBOX_SKIP_IP_RULE_PRIORITY | awk 'END {print NF}')
-done
+  echo "$FIND_PROIRITY"
+}
+
+function vbox_clear_ip_rules() {
+  for IP_FAMILY in "$@"; do
+    VBOX_IP_RULE_EXCLUDE_IF_PRIORITY=$(($VBOX_SKIP_IP_RULE_PRIORITY - 2))
+    VBOX_IP_RULE_EXCLUDE_MARK_PRIORITY=$(($VBOX_SKIP_IP_RULE_PRIORITY - 1))
+    VBOX_IP_RULE_INCLUDE_MARK_PRIORITY=$VBOX_SKIP_IP_RULE_PRIORITY
+
+    for CLEAR_PRIORITY in "$ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY" \
+                          "$VBOX_IP_RULE_EXCLUDE_IF_PRIORITY" \
+                          "$VBOX_IP_RULE_EXCLUDE_MARK_PRIORITY" \
+                          "$VBOX_IP_RULE_INCLUDE_MARK_PRIORITY"; do
+      ROUTER_IP_RULE_LOOPUP_PRIORITY=$(ip $IP_FAMILY rule show priority $CLEAR_PRIORITY | awk 'END {print NF}')
+      while [[ 0 -ne $ROUTER_IP_RULE_LOOPUP_PRIORITY ]]; do
+        ip $IP_FAMILY rule delete priority $CLEAR_PRIORITY
+        ROUTER_IP_RULE_LOOPUP_PRIORITY=$(ip $IP_FAMILY rule show priority $CLEAR_PRIORITY | awk 'END {print NF}')
+      done
+    done
+  done
+}
+
+function vbox_setup_ip_rules() {
+  VBOX_IP_RULE_EXCLUDE_IF_PRIORITY=$(($VBOX_SKIP_IP_RULE_PRIORITY - 2))
+  VBOX_IP_RULE_EXCLUDE_MARK_PRIORITY=$(($VBOX_SKIP_IP_RULE_PRIORITY - 1))
+  VBOX_IP_RULE_INCLUDE_MARK_PRIORITY=$VBOX_SKIP_IP_RULE_PRIORITY
+  for IP_FAMILY in "$@"; do
+    LAST_TUN_LOOKUP_PRIORITY=$(vbox_get_last_tun_lookup_priority "$IP_FAMILY")
+    NOP_LOOKUP_PRIORITY=$(vbox_get_first_nop_lookup_priority_after_tun "$IP_FAMILY" "$LAST_TUN_LOOKUP_PRIORITY")
+
+    if [[ -z "$NOP_LOOKUP_PRIORITY" ]]; then
+      ip $IP_FAMILY rule add nop priority $ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY
+      NOP_LOOKUP_PRIORITY=$ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY
+    fi
+
+    # Exclude interfaces
+    if [[ -z "$VBOX_TUN_INTERFACE" ]]; then
+      DETECT_TUN_IF_NAMES=($(nmcli --fields NAME,TYPE connection show | awk '{if($2=="tun"){print $1}}'))
+      if [[ ${#DETECT_TUN_IF_NAMES[@]} -gt 0 ]]; then
+        for TUN_IF_NAME in "${DETECT_TUN_IF_NAMES[@]}"; do
+          ip link show "$TUN_IF_NAME" >/dev/null 2>&1 && \
+            ip $IP_FAMILY rule add iif "$TUN_IF_NAME" goto $NOP_LOOKUP_PRIORITY priority $VBOX_IP_RULE_EXCLUDE_IF_PRIORITY
+        done
+      else
+        ip link show "tun0" >/dev/null 2>&1 && \
+          ip $IP_FAMILY rule add iif "tun0" goto $NOP_LOOKUP_PRIORITY priority $VBOX_IP_RULE_EXCLUDE_IF_PRIORITY
+      fi
+    else
+      ip link show "$VBOX_TUN_INTERFACE" >/dev/null 2>&1 && \
+        ip $IP_FAMILY rule add iif "$VBOX_TUN_INTERFACE" goto $NOP_LOOKUP_PRIORITY priority $VBOX_IP_RULE_EXCLUDE_IF_PRIORITY
+    fi
+    if [[ ${#VBOX_TUN_PROXY_BLACKLIST_IFNAME[@]} -gt 0 ]]; then
+      for IGNORE_IFNAME in "${VBOX_TUN_PROXY_BLACKLIST_IFNAME[@]}"; do
+        if [[ ! -z "$VBOX_TUN_INTERFACE" ]] && [[ "$VBOX_TUN_INTERFACE" == "$IGNORE_IFNAME" ]]; then
+          continue
+        fi
+        ip link show "$IGNORE_IFNAME" >/dev/null 2>&1 && \
+          ip $IP_FAMILY rule add iif "$IGNORE_IFNAME" goto $NOP_LOOKUP_PRIORITY priority $VBOX_IP_RULE_EXCLUDE_IF_PRIORITY
+      done
+    fi
+
+    # Exclude marks
+    ip $IP_FAMILY rule add fwmark 0xc/0xc goto $NOP_LOOKUP_PRIORITY priority $VBOX_IP_RULE_EXCLUDE_MARK_PRIORITY
+    
+    # Include marks
+    if [[ -z "$LAST_TUN_LOOKUP_PRIORITY" ]]; then
+      ip $IP_FAMILY rule add fwmark 0x3/0x3 lookup $VBOX_TUN_TABLE_ID priority $VBOX_IP_RULE_INCLUDE_MARK_PRIORITY
+    else
+      ip $IP_FAMILY rule add fwmark 0x3/0x3 goto $LAST_TUN_LOOKUP_PRIORITY priority $VBOX_IP_RULE_INCLUDE_MARK_PRIORITY
+    fi
+  done
+}
 
 function vbox_setup_rule_marks() {
   FAMILY="$1"
@@ -268,17 +358,13 @@ function vbox_iniitialize_rule_table() {
   fi
   nft flush chain $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP
 
-  nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP meta mark and 0x0f != 0x0 ct mark and 0x0f == 0x0 ct mark set meta mark accept
-  nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP meta mark and 0x0f != 0x0 accept
-  nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP ct mark and 0x0f != 0x0 meta mark set ct mark accept
+  nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP meta mark and 0xf != 0x0 ct mark and 0xf == 0x0 ct mark set meta mark accept
+  nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP meta mark and 0xf != 0x0 accept
+  nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP ct mark and 0xf != 0x0 meta mark set ct mark accept
   nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP meta mark and 0xc == 0xc jump POLICY_MARK_GOTO_DEFAULT
 
   ### skip internal services
   nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP meta l4proto != '{tcp, udp}' jump POLICY_MARK_GOTO_DEFAULT
-  ### skip blacklist interfaces
-  if [[ ${#VBOX_TUN_PROXY_BLACKLIST_IFNAME[@]} -gt 0 ]]; then
-    nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP iifname "${VBOX_TUN_PROXY_BLACKLIST_IFNAME// /,}" jump POLICY_MARK_GOTO_DEFAULT
-  fi
 
   ## DNS always goto tun
   nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP udp dport '{53, 784, 853, 8853}' jump POLICY_MARK_GOTO_TUN
@@ -317,22 +403,7 @@ function vbox_remove_rule_marks() {
   nft delete chain $FAMILY $TABLE POLICY_MARK_GOTO_TUN >/dev/null 2>&1
 }
 
-if [ $VBOX_SETUP_IP_RULE_CLEAR -ne 0 ]; then
-  vbox_iniitialize_rule_table inet vbox
-  vbox_iniitialize_rule_table bridge vbox
-
-  vbox_setup_rule_chain inet vbox PREROUTING '{ type filter hook prerouting priority filter + 1 ; }'
-  vbox_setup_rule_chain inet vbox OUTPUT '{ type route hook output priority filter + 1 ; }'
-
-  vbox_setup_rule_chain bridge vbox PREROUTING '{ type filter hook prerouting priority -280; }'
-
-  ip -4 rule add nop priority $ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY
-  ip -6 rule add nop priority $ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY
-  ip -4 rule add fwmark 0xc/0xc goto $ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY priority $VBOX_SKIP_IP_RULE_PRIORITY
-  ip -6 rule add fwmark 0xc/0xc goto $ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY priority $VBOX_SKIP_IP_RULE_PRIORITY
-  ip -4 rule add fwmark 0x3/0x3 lookup $VBOX_TUN_TABLE_ID priority $VBOX_SKIP_IP_RULE_PRIORITY
-  ip -6 rule add fwmark 0x3/0x3 lookup $VBOX_TUN_TABLE_ID priority $VBOX_SKIP_IP_RULE_PRIORITY
-
+function vbox_update_geoip() {
   # Update GEOIP
   if [[ ! -e "$VBOX_DATA_DIR/geoip-cn.json" ]]; then
     echo "$VBOX_DATA_DIR/geoip-cn.json not found"
@@ -377,11 +448,30 @@ if [ $VBOX_SETUP_IP_RULE_CLEAR -ne 0 ]; then
       GEOIP_CN_ADDRESS_START=$GEOIP_CN_ADDRESS_COUNT
     fi
   done
+}
+
+if [ $VBOX_SETUP_IP_RULE_CLEAR -ne 0 ]; then
+  vbox_patch_configure
+  vbox_clear_ip_rules "-4" "-6"
+  vbox_iniitialize_rule_table inet vbox
+  vbox_iniitialize_rule_table bridge vbox
+
+  vbox_setup_rule_chain inet vbox PREROUTING '{ type filter hook prerouting priority filter + 1 ; }'
+  vbox_setup_rule_chain inet vbox OUTPUT '{ type route hook output priority filter + 1 ; }'
+
+  vbox_setup_rule_chain bridge vbox PREROUTING '{ type filter hook prerouting priority -280; }'
+
+  # Sing-box has poor performance, we setup ip rules ourself
+  vbox_setup_ip_rules "-4" "-6"
+
+  vbox_update_geoip
 
   # clear DNS server cache
   # su tools -l -c 'env XDG_RUNTIME_DIR="/run/user/$UID" DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus" systemctl --user restart container-adguard-home'
 
 else
+  vbox_clear_ip_rules "-4" "-6"
+
   nft delete chain inet vbox PREROUTING >/dev/null 2>&1
   nft delete chain inet vbox OUTPUT >/dev/null 2>&1
 

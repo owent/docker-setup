@@ -13,10 +13,6 @@ if [[ -z "$VBOX_DATA_DIR" ]]; then
   VBOX_DATA_DIR="$HOME/vbox/data"
 fi
 
-if [[ -z "$VBOX_SKIP_IP_RULE_PRIORITY" ]]; then
-  VBOX_SKIP_IP_RULE_PRIORITY=8123
-fi
-
 if [[ -z "$VBOX_IP_RULE_WITH_AUTO_REDIRECT" ]]; then
   VBOX_IP_RULE_WITH_AUTO_REDIRECT=0
 fi
