@@ -203,12 +203,11 @@ dhcp-option=option:netbios-ns,0.0.0.0
 
   if [ ${#ROUTER_CONFIG_IPV6_INTERFACES[@]} -gt 0 ] && [ $DNSMASQ_ENABLE_IPV6_NDP -ne 0 ]; then
     # Do not us fc00::/7 for ipv6 here, some system think unique local address is not reachable from internet
-    # We use dd27:32d6:ac12::/64 here for NAT, just like openwrt
     echo "
 # ipv6
 # dhcp-host for DHCPv6 seems not available
 # dhcp-host=a0:36:9f:07:3f:98,[::010a]
-# dhcp-option=option6:dns-server,dd27:32d6:ac12::010a
+# dhcp-option=option6:dns-server,fd08:0:0:ac17::010a
 # dhcp-option=option6:domain-search,$ROUTER_DOMAIN
 
 # https://listman.redhat.com/archives/libvir-list/2016-June/msg01065.html
@@ -248,7 +247,7 @@ esac
 
     for IPV6_INTERFACE in ${ROUTER_CONFIG_IPV6_INTERFACES[@]}; do
       echo "
-# dhcp-range=dd27:32d6:ac12::0003:0301,dd27:32d6:ac12::ffff:fffe,ra-names,slaac,64,28800s
+# dhcp-range=fd08:0:0:ac17::0003:0301,fd08:0:0:ac17::ffff:fffe,ra-names,slaac,64,28800s
 dhcp-range=::0003:0301,::ffff:fffe,constructor:$ROUTER_CONFIG_IPV6_INTERFACE,ra-names,slaac,64,28800s
 " >>/etc/dnsmasq.d/router.conf
     done

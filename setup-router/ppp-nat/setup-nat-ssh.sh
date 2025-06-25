@@ -35,7 +35,7 @@ fi
 nft list set ip nat LOCAL_IPV4 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   nft add set ip nat LOCAL_IPV4 '{ type ipv4_addr; flags interval; auto-merge ; }'
-  nft add element ip nat LOCAL_IPV4 {127.0.0.1/32, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8}
+  nft add element ip nat LOCAL_IPV4 '{0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16, 172.16.0.0/12, 192.0.0.0/24, 192.168.0.0/16, 224.0.0.0/4, 240.0.0.0/4}'
 fi
 nft list set ip nat DEFAULT_ROUTE_IPV4 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
@@ -57,7 +57,7 @@ if [[ $NAT_SETUP_SKIP_IPV6 -eq 0 ]]; then
   nft list set ip6 nat LOCAL_IPV6 >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
     nft add set ip6 nat LOCAL_IPV6 '{ type ipv6_addr; flags interval; auto-merge ; }'
-    nft add element ip6 nat LOCAL_IPV6 {::1/128, fc00::/7, fe80::/10}
+    nft add element ip6 nat LOCAL_IPV6 '{::1/128,::/128,::ffff:0:0/96,64:ff9b::/96,100::/64,fc00::/7,fe80::/10,ff00::/8}'
   fi
   nft list set ip6 nat DEFAULT_ROUTE_IPV6 >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
@@ -190,9 +190,9 @@ if [[ $NAT_SETUP_SKIP_IPV6 -eq 0 ]]; then
   ### Source NAT - ipv6
   # Skip local address when DSL interface get a local address
   nft add rule ip6 nat POSTROUTING ip saddr @DEFAULT_ROUTE_IPV6 return
-  nft add rule ip6 nat POSTROUTING meta l4proto tcp ip6 saddr @LOCAL_IPV6 ip6 daddr != @LOCAL_IPV6 ip6 daddr != '{ff00::/8}' counter packets 0 bytes 0 masquerade to :16000-65535
-  nft add rule ip6 nat POSTROUTING meta l4proto udp ip6 saddr @LOCAL_IPV6 ip6 daddr != @LOCAL_IPV6 ip6 daddr != '{ff00::/8}' counter packets 0 bytes 0 masquerade to :16000-65535
-  nft add rule ip6 nat POSTROUTING ip6 saddr @LOCAL_IPV6 ip6 daddr != @LOCAL_IPV6 ip6 daddr != '{ff00::/8}' counter packets 0 bytes 0 masquerade
+  nft add rule ip6 nat POSTROUTING meta l4proto tcp ip6 saddr @LOCAL_IPV6 ip6 daddr != @LOCAL_IPV6 counter packets 0 bytes 0 masquerade to :16000-65535
+  nft add rule ip6 nat POSTROUTING meta l4proto udp ip6 saddr @LOCAL_IPV6 ip6 daddr != @LOCAL_IPV6 counter packets 0 bytes 0 masquerade to :16000-65535
+  nft add rule ip6 nat POSTROUTING ip6 saddr @LOCAL_IPV6 ip6 daddr != @LOCAL_IPV6 counter packets 0 bytes 0 masquerade
 
   ### Destination NAT - ipv6
   # nft add rule ip6 nat PREROUTING ip6 saddr != @LOCAL_IPV6 tcp dport 22 drop

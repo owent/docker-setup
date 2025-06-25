@@ -29,6 +29,46 @@ if [[ -z "$VBOX_ETC_DIR" ]]; then
   VBOX_ETC_DIR="$HOME/vbox/etc"
 fi
 
+## ipv4绕过本地和私有网络地址:
+## - 0.0.0.0/8 - 本网络地址
+## - 10.0.0.0/8 - RFC 1918私有地址
+## - 127.0.0.0/8 - 环回地址
+## - 169.254.0.0/16 - 链路本地地址
+## - 172.16.0.0/12 - RFC 1918私有地址
+## - 192.0.0.0/24 - IETF协议分配
+## - 192.0.2.0/24 - 测试网络1（以下地址集未排除）
+## - 192.168.0.0/16 - RFC 1918私有地址
+## - 198.18.0.0/15 - 网络互联测试 （以下地址集未排除）
+## - 198.51.100.0/24 - 测试网络2（以下地址集未排除）
+## - 203.0.113.0/24 - 测试网络3（以下地址集未排除）
+## - 224.0.0.0/4 - 多播地址（224.0.0.0-239.255.255.255）
+## - 240.0.0.0/4 - 保留地址
+##   - 255.255.255.255/32 - 广播地址
+IPV4_TUN_ADDRESS_SET=(
+  1.0.0.0/8 2.0.0.0/7 4.0.0.0/6 8.0.0.0/7 11.0.0.0/8 12.0.0.0/6 16.0.0.0/4 32.0.0.0/3
+  64.0.0.0/3 96.0.0.0/4 112.0.0.0/5 120.0.0.0/6 124.0.0.0/7 126.0.0.0/8 128.0.0.0/3
+  160.0.0.0/5 168.0.0.0/8 169.0.0.0/9 169.128.0.0/10 169.192.0.0/11 169.224.0.0/12
+  169.240.0.0/13 169.248.0.0/14 169.252.0.0/15 169.255.0.0/16 170.0.0.0/7
+  172.0.0.0/12 172.32.0.0/11 172.64.0.0/10 172.128.0.0/9 173.0.0.0/8 174.0.0.0/7 176.0.0.0/4
+  192.0.1.0/24 192.0.2.0/23 192.0.4.0/22 192.0.8.0/21 192.0.16.0/20 192.0.32.0/19 192.0.64.0/18 192.0.128.0/17 
+  192.1.0.0/16 192.2.0.0/15 192.4.0.0/14 192.8.0.0/13 192.16.0.0/12 192.32.0.0/11 192.64.0.0/10
+  192.128.0.0/11 192.160.0.0/13 192.169.0.0/16 192.170.0.0/15 192.172.0.0/14 192.176.0.0/12 192.192.0.0/10
+  193.0.0.0/8 194.0.0.0/7 196.0.0.0/6 200.0.0.0/5 208.0.0.0/4
+)
+
+## ipv6绕过本地和私有网络地址:
+## - ::1/128 - 环回地址
+## - ::/128 - 未指定地址
+## - ::ffff:0:0/96 - IPv4映射地址
+## - 64:ff9b::/96 - IPv4/IPv6转换
+## - 100::/64 - 丢弃前缀
+## - fc00::/7 - 唯一本地地址
+## - fe80::/10 - 链路本地地址
+## - ff00::/8 - 多播地址
+IPV6_TUN_ADDRESS_SET=(
+  2000::/3
+)
+
 ### 策略路由(占用mark的后4位,RPDB变化均会触发重路由, meta mark and 0xf != 0x0 都跳过重路由):
 ###   不需要重路由设置: meta mark and 0xf != 0x0
 ###   走 tun: 设置 fwmark = 0x3/0x3 (0011)
@@ -45,6 +85,10 @@ fi
 
 if [[ -z "$VBOX_TUN_TABLE_ID" ]]; then
   VBOX_TUN_TABLE_ID=2022
+fi
+
+if [[ -z "$VBOX_TUN_WITH_SRC_TABLE_ID" ]]; then
+  VBOX_TUN_WITH_SRC_TABLE_ID=$(($VBOX_TUN_TABLE_ID + 1))
 fi
 
 if [[ -z "$VBOX_TUN_PROXY_BLACKLIST_IFNAME" ]]; then
@@ -133,27 +177,36 @@ function vbox_get_first_nop_lookup_priority_after_tun() {
 
 function vbox_clear_ip_rules() {
   for IP_FAMILY in "$@"; do
-    VBOX_IP_RULE_EXCLUDE_IF_PRIORITY=$(($VBOX_SKIP_IP_RULE_PRIORITY - 2))
-    VBOX_IP_RULE_EXCLUDE_MARK_PRIORITY=$(($VBOX_SKIP_IP_RULE_PRIORITY - 1))
-    VBOX_IP_RULE_INCLUDE_MARK_PRIORITY=$VBOX_SKIP_IP_RULE_PRIORITY
+    VBOX_IP_RULE_EXCLUDE_IF_PRIORITY=$(($VBOX_SKIP_IP_RULE_PRIORITY - 3))
+    VBOX_IP_RULE_EXCLUDE_MARK_PRIORITY=$(($VBOX_SKIP_IP_RULE_PRIORITY - 2))
+    VBOX_IP_RULE_INCLUDE_MARK_PRIORITY=$(($VBOX_SKIP_IP_RULE_PRIORITY - 1))
+    VBOX_IP_RULE_NO_MARK_DEFAULT_ROUTE_PRIORITY=$VBOX_SKIP_IP_RULE_PRIORITY
 
     for CLEAR_PRIORITY in "$ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY" \
                           "$VBOX_IP_RULE_EXCLUDE_IF_PRIORITY" \
                           "$VBOX_IP_RULE_EXCLUDE_MARK_PRIORITY" \
-                          "$VBOX_IP_RULE_INCLUDE_MARK_PRIORITY"; do
+                          "$VBOX_IP_RULE_INCLUDE_MARK_PRIORITY" \
+                          "$VBOX_IP_RULE_NO_MARK_DEFAULT_ROUTE_PRIORITY"; do
       ROUTER_IP_RULE_LOOPUP_PRIORITY=$(ip $IP_FAMILY rule show priority $CLEAR_PRIORITY | awk 'END {print NF}')
       while [[ 0 -ne $ROUTER_IP_RULE_LOOPUP_PRIORITY ]]; do
         ip $IP_FAMILY rule delete priority $CLEAR_PRIORITY
         ROUTER_IP_RULE_LOOPUP_PRIORITY=$(ip $IP_FAMILY rule show priority $CLEAR_PRIORITY | awk 'END {print NF}')
       done
     done
+
+    # clear ip route table
+    TABLE_RULE_COUNT=$(ip $IP_FAMILY route show table $VBOX_TUN_WITH_SRC_TABLE_ID 2>/dev/null | wc -l)
+    if [[ $TABLE_RULE_COUNT -gt 0 ]]; then
+      ip $IP_FAMILY route flush table $VBOX_TUN_WITH_SRC_TABLE_ID
+    fi
   done
 }
 
 function vbox_setup_ip_rules() {
-  VBOX_IP_RULE_EXCLUDE_IF_PRIORITY=$(($VBOX_SKIP_IP_RULE_PRIORITY - 2))
-  VBOX_IP_RULE_EXCLUDE_MARK_PRIORITY=$(($VBOX_SKIP_IP_RULE_PRIORITY - 1))
-  VBOX_IP_RULE_INCLUDE_MARK_PRIORITY=$VBOX_SKIP_IP_RULE_PRIORITY
+  VBOX_IP_RULE_EXCLUDE_IF_PRIORITY=$(($VBOX_SKIP_IP_RULE_PRIORITY - 3))
+  VBOX_IP_RULE_EXCLUDE_MARK_PRIORITY=$(($VBOX_SKIP_IP_RULE_PRIORITY - 2))
+  VBOX_IP_RULE_INCLUDE_MARK_PRIORITY=$(($VBOX_SKIP_IP_RULE_PRIORITY - 1))
+  VBOX_IP_RULE_NO_MARK_DEFAULT_ROUTE_PRIORITY=$VBOX_SKIP_IP_RULE_PRIORITY
   for IP_FAMILY in "$@"; do
     LAST_TUN_LOOKUP_PRIORITY=$(vbox_get_last_tun_lookup_priority "$IP_FAMILY")
     NOP_LOOKUP_PRIORITY=$(vbox_get_first_nop_lookup_priority_after_tun "$IP_FAMILY" "$LAST_TUN_LOOKUP_PRIORITY")
@@ -165,15 +218,22 @@ function vbox_setup_ip_rules() {
 
     # Exclude interfaces
     if [[ -z "$VBOX_TUN_INTERFACE" ]]; then
-      DETECT_TUN_IF_NAMES=($(nmcli --fields NAME,TYPE connection show | awk '{if($2=="tun"){print $1}}'))
+      DETECT_TUN_IF_NAME_FROM_IP_ROUTE_TABLE="$(ip $IP_FAMILY route show table $VBOX_TUN_TABLE_ID 2>/dev/null | grep -E -o 'dev[[:space:]]+[^[:space:]]+' | awk '{print $NF}')"
+      if [[ ! -z "$DETECT_TUN_IF_NAME_FROM_IP_ROUTE_TABLE" ]]; then
+        DETECT_TUN_IF_NAMES=("$DETECT_TUN_IF_NAME_FROM_IP_ROUTE_TABLE")
+      else
+        DETECT_TUN_IF_NAMES=($(nmcli --fields NAME,TYPE connection show | awk '{if($2=="tun"){print $1}}'))
+      fi
       if [[ ${#DETECT_TUN_IF_NAMES[@]} -gt 0 ]]; then
         for TUN_IF_NAME in "${DETECT_TUN_IF_NAMES[@]}"; do
           ip link show "$TUN_IF_NAME" >/dev/null 2>&1 && \
-            ip $IP_FAMILY rule add iif "$TUN_IF_NAME" goto $NOP_LOOKUP_PRIORITY priority $VBOX_IP_RULE_EXCLUDE_IF_PRIORITY
+            ip $IP_FAMILY rule add iif "$TUN_IF_NAME" goto $NOP_LOOKUP_PRIORITY priority $VBOX_IP_RULE_EXCLUDE_IF_PRIORITY && \
+            VBOX_TUN_INTERFACE="$TUN_IF_NAME"
         done
       else
         ip link show "tun0" >/dev/null 2>&1 && \
           ip $IP_FAMILY rule add iif "tun0" goto $NOP_LOOKUP_PRIORITY priority $VBOX_IP_RULE_EXCLUDE_IF_PRIORITY
+        VBOX_TUN_INTERFACE=tun0
       fi
     else
       ip link show "$VBOX_TUN_INTERFACE" >/dev/null 2>&1 && \
@@ -192,12 +252,25 @@ function vbox_setup_ip_rules() {
     # Exclude marks
     ip $IP_FAMILY rule add fwmark 0xc/0xc goto $NOP_LOOKUP_PRIORITY priority $VBOX_IP_RULE_EXCLUDE_MARK_PRIORITY
     
-    # Include marks
-    if [[ -z "$LAST_TUN_LOOKUP_PRIORITY" ]]; then
-      ip $IP_FAMILY rule add fwmark 0x3/0x3 lookup $VBOX_TUN_TABLE_ID priority $VBOX_IP_RULE_INCLUDE_MARK_PRIORITY
+    # Include marks, 指定 src ip。否则无法触发重路由
+    # 对比测试指令: ip route get 74.125.195.113 from $PPP_IP mark 3 和 ip route get 74.125.195.113 mark 3
+    VBOX_TUN_ORIGIN_TABLE_RULE=($(ip $IP_FAMILY route show table $VBOX_TUN_TABLE_ID | tail -n 1 | awk '{$1="";print $0}' | grep -E -o '.*dev[[:space:]]+[^[:space:]]+'))
+    ip $IP_FAMILY route flush table $VBOX_TUN_WITH_SRC_TABLE_ID
+    if [[ ! -z "IP_FAMILY" ]] && [[ "$IP_FAMILY" == "-6" ]]; then
+      VBOX_TUN_IP_ADDR=$(ip -o $IP_FAMILY addr show dev $VBOX_TUN_INTERFACE scope global | awk 'match($0, /inet6\s+([0-9a-fA-F:]+)/, ip) { print ip[1] }' | head -n 1)
+      for ROUTE_CIDR in "${IPV6_TUN_ADDRESS_SET[@]}"; do
+        ip $IP_FAMILY route add "$ROUTE_CIDR" "dev" "$VBOX_TUN_INTERFACE" src "$VBOX_TUN_IP_ADDR" table $VBOX_TUN_WITH_SRC_TABLE_ID
+      done
     else
-      ip $IP_FAMILY rule add fwmark 0x3/0x3 goto $LAST_TUN_LOOKUP_PRIORITY priority $VBOX_IP_RULE_INCLUDE_MARK_PRIORITY
+      VBOX_TUN_IP_ADDR=$(ip -o $IP_FAMILY addr show dev $VBOX_TUN_INTERFACE scope global | awk 'match($0, /inet\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/, ip) { print ip[1] }' | head -n 1)
+      for ROUTE_CIDR in "${IPV4_TUN_ADDRESS_SET[@]}"; do
+        ip $IP_FAMILY route add "$ROUTE_CIDR" "${VBOX_TUN_ORIGIN_TABLE_RULE[@]}" src "$VBOX_TUN_IP_ADDR" table $VBOX_TUN_WITH_SRC_TABLE_ID
+      done
     fi
+    ip $IP_FAMILY rule add fwmark 0x3/0x3 lookup $VBOX_TUN_WITH_SRC_TABLE_ID priority $VBOX_IP_RULE_INCLUDE_MARK_PRIORITY
+
+    # NO mark to default route, 自动生成的ppp0没有指定src，触发重路由会导致ip不正确。所以默认路由还是指向原本的默认路由
+    ip $IP_FAMILY rule add fwmark 0x0/0xf goto $NOP_LOOKUP_PRIORITY priority $VBOX_IP_RULE_NO_MARK_DEFAULT_ROUTE_PRIORITY
   done
 }
 
@@ -239,7 +312,7 @@ function vbox_iniitialize_rule_table_ipv4() {
   nft list set $FAMILY $TABLE LOCAL_IPV4 >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
     nft add set $FAMILY $TABLE LOCAL_IPV4 '{ type ipv4_addr; flags interval; auto-merge; }'
-    nft add element $FAMILY $TABLE LOCAL_IPV4 '{127.0.0.1/32, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8}'
+    nft add element $FAMILY $TABLE LOCAL_IPV4 '{0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16, 172.16.0.0/12, 192.0.0.0/24, 192.168.0.0/16, 224.0.0.0/4, 240.0.0.0/4}'
   fi
   nft list set $FAMILY $TABLE DEFAULT_ROUTE_IPV4 >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
@@ -296,7 +369,7 @@ function vbox_iniitialize_rule_table_ipv6() {
   nft list set $FAMILY $TABLE LOCAL_IPV6 >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
     nft add set $FAMILY $TABLE LOCAL_IPV6 '{ type ipv6_addr; flags interval; auto-merge; }'
-    nft add element $FAMILY $TABLE LOCAL_IPV6 '{::1/128, fc00::/7, fe80::/10}'
+    nft add element $FAMILY $TABLE LOCAL_IPV6 '{::1/128, ::/128, ::ffff:0:0/96, 64:ff9b::/96, 100::/64, fc00::/7, fe80::/10, ff00::/8}'
   fi
   nft list set $FAMILY $TABLE DEFAULT_ROUTE_IPV6 >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
@@ -320,9 +393,6 @@ function vbox_iniitialize_rule_table_ipv6() {
   nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 saddr @DEFAULT_ROUTE_IPV6 udp sport "{$ROUTER_INTERNAL_SERVICE_PORT_UDP}" jump POLICY_MARK_GOTO_DEFAULT
   nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 tcp dport "{$ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT}" jump POLICY_MARK_GOTO_DEFAULT
   nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 udp dport "{$ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT}" jump POLICY_MARK_GOTO_DEFAULT
-
-  ### ipv6 - skip multicast
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr '{ ff00::/8 }' jump POLICY_MARK_GOTO_DEFAULT
 
   ### ipv4 - skip private network and UDP of DNS
   nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr @LOCAL_IPV6 tcp dport "{$ROUTER_INTERNAL_SERVICE_PORT_TCP}" jump POLICY_MARK_GOTO_DEFAULT

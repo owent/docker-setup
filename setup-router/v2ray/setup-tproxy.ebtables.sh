@@ -42,13 +42,26 @@ fi
 ### bridge - skip link-local and broadcast address
 ebtables -t broute -A V2RAY_BRIDGE --mark 0x70/0x70 -j RETURN
 
-ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 127.0.0.1/32 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 0.0.0.0/8 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 10.0.0.0/8 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 127.0.0.0/8 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 169.254.0.0/16 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 172.16.0.0/12 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 192.0.0.0/24 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 192.168.0.0/16 -j RETURN
 ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 224.0.0.0/4 -j RETURN
-ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 255.255.255.255/32 -j RETURN
+ebtables -t broute -A V2RAY_BRIDGE -p ipv4 --ip-dst 240.0.0.0/4 -j RETURN
 if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   for LOCAL_IPV6 in ${ROUTER_LOCAL_NET_IPV6[@]}; do
     ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst "$LOCAL_IPV6" -j RETURN
   done
+  ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst ::1/128 -j RETURN
+  ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst ::/128 -j RETURN
+  ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst ::ffff:0:0/96 -j RETURN
+  ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst 64:ff9b::/96 -j RETURN
+  ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst 100::/64 -j RETURN
+  ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst fc00::/7 -j RETURN
+  ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst fe80::/10 -j RETURN
   ebtables -t broute -A V2RAY_BRIDGE -p ipv6 --ip6-dst ff00::/8 -j RETURN
 fi
 

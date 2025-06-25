@@ -62,7 +62,7 @@ function vbox_setup_whitelist_ipv4() {
 
   ip -4 rule add priority $WHITELIST_PROIRITY lookup $WHITELIST_TABLE_ID || return 1
 
-  TABLE_RULE=($(ip -4 route show table $VBOX_TUN_TABLE_ID | tail -n 1 | awk '{$1="";print $0}'))
+  TABLE_RULE=($(ip -4 route show table $VBOX_TUN_TABLE_ID | tail -n 1 | awk '{$1="";print $0}' | grep -E -o '.*dev[[:space:]]+[^[:space:]]+'))
   for CIDR in "${VBOX_TUN_PROXY_WHITELIST_IPV4[@]}"; do
     ip -4 route add "$CIDR" "${TABLE_RULE[@]}" table $WHITELIST_TABLE_ID
   done
@@ -111,7 +111,7 @@ function vbox_setup_whitelist_ipv6() {
 
   ip -6 rule add priority $WHITELIST_PROIRITY lookup $WHITELIST_TABLE_ID || return 1
 
-  TABLE_RULE=($(ip -6 route show table $VBOX_TUN_TABLE_ID | tail -n 1 | awk '{$1="";print $0}'))
+  TABLE_RULE=($(ip -6 route show table $VBOX_TUN_TABLE_ID | tail -n 1 | awk '{$1="";print $0}' | grep -E -o '.*dev[[:space:]]+[^[:space:]]+'))
   for CIDR in "${VBOX_TUN_PROXY_WHITELIST_IPV6[@]}"; do
     ip -6 route add "$CIDR" "${TABLE_RULE[@]}" table $WHITELIST_TABLE_ID
   done

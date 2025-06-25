@@ -5,34 +5,34 @@ source "$SCRIPT_DIR/configure-router.sh"
 
 while getopts "hi:n:" OPTION; do
   case $OPTION in
-    h)
-      echo "usage: $0 [options] "
-      echo "options:"
-      echo "-h                            help message."
-      echo "-i [ipset prefix]             "
-      echo "-n [table name of nftable]    "
-      exit 0
-      ;;
-    i)
-      ROUTER_NET_LOCAL_IPSET_PREFIX=$OPTARG
-      ;;
-    n)
-      ROUTER_NET_LOCAL_NFTABLE_NAME=$OPTARG
-      ;;
-    ?)
-      break
-      ;;
+  h)
+    echo "usage: $0 [options] "
+    echo "options:"
+    echo "-h                            help message."
+    echo "-i [ipset prefix]             "
+    echo "-n [table name of nftable]    "
+    exit 0
+    ;;
+  i)
+    ROUTER_NET_LOCAL_IPSET_PREFIX=$OPTARG
+    ;;
+  n)
+    ROUTER_NET_LOCAL_NFTABLE_NAME=$OPTARG
+    ;;
+  ?)
+    break
+    ;;
   esac
 done
 
 ROUTER_LOCAL_NET_IPV4=(
-  "169.254.0.0/16" "10.0.0.0/8" "172.16.0.0/12" "192.168.0.0/16"
+  "0.0.0.0/8" "10.0.0.0/8" "127.0.0.0/8" "169.254.0.0/16" "172.16.0.0/12" "192.0.0.0/24" "192.168.0.0/16" "224.0.0.0/4" "240.0.0.0/4"
   $(ip -o -4 addr | awk 'match($0, /inet\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(\/[0-9]+)?)/, ip) { print ip[1] }')
   $(ip -o -4 addr | awk 'match($0, /peer\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(\/[0-9]+)?)/, ip) { print ip[1] }')
 )
 
 ROUTER_LOCAL_NET_IPV6=(
-  "fe80::/10" "fc00::/7"
+  "::1/128" "::/128" "::ffff:0:0/96" "64:ff9b::/96" "100::/64" "fc00::/7" "fe80::/10" "ff00::/8"
   $(ip -o -6 addr | awk 'match($0, /inet6\s+([0-9a-fA-F:]+(\/[0-9]+)?)/, ip) { print ip[1] }')
   $(ip -o -6 addr | awk 'match($0, /peer\s+([0-9a-fA-F:]+(\/[0-9]+)?)/, ip) { print ip[1] }')
 )

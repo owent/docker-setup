@@ -143,12 +143,12 @@ Unmanaged=yes
 # 全局
 HTTP_PROXY=http://your-proxy.example.com:8888
 HTTPS_PROXY=http://your-proxy.example.com:8888
-NO_PROXY=127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+NO_PROXY=0.0.0.0/8,10.0.0.0/8,127.0.0.0/8,169.254.0.0/16,172.16.0.0/12,192.0.0.0/24,192.168.0.0/16,224.0.0.0/4,240.0.0.0/4
 
 # 仅对 containerd 生效
 CONTAINERD_HTTP_PROXY=http://your-proxy.example.com:8888
 CONTAINERD_HTTPS_PROXY=http://your-proxy.example.com:8888
-CONTAINERD_NO_PROXY=127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+CONTAINERD_NO_PROXY=0.0.0.0/8,10.0.0.0/8,127.0.0.0/8,169.254.0.0/16,172.16.0.0/12,192.0.0.0/24,192.168.0.0/16,224.0.0.0/4,240.0.0.0/4
 ```
 
 #### 服务器启动

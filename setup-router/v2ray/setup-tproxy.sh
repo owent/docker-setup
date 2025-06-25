@@ -126,11 +126,15 @@ fi
 ipset list V2RAY_LOCAL_IPV4 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   ipset create V2RAY_LOCAL_IPV4 hash:net family inet
-  ipset add V2RAY_LOCAL_IPV4 127.0.0.1/32
-  ipset add V2RAY_LOCAL_IPV4 169.254.0.0/16
-  ipset add V2RAY_LOCAL_IPV4 192.168.0.0/16
-  ipset add V2RAY_LOCAL_IPV4 172.16.0.0/12
+  ipset add V2RAY_LOCAL_IPV4 0.0.0.0/8
   ipset add V2RAY_LOCAL_IPV4 10.0.0.0/8
+  ipset add V2RAY_LOCAL_IPV4 127.0.0.0/8
+  ipset add V2RAY_LOCAL_IPV4 169.254.0.0/16
+  ipset add V2RAY_LOCAL_IPV4 172.16.0.0/12
+  ipset add V2RAY_LOCAL_IPV4 192.0.0.0/24
+  ipset add V2RAY_LOCAL_IPV4 192.168.0.0/16
+  ipset add V2RAY_LOCAL_IPV4 224.0.0.0/4
+  ipset add V2RAY_LOCAL_IPV4 240.0.0.0/4
 fi
 ipset list V2RAY_DEFAULT_ROUTE_IPV4 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
@@ -292,8 +296,13 @@ if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   if [[ $? -ne 0 ]]; then
     ipset create V2RAY_LOCAL_IPV6 hash:net family inet6
     ipset add V2RAY_LOCAL_IPV6 ::1/128
+    ipset add V2RAY_LOCAL_IPV6 ::/128
+    ipset add V2RAY_LOCAL_IPV6 ::ffff:0:0/96
+    ipset add V2RAY_LOCAL_IPV6 64:ff9b::/96
+    ipset add V2RAY_LOCAL_IPV6 100::/64
     ipset add V2RAY_LOCAL_IPV6 fc00::/7
     ipset add V2RAY_LOCAL_IPV6 fe80::/10
+    ipset add V2RAY_LOCAL_IPV6 ff00::/8
   fi
   ipset list V2RAY_DEFAULT_ROUTE_IPV6 >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
@@ -342,7 +351,6 @@ if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   # ip6tables -t mangle -A V2RAY -p udp -m set --match-set V2RAY_DEFAULT_ROUTE_IPV6 dst ! --dport 53 -j RETURN
 
   # ipv6 skip package from outside
-  ip6tables -t mangle -A V2RAY -d ff00::/8 -j RETURN
   ip6tables -t mangle -A V2RAY -m set --match-set V2RAY_BLACKLIST_IPV6 dst -j RETURN
   if [ $TPROXY_SETUP_USING_GEOIP -ne 0 ]; then
     ip6tables -t mangle -A V2RAY -m set --match-set GEOIP_IPV6_CN dst -j RETURN
@@ -401,7 +409,6 @@ if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   # ip6tables -t mangle -A V2RAY_MASK -p udp -m set --match-set V2RAY_DEFAULT_ROUTE_IPV6 dst ! --dport 53 -j RETURN
   ### ipv6 - skip CN DNS
   ip6tables -t mangle -A V2RAY_MASK -d 2400:3200::1/128,2400:3200:baba::1/128,2400:da00::6666/128 -j RETURN
-  ip6tables -t mangle -A V2RAY_MASK -d ff00::/8 -j RETURN
   ip6tables -t mangle -A V2RAY_MASK -m set --match-set V2RAY_BLACKLIST_IPV6 dst -j RETURN
   if [ $TPROXY_SETUP_USING_GEOIP -ne 0 ]; then
     ip6tables -t mangle -A V2RAY_MASK -m set --match-set GEOIP_IPV6_CN dst -j RETURN

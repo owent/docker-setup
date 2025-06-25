@@ -20,13 +20,13 @@ fi
 nft list set inet security_firewall LOCAL_IPV4 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   nft add set inet security_firewall LOCAL_IPV4 '{ type ipv4_addr; flags interval; auto-merge ; }'
-  nft add element inet security_firewall LOCAL_IPV4 {127.0.0.1/32, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8}
+  nft add element inet security_firewall LOCAL_IPV4 '{0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16, 172.16.0.0/12, 192.0.0.0/24, 192.168.0.0/16, 224.0.0.0/4, 240.0.0.0/4}'
 fi
 
 nft list set inet security_firewall LOCAL_IPV6 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   nft add set inet security_firewall LOCAL_IPV6 '{ type ipv6_addr; flags interval; auto-merge ; }'
-  nft add element inet security_firewall LOCAL_IPV6 {::1/128, fc00::/7, fe80::/10}
+  nft add element inet security_firewall LOCAL_IPV6 '{::1/128, ::/128, ::ffff:0:0/96, 64:ff9b::/96, 100::/64, fc00::/7, fe80::/10, ff00::/8}'
 fi
 
 nft add chain inet security_firewall PREROUTING '{ type filter hook prerouting priority filter + 10; policy accept; }'

@@ -168,7 +168,6 @@ nft add rule inet mwan MARK ip daddr @DEFAULT_ROUTE_IPV4 return
 nft add rule inet mwan MARK ip daddr '{ 172.20.1.1/24 }' return # 172.20.1.1/24 is used for remote debug
 nft add rule inet mwan MARK ip daddr {119.29.29.29/32, 223.5.5.5/32, 223.6.6.6/32, 180.76.76.76/32, 1.12.12.12/32, 120.53.53.53/32, 1.1.1.1/32, 1.0.0.1/32, 8.8.8.8/32, 8.8.4.4/32} return
 
-nft add rule inet mwan MARK ip6 daddr {ff00::/8} return
 nft add rule inet mwan MARK ip6 daddr @LOCAL_IPV6 return
 nft add rule inet mwan MARK ip6 daddr @DEFAULT_ROUTE_IPV6 return
 nft add rule inet mwan MARK ip6 daddr {2400:3200::1/128, 2400:3200:baba::1/128, 2400:da00::6666/128, 2402:4e00::/128, 2606:4700:4700::1111/128, 2606:4700:4700::1001/128, 2606:4700:4700::1111/128, 2606:4700:4700::1001/128} return

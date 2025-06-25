@@ -156,7 +156,7 @@ fi
 nft list set ip v2ray LOCAL_IPV4 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   nft add set ip v2ray LOCAL_IPV4 '{ type ipv4_addr; flags interval; auto-merge ; }'
-  nft add element ip v2ray LOCAL_IPV4 '{127.0.0.1/32, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8}'
+  nft add element ip v2ray LOCAL_IPV4 '{0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16, 172.16.0.0/12, 192.0.0.0/24, 192.168.0.0/16, 224.0.0.0/4, 240.0.0.0/4}'
 fi
 nft list set ip v2ray DEFAULT_ROUTE_IPV4 >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
@@ -297,7 +297,7 @@ if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   nft list set ip6 v2ray LOCAL_IPV6 >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
     nft add set ip6 v2ray LOCAL_IPV6 '{ type ipv6_addr; flags interval; auto-merge ; }'
-    nft add element ip6 v2ray LOCAL_IPV6 '{::1/128, fc00::/7, fe80::/10}'
+    nft add element ip6 v2ray LOCAL_IPV6 '{::1/128, ::/128, ::ffff:0:0/96, 64:ff9b::/96, 100::/64, fc00::/7, fe80::/10, ff00::/8}'
   fi
   nft list set ip6 v2ray DEFAULT_ROUTE_IPV6 >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
@@ -330,8 +330,7 @@ if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   fi
 
   ### ipv6 - skip multicast
-  nft add rule ip6 v2ray PREROUTING ip6 daddr '{ ff00::/8 }' return
-  ### ipv6 - skip link/unique-local fc00::/7,fe80::/10 and ::1/128 are in ip -6 address show scope host/link
+  ### ipv6 - skip link/unique-local ::1/128, ::/128, ::ffff:0:0/96, 64:ff9b::/96, 100::/64, fc00::/7, fe80::/10, ff00::/8 are in ip -6 address show scope host/link
   nft add rule ip6 v2ray PREROUTING ip6 daddr @LOCAL_IPV6 return
   nft add rule ip6 v2ray PREROUTING ip6 daddr @DEFAULT_ROUTE_IPV6 return
 
@@ -378,8 +377,7 @@ if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   fi
 
   ### ipv6 - skip multicast
-  nft add rule ip6 v2ray OUTPUT ip6 daddr '{ ff00::/8 }' return
-  ### ipv6 - skip link/unique-local fc00::/7,fe80::/10 and  ::1/128 are in ip -6 address show scope host/link
+  ### ipv6 - skip link/unique-local ::1/128, ::/128, ::ffff:0:0/96, 64:ff9b::/96, 100::/64, fc00::/7, fe80::/10, ff00::/8 are in ip -6 address show scope host/link
   nft add rule ip6 v2ray OUTPUT ip6 daddr @LOCAL_IPV6 return
   nft add rule ip6 v2ray OUTPUT ip6 daddr @DEFAULT_ROUTE_IPV6 return
   nft add rule ip6 v2ray OUTPUT ip6 daddr @BLACKLIST return
@@ -407,7 +405,7 @@ fi
 nft list set bridge v2ray LOCAL_IPV4 >/dev/null 2>&1
 if [ $? -ne 0 ]; then
   nft add set bridge v2ray LOCAL_IPV4 '{ type ipv4_addr; flags interval; auto-merge ; }'
-  nft add element bridge v2ray LOCAL_IPV4 '{127.0.0.1/32, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, 10.0.0.0/8}'
+  nft add element bridge v2ray LOCAL_IPV4 '{0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16, 172.16.0.0/12, 192.0.0.0/24, 192.168.0.0/16, 224.0.0.0/4, 240.0.0.0/4}'
 fi
 nft list set bridge v2ray DEFAULT_ROUTE_IPV4 >/dev/null 2>&1
 if [ $? -ne 0 ]; then
@@ -433,7 +431,7 @@ fi
 nft list set bridge v2ray LOCAL_IPV6 >/dev/null 2>&1
 if [ $? -ne 0 ]; then
   nft add set bridge v2ray LOCAL_IPV6 '{ type ipv6_addr; flags interval; auto-merge; }'
-  nft add element bridge v2ray LOCAL_IPV6 '{::1/128, fc00::/7, fe80::/10}'
+  nft add element bridge v2ray LOCAL_IPV6 '{::1/128, ::/128, ::ffff:0:0/96, 64:ff9b::/96, 100::/64, fc00::/7, fe80::/10, ff00::/8}'
 fi
 nft list set bridge v2ray DEFAULT_ROUTE_IPV6 >/dev/null 2>&1
 if [ $? -ne 0 ]; then
@@ -492,8 +490,7 @@ nft add rule bridge v2ray PREROUTING ip daddr @DEFAULT_ROUTE_IPV4 return
 if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   ### ipv6 - skip multicast
   nft add rule bridge v2ray PREROUTING ip6 saddr @LOCAL_IPV6 pkttype '{broadcast, multicast}' accept
-  nft add rule bridge v2ray PREROUTING ip6 daddr '{ ff00::/8 }' return
-  ### ipv6 - skip link/unique-local fc00::/7,fe80::/10 and  ::1/128 are in ip -6 address show scope host/link
+  ### ipv6 - skip link/unique-local ::1/128, ::/128, ::ffff:0:0/96, 64:ff9b::/96, 100::/64, fc00::/7, fe80::/10, ff00::/8 are in ip -6 address show scope host/link
   nft add rule bridge v2ray PREROUTING ip6 daddr @LOCAL_IPV6 return
   nft add rule bridge v2ray PREROUTING ip6 daddr @DEFAULT_ROUTE_IPV6 return
 
