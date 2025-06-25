@@ -456,8 +456,9 @@ if [ $VBOX_SETUP_IP_RULE_CLEAR -ne 0 ]; then
   vbox_iniitialize_rule_table inet vbox
   vbox_iniitialize_rule_table bridge vbox
 
-  vbox_setup_rule_chain inet vbox PREROUTING '{ type filter hook prerouting priority filter + 1 ; }'
-  vbox_setup_rule_chain inet vbox OUTPUT '{ type route hook output priority filter + 1 ; }'
+  vbox_setup_rule_chain inet vbox PREROUTING '{ type filter hook prerouting priority dstnat - 1 ; }'
+  # 必须在高优先级（mangle）打标记，否则无法影响重路由
+  vbox_setup_rule_chain inet vbox OUTPUT '{ type route hook output priority mangle - 1 ; }'
 
   vbox_setup_rule_chain bridge vbox PREROUTING '{ type filter hook prerouting priority -280; }'
 

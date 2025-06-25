@@ -143,7 +143,7 @@ init_debug_ip_sets inet
 
 nft list chain inet debug FORWARD >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
-  nft add chain inet debug FORWARD { type filter hook forward priority mangle - 99 \; }
+  nft add chain inet debug FORWARD { type filter hook forward priority mangle - 100 \; }
 fi
 
 setup_debug_trace_rule_with_ports nft add rule inet debug FORWARD ip saddr @WATCH_IPV4_SADDR
@@ -194,7 +194,7 @@ nft add rule ip6 debug PREROUTING ip6 daddr @WATCH_TPROXY_IPV6_ADDR meta l4proto
 
 nft list chain inet debug OUTPUT >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
-  nft add chain inet debug OUTPUT { type filter hook output priority filter - 99 \; }
+  nft add chain inet debug OUTPUT { type filter hook output priority mangle - 100 \; }
 fi
 nft flush chain inet debug OUTPUT
 setup_debug_trace_rule_with_ports nft add rule inet debug OUTPUT ip saddr @WATCH_IPV4_SADDR
@@ -224,7 +224,7 @@ nft add rule ip6 debug OUTPUT ip6 daddr @WATCH_TPROXY_IPV6_ADDR mark and 0x1f !=
 
 nft list chain inet debug INPUT >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
-  nft add chain inet debug INPUT { type filter hook input priority filter - 99 \; }
+  nft add chain inet debug INPUT { type filter hook input priority mangle - 100 \; }
 fi
 nft flush chain inet debug INPUT
 setup_debug_trace_rule_with_ports nft add rule inet debug INPUT ip saddr @WATCH_IPV4_SADDR
