@@ -1,9 +1,10 @@
 {
     "key": {
         // rsa/ecdsa/ed25519
-        "algo": "ed25519",
+        // 有些系统不支持 ed25519, 尽量使用 ecdsa 以保证兼容性
+        "algo": "ecdsa",
         // rsa: (2048/4096/8192), ecdsa: (256/384/521), ed25519: 256
-        "size": 256
+        "size": 384
     },
     "CN": "Home CA",
     "names": [

@@ -73,6 +73,8 @@ spec:
       enabled: true
     hostPort:
       enabled: true
+    # 或者可以使用 annotation: "kubernetes.io/ingress.class": "cilium" 开启
+    # 支持的 ingress声明: https://docs.cilium.io/en/stable/network/servicemesh/ingress/#supported-ingress-annotations
     ingressController:
       enabled: true
       # -- Set cilium ingress controller to be the default ingress controller
@@ -85,6 +87,35 @@ spec:
       loadbalancerMode: "dedicated"
       # 支持代理协议,默认 false
       enableProxyProtocol: true
+      # 默认的 TLS secret 名称
+      # defaultSecretName: 
+      # 默认的 TLS secret 命名空间
+      # defaultSecretNamespace: "cilium-secrets"
+    # 下一代 ingress, GatewayAPI, https://docs.cilium.io/en/stable/network/servicemesh/gateway-api/gateway-api/#gs-gateway-api
+    # 需要:
+    # - nodePort.enabled=true 或 kubeProxyReplacement=true
+    # - 开启7层代理, l7Proxy=true
+    # - 安装 Gateway API的 CRD, https://gateway-api.sigs.k8s.io/guides/
+    #   - `kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.3.0/config/crd/standard/gateway.networking.k8s.io_gatewayclasses.yaml`
+    #   - `kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.3.0/config/crd/standard/gateway.networking.k8s.io_gateways.yaml`
+    #   - `kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.3.0/config/crd/standard/gateway.networking.k8s.io_httproutes.yaml`
+    #   - `kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.3.0/config/crd/standard/gateway.networking.k8s.io_referencegrants.yaml`
+    #   - `kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.3.0/config/crd/standard/gateway.networking.k8s.io_grpcroutes.yaml`
+    #   - TLSRoutes 需要是实验特性（可选）
+    #   - `kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.3.0/config/crd/experimental/gateway.networking.k8s.io_tlsroutes.yaml`
+    # gatewayAPI:
+    #   enabled: true
+    #   enableAppProtocol: true
+    #   enableAlpn: true
+    #   enableProxyProtocol: true
+    #   # # Local or Cluster, hostNetwork.enabled == false 时生效
+    #   # externalTrafficPolicy: "Cluster"
+    #   # hostNetwork:
+    #   #   enabled: false
+    #   # secretsNamespace:
+    #   #   create: true
+    #   #   name: "cilium-secrets"
+    #   #   sync: true
     bpf:
       masquerade: true
       tproxy: true

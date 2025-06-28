@@ -23,7 +23,7 @@ cfssl gencert -initca -config=./ca-config.json -profile=root-ca-30y ./csr-root-c
 
 SUBCA_NAME=child-ca
 # 子CA(子CA和根CA的Subject必须不一样，通常改CN参数即可)
-cfssl genkey ./csr-sub-ca.json | cfssljson -bare $SUBCA_NAME
+cfssl genkey ./csr-$SUBCA_NAME.json | cfssljson -bare $SUBCA_NAME
 cfssl sign -ca root-ca.pem -ca-key root-ca-key.pem -config=./ca-config.json -profile=sub-ca-5y $SUBCA_NAME.csr | cfssljson -bare $SUBCA_NAME
 
 # 准备fullchain的前缀

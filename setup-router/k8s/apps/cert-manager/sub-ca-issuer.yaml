@@ -1,0 +1,9 @@
+---
+apiVersion: cert-manager.io/v1
+# ClusterIssuer/Issuer 区别是一个是集群级别的，一个是命名空间级别的
+kind: ClusterIssuer
+metadata:
+  name: sub-ca-example.org-issuer
+spec:
+  ca:
+    secretName: cert-example.org-sub-ca-secret

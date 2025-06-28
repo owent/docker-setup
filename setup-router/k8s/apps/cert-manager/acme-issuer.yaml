@@ -1,0 +1,36 @@
+---
+apiVersion: cert-manager.io/v1
+# ClusterIssuer/Issuer 区别是一个是集群级别的，一个是命名空间级别的
+kind: ClusterIssuer
+metadata:
+  name: acme-ssl-certificate-issuer-example.org
+spec:
+  acme:
+    # You must replace this email address with your own.
+    # Let's Encrypt will use this to contact you about expiring
+    # certificates, and issues related to your account.
+    email: owt5008137@live.com
+    server: https://acme.zerossl.com/v2/DV90
+    # server: https://acme-staging-v02.api.letsencrypt.org/directory
+    externalAccountBinding:
+      keyID: 7hZ2UyERF1YSDesaLAmtAg
+      keySecretRef:
+        name: zerossl-eabsecret-example.org
+        key: secret
+    privateKeySecretRef:
+      # name of a secret used to store the ACME account private key
+      name: acme-private-key-example.org
+    solvers:
+      - dns01:
+          cloudflare:
+            email: admin@owent.net
+            apiTokenSecretRef:
+              name: cloudflare-apikey-secret-example.org
+              key: api-token
+      # # 如果限定 dnsNames，会导致要求请求证书的时候 tls.hosts 参数必须完全一直，为了兼容性可以不设置
+      # selector:
+      #   dnsNames:
+      #   - 'w-oa.com'
+      #   - '*.w-oa.com'
+      #   matchLabels:
+      #   - "acme-ssl-certificate-issuer": "true"
