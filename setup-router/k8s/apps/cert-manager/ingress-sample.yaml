@@ -9,10 +9,33 @@ metadata:
     # "cert-manager.io/private-key-algorithm": "Ed25519"
     # "cert-manager.io/private-key-algorithm": "ECDSA" # RSA, ECDSA, Ed25519
     # "cert-manager.io/private-key-size": "256" # RSA可选值:  2048, 4096, 8192; ECDSA可选值： 256, 384, 521; Ed25519 不需要设置 size
+  labels:
+    app.kubernetes.io/component: test-controller
+    app.kubernetes.io/instance: test
+    app.kubernetes.io/managed-by: custom
+    app.kubernetes.io/name: test
 spec:
   rules:
     - host: test.example.org
+      http:
+        paths:
+          - backend:
+              service:
+                name: test-service
+                port:
+                  number: 80
+            path: /
+            pathType: Prefix
+  defaultBackend:
+    service:
+      name: test-service
+      port:
+        number: 80
   tls:
     - secretName: secret-tls
       hosts:
+        # 某些ingress实现如果没有defaultBackend，且域名不和rules里的host完全匹配，会导致不监听443端口
+        # 所以这里要么设置 defaultBackend，要么不要用泛域名。（host不设置也是defaultBackend）
+        # @see https://github.com/cilium/cilium/blob/main/operator/pkg/model/ingestion/ingress.go#L176
+        - test.example.org
         - "*.example.org"

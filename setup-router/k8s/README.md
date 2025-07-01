@@ -388,6 +388,19 @@ kubectl -n kube-system exec ds/cilium -- cilium endpoint list
 ## Test
 cilium connectivity test
 
+## 节点连接
+kubectl -n kube-system exec ds/cilium -- cilium-health status --verbose
+## packet流查询
+kubectl -n kube-system exec ds/cilium -- cilium-dbg monitor
+## Tunnel列表（非本地路由模式）
+kubectl -n kube-system exec ds/cilium -- cilium-dbg bpf tunnel list
+## Logs
+kubectl -n kube-system get pods -l k8s-app=cilium
+kubectl -n kube-system logs -l k8s-app=cilium
+
+kubectl -n kube-system logs ds/cilium
+kubectl  -n kube-system logs deployments/cilium-operator
+
 ## 导出当前配置
 helm get values cilium -n kube-system > current-values.yaml
 ## 使用修改后的配置升级
@@ -445,6 +458,13 @@ ip link set tunl0 down
 ## 移除 Calico 配置文件
 # rm -rf /etc/cni/net.d/*
 ```
+
+更进一步流控调试: <https://docs.cilium.io/en/stable/operations/troubleshooting/#connectivity-troubleshooting>
+
+1. `kubectl edit -n kube-system cm cilium-config` , 设置 `"debug": "true"`, `"debug-verbose": "flow"`
+2. `kubectl rollout restart deployment/cilium-operator -n kube-system; kubectl rollout restart daemonset/cilium -n kube-system`
+3. `kubectl logs -f -n kube-system ds/cilium --timestamps | egrep "envoy|proxy"` , 然后发起请求
+4. `kubectl -n kube-system exec ds/cilium -- hubble observe -f --identity 2`, 然后发起请求
 
 重新配置集群网络
 
