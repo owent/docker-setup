@@ -690,10 +690,11 @@ location = "mirror.ccs.tencentyun.com"
 
 ### 公共镜像站
 
-- <docker.m.daocloud.io> (部分)
-- <docker.1ms.run>
-- <docker.xuanyuan.me>
-- <docker.hlmirror.com>
++ <mirror.ccs.tencentyun.com> (仅腾讯云内网)
++ <docker.m.daocloud.io> (部分)
++ <docker.1ms.run>
++ <docker.xuanyuan.me>
++ <docker.hlmirror.com>
 
 ## Podman/docker 存储设置
 

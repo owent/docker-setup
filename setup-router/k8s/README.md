@@ -459,7 +459,11 @@ ip link set tunl0 down
 # rm -rf /etc/cni/net.d/*
 ```
 
-更进一步流控调试: <https://docs.cilium.io/en/stable/operations/troubleshooting/#connectivity-troubleshooting>
+更进一步流控调试:
+
+- <https://docs.cilium.io/en/stable/operations/troubleshooting/#connectivity-troubleshooting>
+- ds/cilium 里的args增加 --debug-verbose=envoy
+- ds/cilium-envoy 里日志级别改成 debug
 
 1. `kubectl edit -n kube-system cm cilium-config` , 设置 `"debug": "true"`, `"debug-verbose": "flow"`
 2. `kubectl rollout restart deployment/cilium-operator -n kube-system; kubectl rollout restart daemonset/cilium -n kube-system`

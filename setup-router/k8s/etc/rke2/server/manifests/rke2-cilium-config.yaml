@@ -85,8 +85,8 @@ spec:
       #   enabled: true
       # 用于ingress的负载均衡, "shared" or "dedicated", 默认 dedicated
       loadbalancerMode: "dedicated"
-      # 支持代理协议,默认 false
-      enableProxyProtocol: true
+      # 支持代理协议,默认 false, 一旦开了仅支持代理协议
+      # enableProxyProtocol: false
       # 默认的 TLS secret 名称
       # defaultSecretName: 
       # 默认的 TLS secret 命名空间
@@ -109,7 +109,8 @@ spec:
     #   enabled: true
     #   enableAppProtocol: true
     #   enableAlpn: true
-    #   enableProxyProtocol: true
+    #   # 支持代理协议,默认 false, 一旦开了仅支持代理协议
+    #   enableProxyProtocol: false
     #   gatewayClass:
     #     create: "true"
     #   # # Local or Cluster, hostNetwork.enabled == false 时生效
