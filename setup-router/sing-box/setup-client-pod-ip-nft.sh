@@ -297,6 +297,27 @@ function vbox_setup_rule_marks() {
   nft add rule $FAMILY $TABLE POLICY_MARK_GOTO_TUN ct mark set meta mark accept
 }
 
+function vbox_iniitialize_rule_table_inet() {
+  FAMILY="$1"
+  TABLE="$2"
+
+  # Ports
+  nft list set $FAMILY $TABLE LOCAL_SERVICE_PORT_UDP >/dev/null 2>&1
+  if [[ $? -ne 0 ]]; then
+    nft add set $FAMILY $TABLE LOCAL_SERVICE_PORT_UDP '{ type inet_service; flags interval; auto-merge; }'
+    nft add element $FAMILY $TABLE LOCAL_SERVICE_PORT_UDP "{$ROUTER_INTERNAL_SERVICE_PORT_UDP}"
+
+    if [[ ! -z "$ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT" ]]; then
+      nft add element $FAMILY $TABLE LOCAL_SERVICE_PORT_UDP "{$ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT}"
+    fi
+  fi
+  nft list set $FAMILY $TABLE LOCAL_SERVICE_PORT_TCP >/dev/null 2>&1
+  if [[ $? -ne 0 ]]; then
+    nft add set $FAMILY $TABLE LOCAL_SERVICE_PORT_TCP '{ type inet_service; flags interval; auto-merge; }'
+    nft add element $FAMILY $TABLE LOCAL_SERVICE_PORT_TCP "{$ROUTER_INTERNAL_SERVICE_PORT_TCP}"
+  fi
+}
+
 function vbox_iniitialize_rule_table_ipv4() {
   FAMILY="$1"
   TABLE="$2"
@@ -330,21 +351,19 @@ function vbox_iniitialize_rule_table_ipv4() {
   nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip saddr @LOCAL_IPV4 ip daddr @LOCAL_IPV4 jump POLICY_MARK_GOTO_DEFAULT
 
   # ipv4 - DNAT or connect from outside
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip saddr @LOCAL_IPV4 tcp sport "{$ROUTER_INTERNAL_SERVICE_PORT_TCP}" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip saddr @LOCAL_IPV4 udp sport "{$ROUTER_INTERNAL_SERVICE_PORT_UDP}" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip saddr @DEFAULT_ROUTE_IPV4 tcp sport "{$ROUTER_INTERNAL_SERVICE_PORT_TCP}" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip saddr @DEFAULT_ROUTE_IPV4 udp sport "{$ROUTER_INTERNAL_SERVICE_PORT_UDP}" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 tcp dport "{$ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT}" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 udp dport "{$ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT}" jump POLICY_MARK_GOTO_DEFAULT
+  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip saddr @LOCAL_IPV4 tcp sport "@LOCAL_SERVICE_PORT_TCP" jump POLICY_MARK_GOTO_DEFAULT
+  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip saddr @LOCAL_IPV4 udp sport "@LOCAL_SERVICE_PORT_UDP" jump POLICY_MARK_GOTO_DEFAULT
+  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip saddr @DEFAULT_ROUTE_IPV4 tcp sport "@LOCAL_SERVICE_PORT_TCP" jump POLICY_MARK_GOTO_DEFAULT
+  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip saddr @DEFAULT_ROUTE_IPV4 udp sport "@LOCAL_SERVICE_PORT_UDP" jump POLICY_MARK_GOTO_DEFAULT
 
   ### ipv4 - skip link-local and broadcast address, 172.20.1.1/24 is used for remote debug
   nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip daddr {224.0.0.0/4, 255.255.255.255/32, 172.20.1.1/24} jump POLICY_MARK_GOTO_DEFAULT
 
   ### ipv4 - skip private network and UDP of DNS
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip daddr @LOCAL_IPV4 tcp dport "{$ROUTER_INTERNAL_SERVICE_PORT_TCP}" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip daddr @LOCAL_IPV4 udp dport "{$ROUTER_INTERNAL_SERVICE_PORT_UDP}" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip daddr @DEFAULT_ROUTE_IPV4 tcp dport "{$ROUTER_INTERNAL_SERVICE_PORT_TCP}" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip daddr @DEFAULT_ROUTE_IPV4 udp dport "{$ROUTER_INTERNAL_SERVICE_PORT_UDP}" jump POLICY_MARK_GOTO_DEFAULT
+  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip daddr @LOCAL_IPV4 tcp dport "@LOCAL_SERVICE_PORT_TCP" jump POLICY_MARK_GOTO_DEFAULT
+  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip daddr @LOCAL_IPV4 udp dport "@LOCAL_SERVICE_PORT_UDP" jump POLICY_MARK_GOTO_DEFAULT
+  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip daddr @DEFAULT_ROUTE_IPV4 tcp dport "@LOCAL_SERVICE_PORT_TCP" jump POLICY_MARK_GOTO_DEFAULT
+  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip daddr @DEFAULT_ROUTE_IPV4 udp dport "@LOCAL_SERVICE_PORT_UDP" jump POLICY_MARK_GOTO_DEFAULT
 
   # ipv4 skip package from outside
   nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip daddr @BLACKLIST_IPV4 jump POLICY_MARK_GOTO_DEFAULT
@@ -387,18 +406,16 @@ function vbox_iniitialize_rule_table_ipv6() {
   nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 saddr @LOCAL_IPV6 ip6 daddr @LOCAL_IPV6 jump POLICY_MARK_GOTO_DEFAULT
 
   # ipv6 - DNAT or connect from outside
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 saddr @LOCAL_IPV6 tcp sport "{$ROUTER_INTERNAL_SERVICE_PORT_TCP}" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 saddr @LOCAL_IPV6 udp sport "{$ROUTER_INTERNAL_SERVICE_PORT_UDP}" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 saddr @DEFAULT_ROUTE_IPV6 tcp sport "{$ROUTER_INTERNAL_SERVICE_PORT_TCP}" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 saddr @DEFAULT_ROUTE_IPV6 udp sport "{$ROUTER_INTERNAL_SERVICE_PORT_UDP}" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 tcp dport "{$ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT}" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 udp dport "{$ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT}" jump POLICY_MARK_GOTO_DEFAULT
+  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 saddr @LOCAL_IPV6 tcp sport "@LOCAL_SERVICE_PORT_TCP" jump POLICY_MARK_GOTO_DEFAULT
+  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 saddr @LOCAL_IPV6 udp sport "@LOCAL_SERVICE_PORT_UDP" jump POLICY_MARK_GOTO_DEFAULT
+  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 saddr @DEFAULT_ROUTE_IPV6 tcp sport "@LOCAL_SERVICE_PORT_TCP" jump POLICY_MARK_GOTO_DEFAULT
+  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 saddr @DEFAULT_ROUTE_IPV6 udp sport "@LOCAL_SERVICE_PORT_UDP" jump POLICY_MARK_GOTO_DEFAULT
 
   ### ipv4 - skip private network and UDP of DNS
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr @LOCAL_IPV6 tcp dport "{$ROUTER_INTERNAL_SERVICE_PORT_TCP}" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr @LOCAL_IPV6 udp dport "{$ROUTER_INTERNAL_SERVICE_PORT_UDP}" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr @DEFAULT_ROUTE_IPV6 tcp dport "{$ROUTER_INTERNAL_SERVICE_PORT_TCP}" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr @DEFAULT_ROUTE_IPV6 udp dport "{$ROUTER_INTERNAL_SERVICE_PORT_UDP}" jump POLICY_MARK_GOTO_DEFAULT
+  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr @LOCAL_IPV6 tcp dport "@LOCAL_SERVICE_PORT_TCP" jump POLICY_MARK_GOTO_DEFAULT
+  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr @LOCAL_IPV6 udp dport "@LOCAL_SERVICE_PORT_UDP" jump POLICY_MARK_GOTO_DEFAULT
+  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr @DEFAULT_ROUTE_IPV6 tcp dport "@LOCAL_SERVICE_PORT_TCP" jump POLICY_MARK_GOTO_DEFAULT
+  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr @DEFAULT_ROUTE_IPV6 udp dport "@LOCAL_SERVICE_PORT_UDP" jump POLICY_MARK_GOTO_DEFAULT
 
   # ipv4 skip package from outside
   nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr @BLACKLIST_IPV6 jump POLICY_MARK_GOTO_DEFAULT
@@ -418,6 +435,7 @@ function vbox_iniitialize_rule_table() {
   fi
 
   vbox_setup_rule_marks "$FAMILY" "$TABLE"
+  vbox_iniitialize_rule_table_inet "$FAMILY" "$TABLE"
   vbox_iniitialize_rule_table_ipv4 "$FAMILY" "$TABLE"
   vbox_iniitialize_rule_table_ipv6 "$FAMILY" "$TABLE"
 

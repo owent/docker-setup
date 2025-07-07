@@ -29,6 +29,32 @@ if [[ $? -ne 0 ]]; then
   nft add element inet security_firewall LOCAL_IPV6 '{::1/128, ::/128, ::ffff:0:0/96, 64:ff9b::/96, 100::/64, fc00::/7, fe80::/10, ff00::/8}'
 fi
 
+# Ports
+nft list set inet security_firewall LOCAL_SERVICE_PRIVATE_PORT_UDP >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add set inet security_firewall LOCAL_SERVICE_PRIVATE_PORT_UDP '{ type inet_service; flags interval; auto-merge; }'
+  nft add element inet security_firewall LOCAL_SERVICE_PRIVATE_PORT_UDP "{$ROUTER_INTERNAL_SERVICE_PRIVATE_PORT_UDP}"
+fi
+nft list set inet security_firewall LOCAL_SERVICE_PRIVATE_PORT_TCP >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add set inet security_firewall LOCAL_SERVICE_PRIVATE_PORT_TCP '{ type inet_service; flags interval; auto-merge; }'
+  nft add element inet security_firewall LOCAL_SERVICE_PRIVATE_PORT_TCP "{$ROUTER_INTERNAL_SERVICE_PRIVATE_PORT_TCP}"
+fi
+nft list set inet security_firewall LOCAL_SERVICE_PUBLIC_PORT_UDP >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add set inet security_firewall LOCAL_SERVICE_PUBLIC_PORT_UDP '{ type inet_service; flags interval; auto-merge; }'
+  nft add element inet security_firewall LOCAL_SERVICE_PUBLIC_PORT_UDP "{$ROUTER_INTERNAL_SERVICE_PUBLIC_PORT_UDP}"
+
+  if [[ ! -z "$ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT" ]]; then
+    nft add element inet security_firewall LOCAL_SERVICE_PUBLIC_PORT_UDP "{$ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT}"
+  fi
+fi
+nft list set inet security_firewall LOCAL_SERVICE_PUBLIC_PORT_TCP >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add set inet security_firewall LOCAL_SERVICE_PUBLIC_PORT_TCP '{ type inet_service; flags interval; auto-merge; }'
+  nft add element inet security_firewall LOCAL_SERVICE_PUBLIC_PORT_TCP "{$ROUTER_INTERNAL_SERVICE_PUBLIC_PORT_TCP}"
+fi
+
 nft add chain inet security_firewall PREROUTING '{ type filter hook prerouting priority filter + 10; policy accept; }'
 nft add rule inet security_firewall PREROUTING icmp type destination-unreachable icmp code frag-needed accept
 nft add rule inet security_firewall PREROUTING icmpv6 type '{ nd-router-advert, nd-neighbor-solicit, packet-too-big }' accept
@@ -39,13 +65,13 @@ nft add rule inet security_firewall INPUT ct state { established, related } acce
 nft add rule inet security_firewall INPUT ct status dnat accept
 nft add rule inet security_firewall INPUT iifname "$ROUTER_LOCAL_LAN_INTERFACE" accept
 # Internal services -- begin
-nft add rule inet security_firewall INPUT ip saddr @LOCAL_IPV4 tcp dport "{$ROUTER_INTERNAL_SERVICE_PRIVATE_PORT_TCP}" ct state { new, untracked } accept
-nft add rule inet security_firewall INPUT ip saddr @LOCAL_IPV4 udp dport "{$ROUTER_INTERNAL_SERVICE_PRIVATE_PORT_UDP}" ct state { new, untracked } accept
-nft add rule inet security_firewall INPUT ip6 saddr @LOCAL_IPV6 tcp dport "{$ROUTER_INTERNAL_SERVICE_PRIVATE_PORT_TCP}" ct state { new, untracked } accept
-nft add rule inet security_firewall INPUT ip6 saddr @LOCAL_IPV6 udp dport "{$ROUTER_INTERNAL_SERVICE_PRIVATE_PORT_UDP}" ct state { new, untracked } accept
+nft add rule inet security_firewall INPUT ip saddr @LOCAL_IPV4 tcp dport "@LOCAL_SERVICE_PRIVATE_PORT_TCP" ct state { new, untracked } accept
+nft add rule inet security_firewall INPUT ip saddr @LOCAL_IPV4 udp dport "@LOCAL_SERVICE_PRIVATE_PORT_UDP" ct state { new, untracked } accept
+nft add rule inet security_firewall INPUT ip6 saddr @LOCAL_IPV6 tcp dport "@LOCAL_SERVICE_PRIVATE_PORT_TCP" ct state { new, untracked } accept
+nft add rule inet security_firewall INPUT ip6 saddr @LOCAL_IPV6 udp dport "@LOCAL_SERVICE_PRIVATE_PORT_UDP" ct state { new, untracked } accept
 nft add rule inet security_firewall INPUT ip6 daddr fe80::/64 udp dport 546 ct state { new, untracked } accept
-nft add rule inet security_firewall INPUT tcp dport "{$ROUTER_INTERNAL_SERVICE_PUBLIC_PORT_TCP}" ct state { new, untracked } accept
-nft add rule inet security_firewall INPUT udp dport "{$ROUTER_INTERNAL_SERVICE_PUBLIC_PORT_UDP}" ct state { new, untracked } accept
+nft add rule inet security_firewall INPUT tcp dport "@LOCAL_SERVICE_PUBLIC_PORT_TCP" ct state { new, untracked } accept
+nft add rule inet security_firewall INPUT udp dport "@LOCAL_SERVICE_PUBLIC_PORT_UDP" ct state { new, untracked } accept
 # Internal services -- end
 nft add rule inet security_firewall INPUT meta l4proto { icmp, ipv6-icmp } accept
 nft add rule inet security_firewall INPUT ct state { invalid } drop
