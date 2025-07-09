@@ -5,10 +5,14 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 # Require net.ipv4.ip_unprivileged_port_start=80 in /etc/sysctl.d/*.conf
 # See https://github.com/containers/podman/blob/master/rootless.md
 
+LLM_LITELLM_IMAGE_URL=ghcr.io/berriai/litellm:main-stable
+# LLM_LITELLM_IMAGE_URL=ghcr.io/berriai/litellm:main-latest
+# LLM_LITELLM_IMAGE_URL=litellm/litellm:v1.73.6-stable
+
 if [[ "x$LLM_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman pull ghcr.io/berriai/litellm:main-latest
+  podman pull $LLM_LITELLM_IMAGE_URL
   if [[ $? -ne 0 ]]; then
-    echo "Pull ghcr.io/berriai/litellm:main-latest failed"
+    echo "Pull $LLM_LITELLM_IMAGE_URL failed"
     exit 1
   fi
 fi
@@ -148,7 +152,7 @@ fi
 
 podman run -d --name llm-litellm --security-opt label=disable \
   "${LLM_LITELLM_ENV[@]}" "${LLM_LITELLM_OPTIONS[@]}" \
-  ghcr.io/berriai/litellm:main-latest --port $LLM_LITELLM_PORT --config /etc/litellm/litellm-config.yaml --num_workers $LLM_LITELLM_WORKER_COUNT
+  $LLM_LITELLM_IMAGE_URL --port $LLM_LITELLM_PORT --config /etc/litellm/litellm-config.yaml --num_workers $LLM_LITELLM_WORKER_COUNT
 
 podman generate systemd llm-litellm | tee -p "$SYSTEMD_SERVICE_DIR/llm-litellm.service"
 podman container stop llm-litellm
