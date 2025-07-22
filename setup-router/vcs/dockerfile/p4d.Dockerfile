@@ -8,10 +8,11 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
     cat /etc/apt/sources.list ;                                                                                 \
     apt update -y; apt upgrade -y;                                                                              \
     apt install -y procps locales tzdata less iproute2 gawk lsof bash systemd ;                                 \
-    apt install -y vim wget curl ca-certificates telnet yq jq gpg;                                              \
+    apt install -y vim wget curl ca-certificates telnet yq jq gpg logrotate supervisor;                         \
     echo "LANG=en_US.UTF-8" >  /etc/default/locale;                                                             \
     echo "LANGUAGE=en_US.UTF-8" >> /etc/default/locale;                                                         \
-    ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/timezone;
+    ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/timezone;                                                      \
+    mkdir -p /etc/supervisor/conf.d
 
 
 RUN wget -qO - https://package.perforce.com/perforce.pubkey | gpg --dearmor > /usr/share/keyrings/perforce.gpg; \
@@ -19,5 +20,7 @@ RUN wget -qO - https://package.perforce.com/perforce.pubkey | gpg --dearmor > /u
     apt update -y && apt install -y helix-p4d
 
 COPY ./bootstrap.sh /opt/
+COPY ./supervisord.conf /etc/supervisor/
+COPY ./supervisor-p4d.conf ./supervisor-cron.conf /etc/supervisor/conf.d/
 
-CMD ["/bin/bash", "/opt/bootstrap.sh", "p4d"]
+CMD ["/bin/bash", "/opt/bootstrap.sh", "supervisord", "--nodaemon", "-c", "/etc/supervisor/supervisord.conf"]
