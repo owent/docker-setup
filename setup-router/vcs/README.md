@@ -22,36 +22,45 @@ export P4SSLDIR=/path/ssl; p4d -Gf -y
 ### 超级管理员
 
 ```bash
+P4CLIENT_PORT=ssl:p4.w-oa.com:8666
+
 # 信任新部署的p4服务器
-p4 -p ssl:p4.w-oa.com:8666 trust -f -y
+p4 -p $P4CLIENT_PORT trust -f -y
 # 创建账户
-p4 -p ssl:p4.w-oa.com:8666 user -f admin
+p4 -p $P4CLIENT_PORT user -f admin
 # 设置“admin”的密码
-p4 -p ssl:p4.w-oa.com:8666 -u admin passwd
+p4 -p $P4CLIENT_PORT -u admin passwd
 # 登入
-p4 -p ssl:p4.w-oa.com:8666 -u admin login
+p4 -p $P4CLIENT_PORT -u admin login
 # 第一个执行 p4 protect 的用户会获得“super”权限。
-p4 -p ssl:p4.w-oa.com:8666 -u admin protect
+p4 -p $P4CLIENT_PORT -u admin protect
 ```
 
 ### 设置
 
 ```bash
+P4CLIENT_PORT=ssl:p4.w-oa.com:8666
+
 # 设置服务器ID
-p4 -p ssl:p4.w-oa.com:8666 -u admin serverid Perforce
+p4 -p $P4CLIENT_PORT -u admin serverid Perforce
+# p4 -p $P4CLIENT_PORT -u admin configure set serverid=PerforceServer
+
+# 开启Unicode模式
+p4d -p $P4CLIENT_PORT -xi
+
 # 禁止自动创建未注册用户
-p4 -p ssl:p4.w-oa.com:8666 -u admin configure set dm.user.noautocreate=2
+p4 -p $P4CLIENT_PORT -u admin configure set dm.user.noautocreate=2
 # 设置服务器安全等级，要求每个用户都有密码（这也是后面LDAP接入的前提条件）
-p4 -p ssl:p4.w-oa.com:8666 -u admin configure set security=3
+p4 -p $P4CLIENT_PORT -u admin configure set security=3
 
 
 # LDAP
-p4 -p ssl:p4.w-oa.com:8666 -u admin ldap -i << EOF
+p4 -p $P4CLIENT_PORT -u admin ldap -i << EOF
 Name:     LDAP_DEFAULT
 Host:     192.168.xxx.xxx
-Port:     636
-Encryption:    tls/none
-BindMethod:    search/simple
+Port:     389 # 389 fornone, 636 for tls
+Encryption:    none # tls/none
+BindMethod:    search # search/simple
 SearchBindDN:  uid=ldap-bind,ou=people,dc=w-oa,dc=com
 SearchPasswd:  password
 SimplePattern: uid=%user%,ou=people,dc=w-oa,dc=com
@@ -65,26 +74,26 @@ AttributeEmail: mail
 EOF
 
 # 不验证证书(0: 不使用SSL, 1: 使用SSL并验证证书, 2: 使用SSL并信任证书)
-p4 -p ssl:p4.w-oa.com:8666 -u admin configure set auth.ldap.ssllevel=2
+p4 -p $P4CLIENT_PORT -u admin configure set auth.ldap.ssllevel=2
 
 # 自动创建用户
-p4 -p ssl:p4.w-oa.com:8666 -u admin configure set auth.ldap.userautocreate=1
+p4 -p $P4CLIENT_PORT -u admin configure set auth.ldap.userautocreate=1
 # 设置认证顺序
-p4 -u admin configure set auth.default.method=ldap
-p4 -u admin configure set auth.ldap.order.1=LDAP_DEFAULT
+p4 -p $P4CLIENT_PORT -u admin configure set auth.default.method=ldap
+p4 -p $P4CLIENT_PORT -u admin configure set auth.ldap.order.1=LDAP_DEFAULT
 # 设置CA
 # p4 configure set auth.ldap.cafile=perforce
 
 # 自动同步用户和组
-p4 -p ssl:p4.w-oa.com:8666 -u admin configure set "startup.1=ldapsync -u -c -U -d -i 43200"
-p4 -p ssl:p4.w-oa.com:8666 -u admin configure set "startup.2=ldapsync -g -i 43200"
+p4 -p $P4CLIENT_PORT -u admin configure set "startup.1=ldapsync -u -c -U -d -i 43200"
+p4 -p $P4CLIENT_PORT -u admin configure set "startup.2=ldapsync -g -i 43200"
 
 # 手动执行账户和组同步
-p4 -p ssl:p4.w-oa.com:8666 -u admin ldapsync -u -c -U -d
-p4 -p ssl:p4.w-oa.com:8666 -u admin ldapsync -g
+p4 -p $P4CLIENT_PORT -u admin ldapsync -u -c -U -d
+p4 -p $P4CLIENT_PORT -u admin ldapsync -g
 
 # 开启Monitor
-p4 -p ssl:p4.w-oa.com:8666 -u admin configure set monitor=1
+p4 -p $P4CLIENT_PORT -u admin configure set monitor=1
 ```
 
 ### 使用S3/Minio存储Archive

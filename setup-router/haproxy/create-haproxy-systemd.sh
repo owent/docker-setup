@@ -25,6 +25,7 @@ mkdir -p "$HAPROXY_ETC_DIR"
 
 if [[ -z "$HAPROXY_IMAGE" ]]; then
   HAPROXY_IMAGE="haproxy:alpine"
+  # HAPROXY_IMAGE="haproxy:lts"
 fi
 if [[ "x$HAPROXY_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman pull $HAPROXY_IMAGE
