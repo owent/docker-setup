@@ -55,9 +55,9 @@ services:
   appflowy_gotrue:
     container_name: "appflowy-gotrue"
     restart: on-failure
-    build:
-      context: AppFlowy-Cloud/docker/gotrue
-      dockerfile: Dockerfile
+    # build:
+    #   context: AppFlowy-Cloud/docker/gotrue
+    #   dockerfile: Dockerfile
     # depends_on:
     #   postgres:
     #     condition: service_healthy
@@ -154,11 +154,11 @@ services:
       - AI_OPENAI_API_KEY=${AI_OPENAI_API_KEY}
       - APPFLOWY_ADMIN_FRONTEND_PATH_PREFIX=${ADMIN_FRONTEND_PATH_PREFIX}
       - APPFLOWY_WEB_URL=${APPFLOWY_WEB_URL}
-    build:
-      context: AppFlowy-Cloud
-      dockerfile: Dockerfile
-      args:
-        FEATURES: ""
+    # build:
+    #   context: AppFlowy-Cloud
+    #   dockerfile: Dockerfile
+    #   args:
+    #     FEATURES: ""
     image: appflowyinc/appflowy_cloud:${APPFLOWY_CLOUD_VERSION:-latest}
     depends_on:
       appflowy_gotrue:
@@ -172,9 +172,9 @@ services:
   appflowy_admin_frontend:
     container_name: "appflowy-admin-frontend"
     restart: on-failure
-    build:
-      context: AppFlowy-Cloud
-      dockerfile: ./admin_frontend/Dockerfile
+    # build:
+    #   context: AppFlowy-Cloud
+    #   dockerfile: ./admin_frontend/Dockerfile
     image: appflowyinc/admin_frontend:${APPFLOWY_ADMIN_FRONTEND_VERSION:-latest}
     environment:
       - GOPROXY=${GOPROXY}
@@ -210,9 +210,9 @@ services:
     container_name: "appflowy-worker"
     restart: on-failure
     image: appflowyinc/appflowy_worker:${APPFLOWY_WORKER_VERSION:-latest}
-    build:
-      context: AppFlowy-Cloud
-      dockerfile: ./services/appflowy-worker/Dockerfile
+    # build:
+    #   context: AppFlowy-Cloud
+    #   dockerfile: ./services/appflowy-worker/Dockerfile
     environment:
       - GOPROXY=${GOPROXY}
       - RUST_LOG=${RUST_LOG:-info}
