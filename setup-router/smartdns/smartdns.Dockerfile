@@ -11,7 +11,9 @@ RUN set -x;                                  \
     fi;                                                                         \
     apt update -y;                                                              \
     apt install -y curl unzip bash git git-lfs build-essential g++ libssl-dev musl musl-tools ; \
-    git clone --depth 1 https://github.com/pymumu/smartdns.git ~/smartdns ;     \
+    [ "x$GITHUB_TOKEN" = "x" ] || GITHUB_TOKEN_ARGS="-H Authorization: token $GITHUB_TOKEN"; \
+    SMARTDNS_VERSION=$(curl -L $GITHUB_TOKEN_ARGS 'https://api.github.com/repos/pymumu/smartdns/releases/latest' 2>&1 | grep tag_name | grep -E -o 'Release[^"]+' | head -n 1); \
+    git clone --depth 1 -b "$SMARTDNS_VERSION" https://github.com/pymumu/smartdns.git ~/smartdns ; \
     cd ~/smartdns/package ;                                                     \
     bash ./build-pkg.sh bash ./build-pkg.sh --platform linux --arch x86-64 --static ; \
     mv -f smartdns.*.tar.gz /tmp/smartdns.x86_64-linux-all.tar.gz;              \
