@@ -45,7 +45,7 @@ if [[ $? -eq 0 ]]; then
   podman rm -f haproxy
 fi
 
-if [[ "x$REDIS_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+if [[ "x$HAPROXY_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman image prune -a -f --filter "until=240h"
 fi
 
