@@ -85,7 +85,7 @@
         "server": "dns-proxy"
       }
     ],
-    "cache_capacity": 65536,
+    // "cache_capacity": 65536,
     "reverse_mapping": true
   },
   "inbounds": [

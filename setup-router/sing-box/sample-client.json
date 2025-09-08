@@ -97,7 +97,7 @@
         "server": "dns-proxy"
       }
     ],
-    "cache_capacity": 2097152,
+    // "cache_capacity": 2097152,
     "reverse_mapping": true // ,
     // 如果上面路由规则里有配置fakeip,请确保fakeip的路由要转入 tun
     // "fakeip": {
