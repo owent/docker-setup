@@ -1,7 +1,7 @@
 {
   "log": {
     "disabled": false,
-    "level": "info",
+    "level": "error",
     // "output": "/var/log/vbox/box.log",
     "timestamp": true
   },
@@ -11,21 +11,41 @@
     "servers": [
       {
         "tag": "dns-proxy",
-        "address": "tls://8.8.8.8" // ,
-        // "strategy": "ipv4_only"
+        "type": "tls",
+        "server": "8.8.8.8",
+        "server_port": 853,
+        "tls": {},
+        "detour": "out-proxy"
       },
       // {
       //   "tag": "dns-proxy",
-      //   "address": "tls://1.1.1.1"
+      //   "type": "tls",
+      //   "server": "1.1.1.1",
+      //   "server_port": 853,
+      //   "tls": {},
+      //   "detour": "out-proxy"
       // },
       {
         "tag": "dns-local",
-        "address": "tls://223.5.5.5",
+        "type": "tls",
+        "server": "223.5.5.5",
+        "server_port": 853,
+        "tls": {},
         "detour": "direct"
       } // ,
       // {
       //   "tag": "dns-local",
-      //   "address": "https://223.5.5.5/dns-query",
+      //   "type": "https",
+      //   "server": "223.5.5.5",
+      //   "server_port": 443,
+      //   "path": "/dns-query",
+      //   "tls": {},
+      //   "detour": "direct"
+      // }
+      // ,
+      // {
+      //   "tag": "dns-local",
+      //   "type": "local",,
       //   "detour": "direct"
       // }
     ],
@@ -58,7 +78,6 @@
         "source_ip_cidr": "172.22.0.0/16",
         "server": "dns-local"
       },
-      // client_subnet is available from 1.9.0
       {
         "type": "logical",
         "mode": "and",
@@ -71,16 +90,15 @@
             "rule_set": "geoip-cn"
           }
         ],
-        "server": "dns-proxy",
-        // "client_subnet": "114.114.114.114/24" // Any China client IP address
-        // "client_subnet": "202.96.209.133/24" // Shanghai ChinaNet IP address
-        "client_subnet": "210.22.70.3/24"
+        "server": "dns-proxy"
       },
       {
         "outbound": "any",
         "server": "dns-proxy"
       }
-    ]// ,
+    ],
+    "cache_capacity": 2097152,
+    "reverse_mapping": true // ,
     // 如果上面路由规则里有配置fakeip,请确保fakeip的路由要转入 tun
     // "fakeip": {
     //   "enabled": true,
@@ -104,7 +122,7 @@
       // Default: 0x2024
       "auto_redirect_output_mark": "15",
       "strict_route": true,
-      "stack": "gvisor",
+      "stack": "mixed",
       // "endpoint_independent_nat": false,
       // 开启ROUTER_NET_LOCAL_ENABLE_VBOX时尽量关闭tun的include和excelude规则，性能很差
       // include_interface": ["enp2s0"],
@@ -207,14 +225,30 @@
         "insecure": false,
         "alpn": ["h2"],
         "min_version": "1.2"
-      } //,
+      },
       // "multiplex": {
       //   "enabled": true
+      // },
+      // "domain_resolver": {
+      //   "server": "dns-proxy-bootstrap" // ,
+      //   // "rewrite_ttl": 60,
+      //   // "strategy": "prefer_ipv4", // prefer_ipv4, prefer_ipv6, ipv4_only, ipv6_only
+      //   // "client_subnet": "114.114.114.114/24" // Any China client IP address
+      //   // "client_subnet": "202.96.209.133/24" // Shanghai ChinaNet IP address
+      //   // "client_subnet": "210.22.70.3/24" // Shanghai ChinaUnion IP address
       // }
     },
     {
       "type": "direct",
-      "tag": "direct"
+      "tag": "direct",
+      "domain_resolver": {
+        "server": "dns-local" // ,
+        // "rewrite_ttl": 60,
+        // "strategy": "prefer_ipv4", // prefer_ipv4, prefer_ipv6, ipv4_only, ipv6_only
+        // "client_subnet": "114.114.114.114/24" // Any China client IP address
+        // "client_subnet": "202.96.209.133/24" // Shanghai ChinaNet IP address
+        // "client_subnet": "210.22.70.3/24" // Shanghai ChinaUnion IP address
+      }
     }
   ],
   "route": {
@@ -222,6 +256,7 @@
       {
         "inbound": "in-tun",
         "action": "sniff",
+        // "sniffer": ["http", "tls", "quic", "dns", "bittorrent", "dtls", "rdp"],
         "timeout": "3s"
       },
       {
@@ -230,10 +265,12 @@
       },
       {
         "source_ip_cidr": "172.22.0.0/16",
+        "action": "route",
         "outbound": "direct"
       },
       {
         "ip_is_private": true,
+        "action": "route",
         "outbound": "direct"
       },
       {
@@ -242,6 +279,7 @@
       },
       {
         "protocol": ["bittorrent"],
+        "action": "route",
         "outbound": "direct"
       },
       {
@@ -264,19 +302,23 @@
       {
         "port": [67, 68, 123, 546, 547],
         "network": ["udp"],
+        "action": "route",
         "outbound": "direct"
       },
       {
         "source_port": [22, 36000],
         "network": ["tcp"],
+        "action": "route",
         "outbound": "direct"
       },
       {
         "source_port": [6096, 6349, 6443, 6881, 6882, 6883, 8371, 8372, 8373],
+        "action": "route",
         "outbound": "direct"
       },
       {
         "rule_set": ["geoip-cn", "geosite-geolocation-cn", "geosite-speedtest"],
+        "action": "route",
         "outbound": "direct"
       },
       {
@@ -295,6 +337,7 @@
           "test-ipv6.com",
           "ipv6-test.com"
         ],
+        "action": "route",
         "outbound": "direct"
       }
     ],
@@ -337,7 +380,14 @@
     // "default_interface": "ppp0",
     // For Android
     // "override_android_vpn": true,
-    "default_mark": 15
+    "default_mark": 15,
+    "default_domain_resolver": {
+      "server": "dns-local",
+      // "rewrite_ttl": 60,
+      // "client_subnet": "114.114.114.114/24" // Any China client IP address
+      // "client_subnet": "202.96.209.133/24" // Shanghai ChinaNet IP address
+      "client_subnet": "210.22.70.3/24" // Shanghai ChinaUnion IP address
+    }
   },
   "experimental": {
     "cache_file": {

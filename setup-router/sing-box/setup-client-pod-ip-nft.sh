@@ -257,12 +257,26 @@ function vbox_setup_ip_rules() {
     VBOX_TUN_ORIGIN_TABLE_RULE=($(ip $IP_FAMILY route show table $VBOX_TUN_TABLE_ID | tail -n 1 | awk '{$1="";print $0}' | grep -E -o '.*dev[[:space:]]+[^[:space:]]+'))
     ip $IP_FAMILY route flush table $VBOX_TUN_WITH_SRC_TABLE_ID
     if [[ ! -z "IP_FAMILY" ]] && [[ "$IP_FAMILY" == "-6" ]]; then
-      VBOX_TUN_IP_ADDR=$(ip -o $IP_FAMILY addr show dev $VBOX_TUN_INTERFACE scope global | awk 'match($0, /inet6\s+([0-9a-fA-F:]+)/, ip) { print ip[1] }' | head -n 1)
+      VBOX_TUN_IP_ADDR=""
+      for ((i = 0; i < 10; i++)); do
+        VBOX_TUN_IP_ADDR=$(ip -o $IP_FAMILY addr show dev $VBOX_TUN_INTERFACE scope global | awk 'match($0, /inet6\s+([0-9a-fA-F:]+)/, ip) { print ip[1] }' | head -n 1)
+        if [[ ! -z "$VBOX_TUN_IP_ADDR" ]]; then
+          break
+        fi
+        sleep 1
+      done
       for ROUTE_CIDR in "${IPV6_TUN_ADDRESS_SET[@]}"; do
         ip $IP_FAMILY route add "$ROUTE_CIDR" "dev" "$VBOX_TUN_INTERFACE" src "$VBOX_TUN_IP_ADDR" table $VBOX_TUN_WITH_SRC_TABLE_ID
       done
     else
-      VBOX_TUN_IP_ADDR=$(ip -o $IP_FAMILY addr show dev $VBOX_TUN_INTERFACE scope global | awk 'match($0, /inet\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/, ip) { print ip[1] }' | head -n 1)
+      VBOX_TUN_IP_ADDR=""
+      for ((i = 0; i < 10; i++)); do
+        VBOX_TUN_IP_ADDR=$(ip -o $IP_FAMILY addr show dev $VBOX_TUN_INTERFACE scope global | awk 'match($0, /inet\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/, ip) { print ip[1] }' | head -n 1)
+        if [[ ! -z "$VBOX_TUN_IP_ADDR" ]]; then
+          break
+        fi
+        sleep 1
+      done
       for ROUTE_CIDR in "${IPV4_TUN_ADDRESS_SET[@]}"; do
         ip $IP_FAMILY route add "$ROUTE_CIDR" "${VBOX_TUN_ORIGIN_TABLE_RULE[@]}" src "$VBOX_TUN_IP_ADDR" table $VBOX_TUN_WITH_SRC_TABLE_ID
       done

@@ -11,21 +11,35 @@
     "servers": [
       {
         "tag": "dns-proxy",
-        "address": "tls://8.8.8.8" // ,
-        // "strategy": "ipv4_only"
+        "type": "tls",
+        "server": "8.8.8.8",
+        "server_port": 853,
+        "tls": {},
+        "detour": "out-proxy"
       },
       // {
       //   "tag": "dns-proxy",
-      //   "address": "tls://1.1.1.1"
+      //   "type": "tls",
+      //   "server": "1.1.1.1",
+      //   "server_port": 853,
+      //   "tls": {},
+      //   "detour": "out-proxy"
       // },
       {
         "tag": "dns-local",
-        "address": "tls://223.5.5.5",
+        "type": "tls",
+        "server": "223.5.5.5",
+        "server_port": 853,
+        "tls": {},
         "detour": "direct"
       } // ,
       // {
       //   "tag": "dns-local",
-      //   "address": "https://223.5.5.5/dns-query",
+      //   "type": "https",
+      //   "server": "223.5.5.5",
+      //   "server_port": 443,
+      //   "path": "/dns-query",
+      //   "tls": {},
       //   "detour": "direct"
       // }
     ],
@@ -52,7 +66,6 @@
         "rule_set": "geosite-geolocation-cn",
         "server": "dns-local"
       },
-      // client_subnet is available from 1.9.0
       {
         "type": "logical",
         "mode": "and",
@@ -65,10 +78,7 @@
             "rule_set": "geoip-cn"
           }
         ],
-        "server": "dns-proxy",
-        // "client_subnet": "114.114.114.114/24" // Any China client IP address
-        // "client_subnet": "202.96.209.133/24" // Shanghai ChinaNet IP address
-        "client_subnet": "210.22.70.3/24" // Shanghai ChinaUnion IP address
+        "server": "dns-proxy"
       },
       {
         "outbound": "any",
@@ -172,7 +182,15 @@
   "outbounds": [
     {
       "type": "direct",
-      "tag": "direct"
+      "tag": "direct",
+      "domain_resolver": {
+        "server": "dns-local" // ,
+        // "rewrite_ttl": 60,
+        // "strategy": "prefer_ipv4", // prefer_ipv4, prefer_ipv6, ipv4_only, ipv6_only
+        // "client_subnet": "114.114.114.114/24" // Any China client IP address
+        // "client_subnet": "202.96.209.133/24" // Shanghai ChinaNet IP address
+        // "client_subnet": "210.22.70.3/24" // Shanghai ChinaUnion IP address
+      }
     }
   ],
   "route": {
@@ -180,11 +198,12 @@
       {
         "inbound": ["in-vmess", "in-vless"],
         "action": "sniff",
+        // "sniffer": ["http", "tls", "quic", "dns", "bittorrent", "dtls", "rdp"],
         "timeout": "1s"
       },
       {
         "protocol": "dns",
-        "outbound": "hijack-dns"
+        "action": "hijack-dns"
       }
     ],
     "rule_set": [
@@ -214,7 +233,14 @@
       }
     ],
     // 默认出站标签。如果为空，将使用第一个可用于对应协议的出站。
-    "final": "direct"
+    "final": "direct",
+    "default_domain_resolver": {
+      "server": "dns-local",
+      // "rewrite_ttl": 60,
+      // "client_subnet": "114.114.114.114/24" // Any China client IP address
+      // "client_subnet": "202.96.209.133/24" // Shanghai ChinaNet IP address
+      "client_subnet": "210.22.70.3/24" // Shanghai ChinaUnion IP address
+    }
   },
   "experimental": {
     "cache_file": {
