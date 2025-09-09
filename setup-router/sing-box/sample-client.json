@@ -68,14 +68,17 @@
           "test-ipv6.com",
           "ipv6-test.com"
         ],
+        "action": "route",
         "server": "dns-local"
       },
       {
         "rule_set": "geosite-geolocation-cn",
+        "action": "route",
         "server": "dns-local"
       },
       {
         "source_ip_cidr": "172.22.0.0/16",
+        "action": "route",
         "server": "dns-local"
       },
       {
@@ -90,10 +93,9 @@
             "rule_set": "geoip-cn"
           }
         ],
-        "server": "dns-proxy"
-      },
-      {
-        "outbound": "any",
+        "action": "route",
+        // 代理DNS延长TTL，不然可能下游设备未过期这里就缓存失效了
+        "rewrite_ttl": 600,
         "server": "dns-proxy"
       }
     ],
@@ -382,7 +384,8 @@
     // "override_android_vpn": true,
     "default_mark": 15,
     "default_domain_resolver": {
-      "server": "dns-local",
+      // 大陆白名单模式使用dns-proxy，否则默认用dns-local
+      "server": "dns-proxy",
       // "rewrite_ttl": 60,
       // "client_subnet": "114.114.114.114/24" // Any China client IP address
       // "client_subnet": "202.96.209.133/24" // Shanghai ChinaNet IP address

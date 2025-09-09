@@ -60,10 +60,12 @@
           "ip.threep.top ip.sb",
           "test-ipv6.com"
         ],
+        "action": "route",
         "server": "dns-local"
       },
       {
         "rule_set": "geosite-geolocation-cn",
+        "action": "route",
         "server": "dns-local"
       },
       {
@@ -78,11 +80,10 @@
             "rule_set": "geoip-cn"
           }
         ],
+        "action": "route",
+        // 代理DNS延长TTL，不然可能下游设备未过期这里就缓存失效了
+        "rewrite_ttl": 600,
         "server": "dns-proxy"
-      },
-      {
-        "outbound": "any",
-        "server": "dns-local"
       }
     ]
   },
