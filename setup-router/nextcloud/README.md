@@ -53,3 +53,10 @@ psql -h localhost -U postgres
 ## 连接onlyoffice
 
 注意: 如果局域网跨机器需要设置DNS，本地解析指向内网地址，外网解析走正常DNS/DDNS 。否则跨网点网络很不稳定。
+
+## LDAP账户清理
+
+```bash
+sudo -E -u podman exec -u www-data nextcloud php occ ldap:show-remnants
+sudo -E -u podman exec -u www-data nextcloud php occ user:delete USER_NAME
+```

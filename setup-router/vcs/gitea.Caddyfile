@@ -1,0 +1,55 @@
+DOMAIN:6443 {
+  request_body {
+    max_size 2GB
+  }
+
+  encode zstd gzip
+
+  @lfs_get path_regexp lfs ^/.*\.git/info/lfs/objects/.+$
+  @lfs_api path_regexp lfsapi ^/.*\.git/info/lfs/.*
+
+  route {
+    handle @lfs_api {
+      reverse_proxy http://10.64.5.1:3221 {
+        header_up Host {http.request.host}
+        header_up X-Real-IP {http.request.remote}
+        header_up X-Forwarded-Port {http.request.port}
+      }
+    }
+    handle @lfs_get {
+      header {
+        Cache-Control "public, max-age=604800, immutable"
+      }
+      # cache {
+      #   methods GET HEAD
+      #   key "{host}{uri}{header.Range}"
+      #   strip_cookies
+      #   default_max_age 168h
+      #   storage disk {
+      #     path /var/cache/caddy/lfs
+      #     capacity 200gb
+      #   }
+      #   status_header 200 206 304
+      #   respect_origin_headers
+      # }
+      reverse_proxy http://127.0.0.1:3221 {
+        header_up Host {http.request.host}
+        header_up X-Real-IP {http.request.remote}
+        header_up X-Forwarded-Port {http.request.port}
+
+        flush_interval 100ms
+      }
+    }
+    handle {
+      reverse_proxy http://10.64.5.1:3221 {
+        header_up Host {http.request.host}
+        header_up X-Real-IP {http.request.remote}
+        header_up X-Forwarded-Port {http.request.port}
+      }
+    }
+  }
+
+  tls /data/ssl/DOMAIN_ecc/fullchain.cer /data/ssl/DOMAIN_ecc/DOMAIN.key {
+    protocols tls1.2 tls1.3
+  }
+}

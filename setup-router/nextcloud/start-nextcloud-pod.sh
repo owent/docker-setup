@@ -24,14 +24,18 @@ if [[ "x$RUN_HOME" == "x" ]]; then
   RUN_HOME="$HOME"
 fi
 
+if [[ -z "$NEXTCLOUD_DOMAIN" ]]; then
+  NEXTCLOUD_DOMAIN=$ROUTER_DOMAIN
+fi
+
 NEXTCLOUD_SETTINGS=(
   -e PHP_MEMORY_LIMIT=2000M
   -e PHP_UPLOAD_LIMIT=2000M # 32bit int, must less than 2GB
 )
 if [[ ! -z "$REDIS_PRIVATE_NETWORK_NAME" ]] && [[ ! -z "$REDIS_PRIVATE_NETWORK_IP" ]]; then
   NEXTCLOUD_CACHE_OPTIONS=(--network=$REDIS_PRIVATE_NETWORK_NAME -e REDIS_HOST=$REDIS_PRIVATE_NETWORK_IP -e REDIS_HOST_PORT=$REDIS_PORT) # -e REDIS_HOST_PASSWORD=)
-else
-  NEXTCLOUD_CACHE_OPTIONS=(-e REDIS_HOST=$ROUTER_INTERNAL_IPV4 -e REDIS_HOST_PORT=$REDIS_PORT) # -e REDIS_HOST_PASSWORD=)
+elif [[ ! -z "$REDIS_HOST" ]]; then
+  NEXTCLOUD_CACHE_OPTIONS=(-e REDIS_HOST=$REDIS_HOST -e REDIS_HOST_PORT=$REDIS_PORT) # -e REDIS_HOST_PASSWORD=)
 fi
 
 if [[ "x$NEXTCLOUD_LISTEN_PORT" == "x" ]]; then
@@ -136,7 +140,8 @@ RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ; \\
     usermod -g root www-data; \\
     usermod -a -G www-data www-data; \\
     chown -R www-data:root /var/www/html/config /var/www/html/data /var/www/html/custom_apps; \\
-    chmod -R 770 /var/www/html/config /var/www/html/data /var/www/html/custom_apps;
+    chmod -R 770 /var/www/html/config /var/www/html/data /var/www/html/custom_apps; \\
+    chmod -R 777 /usr/local/etc
 " >nextcloud.Dockerfile
 
 #     sed -i -r 's;#?https?://.*/debian-security/?[[:space:]];http://mirrors.tencent.com/debian-security/ ;g' /etc/apt/sources.list ; \\
@@ -162,10 +167,14 @@ if [[ "x$NEXTCLOUD_REVERSE_ROOT_DIR" != "x" ]]; then
   podman run --name nextcloud_temporary local_nextcloud bash -c 'du -sh /usr/src/nextcloud/*'
   if [[ $? -eq 0 ]]; then
     echo "[nextcloud] Remove old static files..."
-    find "$NEXTCLOUD_REVERSE_ROOT_DIR/nextcloud/" -maxdepth 1 -mindepth 1 -name "*" | xargs -r rm -rf
+    find "$NEXTCLOUD_REVERSE_ROOT_DIR/" -maxdepth 1 -mindepth 1 -name "*" | xargs -r rm -rf
     echo "[nextcloud] Copy static files..."
     podman cp --overwrite nextcloud_temporary:/usr/src/nextcloud/ "$NEXTCLOUD_REVERSE_ROOT_DIR"
-    [ -e "$NEXTCLOUD_REVERSE_ROOT_DIR/nextcloud/custom_apps" ] && rm -rf "$NEXTCLOUD_REVERSE_ROOT_DIR/nextcloud/custom_apps"
+    if [[ -e "$NEXTCLOUD_REVERSE_ROOT_DIR/nextcloud" ]]; then
+      mv -f "$NEXTCLOUD_REVERSE_ROOT_DIR/nextcloud/"* "$NEXTCLOUD_REVERSE_ROOT_DIR/"
+      rm -rf "$NEXTCLOUD_REVERSE_ROOT_DIR/nextcloud"
+    fi
+    [ -e "$NEXTCLOUD_REVERSE_ROOT_DIR/custom_apps" ] && rm -rf "$NEXTCLOUD_REVERSE_ROOT_DIR/custom_apps"
 
     # 不能删除 .php 文件,否则反向代理时nginx的try_files会检测不过
     # find "$NEXTCLOUD_REVERSE_ROOT_DIR" -name "*.php" -type f | xargs -r rm -f
@@ -177,10 +186,11 @@ podman run -d --name nextcloud \
   --security-opt seccomp=unconfined \
   --security-opt label=disable \
   -e NEXTCLOUD_TRUSTED_DOMAINS="$NEXTCLOUD_TRUSTED_DOMAINS" \
-  -e OVERWRITEHOST=$ROUTER_DOMAIN:6443 -e OVERWRITEPROTOCOL=https \
+  -e OVERWRITEHOST=$NEXTCLOUD_DOMAIN:6443 -e OVERWRITEPROTOCOL=https \
   -e NEXTCLOUD_ADMIN_USER=$ADMIN_USENAME -e NEXTCLOUD_ADMIN_PASSWORD=$ADMIN_TOKEN \
   -e APACHE_DISABLE_REWRITE_IP=1 -e TRUSTED_PROXIES=0.0.0.0/32 \
   ${NEXTCLOUD_CACHE_OPTIONS[@]} ${NEXTCLOUD_SETTINGS[@]} \
+  -u www-data:root \
   --mount type=bind,source=$NEXTCLOUD_ETC_DIR,target=/var/www/html/config \
   --mount type=bind,source=$NEXTCLOUD_DATA_DIR,target=/var/www/html/data \
   --mount type=bind,source=$NEXTCLOUD_APPS_DIR,target=/var/www/html/custom_apps \
@@ -198,6 +208,7 @@ podman generate systemd --name nextcloud \
   | sed "/ExecStart=/a ExecStartPost=/usr/bin/podman exec -d nextcloud /bin/bash /cron.sh" \
   | tee "$RUN_HOME/nextcloud/container-nextcloud.service"
 podman exec nextcloud sed -i 's;pm.max_children[[:space:]]*=[[:space:]][0-9]*;pm.max_children = 16;g' /usr/local/etc/php-fpm.d/www.conf
+podman exec nextcloud sed -i 's;group[[:space:]]*=[[:space:]]*www-data;group = root;g' /usr/local/etc/php-fpm.d/www.conf
 
 podman stop nextcloud
 
