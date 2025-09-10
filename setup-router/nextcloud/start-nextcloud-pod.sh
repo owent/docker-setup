@@ -174,7 +174,7 @@ if [[ "x$NEXTCLOUD_REVERSE_ROOT_DIR" != "x" ]]; then
       mv -f "$NEXTCLOUD_REVERSE_ROOT_DIR/nextcloud/"* "$NEXTCLOUD_REVERSE_ROOT_DIR/"
       rm -rf "$NEXTCLOUD_REVERSE_ROOT_DIR/nextcloud"
     fi
-    [ -e "$NEXTCLOUD_REVERSE_ROOT_DIR/custom_apps" ] && rm -rf "$NEXTCLOUD_REVERSE_ROOT_DIR/custom_apps"
+    [ -e "$NEXTCLOUD_REVERSE_ROOT_DIR/custom_apps" ] && rm -rf "$NEXTCLOUD_REVERSE_ROOT_DIR/custom_apps/"*
 
     # 不能删除 .php 文件,否则反向代理时nginx的try_files会检测不过
     # find "$NEXTCLOUD_REVERSE_ROOT_DIR" -name "*.php" -type f | xargs -r rm -f
@@ -209,6 +209,7 @@ podman generate systemd --name nextcloud \
   | tee "$RUN_HOME/nextcloud/container-nextcloud.service"
 podman exec nextcloud sed -i 's;pm.max_children[[:space:]]*=[[:space:]][0-9]*;pm.max_children = 16;g' /usr/local/etc/php-fpm.d/www.conf
 podman exec nextcloud sed -i 's;group[[:space:]]*=[[:space:]]*www-data;group = root;g' /usr/local/etc/php-fpm.d/www.conf
+podman exec nextcloud bash -c 'rm -rf /var/www/html/core/skeleton/*'
 
 podman stop nextcloud
 
