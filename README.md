@@ -245,6 +245,44 @@ Auto cleanup: edit ```/etc/systemd/journald.conf```
 systemctl restart systemd-journald
 ```
 
+## 升级备注
+
+### Debian 升级步骤
+
+1. 虚拟机平台创建快照
+
+2. 升级
+
+```bash
+sudo apt update -y && sudo apt upgrade -y
+
+sudo apt full-upgrade -y
+
+sudo apt autoremove
+sudo apt clean
+
+sudo sed -i 's/bookworm/trixie/g' /etc/apt/sources.list
+sudo sed -i 's/bookworm/trixie/g' /etc/apt/sources.list.d/*
+
+sudo apt update -y
+sudo apt upgrade --without-new-pkgs -y
+sudo apt full-upgrade -y
+
+
+sudo reboot
+```
+
+3. 重启后
+
+```bash
+sudo apt modernize-sources
+
+
+cat /etc/debian_version
+sudo apt autoremove --purge
+sudo apt autoclean
+```
+
 ## 常见错误
 
 + sshd版本过老导致 `sign_and_send_pubkey: no mutual signature supported`
