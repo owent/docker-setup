@@ -253,16 +253,46 @@ systemctl restart systemd-journald
 
 2. 升级
 
+**检查备份root和tools用户的docker镜像列表,以防重启后启动失败则要手动启动**
+
 ```bash
 sudo apt update -y && sudo apt upgrade -y
 
 sudo apt full-upgrade -y
 
-sudo apt autoremove
-sudo apt clean
+sudo apt autoremove -y
+sudo apt clean -y
 
-sudo sed -i 's/bookworm/trixie/g' /etc/apt/sources.list
-sudo sed -i 's/bookworm/trixie/g' /etc/apt/sources.list.d/*
+# source.list格式
+echo '
+# 默认注释了源码仓库，如有需要可自行取消注释
+deb http://mirrors.ustc.edu.cn/debian trixie main contrib non-free non-free-firmware
+# deb-src http://mirrors.ustc.edu.cn/debian trixie main contrib non-free non-free-firmware
+deb http://mirrors.ustc.edu.cn/debian trixie-updates main contrib non-free non-free-firmware
+# deb-src http://mirrors.ustc.edu.cn/debian trixie-updates main contrib non-free non-free-firmware
+
+# backports 软件源，请按需启用
+# deb http://mirrors.ustc.edu.cn/debian trixie-backports main contrib non-free non-free-firmware
+# deb-src http://mirrors.ustc.edu.cn/debian trixie-backports main contrib non-free non-free-firmware
+
+deb http://mirrors.ustc.edu.cn/debian-security/ trixie-security main contrib non-free non-free-firmware
+# deb-src http://mirrors.ustc.edu.cn/debian-security/ trixie-security main contrib non-free non-free-firmware
+' | sudo tee /etc/apt/sources.list
+
+# DEB822格式
+echo '
+Types: deb
+URIs: http://mirrors.ustc.edu.cn/debian
+Suites: trixie trixie-updates
+Components: main contrib non-free non-free-firmware
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+
+Types: deb
+URIs: http://mirrors.ustc.edu.cn/debian-security
+Suites: trixie-security
+Components: main contrib non-free non-free-firmware
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+' | sudo tee /etc/apt/sources.list.d/debian.sources
 
 sudo apt update -y
 sudo apt upgrade --without-new-pkgs -y
@@ -272,6 +302,47 @@ sudo apt full-upgrade -y
 sudo reboot
 ```
 
+source.list格式:(/etc/apt/sources.list)
+
+```conf
+# 默认注释了源码仓库，如有需要可自行取消注释
+deb http://mirrors.ustc.edu.cn/debian trixie main contrib non-free non-free-firmware
+# deb-src http://mirrors.ustc.edu.cn/debian trixie main contrib non-free non-free-firmware
+deb http://mirrors.ustc.edu.cn/debian trixie-updates main contrib non-free non-free-firmware
+# deb-src http://mirrors.ustc.edu.cn/debian trixie-updates main contrib non-free non-free-firmware
+
+# backports 软件源，请按需启用
+# deb http://mirrors.ustc.edu.cn/debian trixie-backports main contrib non-free non-free-firmware
+# deb-src http://mirrors.ustc.edu.cn/debian trixie-backports main contrib non-free non-free-firmware
+
+deb http://mirrors.ustc.edu.cn/debian-security/ trixie-security main contrib non-free non-free-firmware
+# deb-src http://mirrors.ustc.edu.cn/debian-security/ trixie-security main contrib non-free non-free-firmware
+```
+
+DEB822格式:(/etc/apt/sources.list.d/debian.sources)
+
+```conf
+Types: deb
+URIs: http://mirrors.ustc.edu.cn/debian
+Suites: trixie trixie-updates
+Components: main contrib non-free non-free-firmware
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+
+Types: deb
+URIs: http://mirrors.ustc.edu.cn/debian-security
+Suites: trixie-security
+Components: main contrib non-free non-free-firmware
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+
+Types: deb
+URIs: http://mirrors.ustc.edu.cn/debian-security
+Suites: trixie-security
+Components: main contrib non-free non-free-firmware
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+```
+
+
+
 3. 重启后
 
 ```bash
@@ -279,9 +350,16 @@ sudo apt modernize-sources
 
 
 cat /etc/debian_version
-sudo apt autoremove --purge
-sudo apt autoclean
+sudo apt autoremove --purge -y
+sudo apt autoclean -y
 ```
+
+重新设置:
+
+1. /etc/ssh/sshd_config
+2. /etc/containers/storage.conf : 不要使用软链接
+3. /etc/sysctl.d/92-container.conf 检查 fs.inotify 配置
+4. 检查 /etc/security/limits.d/80-nofile.conf 配置
 
 ## 常见错误
 
