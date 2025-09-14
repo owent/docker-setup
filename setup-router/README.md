@@ -11,9 +11,23 @@ sudo apt update -y && sudo apt upgrade -y
 sudo apt install -y uuid
 sudo bash -c '
 for NM_IF in /etc/NetworkManager/system-connections/*.nmconnection; do
-  NEW_UUID=$(uuid 2>&1 || uuidgen) && sed -i -E "s;uuid=[0-9A-Fa-f\\-]+;uuid=$NEW_UUID;I" "$NM_IF" && echo "$NM_IF -> uuid=$NEW_UUID";
-done'
+  NEW_UUID=$(uuid -v 4 2>&1 || uuidgen) && sed -i -E "s;uuid=[0-9A-Fa-f\\-]+;uuid=$NEW_UUID;I" "$NM_IF" && echo "$NM_IF -> uuid=$NEW_UUID";
+done
+'
 ```
+
+重置机器ID
+
+```bash
+sudo bash -c '
+echo > /etc/machine-id
+rm -f /var/lib/dbus/machine-id
+ln -sf /etc/machine-id /var/lib/dbus/machine-id
+# 立即生成新的 machine-id（无需重启）
+systemd-machine-id-setup
+'
+```
+
 
 重置Host SSH key(debian/ubuntu)
 
@@ -247,7 +261,6 @@ WantedBy=multi-user.target
 ' > /lib/systemd/system/pmtu-clamping.service
 systemctl enable pmtu-clamping
 systemctl start pmtu-clamping
-```
 
 # 设置NetworkManager关闭ipv6的隐私模式（允许DHCPv6）
 ## ipv6.addr-gen-mode = default/stable-privacy/eui64
@@ -257,8 +270,30 @@ sudo bash -c 'echo "
 ipv6.addr-gen-mode=default-or-eui64
 " >> /etc/NetworkManager/NetworkManager.conf'
 
+#### >>>>>>> 如果无效，可尝试制定link设置
+
 ## 单独iface
-sudo nmcli conn modify "<iface>" ipv6.addr-gen-mode default-or-eui64
+
+sudo nmcli connection modify "<iface>" ipv6.addr-gen-mode default-or-eui64
+
+# sudo nmcli connection modify "<iface>" ipv6.method dhcp
+sudo nmcli connection modify "<iface>" ipv6.addr-gen-mode eui64
+
+## DHCPv6因为DAD未采用地址
+
+#### >>>>>>> sudo journalctl -b -u NetworkManager | grep -Ei 'dad|duplicate|dhcp6|IA_NA'
+#### >>>>>>> 如果日志里出现地址冲突（DAD）ipv6未采用
+#### >>>>>>> Option. 1: 显示制定DUID
+sudo nmcli connection mod "<iface>" ipv6.dhcp-iaid ""
+sudo nmcli connection mod "<iface>" ipv6.dhcp-duid "ll"   # 或 "llt"/"uuid"，根据需要
+#### >>>>>>> Option. 2: 某些发行版中 DUID 存放于 /var/lib/dhcpv6/*、/var/lib/NetworkManager/* 或 /etc/machine-id 相关逻辑生成，镜像克隆后未变更
+echo > /etc/machine-id
+rm -f /var/lib/dbus/machine-id
+ln -sf /etc/machine-id /var/lib/dbus/machine-id
+# 立即生成新的 machine-id（无需重启）
+systemd-machine-id-setup
+
+
 
 # IOMMU, IO直通()
 ## /etc/default/grub 的GRUB_CMDLINE_LINUX_DEFAULT里开 "quiet iommu=pt pcie_acs_override=downstream,multifunction pci=nommconf"
@@ -373,7 +408,7 @@ echo 'r8169' >> /etc/initramfs-tools/modules
 update-initramfs -k all -u
 # reboot
 
-**systemd-resolved will listen 53 and will conflict with our dnsmasq.service/smartdns.service**
+# **systemd-resolved will listen 53 and will conflict with our dnsmasq.service/smartdns.service**
 
 sed -i -r 's/#?DNSStubListener[[:space:]]*=.*/DNSStubListener=no/g'  /etc/systemd/resolved.conf ;
 

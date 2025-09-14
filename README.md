@@ -367,7 +367,18 @@ sudo apt autoclean -y
 3. /etc/sysctl.d/92-container.conf 检查 fs.inotify 配置
 4. 检查 /etc/security/limits.d/80-nofile.conf 配置
 5. 检查 /etc/NetworkManager/NetworkManager.conf 配置(允许DHCPv6)
-   1. `sudo nmcli connection modify ens18 ipv6.addr-gen-mode default-or-eui64`
+   1. `sudo nmcli connection modify ens18 ipv6.addr-gen-mode default-or-eui64` # 或 eui64
+6. 重置机器ID
+
+```bash
+sudo bash -c '
+echo > /etc/machine-id
+rm -f /var/lib/dbus/machine-id
+ln -sf /etc/machine-id /var/lib/dbus/machine-id
+# 立即生成新的 machine-id（无需重启）
+systemd-machine-id-setup
+'
+```
 
 ## 常见错误
 
