@@ -279,6 +279,11 @@ deb http://mirrors.ustc.edu.cn/debian-security/ trixie-security main contrib non
 # deb-src http://mirrors.ustc.edu.cn/debian-security/ trixie-security main contrib non-free non-free-firmware
 ' | sudo tee /etc/apt/sources.list
 
+```
+
+上面如果已经升级到了新格式版本，可以直接用下面的新格式。
+
+```bash
 # DEB822格式
 echo '
 Types: deb
@@ -295,6 +300,7 @@ Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
 ' | sudo tee /etc/apt/sources.list.d/debian.sources
 
 sudo apt update -y
+# 注意 /etc/ssh/sshd_config 使用local配置，其他使用上游版本
 sudo apt upgrade --without-new-pkgs -y
 sudo apt full-upgrade -y
 
