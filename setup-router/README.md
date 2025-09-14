@@ -254,11 +254,11 @@ systemctl start pmtu-clamping
 ## 全局编辑 /etc/NetworkManager/NetworkManager.conf 添加
 sudo bash -c 'echo "
 [connection]
-ipv6.addr-gen-mode=eui64
+ipv6.addr-gen-mode=default-or-eui64
 " >> /etc/NetworkManager/NetworkManager.conf'
 
 ## 单独iface
-sudo nmcli conn modify "<iface>" ipv6.addr-gen-mode eui64
+sudo nmcli conn modify "<iface>" ipv6.addr-gen-mode default-or-eui64
 
 # IOMMU, IO直通()
 ## /etc/default/grub 的GRUB_CMDLINE_LINUX_DEFAULT里开 "quiet iommu=pt pcie_acs_override=downstream,multifunction pci=nommconf"

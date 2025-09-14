@@ -366,6 +366,8 @@ sudo apt autoclean -y
 2. /etc/containers/storage.conf : 不要使用软链接
 3. /etc/sysctl.d/92-container.conf 检查 fs.inotify 配置
 4. 检查 /etc/security/limits.d/80-nofile.conf 配置
+5. 检查 /etc/NetworkManager/NetworkManager.conf 配置(允许DHCPv6)
+   1. `sudo nmcli connection modify ens18 ipv6.addr-gen-mode default-or-eui64`
 
 ## 常见错误
 

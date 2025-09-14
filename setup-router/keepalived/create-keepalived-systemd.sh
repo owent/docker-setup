@@ -86,8 +86,8 @@ fi
 if [[ "$$DOCKER_EXEC" == "podman" ]]; then
     podman stop keepalived
 
-    podman generate systemd --name keepalived | tee $KEEPALIVED_ETC_DIR/container-keepalived.service
+    podman generate systemd --name keepalived | tee /lib/systemd/system/container-keepalived.service
 
-    systemctl enable $KEEPALIVED_ETC_DIR/container-keepalived.service
+    systemctl enable /lib/systemd/system/container-keepalived.service
     systemctl restart container-keepalived
 fi
