@@ -365,12 +365,44 @@ sudo apt autoclean -y
 1. /etc/ssh/sshd_config
 2. /etc/containers/storage.conf : 不要使用软链接
 3. /etc/sysctl.d/92-container.conf 检查 fs.inotify 配置
+
+```bash
+fs.inotify.max_user_instances=16384
+fs.inotify.max_user_watches=1048576
+```
+
 4. 检查 /etc/security/limits.d/80-nofile.conf 配置
+
+```bash
+echo "
+*          hard    nofile     1048576
+*          soft    nofile     4194304
+root          hard    nofile     1048576
+root          soft    nofile     4194304
+" | sudo tee /etc/security/limits.d/80-nofile.conf
+```
+
 5. 检查 /etc/NetworkManager/NetworkManager.conf 配置(允许DHCPv6)
-   1. `sudo nmcli connection modify ens18 ipv6.addr-gen-mode default-or-eui64` # 或 eui64
+
+```bash
+sudo bash -c 'echo "
+[connection]
+ipv6.addr-gen-mode=default-or-eui64
+" >> /etc/NetworkManager/NetworkManager.conf'
+
+# 如果无效尝试设置每个interface
+sudo nmcli connection modify ens18 ipv6.addr-gen-mode default-or-eui64 # 或 eui64
+```
 6. 重置机器ID
 
 ```bash
+
+sudo bash -c '
+for NM_IF in /etc/NetworkManager/system-connections/*.nmconnection; do
+  NEW_UUID=$(uuid -v 4 2>&1 || uuidgen) && sed -i -E "s;uuid=[0-9A-Fa-f\\-]+;uuid=$NEW_UUID;I" "$NM_IF" && echo "$NM_IF -> uuid=$NEW_UUID";
+done
+'
+
 sudo bash -c '
 echo > /etc/machine-id
 rm -f /var/lib/dbus/machine-id
@@ -378,6 +410,7 @@ ln -sf /etc/machine-id /var/lib/dbus/machine-id
 # 立即生成新的 machine-id（无需重启）
 systemd-machine-id-setup
 '
+
 ```
 
 ## 常见错误
