@@ -248,8 +248,9 @@ services:
     depends_on:
       - appflowy_cloud
     environment:
-      - AF_BASE_URL=${APPFLOWY_BASE_URL}
-      - AF_GOTRUE_URL=${API_EXTERNAL_URL}
+      - APPFLOWY_GOTRUE_BASE_URL=${API_EXTERNAL_URL}
+      - APPFLOWY_BASE_URL=${APPFLOWY_BASE_URL}
+      - APPFLOWY_WS_BASE_URL=${APPFLOWY_WS_BASE_URL}
     networks:
       - frontend
       - backend
