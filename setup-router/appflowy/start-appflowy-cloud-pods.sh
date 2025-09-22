@@ -68,29 +68,29 @@ fi
 
 sed -i -E "s;[[:space:]]*APPFLOWY_CLOUD_VERSION=.*;APPFLOWY_CLOUD_VERSION=$APPFLOWY_VERSION;" .env
 
-if [[ ! -e "AppFlowy-Cloud" ]]; then
-  git clone --depth 1000 -b $APPFLOWY_VERSION "$APPFLOWY_GIT_URL" AppFlowy-Cloud
-  if [[ $? -ne 0 ]]; then
-    echo "Error: Unable to clone AppFlowy repository"
-    rm -rf AppFlowy-Cloud
-    exit 1
-  fi
-  cd AppFlowy-Cloud
-  git apply -c core.autocrlf=true ../mirror.patch
-  cp -f ../cargo-config ./
-  cd ..
-elif [[ ! -z "$APPFLOWY_UPDATE" ]] || [[ ! -z "$ROUTER_IMAGE_UPDATE" ]] || [[ ! -e "appflowy.version" ]]; then
-  cd AppFlowy-Cloud
-  git fetch --depth 1000 origin $APPFLOWY_VERSION
-  git reset --hard FETCH_HEAD
-  if [[ $? -ne 0 ]]; then
-    echo "Error: Unable to checkout AppFlowy version $APPFLOWY_VERSION"
-    exit 1
-  fi
-  git apply -c core.autocrlf=true ../mirror.patch
-  cp -f ../cargo-config ./
-  cd ..
-fi
+#if [[ ! -e "AppFlowy-Cloud" ]]; then
+#  git clone --depth 1000 -b $APPFLOWY_VERSION "$APPFLOWY_GIT_URL" AppFlowy-Cloud
+#  if [[ $? -ne 0 ]]; then
+#    echo "Error: Unable to clone AppFlowy repository"
+#    rm -rf AppFlowy-Cloud
+#    exit 1
+#  fi
+#  cd AppFlowy-Cloud
+#  git apply -c core.autocrlf=true ../mirror.patch
+#  cp -f ../cargo-config ./
+#  cd ..
+#elif [[ ! -z "$APPFLOWY_UPDATE" ]] || [[ ! -z "$ROUTER_IMAGE_UPDATE" ]] || [[ ! -e "appflowy.version" ]]; then
+#  cd AppFlowy-Cloud
+#  git fetch --depth 1000 origin $APPFLOWY_VERSION
+#  git reset --hard FETCH_HEAD
+#  if [[ $? -ne 0 ]]; then
+#    echo "Error: Unable to checkout AppFlowy version $APPFLOWY_VERSION"
+#    exit 1
+#  fi
+#  git apply -c core.autocrlf=true ../mirror.patch
+#  cp -f ../cargo-config ./
+#  cd ..
+#fi
 
 if [[ ! -z "$APPFLOWY_UPDATE" ]] || [[ ! -z "$ROUTER_IMAGE_UPDATE" ]]; then
   podman-compose -f $COMPOSE_CONFIGURE pull

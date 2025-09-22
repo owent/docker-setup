@@ -373,6 +373,13 @@
         "tag": "geosite-category-ads-all",
         "format": "binary",
         "path": "/usr/share/vbox/geosite/geosite-category-ads-all.srs"
+      },
+      {
+        // 非大陆白名单模式请代理这个
+        "type": "local",
+        "tag": "geosite-connectivity-check",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-connectivity-check.srs"
       }
     ],
     // 默认出站标签。如果为空，将使用第一个可用于对应协议的出站。
