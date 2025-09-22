@@ -20,7 +20,7 @@ mkdir -p "$KEA_DATA_DIR"
 if [[ ! -e "$KEA_ETC_DIR/kea-dhcp4.conf" ]]; then
   cp -f "$SCRIPT_DIR/sample.kea.conf" "$KEA_ETC_DIR/kea-dhcp4.conf"
 fi
-if [[ ! -e "$KEA_ETC_DIR/kea-ctrl-agent.conf" ]]; then
+if [[ ! -e "$KEA_ETC_DIR/kea-ctrl-agent.conf" ]] && [[ -e "$SCRIPT_DIR/kea-ctrl-agent.conf" ]]; then
   cp -f "$SCRIPT_DIR/kea-ctrl-agent.conf" "$KEA_ETC_DIR/kea-ctrl-agent.conf"
 fi
 

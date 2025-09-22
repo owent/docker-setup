@@ -120,8 +120,7 @@ podman run -d --name syncthing-client --security-opt label=disable \
   docker.io/syncthing/syncthing:latest \
   ${SYNCTHING_SSL_OPTIONS[@]} \
   --home=/syncthing/home/ \
-  --no-default-folder \
-  --skip-port-probing \
+  --no-port-probing \
   "--gui-address=$SYNCTHING_CLIENT_GUI_ADDRESS" \
   "--gui-apikey=$SYNCTHING_CLIENT_GUI_APIKEY" \
   --no-browser \
