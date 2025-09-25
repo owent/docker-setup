@@ -17,4 +17,4 @@ services:
       - "7700:7700"
     environment:
       - MEILI_MASTER_KEY=master key
-    command: ["meilisearch", "--schedule-snapshot=86400"]
+    command: ["meilisearch", "--schedule-snapshot=86400", "--experimental-dumpless-upgrade"]
