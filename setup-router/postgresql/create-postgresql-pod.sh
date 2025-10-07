@@ -76,7 +76,7 @@ fi
 
 if [[ -z "$POSTGRESQL_IMAGE" ]]; then
   POSTGRESQL_IMAGE="docker.io/postgres:latest"
-  # POSTGRESQL_IMAGE="docker.io/pgvector/pgvector:pg17"
+  # POSTGRESQL_IMAGE="docker.io/pgvector/pgvector:pg18"
 fi
 
 if [[ -z "$POSTGRESQL_DATA_DIR" ]]; then
@@ -124,8 +124,7 @@ POSTGRES_OPTIONS=(
   -e POSTGRES_PASSWORD=$ADMIN_TOKEN -e POSTGRES_USER=$POSTGRESQL_ADMIN_USER
   -e PGDATA=/var/lib/postgresql/data/pgdata
   --shm-size ${POSTGRESQL_SHM_SIZE}m
-  -v $POSTGRESQL_DATA_DIR:/var/lib/postgresql/data/:Z
-  -v $POSTGRESQL_LOG_DIR:/var/lib/postgresql/data/pgdata/log:Z
+  --mount type=bind,source=$POSTGRESQL_DATA_DIR,target=/var/lib/postgresql/data
 )
 
 if [[ ! -z "$POSTGRESQL_NETWORK" ]]; then

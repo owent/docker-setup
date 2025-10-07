@@ -1,5 +1,14 @@
 # README for router
 
+## sudo and locale
+
+```bash
+sudo bash -c 'echo "owent ALL=(ALL:ALL) NOPASSWD:ALL" > /etc/sudoers.d/owent'
+sudo sed -i 's/^# *en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
+sudo locale-gen
+sudo update-locale LANG=en_US.UTF-8
+```
+
 ## 虚拟机
 
 ### Clone后操作

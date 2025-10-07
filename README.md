@@ -263,7 +263,7 @@ sudo apt full-upgrade -y
 sudo apt autoremove -y
 sudo apt clean -y
 
-# source.list格式
+# source.list格式 - ustc
 echo '
 # 默认注释了源码仓库，如有需要可自行取消注释
 deb http://mirrors.ustc.edu.cn/debian trixie main contrib non-free non-free-firmware
@@ -277,6 +277,22 @@ deb http://mirrors.ustc.edu.cn/debian trixie-updates main contrib non-free non-f
 
 deb http://mirrors.ustc.edu.cn/debian-security/ trixie-security main contrib non-free non-free-firmware
 # deb-src http://mirrors.ustc.edu.cn/debian-security/ trixie-security main contrib non-free non-free-firmware
+' | sudo tee /etc/apt/sources.list
+
+# source.list格式 - mirrors.tencentyun.com
+echo '
+# 默认注释了源码仓库，如有需要可自行取消注释
+deb http://mirrors.tencentyun.com/debian trixie main contrib non-free non-free-firmware
+# deb-src http://mirrors.tencentyun.com/debian trixie main contrib non-free non-free-firmware
+deb http://mirrors.tencentyun.com/debian trixie-updates main contrib non-free non-free-firmware
+# deb-src http://mirrors.tencentyun.com/debian trixie-updates main contrib non-free non-free-firmware
+
+# backports 软件源，请按需启用
+# deb http://mirrors.tencentyun.com/debian trixie-backports main contrib non-free non-free-firmware
+# deb-src http://mirrors.tencentyun.com/debian trixie-backports main contrib non-free non-free-firmware
+
+deb http://mirrors.tencentyun.com/debian-security/ trixie-security main contrib non-free non-free-firmware
+# deb-src http://mirrors.tencentyun.com/debian-security/ trixie-security main contrib non-free non-free-firmware
 ' | sudo tee /etc/apt/sources.list
 
 ```
@@ -367,8 +383,10 @@ sudo apt autoclean -y
 3. /etc/sysctl.d/92-container.conf 检查 fs.inotify 配置
 
 ```bash
+sudo bash -c 'echo "
 fs.inotify.max_user_instances=16384
 fs.inotify.max_user_watches=1048576
+" >> /etc/sysctl.d/92-container.conf'
 ```
 
 4. 检查 /etc/security/limits.d/80-nofile.conf 配置
@@ -610,3 +628,82 @@ sudo systemctl start user@$(id -u).service
 ```
 
 可能需要在 `[Service]` 下加 `Environment="XDG_RUNTIME_DIR=/run/user/%i" "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%i/bus"` ·
+
+## 腾讯云
+
+### 腾讯云轻量级 - ipv6
+
+script: `sudo bash /etc/tencentcloud_ipv6_base.sh`  （可能需要移除NetworkManager connection名的 "System "前缀）
+gateway: fe80::feee:ffff:feff:ffff
+
+```bash
+sudo systemctl restart networking.service
+
+IPV6_GUA=240d:c000:f000:9200:8864:4706:b47c:1
+IPV6_ULA=fd76:3600:900:d601:6:408c:edbd:e9d1
+
+sudo systemctl restart NetworkManager.service
+sleep 3
+sudo bash /etc/tencentcloud_ipv6_base.sh PASSTHROUGH $IPV6_GUA $IPV6_ULA CAP
+sleep 3
+sudo bash /etc/tencentcloud_ipv6_base.sh NAT $IPV6_GUA $IPV6_ULA CAP
+```
+
+查询轻量级服务器的 **自动化助手** 的 **执行命令** 选项卡，可以查到GUA和ULA地址。
+可能需要修改NetworkManager的配置，ipv6增加 `$IPV6_GUA/128` 地址。
+
+腾讯云的ipv6设置似乎有问题，可以尝试外部访问进来走GUA，出口走ULA。
+
+```bash
+NETWORKMANAGER_DISPATCHER_DIR="/etc/NetworkManager/dispatcher.d"
+
+function networkmanager_create_dispatcher_script_dir() {
+  if [[ ! -e "$NETWORKMANAGER_DISPATCHER_DIR/$1" ]]; then
+    echo '#!/bin/bash
+echo "[$(date "+%F %T")]: $0 $@
+  CONNECTION_ID=$CONNECTION_ID
+  CONNECTION_UUID=$CONNECTION_UUID
+  NM_DISPATCHER_ACTION=$NM_DISPATCHER_ACTION
+  CONNECTIVITY_STATE=$CONNECTIVITY_STATE
+  DEVICE_IFACE=$DEVICE_IFACE
+  DEVICE_IP_IFACE=$DEVICE_IP_IFACE
+  IP4_GATEWAY=$IP4_GATEWAY
+  IP6_GATEWAY=$IP6_GATEWAY
+============
+$(ip -4 -o addr)
+-----------
+$(ip -6 -o addr)" | systemd-cat -t nm-connectivity-change -p info ;
+' >"$NETWORKMANAGER_DISPATCHER_DIR/$1"
+    chmod +x "$NETWORKMANAGER_DISPATCHER_DIR/$1"
+  fi
+
+  grep -F "$NETWORKMANAGER_DISPATCHER_DIR/$1.d/" "$NETWORKMANAGER_DISPATCHER_DIR/$1" || echo "
+for SCRIPT_FILE in \$(find $NETWORKMANAGER_DISPATCHER_DIR/$1.d -name '*.sh') ; do
+  if [ -e \"\$SCRIPT_FILE\" ]; then
+    bash \$SCRIPT_FILE "$@"
+  fi
+done
+" >>"$NETWORKMANAGER_DISPATCHER_DIR/$1"
+  mkdir -p "$NETWORKMANAGER_DISPATCHER_DIR/$1.d/"
+}
+
+networkmanager_create_dispatcher_script_dir connectivity-change
+
+echo '#!/bin/bash'"
+
+if [[ \"\$DEVICE_IFACE\" == \"eth0\" ]]; then
+  SRC_ADDR=\$(/usr/bin/ip -o -6 addr show dev eth0 dynamic | /usr/bin/head -n 1 | /usr/bin/awk 'match(\$0, /inet6\s+([0-9a-fA-F:]+)/, ip) { print ip[1] }')
+  if [[ ! -z \"\$SRC_ADDR\" ]]; then
+    /usr/bin/ip -6 route replace default dev eth0 src \$(/usr/bin/ip -o -6 addr show dev eth0 dynamic | /usr/bin/head -n 1 | /usr/bin/awk 'match(\$0, /inet6\s+([0-9a-fA-F:]+)/, ip) { print ip[1] }') via fe80::feee:ffff:feff:ffff
+  fi
+fi
+
+" | tee "$NETWORKMANAGER_DISPATCHER_DIR/connectivity-change.d/80-update-ipv6-route-tencentyun.sh"
+
+chmod +x "$NETWORKMANAGER_DISPATCHER_DIR/connectivity-change.d/80-update-ipv6-route-tencentyun.sh"
+```
+
+配置文档:
+
+- <https://cloud.tencent.com.cn/document/product/1207/104187>
+- <https://telex.app/2025/02/21/899.html>

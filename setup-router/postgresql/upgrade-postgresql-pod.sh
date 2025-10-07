@@ -1,7 +1,10 @@
 #!/bin/bash
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
+
+if [[ -e "$(dirname "$SCRIPT_DIR")/configure-router.sh" ]]; then
+  source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
+fi
 
 export XDG_RUNTIME_DIR="/run/user/$UID"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
@@ -17,10 +20,10 @@ fi
 
 #POSTGRESQL_NETWORK=(internal-backend)
 if [[ "x$POSTGRESQL_UPGRADE_FROM" == "x" ]]; then
-  POSTGRESQL_UPGRADE_FROM="16"
+  POSTGRESQL_UPGRADE_FROM="pg17"
 fi
 if [[ "x$POSTGRESQL_UPGRADE_TO" == "x" ]]; then
-  POSTGRESQL_UPGRADE_TO="latest"
+  POSTGRESQL_UPGRADE_TO="pg18"
 fi
 
 if [[ "x$POSTGRESQL_ETC_DIR" == "x" ]]; then
@@ -48,8 +51,17 @@ if [[ "x$POSTGRESQL_MAINTENANCE_WORK_MEM" == "x" ]]; then
   POSTGRESQL_MAINTENANCE_WORK_MEM=64
 fi
 
-if [[ "x$POSTGRESQL_WAL_LEVEL" == "x" ]]; then
-  POSTGRESQL_WAL_LEVEL=minimal
+if [[ -z "$POSTGRESQL_WAL_LEVEL" ]]; then
+  #POSTGRESQL_WAL_LEVEL=minimal
+  POSTGRESQL_WAL_LEVEL=replica
+fi
+
+if [[ -z "$POSTGRESQL_MAX_WAL_SENDERS" ]]; then
+  if [[ $POSTGRESQL_WAL_LEVEL == "logical" ]] || [[ $POSTGRESQL_WAL_LEVEL == "replica" ]]; then
+    POSTGRESQL_MAX_WAL_SENDERS=8
+  else
+    POSTGRESQL_MAX_WAL_SENDERS=0
+  fi
 fi
 
 if [[ "x$POSTGRESQL_FSYNC" == "x" ]]; then
@@ -75,7 +87,7 @@ fi
 mkdir -p "$POSTGRESQL_DATA_DIR"
 
 if [[ "x$POSTGRESQL_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman pull docker.io/postgres:latest
+  podman pull docker.io/pgvector/pgvector:latest
 fi
 
 podman container exists postgresql-upgrade-from
@@ -107,7 +119,10 @@ fi
 
 for OLD_UPGRADE_DIR in "$POSTGRESQL_DATA_DIR/pgdata.upgrade.old" "$POSTGRESQL_DATA_DIR/pgdata.upgrade.new" \
   "$POSTGRESQL_DATA_DIR/wal.upgrade.old" "$POSTGRESQL_DATA_DIR/wal.upgrade.new" \
-  "$POSTGRESQL_DATA_DIR/postgresql.bin.old" "$POSTGRESQL_DATA_DIR/postgresql.share.old"; do
+  "$POSTGRESQL_DATA_DIR/postgresql.bin.old" "$POSTGRESQL_DATA_DIR/postgresql.share.old" \
+  "$POSTGRESQL_DATA_DIR/data/pgdata.upgrade.old" "$POSTGRESQL_DATA_DIR/data/pgdata.upgrade.new" \
+  "$POSTGRESQL_DATA_DIR/data/wal.upgrade.old" "$POSTGRESQL_DATA_DIR/data/wal.upgrade.new" \
+  "$POSTGRESQL_DATA_DIR/data/postgresql.bin.old" "$POSTGRESQL_DATA_DIR/data/postgresql.share.old"; do
   if [[ -e "$OLD_UPGRADE_DIR" ]]; then
     rm -rf "$OLD_UPGRADE_DIR"
   fi
@@ -117,14 +132,14 @@ POSTGRES_OPTIONS_OLD=(
   -e POSTGRES_PASSWORD=$ADMIN_TOKEN -e POSTGRES_USER=$POSTGRESQL_ADMIN_USER
   -e PGDATA=/var/lib/postgresql/data/pgdata.upgrade.old
   --shm-size ${POSTGRESQL_SHM_SIZE}m
-  -v $POSTGRESQL_DATA_DIR:/var/lib/postgresql/data/:Z
+  --mount type=bind,source=$POSTGRESQL_DATA_DIR,target=/var/lib/postgresql/data
 )
 
 POSTGRES_OPTIONS_NEW=(
   -e POSTGRES_PASSWORD=$ADMIN_TOKEN -e POSTGRES_USER=$POSTGRESQL_ADMIN_USER
   -e PGDATA=/var/lib/postgresql/data/pgdata.upgrade.new
   --shm-size ${POSTGRESQL_SHM_SIZE}m
-  -v $POSTGRESQL_DATA_DIR:/var/lib/postgresql/data/:Z
+  --mount type=bind,source=$POSTGRESQL_DATA_DIR,target=/var/lib/postgresql/data
 )
 
 if [[ ! -z "$POSTGRESQL_NETWORK" ]]; then
@@ -136,7 +151,7 @@ fi
 
 podman run -d --name postgresql-upgrade-from --security-opt label=disable \
   "${POSTGRES_OPTIONS_OLD[@]}" \
-  docker.io/postgres:$POSTGRESQL_UPGRADE_FROM \
+  docker.io/pgvector/pgvector:$POSTGRESQL_UPGRADE_FROM \
   -c shared_buffers=${POSTGRESQL_SHM_SIZE}MB \
   -c effective_cache_size=${POSTGRESQL_EFFECTIVE_CACHE_SIZE}MB \
   -c work_mem=${POSTGRESQL_WORK_MEM}MB \
@@ -150,11 +165,11 @@ podman run -d --name postgresql-upgrade-from --security-opt label=disable \
   -c log_min_duration_statement=1000 \
   -c track_activities=on \
   -c track_counts=on \
-  -c default_statistics_target = 100
+  -c default_statistics_target=100
 
 podman run -d --name postgresql-upgrade-to --security-opt label=disable \
   "${POSTGRES_OPTIONS_NEW[@]}" \
-  docker.io/postgres:latest \
+  docker.io/pgvector/pgvector:$POSTGRESQL_UPGRADE_TO \
   -c shared_buffers=${POSTGRESQL_SHM_SIZE}MB \
   -c effective_cache_size=${POSTGRESQL_EFFECTIVE_CACHE_SIZE}MB \
   -c work_mem=${POSTGRESQL_WORK_MEM}MB \
@@ -168,7 +183,7 @@ podman run -d --name postgresql-upgrade-to --security-opt label=disable \
   -c log_min_duration_statement=1000 \
   -c track_activities=on \
   -c track_counts=on \
-  -c default_statistics_target = 100
+  -c default_statistics_target=100
 
 podman exec postgresql-upgrade-from ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 podman exec postgresql-upgrade-to ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
@@ -183,7 +198,9 @@ UPGRADE_SCRIPT='cd /tmp/upgrade_run; env PGDATAOLD=/var/lib/postgresql/data/pgda
 UPGRADE_SCRIPT="$UPGRADE_SCRIPT su postgres -c \"pg_upgrade -U $POSTGRESQL_ADMIN_USER\""
 podman exec postgresql-upgrade-to bash -c "$UPGRADE_SCRIPT"
 
-echo "Please mv date from /tmp/upgrade_data/* into /var/lib/postgresql/data/pgdata/ with user postgres"
+echo "Please mv data from /tmp/upgrade_data/* into /var/lib/postgresql/data/pgdata/ with user postgres"
+podman exec -it postgresql-upgrade-to bash -c "if [[ -e /var/lib/postgresql/data/pgdata ]]; then mv -f /var/lib/postgresql/data/pgdata /var/lib/postgresql/data/pgdata.bak.$(date +%Y%m%d%H) ; fi"
+podman exec -it postgresql-upgrade-to bash -c "mkdir -p /var/lib/postgresql/data/pgdata; chown postgres:root /var/lib/postgresql/data/pgdata"
 podman exec -it postgresql-upgrade-to bash -c "su postgres -c 'cp -rf /tmp/upgrade_data/* /var/lib/postgresql/data/pgdata/'"
 
 podman stop postgresql-upgrade-from
