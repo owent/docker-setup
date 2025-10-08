@@ -6,6 +6,8 @@ source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 export XDG_RUNTIME_DIR="/run/user/$UID"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
 
+# BITWARDEN_NETWORK=()
+
 if [[ -z "$RUN_HOME" ]]; then
   RUN_HOME="$HOME"
 fi
@@ -71,15 +73,24 @@ ADMIN_TOKEN=$(openssl rand -base64 48)
 # -e ROCKET_WORKERS=8
 # -e LOG_LEVEL=debug
 
+BITWARDEN_OPTIONS=(
+  -e SIGNUPS_ALLOWED=false -e WEBSOCKET_ENABLED=true
+  -e ROCKET_PORT=$BITWARDEN_PORT
+  -e INVITATIONS_ALLOWED=false -e LOG_FILE=/logs/bitwarden.log
+  -e ADMIN_TOKEN=$ADMIN_TOKEN
+  --mount type=bind,source=$BITWARDEN_LOG_DIR/,target=/logs/
+  -v $BITWARDEN_DATA_DIR/:/data/:Z
+)
+if [[ ! -z "$BITWARDEN_NETWORK" ]]; then
+  for network in ${BITWARDEN_NETWORK[@]}; do
+    BITWARDEN_OPTIONS+=("--network=$network")
+  done
+else
+  BITWARDEN_OPTIONS+=(-p 127.0.0.1:$BITWARDEN_PORT:$BITWARDEN_PORT/tcp -p 127.0.0.1:$BITWARDEN_PORT:$BITWARDEN_PORT/udp)
+fi
+
 podman run -d --name bitwarden --security-opt label=disable \
-  -e SIGNUPS_ALLOWED=false -e WEBSOCKET_ENABLED=true \
-  -e ROCKET_PORT=$BITWARDEN_PORT \
-  -e INVITATIONS_ALLOWED=false -e LOG_FILE=/logs/bitwarden.log \
-  -e ADMIN_TOKEN=$ADMIN_TOKEN \
-  --mount type=bind,source=$BITWARDEN_LOG_DIR/,target=/logs/ \
-  -v $BITWARDEN_DATA_DIR/:/data/:Z \
-  -p 127.0.0.1:$BITWARDEN_PORT:$BITWARDEN_PORT/tcp \
-  -p 127.0.0.1:$BITWARDEN_PORT:$BITWARDEN_PORT/udp \
+  ${BITWARDEN_OPTIONS[@]} \
   docker.io/vaultwarden/server:latest
 
 podman exec bitwarden ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
