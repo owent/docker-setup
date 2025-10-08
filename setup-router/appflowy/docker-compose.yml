@@ -96,7 +96,7 @@ services:
       - GOTRUE_MAILER_URLPATHS_RECOVERY=/gotrue/verify
       - GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE=/gotrue/verify
       - GOTRUE_SMTP_ADMIN_EMAIL=${GOTRUE_SMTP_ADMIN_EMAIL} # email with admin privileges e.g. internal@appflowy.io
-      - GOTRUE_SMTP_MAX_FREQUENCY=${GOTRUE_SMTP_MAX_FREQUENCY:-1ms} # set to 1ms for running tests
+      - GOTRUE_SMTP_MAX_FREQUENCY=${GOTRUE_SMTP_MAX_FREQUENCY:-1ms} # set to 1s for running tests
       - GOTRUE_RATE_LIMIT_EMAIL_SENT=${GOTRUE_RATE_LIMIT_EMAIL_SENT:-100} # number of email sendable per minute
       - GOTRUE_MAILER_AUTOCONFIRM=${GOTRUE_MAILER_AUTOCONFIRM:-false} # change this to true to skip email confirmation
       # Google OAuth config
@@ -163,8 +163,6 @@ services:
     depends_on:
       appflowy_gotrue:
         condition: service_healthy
-      appflowy_minio:
-        condition: service_healthy
     networks:
       - frontend
       - backend
@@ -182,6 +180,8 @@ services:
       - ADMIN_FRONTEND_REDIS_URL=${ADMIN_FRONTEND_REDIS_URL:-redis://redis:6379}
       - ADMIN_FRONTEND_GOTRUE_URL=${ADMIN_FRONTEND_GOTRUE_URL:-http://appflowy-gotrue:9999}
       - ADMIN_FRONTEND_APPFLOWY_CLOUD_URL=${ADMIN_FRONTEND_APPFLOWY_CLOUD_URL:-http://appflowy-cloud:8000}
+      - APPFLOWY_BASE_URL=${APPFLOWY_BASE_URL:-http://appflowy-cloud:8000}
+      - APPFLOWY_GOTRUE_BASE_URL=${ADMIN_FRONTEND_GOTRUE_BASE_URL:-http://appflowy-gotrue:9999}
       - ADMIN_FRONTEND_PATH_PREFIX=${ADMIN_FRONTEND_PATH_PREFIX:-/console}
     depends_on:
       appflowy_cloud:
@@ -196,9 +196,17 @@ services:
     image: appflowyinc/appflowy_ai:${APPFLOWY_AI_VERSION:-latest}
     environment:
       - OPENAI_API_KEY=${AI_OPENAI_API_KEY:-${AI_OPENAI_API_KEY_FALLBACK}}
-      - APPFLOWY_AI_SERVER_PORT=${AI_SERVER_PORT}
-      - APPFLOWY_AI_DATABASE_URL=${AI_DATABASE_URL}
-      - APPFLOWY_AI_REDIS_URL=${AI_REDIS_URL}
+      - AI_SERVER_PORT=${AI_SERVER_PORT}
+      - APPFLOWY_S3_ACCESS_KEY=${APPFLOWY_S3_ACCESS_KEY}
+      - APPFLOWY_S3_SECRET_KEY=${APPFLOWY_S3_SECRET_KEY}
+      - APPFLOWY_S3_BUCKET=${APPFLOWY_S3_BUCKET}
+      - APPFLOWY_S3_REGION=${APPFLOWY_S3_REGION}
+      - AI_DATABASE_URL=${AI_DATABASE_URL}
+      - AI_REDIS_URL=${AI_REDIS_URL}
+      - AI_USE_MINIO=${APPFLOWY_S3_USE_MINIO}
+      - AI_MINIO_URL=${APPFLOWY_S3_MINIO_URL}
+      - AI_APPFLOWY_HOST=${APPFLOWY_BASE_URL}
+      - APPFLOWY_GOTRUE_JWT_SECRET=${GOTRUE_JWT_SECRET}
     # depends_on:
     #   postgres:
     #     condition: service_healthy
