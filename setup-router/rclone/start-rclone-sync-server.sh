@@ -1,7 +1,11 @@
 #!/bin/bash
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
+if [[ -e "$(dirname "$SCRIPT_DIR")/configure-router.sh" ]]; then
+  source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
+fi
+
+RCLONE_SYNC_TARGET_REMOTE=("remote-onedrive:/Apps/OWenT.Cloud.rclone")
 
 export XDG_RUNTIME_DIR="/run/user/$UID"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
@@ -58,12 +62,20 @@ fi
 #     --device /dev/fuse --cap-add SYS_ADMIN                              \
 #     docker.io/rclone/rclone config
 
-podman run --rm --security-opt seccomp=unconfined \
-  --mount type=bind,source=$RCLONE_ETC_DIR,target=/config/rclone \
-  --mount type=bind,source=$RCLONE_DATA_DIR,target=/data \
-  --mount type=bind,source=$RUN_HOME/bitwarden/data,target=/data/bitwarden/data \
-  --network=host \
-  $RCLONE_IMAGE \
-  --log-file /data/rclone-sync-onedrive.log --ignore-size --onedrive-chunk-size 2560k \
-  sync --progress /data remote-onedrive:/Apps/OWenT.Home.rclone
-# --copy-links
+RCLONE_OPTIONS=(
+  --mount type=bind,source=$RCLONE_ETC_DIR,target=/config/rclone
+  --mount type=bind,source=$RCLONE_DATA_DIR,target=/data
+  --mount type=bind,source=$SCRIPT_DIR,target=/var/log/rclone
+  --mount type=bind,source=$RUN_HOME/bitwarden/data,target=/data/appdata/bitwarden
+  --mount type=bind,source=/data/lhcos/affine,target=/data/appdata/affine
+)
+
+for SYNC_REMOTE_TARGET in "${RCLONE_SYNC_TARGET_REMOTES[@]}"; do
+  echo -e "\033[1;32mSync to remote: \033[0;m \033[1;33m$SYNC_REMOTE_TARGET\033[0;m"
+  podman run --rm --security-opt seccomp=unconfined \
+    "${RCLONE_OPTIONS[@]}" --network=host \
+    $RCLONE_IMAGE \
+    --log-file /var/log/rclone/rclone-sync-onedrive.log --ignore-size --onedrive-chunk-size 2560k \
+    sync --progress /data $SYNC_REMOTE_TARGET
+  # --copy-links
+done

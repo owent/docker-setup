@@ -1,6 +1,7 @@
 {
   "log": {
     "disabled": false,
+    // trace debug info warn error fatal panic
     "level": "info",
     // "output": "/var/log/vbox/box.log",
     "timestamp": true
@@ -15,7 +16,7 @@
         "server": "8.8.8.8",
         "server_port": 853,
         "tls": {},
-        "detour": "out-proxy"
+        "detour": "direct"
       },
       // {
       //   "tag": "dns-proxy",
@@ -23,7 +24,7 @@
       //   "server": "1.1.1.1",
       //   "server_port": 853,
       //   "tls": {},
-      //   "detour": "out-proxy"
+      //   "detour": "direct"
       // },
       {
         "tag": "dns-local",
@@ -41,7 +42,14 @@
       //   "path": "/dns-query",
       //   "tls": {},
       //   "detour": "direct"
-      // }
+      // },
+      // {
+      //   "tag": "dns-local",
+      //   "type": "udp",
+      //   "server": "223.5.5.5",
+      //   "server_port": 53,
+      //   "detour": "direct"
+      // },
     ],
     // 默认使用第一个服务器
     // "final": "",
@@ -236,11 +244,11 @@
     // 默认出站标签。如果为空，将使用第一个可用于对应协议的出站。
     "final": "direct",
     "default_domain_resolver": {
-      "server": "dns-local",
+      "server": "dns-local"
       // "rewrite_ttl": 60,
       // "client_subnet": "114.114.114.114/24" // Any China client IP address
       // "client_subnet": "202.96.209.133/24" // Shanghai ChinaNet IP address
-      "client_subnet": "210.22.70.3/24" // Shanghai ChinaUnion IP address
+      // "client_subnet": "210.22.70.3/24" // Shanghai ChinaUnion IP address
     }
   },
   "experimental": {

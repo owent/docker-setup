@@ -1,6 +1,7 @@
 {
   "log": {
     "disabled": false,
+    // trace debug info warn error fatal panic
     "level": "error",
     // "output": "/var/log/vbox/box.log",
     "timestamp": true
@@ -41,11 +42,17 @@
       //   "path": "/dns-query",
       //   "tls": {},
       //   "detour": "direct"
-      // }
-      // ,
+      // },
       // {
       //   "tag": "dns-local",
-      //   "type": "local",,
+      //   "type": "udp",
+      //   "server": "223.5.5.5",
+      //   "server_port": 53,
+      //   "detour": "direct"
+      // },
+      // {
+      //   "tag": "dns-local",
+      //   "type": "local",
       //   "detour": "direct"
       // }
     ],
@@ -227,7 +234,7 @@
         "insecure": false,
         "alpn": ["h2"],
         "min_version": "1.2"
-      },
+      } // ,
       // "multiplex": {
       //   "enabled": true
       // },

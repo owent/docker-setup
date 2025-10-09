@@ -1,6 +1,7 @@
 {
   "log": {
     "disabled": false,
+    // trace debug info warn error fatal panic
     "level": "info",
     // "output": "/var/log/vbox/box.log",
     "timestamp": true
@@ -41,7 +42,14 @@
       //   "path": "/dns-query",
       //   "tls": {},
       //   "detour": "direct"
-      // }
+      // },
+      // {
+      //   "tag": "dns-local",
+      //   "type": "udp",
+      //   "server": "223.5.5.5",
+      //   "server_port": 53,
+      //   "detour": "direct"
+      // },
     ],
     // 默认使用第一个服务器
     // "final": "",
@@ -276,11 +284,11 @@
     "default_mark": 511,
     "default_domain_resolver": {
       // 大陆白名单模式使用dns-proxy，否则默认用dns-local
-      "server": "dns-proxy",
+      "server": "dns-proxy"
       // "rewrite_ttl": 60,
       // "client_subnet": "114.114.114.114/24" // Any China client IP address
       // "client_subnet": "202.96.209.133/24" // Shanghai ChinaNet IP address
-      "client_subnet": "210.22.70.3/24" // Shanghai ChinaUnion IP address
+      // "client_subnet": "210.22.70.3/24" // Shanghai ChinaUnion IP address
     }
   },
   "experimental": {
