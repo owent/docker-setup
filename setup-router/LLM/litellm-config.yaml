@@ -1,20 +1,47 @@
 # Model List: https://github.com/BerriAI/litellm/blob/main/proxy_server_config.yaml
 model_list:
-  - model_name: gpt-3.5-turbo
+  - model_name: claude-sonnet-4.5
     litellm_params:
-      model: azure/gpt-3.5-turbo
-      api_base: https://owent-us.openai.azure.com/
-      api_key: <your-azure-api-key>
-  - model_name: gpt-3.5-turbo-16k
+      model: openrouter/anthropic/claude-sonnet-4.5
+      api_base: https://openrouter.ai/api/v1
+      api_key: <your-openrouter-api-key>
+  - model_name: claude-sonnet-4
     litellm_params:
-      model: azure/gpt-3.5-turbo-16k
-      api_base: https://owent-us.openai.azure.com/
-      api_key: <your-azure-api-key>
+      model: openrouter/anthropic/claude-sonnet-4
+      api_base: https://openrouter.ai/api/v1
+      api_key: <your-openrouter-api-key>
+  - model_name: claude-opus-4.1
+    litellm_params:
+      model: openrouter/anthropic/claude-opus-4.1
+      api_base: https://openrouter.ai/api/v1
+      api_key: <your-openrouter-api-key>
+  - model_name: claude-opus-4
+    litellm_params:
+      model: openrouter/anthropic/claude-opus-4
+      api_base: https://openrouter.ai/api/v1
+      api_key: <your-openrouter-api-key>
   - model_name: gpt-4o
     litellm_params:
       model: azure/gpt-4o
       api_base: https://owent-us.openai.azure.com/
       api_key: <your-azure-api-key>
+  - model_name: dall-e-3
+    litellm_params:
+      model: dall-e-3
+      api_base: https://aihubmix.com/v1
+      api_key: <your-aihubmix-api-key>
+    model_info:
+      mode: image_generation
+  - model_name: text-embedding-3-large
+    litellm_params:
+      model: text-embedding-3-large
+      api_base: https://aihubmix.com/v1
+      api_key: <your-aihubmix-api-key>
+  - model_name: text-embedding-3-small
+    litellm_params:
+      model: text-embedding-3-small
+      api_base: https://aihubmix.com/v1
+      api_key: <your-aihubmix-api-key>
   - model_name: dall-e-3
     litellm_params:
       model: azure/dall-e3
@@ -23,11 +50,6 @@ model_list:
       api_version: "2024-02-01"
     model_info:
       mode: image_generation
-  - model_name: claude-3-5-sonnet
-    litellm_params:
-      model: openrouter/anthropic/claude-3.5-sonnet
-      api_base: https://openrouter.ai/api/v1
-      api_key: <your-api-key>
   - model_name: o1-mini
     litellm_params:
       model: o1-mini
@@ -65,30 +87,66 @@ model_list:
       model: openai/hunyuan-turbo
       api_base: https://api.hunyuan.cloud.tencent.com/v1
       api_key: <your-azure-api-key>
+    model_info:
       max_tokens: 28000
   - model_name: hunyuan-standard-256K
     litellm_params:
       model: openai/hunyuan-standard-256K
       api_base: https://api.hunyuan.cloud.tencent.com/v1
       api_key: <your-azure-api-key>
+    model_info:
       max_tokens: 256000
   - model_name: hunyuan-code
     litellm_params:
       model: openai/hunyuan-code
       api_base: https://api.hunyuan.cloud.tencent.com/v1
       api_key: <your-azure-api-key>
+    model_info:
       max_tokens: 4000
+  - model_name: deepseek-v3.1
+    litellm_params:
+      model: deepseek/deepseek-v3.1
+      api_base: https://api.lkeap.cloud.tencent.com/v1
+      api_key: <your-api-key>
+    model_info:
+      base_model: deepseek/deepseek-v3
+      max_input_tokens: 96000
+      max_output_tokens: 32000
+      max_tokens: 128000
+  - model_name: deepseek-coder
+    litellm_params:
+      model: deepseek/deepseek-coder
+      api_base: https://api.deepseek.com/v1
+      api_key: <your-api-key>
+  - model_name: gemini-flash-lite
+    litellm_params:
+      model: vertex_ai/gemini-2.5-flash-lite
+      vertex_project: "api-project-429734047293"
+      vertex_location: "global"
+      vertex_credentials: "/etc/litellm/google-application-credentials.json"
   - model_name: gemini-flash
     litellm_params:
-      model: vertex_ai/gemini-2.0-flash-exp
+      model: vertex_ai/gemini-2.5-flash
       vertex_project: "api-project-429734047293"
-      vertex_location: "us-central1"
+      vertex_location: "global"
+      vertex_credentials: "/etc/litellm/google-application-credentials.json"
+  - model_name: gemini-flash-thinking
+    litellm_params:
+      model: vertex_ai/gemini-2.5-flash
+      vertex_project: "api-project-429734047293"
+      vertex_location: "global"
       vertex_credentials: "/etc/litellm/google-application-credentials.json"
   - model_name: gemini-pro
     litellm_params:
-      model: vertex_ai/gemini-1.5-pro-002
+      model: vertex_ai/gemini-2.5-pro
       vertex_project: "api-project-429734047293"
-      vertex_location: "us-west1"
+      vertex_location: "global"
+      vertex_credentials: "/etc/litellm/google-application-credentials.json"
+  - model_name: codestral
+    litellm_params:
+      model: vertex_ai/codestral-2501
+      vertex_project: "api-project-429734047293"
+      vertex_location: "us-central1"
       vertex_credentials: "/etc/litellm/google-application-credentials.json"
 # router_settings:
 #   redis_host: os.environ/REDIS_HOST # <your redis host>

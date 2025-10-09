@@ -17,7 +17,7 @@ if [[ "x$LLM_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   fi
 fi
 
-#LLM_LITELLM_NETWORK=(internal-frontend)
+#LLM_LITELLM_NETWORK=(internal-frontend internal-backend)
 if [[ -z "$LLM_LITELLM_WORKER_COUNT" ]]; then
   LLM_LITELLM_WORKER_COUNT=4
 fi
@@ -36,10 +36,10 @@ mkdir -p "$LLM_LITELLM_DATA_DIR"
 # Datebase
 # LLM_LITELLM_HOST_IP_ADDRESS=$(ip -o -4 addr show scope global | awk 'match($0, /inet\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/, ip) { print ip[1] }')
 # LLM_LITELLM_DATABASE_URL=postgresql://<user>:<password>@<host>:<port>/<dbname>
-# LLM_LITELLM_DATABASE_URL=postgresql://llm:<password>@$LLM_LITELLM_HOST_IP_ADDRESS:5432/litellm?schema=public
+# LLM_LITELLM_DATABASE_URL=postgresql://llm:<password>@postgresql:5432/litellm?schema=public
 
 # Redis
-# LLM_LITELLM_REDIS_HOST=$LLM_LITELLM_HOST_IP_ADDRESS
+# LLM_LITELLM_REDIS_HOST=redis
 # LLM_LITELLM_REDIS_PORT=6379
 # LLM_LITELLM_REDIS_PASSWORD=
 

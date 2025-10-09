@@ -6,6 +6,9 @@ source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 CADDY_IMAGE_URL="ghcr.io/owent/caddy:latest"
 # CADDY_IMAGE_URL="docker.io/owt5008137:latest"
 
+# CADDY_NETWORK=(internal-frontend internal-backend)
+# CADDY_PUBLISH=(80:80 443:443/tcp 443:443/udp 6443:6443/tcp 6443:6443/udp 2019:2019/tcp)
+
 # Require net.ipv4.ip_unprivileged_port_start=80 in /etc/sysctl.d/*.conf
 # See https://github.com/containers/podman/blob/master/rootless.md
 

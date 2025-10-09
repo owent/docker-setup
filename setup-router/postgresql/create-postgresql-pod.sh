@@ -122,9 +122,9 @@ fi
 
 POSTGRES_OPTIONS=(
   -e POSTGRES_PASSWORD=$ADMIN_TOKEN -e POSTGRES_USER=$POSTGRESQL_ADMIN_USER
-  -e PGDATA=/var/lib/postgresql/data/pgdata
+  -e PGDATA=/data/postgresql/pgdata
   --shm-size ${POSTGRESQL_SHM_SIZE}m
-  --mount type=bind,source=$POSTGRESQL_DATA_DIR,target=/var/lib/postgresql/data
+  --mount "type=bind,source=$POSTGRESQL_DATA_DIR,target=/data/postgresql"
 )
 
 if [[ ! -z "$POSTGRESQL_NETWORK" ]]; then
@@ -136,8 +136,7 @@ else
 fi
 
 podman run -d --name postgresql --security-opt label=disable \
-  "${POSTGRES_OPTIONS[@]}" \
-  $POSTGRESQL_IMAGE \
+  "${POSTGRES_OPTIONS[@]}" $POSTGRESQL_IMAGE \
   -c shared_buffers=${POSTGRESQL_SHM_SIZE}MB \
   -c effective_cache_size=${POSTGRESQL_EFFECTIVE_CACHE_SIZE}MB \
   -c work_mem=${POSTGRESQL_WORK_MEM}MB \

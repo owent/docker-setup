@@ -9,6 +9,11 @@ sudo locale-gen
 sudo update-locale LANG=en_US.UTF-8
 ```
 
+- **注意缩短 /etc/logrotate.d/rsyslog 和下面容器的日志大小限制**
+  - `rotate 4` -> `rotate 7`
+  - `weekly` -> `daily`
+  - `maxsize 200M`
+
 ## 虚拟机
 
 ### Clone后操作

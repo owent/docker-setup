@@ -2,7 +2,7 @@
   "log": {
     "disabled": false,
     // trace debug info warn error fatal panic
-    "level": "info",
+    "level": "error",
     // "output": "/var/log/vbox/box.log",
     "timestamp": true
   },
@@ -167,7 +167,7 @@
         "insecure": false,
         "alpn": ["h2"],
         "min_version": "1.2"
-      },
+      } // ,
       // "multiplex": {
       //   "enabled": true
       // },

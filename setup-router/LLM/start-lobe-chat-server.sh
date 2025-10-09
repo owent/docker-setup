@@ -22,8 +22,29 @@ fi
 # LLM_LOBE_CHAT_OPENAI_PROXY_URL=https://litellm.imwe.chat/v1 # https://api.openai.com/v1
 # LLM_LOBE_CHAT_API_KEY_SELECT_MODE=random # random,turn
 # See https://github.com/lobehub/lobe-chat/blob/main/src/config/modelProviders/openai.ts
-# LLM_LOBE_CHAT_OPENAI_MODEL_LIST="-all,+gpt-3.5-turbo,+gpt-3.5-turbo-16k,+gpt-4o,+gpt-4-turbo,+gemini-pro,+gemini-pro-vision"
-# LLM_LOBE_CHAT_OPENAI_MODEL_LIST="-all,+gpt-3.5-turbo=gpt-3.5-turbo<16384:fc>,+gpt-3.5-turbo-16k,+gpt-4o=gpt-4o<128000:fc:vision:file>"
+# Model list: https://lobehub.com/docs/self-hosting/advanced/model-list
+LLM_LOBE_CHAT_OPENAI_MODEL_LIST_ARRAY=(
+    "gemini-flash=gemini-flash<1048576:vision:reasoning:search:fc:file>"
+    "gemini-pro=gemini-pro<1048576:vision:reasoning:search:fc:file>"
+    "claude-sonnet-4=claude-sonnet-4<200000:vision:reasoning:search:fc:file>"
+    "claude-opus-4.5=claude-opus-4.5<200000:vision:reasoning:search:fc:file>"
+    "gpt-5=gpt-5<400000:vision:reasoning:search:fc:file>"
+    "gpt-5-mini=gpt-5-mini<400000:vision:reasoning:search:fc:file>"
+    "gpt-5-nano=gpt-5-nano<400000:vision:reasoning:fc:file>"
+    # "gpt-5"
+    # "gpt-5-mini"
+    # "gpt-5-nano"
+    "o3=o3<200000:vision:search:reasoning:fc:file>"
+    "o3-mini=o3-mini<200000:fc:file>"
+    "o4-mini=o4-mini<200000:vision:reasoning:fc:file>"
+    "o1"
+    "o1-mini"
+    "gpt-4o"
+)
+LLM_LOBE_CHAT_OPENAI_MODEL_LIST="-all"
+for MODEL_SETTING in "${LLM_LOBE_CHAT_OPENAI_MODEL_LIST_ARRAY[@]}"; do
+    LLM_LOBE_CHAT_OPENAI_MODEL_LIST+=",+$MODEL_SETTING"
+done
 
 # LLM_LOBE_CHAT_AZURE_API_KEY=
 # LLM_LOBE_CHAT_AZURE_ENDPOINT= # https://owent-us.openai.azure.com/

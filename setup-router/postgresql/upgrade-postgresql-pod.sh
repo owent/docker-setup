@@ -86,10 +86,6 @@ if [[ "x$POSTGRESQL_DATA_DIR" == "x" ]]; then
 fi
 mkdir -p "$POSTGRESQL_DATA_DIR"
 
-if [[ "x$POSTGRESQL_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman pull docker.io/pgvector/pgvector:latest
-fi
-
 podman container exists postgresql-upgrade-from
 
 if [[ $? -eq 0 ]]; then
@@ -130,16 +126,16 @@ done
 
 POSTGRES_OPTIONS_OLD=(
   -e POSTGRES_PASSWORD=$ADMIN_TOKEN -e POSTGRES_USER=$POSTGRESQL_ADMIN_USER
-  -e PGDATA=/var/lib/postgresql/data/pgdata.upgrade.old
+  -e PGDATA=/data/postgresql/pgdata.upgrade.old
   --shm-size ${POSTGRESQL_SHM_SIZE}m
-  --mount type=bind,source=$POSTGRESQL_DATA_DIR,target=/var/lib/postgresql/data
+  --mount type=bind,source=$POSTGRESQL_DATA_DIR,target=/data/postgresql
 )
 
 POSTGRES_OPTIONS_NEW=(
   -e POSTGRES_PASSWORD=$ADMIN_TOKEN -e POSTGRES_USER=$POSTGRESQL_ADMIN_USER
-  -e PGDATA=/var/lib/postgresql/data/pgdata.upgrade.new
+  -e PGDATA=/data/postgresql/pgdata.upgrade.new
   --shm-size ${POSTGRESQL_SHM_SIZE}m
-  --mount type=bind,source=$POSTGRESQL_DATA_DIR,target=/var/lib/postgresql/data
+  --mount type=bind,source=$POSTGRESQL_DATA_DIR,target=/data/postgresql
 )
 
 if [[ ! -z "$POSTGRESQL_NETWORK" ]]; then
@@ -191,20 +187,28 @@ podman exec postgresql-upgrade-from ln -sf /usr/share/zoneinfo/Asia/Shanghai /et
 podman exec postgresql-upgrade-to ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
 set -x
-podman exec postgresql-upgrade-from bash -c "mkdir -p /var/lib/postgresql/data/postgresql.bin.old && cp -rfp /usr/lib/postgresql/* /var/lib/postgresql/data/postgresql.bin.old && chmod +x -R /var/lib/postgresql/data/postgresql.bin.old"
-podman exec postgresql-upgrade-from bash -c 'mkdir -p /var/lib/postgresql/data/postgresql.share.old && cp -rfp /usr/share/postgresql/* /var/lib/postgresql/data/postgresql.share.old'
-podman exec postgresql-upgrade-to bash -c "cp -rfp /var/lib/postgresql/data/postgresql.share.old/* /usr/share/postgresql/"
+podman exec postgresql-upgrade-from bash -c "mkdir -p /data/postgresql/postgresql.bin.old && cp -rfp /usr/lib/postgresql/* /data/postgresql/postgresql.bin.old && chmod +x -R /data/postgresql/postgresql.bin.old"
+podman exec postgresql-upgrade-from bash -c 'mkdir -p /data/postgresql/postgresql.share.old && cp -rfp /usr/share/postgresql/* /data/postgresql/postgresql.share.old'
+podman exec postgresql-upgrade-to bash -c "cp -rfp /data/postgresql/postgresql.share.old/* /usr/share/postgresql/"
 
 podman exec postgresql-upgrade-to bash -c "mkdir -p /tmp/upgrade_data /tmp/upgrade_run && chown postgres:postgres /tmp/upgrade_run /tmp/upgrade_data && su postgres -c \"initdb -U $POSTGRESQL_ADMIN_USER -D /tmp/upgrade_data\""
-UPGRADE_SCRIPT='cd /tmp/upgrade_run; env PGDATAOLD=/var/lib/postgresql/data/pgdata/ PGBINOLD=$(dirname "$(find /var/lib/postgresql/data/postgresql.bin.old -name pg_upgrade)") PGDATANEW=/tmp/upgrade_data PGBINNEW=$(dirname "$(which pg_upgrade)")'
+UPGRADE_SCRIPT='cd /tmp/upgrade_run; env PGDATAOLD=/data/postgresql/pgdata/ PGBINOLD=$(dirname "$(find /data/postgresql/postgresql.bin.old -name pg_upgrade)") PGDATANEW=/tmp/upgrade_data PGBINNEW=$(dirname "$(which pg_upgrade)")'
 UPGRADE_SCRIPT="$UPGRADE_SCRIPT su postgres -c \"pg_upgrade -U $POSTGRESQL_ADMIN_USER\""
 podman exec postgresql-upgrade-to bash -c "$UPGRADE_SCRIPT"
 
-echo "Please mv data from /tmp/upgrade_data/* into /var/lib/postgresql/data/pgdata/ with user postgres"
-podman exec -it postgresql-upgrade-to bash -c "if [[ -e /var/lib/postgresql/data/pgdata ]]; then mv -f /var/lib/postgresql/data/pgdata /var/lib/postgresql/data/pgdata.bak.$(date +%Y%m%d%H) ; fi"
-podman exec -it postgresql-upgrade-to bash -c "mkdir -p /var/lib/postgresql/data/pgdata; chown postgres:root /var/lib/postgresql/data/pgdata"
-podman exec -it postgresql-upgrade-to bash -c "su postgres -c 'cp -rf /tmp/upgrade_data/* /var/lib/postgresql/data/pgdata/'"
+echo "Please mv data from /tmp/upgrade_data/* into /data/postgresql/pgdata/ with user postgres"
+podman exec -it postgresql-upgrade-to bash -c "if [[ -e /data/postgresql/pgdata ]]; then mv -f /data/postgresql/pgdata /data/postgresql/pgdata.bak.$(date +%Y%m%d%H) ; fi"
+podman exec -it postgresql-upgrade-to bash -c "if [[ -e /data/postgresql/pgdata ]]; then rm -rf /data/postgresql/pgdata ; fi"
+podman exec -it postgresql-upgrade-to bash -c "mkdir -p /data/postgresql/pgdata; chown postgres:root /data/postgresql/pgdata"
+podman exec -it postgresql-upgrade-to bash -c "su postgres -c 'cp -rfp /tmp/upgrade_data/* /data/postgresql/pgdata/'"
 
 podman stop postgresql-upgrade-from
 podman rm postgresql-upgrade-from
 podman stop postgresql-upgrade-to
+
+# Modify pgdata/pg_hba.conf to allow remote access if needed
+# host    all             all             10.0.0.0/8              trust
+# host    all             all             172.16.0.0/12           trust
+# host    all             all             192.168.0.0/16          trust
+# host    all             all             fc00::/7                trust
+# host    all             all             fe80::/16               trust

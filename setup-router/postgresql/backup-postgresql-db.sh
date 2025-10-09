@@ -37,9 +37,10 @@ for DB_NAME in "${DB_NAMES[@]}"; do
   find "$POSTGRESQL_DATA_DIR/$DB_BACKUP_DIR_NAME" -name "$DB_NAME-sqlbkp_*.sql*" | xargs -r rm
 
   podman exec postgresql bash -c \
-    "mkdir -p /var/lib/postgresql/data/$DB_BACKUP_DIR_NAME;
-    chmod 700 /var/lib/postgresql/data/$DB_BACKUP_DIR_NAME;
-    pg_dump $DB_NAME -h localhost -p 5432 -U $DB_USER -f /var/lib/postgresql/data/$DB_BACKUP_DIR_NAME/$BACKUP_FILE_NAME"
+    "if [[ -e /data/postgresql ]]; then DB_DATA_DIR=/data/postgresql; else DB_DATA_DIR=/var/lib/postgresql/data; fi;
+    mkdir -p \$DB_DATA_DIR/$DB_BACKUP_DIR_NAME;
+    chmod 755 \$DB_DATA_DIR/$DB_BACKUP_DIR_NAME;
+    pg_dump $DB_NAME -h localhost -p 5432 -U $DB_USER -f \$DB_DATA_DIR/$DB_BACKUP_DIR_NAME/$BACKUP_FILE_NAME"
 
   if [[ -e "$POSTGRESQL_DATA_DIR/$DB_BACKUP_DIR_NAME/$BACKUP_FILE_NAME" ]]; then
     BACKUP_FILE_PATH="$POSTGRESQL_DATA_DIR/$DB_BACKUP_DIR_NAME/$BACKUP_FILE_NAME"

@@ -45,7 +45,7 @@ litellm.imwe.chat {
   }
 
   reverse_proxy {
-    to http://127.0.0.1:4000
+    to http://llm-litellm:4000
     header_up Host {http.request.host}
     header_up X-Real-IP {http.request.remote}
     header_up X-Forwarded-Port {http.request.port}
@@ -123,7 +123,7 @@ lobechat.imwe.chat {
   }
 
   reverse_proxy {
-    to http://127.0.0.1:3210
+    to http://llm-lobechat:3210
     header_up Host {http.request.host}
     header_up X-Real-IP {http.request.remote}
     header_up X-Forwarded-Port {http.request.port}
