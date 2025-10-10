@@ -263,6 +263,9 @@ sudo apt full-upgrade -y
 sudo apt autoremove -y
 sudo apt clean -y
 
+# sudo sed -E -i 's;\bbookworm\b;trixie;g' /etc/apt/sources.list
+# sudo sed -E -i 's;\bbookworm\b;trixie;g' /etc/apt/sources.list.d/*
+
 # source.list格式 - ustc
 echo '
 # 默认注释了源码仓库，如有需要可自行取消注释

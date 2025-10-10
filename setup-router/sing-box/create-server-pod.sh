@@ -41,13 +41,6 @@ if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
     systemctl stop vbox-server.service
     systemctl disable vbox-server.service
   fi
-
-  # Remove old systemd service
-  if [[ -e "$SYSTEMD_SERVICE_DIR/vproxy-with-geo.service" ]]; then
-    systemctl stop vproxy-with-geo.service
-    systemctl disable vproxy-with-geo.service
-    rm "$SYSTEMD_SERVICE_DIR/vproxy-with-geo.service"
-  fi
 else
   export XDG_RUNTIME_DIR="/run/user/$UID"
   export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
@@ -60,26 +53,12 @@ else
     systemctl --user stop vbox-server.service
     systemctl --user disable vbox-server.service
   fi
-
-  # Remove old systemd service
-  if [[ -e "$SYSTEMD_SERVICE_DIR/vproxy-with-geo.service" ]]; then
-    systemctl --user stop vproxy-with-geo.service
-    systemctl --user disable vproxy-with-geo.service
-    rm "$SYSTEMD_SERVICE_DIR/vproxy-with-geo.service"
-  fi
 fi
 
 podman container inspect vbox-server >/dev/null 2>&1
 if [[ $? -eq 0 ]]; then
   podman stop vbox-server
   podman rm -f vbox-server
-fi
-
-# Remove old pods
-podman container inspect vproxy-with-geo >/dev/null 2>&1
-if [[ $? -eq 0 ]]; then
-  podman stop vproxy-with-geo
-  podman rm -f vproxy-with-geo
 fi
 
 if [[ "x$VBOX_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then

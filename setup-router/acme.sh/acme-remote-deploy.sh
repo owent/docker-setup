@@ -36,7 +36,6 @@ for NODE_ADDR in ${REPLICATION_NODES[@]}; do
           "$NODE_USER@$NODE_HOST:$REMOTE_DEPLOY_SSL_PATH"
         ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$REMOTE_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "cd $REMOTE_DEPLOY_SSL_PATH && chmod 640 *"
     done
-    # ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$REMOTE_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "cd $REMOTE_DEPLOY_SSL_PATH && chmod 640 *"
 done
 
 # Update remote services

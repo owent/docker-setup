@@ -181,9 +181,11 @@ user.max_user_namespaces=28633
 
 fs.inotify.max_user_instances=16384
 fs.inotify.max_user_watches=1048576
+
+vm.swappiness=10
 " | sudo tee /etc/sysctl.d/92-container.conf ;
 
-sysctl -p ;
+sudo sysctl -p ;
 
 # Check and enable bbr
 find "/lib/modules/$(uname -r)" -type f -name '*.ko*' | awk '{if (match($0, /^\/lib\/modules\/([^\/]+).*\/([^\/]+)\.ko(\.[^\/\.]+)?$/, m)) {print m[1] " : " m[2];}}' | sort | uniq | grep tcp_bbr ;

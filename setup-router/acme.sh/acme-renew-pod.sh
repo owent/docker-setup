@@ -1,8 +1,12 @@
 #!/bin/bash
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 
+if [[ -e "$(dirname "$SCRIPT_DIR")/configure-router.sh" ]]; then
+  source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
+fi
+
+ACMESH_SSL_DIR="$HOME/setup/acme.sh/ssl"
 if [[ "x$ACMESH_SSL_DIR" == "x" ]]; then
   if [[ "x$ROUTER_HOME" != "x" ]]; then
     ACMESH_SSL_DIR=$ROUTER_HOME/acme.sh/ssl
@@ -13,10 +17,15 @@ fi
 mkdir -p "$ACMESH_SSL_DIR"
 
 # sudo -u tools bash -c 'source ~/.bashrc; systemctl restart --user router-nginx'
-# systemctl restart v2ray
-systemctl --user --all | grep -F container-adguard-home.service
+# systemctl restart vbox-server
 
+systemctl --user --all | grep -F container-adguard-home.service
 if [[ $? -eq 0 ]]; then
   systemctl --user stop container-adguard-home
   systemctl --user disable container-adguard-home
+fi
+
+# Deploy to other service nodes
+if [[ -e "$SCRIPT_DIR/acme-remote-deploy.sh" ]]; then
+  /bin/bash "$SCRIPT_DIR/acme-remote-deploy.sh"
 fi
