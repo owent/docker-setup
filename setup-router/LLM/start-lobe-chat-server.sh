@@ -71,7 +71,7 @@ if [[ -z "$LLM_LOBE_CHAT_PORT" ]]; then
 fi
 
 # https://github.com/lobehub/lobe-chat/discussions/913
-# LLM_LOBE_CHAT_DEFAULT_AGENT_CONFIG="model=gpt-3.5-turbo;params.max_tokens=16384;plugins=search-engine,lobe-image-designer,bilibili,realtime-weather,steam,website-crawler"
+# LLM_LOBE_CHAT_DEFAULT_AGENT_CONFIG="model=gpt-3.5-turbo;params.max_tokens=16384;plugins=lobe-image-designer,lobe-artifacts,lobe-web-browsing,bilibili,realtime-weather,steam"
 
 # LLM_LOBE_CHAT_ENABLE_OAUTH_SSO=1
 # Auth: https://lobehub.com/zh/docs/self-hosting/environment-variables/auth
@@ -161,6 +161,23 @@ LLM_LOBE_CHAT_TEST_ENV=(
   PLUGIN_SETTINGS
 
   AGENTS_INDEX_URL
+
+  # SEARCH ENGINE
+  CRAWLER_IMPLS # search1api,google,jina,exa,firecrawl,native
+  SEARCH_PROVIDERS # search1api,google,jina,exa,firecrawl
+
+  SEARCH1API_API_KEY
+  SEARCH1API_CRAWL_API_KEY
+  SEARCH1API_SEARCH_API_KEY
+
+  EXA_API_KEY
+
+  JINA_READER_API_KEY
+
+  GOOGLE_PSE_API_KEY
+  GOOGLE_PSE_ENGINE_ID
+
+  FIRECRAWL_API_KEY
 
   # Providers
   OPENAI_API_KEY
