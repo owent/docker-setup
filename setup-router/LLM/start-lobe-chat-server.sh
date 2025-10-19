@@ -4,8 +4,8 @@
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
-LLM_LOBECHAT_IMAGE_URL=docker.io/lobehub/lobe-chat:latest
-#LLM_LOBE_CHAT_NETWORK=(internal-frontend)
+LLM_LOBECHAT_IMAGE_URL=docker.io/lobehub/lobe-chat-database:latest
+#LLM_LOBE_CHAT_NETWORK=(internal-frontend internal-backend)
 
 if [[ "x$LLM_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman pull $LLM_LOBECHAT_IMAGE_URL
@@ -73,26 +73,6 @@ fi
 # https://github.com/lobehub/lobe-chat/discussions/913
 # LLM_LOBE_CHAT_DEFAULT_AGENT_CONFIG="model=gpt-3.5-turbo;params.max_tokens=16384;plugins=lobe-image-designer,lobe-artifacts,lobe-web-browsing,bilibili,realtime-weather,steam"
 
-# LLM_LOBE_CHAT_ENABLE_OAUTH_SSO=1
-# Auth: https://lobehub.com/zh/docs/self-hosting/environment-variables/auth
-if [[ -e "$SCRIPT_DIR/llm-lobechat.NEXTAUTH_SECRET" ]]; then
-  LLM_LOBE_CHAT_NEXTAUTH_SECRET="$(cat "$SCRIPT_DIR/llm-lobechat.NEXTAUTH_SECRET")"
-else
-  LLM_LOBE_CHAT_NEXTAUTH_SECRET="$(head -c 32 /dev/urandom | base64 | tr '/' '_' | tr '+' '-')"
-  echo "$LLM_LOBE_CHAT_NEXTAUTH_SECRET" >"$SCRIPT_DIR/llm-lobechat.NEXTAUTH_SECRET"
-fi
-# LLM_LOBE_CHAT_NEXTAUTH_URL=
-# https://lobehub.com/zh/docs/self-hosting/advanced/sso-providers/microsoft-entra-id
-# https://lobehub.com/zh/docs/self-hosting/advanced/sso-providers/github
-# LLM_LOBE_CHAT_NEXT_AUTH_SSO_PROVIDERS=azure-ad,github
-# Auth: Microsoft Entra ID
-# LLM_LOBE_CHAT_AZURE_AD_CLIENT_ID=
-# LLM_LOBE_CHAT_AZURE_AD_CLIENT_SECRET=
-# LLM_LOBE_CHAT_AZURE_AD_TENANT_ID=
-# Auth: Github
-# LLM_LOBE_CHAT_GITHUB_CLIENT_ID=
-# LLM_LOBE_CHAT_GITHUB_CLIENT_SECRET=
-
 # ====================================== start deploy ======================================
 # Access Code
 if [[ -e "$SCRIPT_DIR/llm-lobechat.ACCESS_CODE" ]]; then
@@ -153,6 +133,7 @@ LLM_LOBE_CHAT_ENV=(
 )
 
 LLM_LOBE_CHAT_TEST_ENV=(
+  APP_URL
   API_KEY_SELECT_MODE
   NEXT_PUBLIC_BASE_PATH
   DEFAULT_AGENT_CONFIG
@@ -161,6 +142,20 @@ LLM_LOBE_CHAT_TEST_ENV=(
   PLUGIN_SETTINGS
 
   AGENTS_INDEX_URL
+
+  # DB
+  KEY_VAULTS_SECRET
+  DATABASE_URL # postgres://postgres:mysecretpassword@my-postgres:5432/postgres
+
+  # S3
+  S3_ACCESS_KEY_ID
+  S3_SECRET_ACCESS_KEY
+  S3_ENDPOINT
+  S3_BUCKET
+  S3_REGION
+  S3_SET_ACL
+  S3_PUBLIC_DOMAIN
+  S3_ENABLE_PATH_STYLE
 
   # SEARCH ENGINE
   CRAWLER_IMPLS # search1api,google,jina,exa,firecrawl,native
@@ -178,6 +173,8 @@ LLM_LOBE_CHAT_TEST_ENV=(
   GOOGLE_PSE_ENGINE_ID
 
   FIRECRAWL_API_KEY
+
+  TAVILY_API_KEY
 
   # Providers
   OPENAI_API_KEY
@@ -229,21 +226,41 @@ LLM_LOBE_CHAT_TEST_ENV=(
 
   # Authorization
   ENABLE_OAUTH_SSO
-  NEXTAUTH_SECRET
+  NEXT_PUBLIC_ENABLE_NEXT_AUTH
+  NEXT_AUTH_SECRET
   NEXTAUTH_URL
   NEXT_AUTH_SSO_PROVIDERS
 
   # https://lobehub.com/docs/self-hosting/advanced/sso-providers/microsoft-entra-id
-  AZURE_AD_CLIENT_ID
-  AZURE_AD_CLIENT_SECRET
-  AZURE_AD_TENANT_ID
+  AUTH_AZURE_AD_ID
+  AUTH_AZURE_AD_SECRET
+  AUTH_AZURE_AD_TENANT_ID
 
   # https://lobehub.com/docs/self-hosting/advanced/sso-providers/github
-  GITHUB_CLIENT_ID
-  GITHUB_CLIENT_SECRET
+  AUTH_GITHUB_ID
+  AUTH_GITHUB_SECRET
 
   # Analytics
   ENABLE_GOOGLE_ANALYTICS
+  GOOGLE_ANALYTICS_MEASUREMENT_ID
+
+  AUTH_CLOUDFLARE_ZERO_TRUST_ID
+  AUTH_CLOUDFLARE_ZERO_TRUST_SECRET
+  AUTH_CLOUDFLARE_ZERO_TRUST_ISSUER
+
+  AUTH_LOGTO_ID
+  AUTH_LOGTO_SECRET
+  AUTH_LOGTO_ISSUER
+
+  AUTH_CASDOOR_ID
+  AUTH_CASDOOR_SECRET
+  AUTH_CASDOOR_ISSUER
+
+  AUTH_GENERIC_OIDC_ID
+  AUTH_GENERIC_OIDC_SECRET
+  AUTH_GENERIC_OIDC_ISSUER
+
+  # Analytics
   GOOGLE_ANALYTICS_MEASUREMENT_ID
 )
 
