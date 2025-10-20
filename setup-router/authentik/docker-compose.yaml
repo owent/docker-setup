@@ -1,0 +1,45 @@
+services:
+  authentik_server:
+    container_name: "authentik-server"
+    command: server
+    env_file:
+      - .env
+    image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2025.8.4}
+    ports:
+      - ${COMPOSE_PORT_HTTP:-9000}:${COMPOSE_PORT_HTTP:-9000}
+      - ${COMPOSE_PORT_HTTPS:-9443}:${COMPOSE_PORT_HTTPS:-9443}
+      - ${COMPOSE_PORT_LDAP:-389}:${COMPOSE_PORT_LDAP:-389}
+      - ${COMPOSE_PORT_LDAPS:-636}:${COMPOSE_PORT_LDAPS:-636}
+      # - ${COMPOSE_PORT_METRICS:-9300}:${COMPOSE_PORT_METRICS:-9300}
+      # - ${COMPOSE_PORT_DEBUG:-9900}:${COMPOSE_PORT_DEBUG:-9900}
+    restart: unless-stopped
+    networks:
+      - frontend
+      - backend
+    user: root
+    volumes:
+      - ./data/media:/media
+      - ./data/custom-templates:/templates
+  authentik_worker:
+    container_name: "authentik-worker"
+    command: worker
+    env_file:
+      - .env
+    image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2025.8.4}
+    restart: unless-stopped
+    networks:
+      - frontend
+      - backend
+    user: root
+    volumes:
+      - ${DOCKER_SOCK_PATH:-/var/run/docker.sock}:/var/run/docker.sock
+      - ./data/media:/media
+      - ./data/certs:/certs
+      - ./data/custom-templates:/templates
+networks:
+  frontend:
+    name: internal-frontend
+    external: true
+  backend:
+    name: internal-backend
+    external: true
