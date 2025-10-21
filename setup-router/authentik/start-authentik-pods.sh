@@ -36,7 +36,7 @@ mkdir -p "$AUTHENTIK_DATA_DIR/custom-templates"
 
 cd "$SCRIPT_DIR"
 
-COMPOSE_CONFIGURE=docker-compose.yml
+COMPOSE_CONFIGURE=docker-compose.yaml
 
 if [[ ! -z "$AUTHENTIK_UPDATE" ]] || [[ ! -z "$ROUTER_IMAGE_UPDATE" ]]; then
   source "$SCRIPT_DIR/.env"

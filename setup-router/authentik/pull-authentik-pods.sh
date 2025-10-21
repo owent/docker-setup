@@ -11,7 +11,7 @@ fi
 
 source "$SCRIPT_DIR/.env"
 
-COMPOSE_CONFIGURE=docker-compose.yml
+COMPOSE_CONFIGURE=docker-compose.yaml
 
 podman-compose -f $COMPOSE_CONFIGURE pull
 if [[ $? -ne 0 ]]; then
