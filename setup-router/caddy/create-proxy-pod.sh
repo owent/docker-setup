@@ -8,7 +8,7 @@ PROXY_CADDY_DNSPOD_TOKEN="" # ID,Token
 PROXY_CADDY_CLOUDFLARE_API_TOKEN=""
 
 CADDY_IMAGE_URL="ghcr.io/owent/caddy:latest"
-# CADDY_IMAGE_URL="docker.io/owt5008137:latest"
+# CADDY_IMAGE_URL="docker.io/owt5008137/caddy:latest"
 
 # CADDY_NETWORK=(internal-frontend internal-backend)
 # CADDY_PUBLISH=(80:80 443:443/tcp 443:443/udp 2019:2019/tcp)
