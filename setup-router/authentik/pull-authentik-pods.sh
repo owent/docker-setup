@@ -18,22 +18,22 @@ if [[ $? -ne 0 ]]; then
   echo "Pull $COMPOSE_CONFIGURE failed"
   exit 1
 fi
-podman pull ghcr.io/goauthentik/ldap:${AUTHENTIK_TAG}
+podman pull $AUTHENTIK_IMAGE_BASE/ldap:${AUTHENTIK_TAG}
 if [[ $? -ne 0 ]]; then
   echo "Pull $COMPOSE_CONFIGURE failed"
   exit 1
 fi
-podman pull ghcr.io/goauthentik/proxy:${AUTHENTIK_TAG}
+podman pull $AUTHENTIK_IMAGE_BASE/proxy:${AUTHENTIK_TAG}
 if [[ $? -ne 0 ]]; then
   echo "Pull $COMPOSE_CONFIGURE failed"
   exit 1
 fi
-podman pull ghcr.io/goauthentik/rac:${AUTHENTIK_TAG}
+podman pull $AUTHENTIK_IMAGE_BASE/rac:${AUTHENTIK_TAG}
 if [[ $? -ne 0 ]]; then
   echo "Pull $COMPOSE_CONFIGURE failed"
   exit 1
 fi
-podman pull ghcr.io/goauthentik/radius:${AUTHENTIK_TAG}
+podman pull $AUTHENTIK_IMAGE_BASE/radius:${AUTHENTIK_TAG}
 if [[ $? -ne 0 ]]; then
   echo "Pull $COMPOSE_CONFIGURE failed"
   exit 1
