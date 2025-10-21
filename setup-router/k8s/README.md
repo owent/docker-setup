@@ -15,7 +15,7 @@ sudo systemctl stop systemd-resolved
 sudo systemctl disable systemd-resolved
 
 # 存储位置
-K8S_DATA_DIR=/data/disk1
+K8S_DATA_DIR=/data/k8s
 
 sudo systemctl stop docker
 sudo rm -rf /var/lib/containerd /var/openebs /var/lib/kubelet /var/lib/etcd /var/lib/rancher
@@ -30,18 +30,18 @@ sudo mkdir -p $K8S_DATA_DIR/k8s/storage/etcd $K8S_DATA_DIR/k8s/storage/kubelet $
 # 主 XFS 文件系统，
 ## XFS文件系统优化选项: largeio,inode64,allocsize=64m,logbsize=256k
 ## SSD 优化选项 noatime,nodiratime,discard
-/dev/nvme0n1p1 /data/disk1 xfs noatime,nodiratime,largeio,inode64,allocsize=64m,logbufs=8,logbsize=512k,noquota 0 2
+/dev/nvme0n1p1 /data/k8s xfs noatime,nodiratime,largeio,inode64,allocsize=64m,logbufs=8,logbsize=512k,noquota 0 2
 
 # Kubernetes 组件 bind mount
-/data/disk1/k8s/storage/etcd /var/lib/etcd none bind,noatime,nodiratime,nodev,nosuid,noexec 0 0
-/data/disk1/k8s/storage/kubelet /var/lib/kubelet none bind,noatime,nodiratime,nodev,nosuid 0 0
-/data/disk1/k8s/storage/containerd /var/lib/containerd none bind,noatime,nodiratime,nodev,nosuid 0 0
-/data/disk1/openebs/storage/var /var/openebs none bind,noatime,nodiratime,nodev,nosuid 0 0
-/data/disk1/openebs/storage/local-var /var/local/openebs none bind,noatime,nodiratime,nodev,nosuid 0 0
-/data/disk1/rancher/storage/var /var/lib/rancher none bind,noatime,nodiratime,nodev,nosuid 0 0
+/data/k8s/k8s/storage/etcd /var/lib/etcd none bind,noatime,nodiratime,nodev,nosuid,noexec 0 0
+/data/k8s/k8s/storage/kubelet /var/lib/kubelet none bind,noatime,nodiratime,nodev,nosuid 0 0
+/data/k8s/k8s/storage/containerd /var/lib/containerd none bind,noatime,nodiratime,nodev,nosuid 0 0
+/data/k8s/openebs/storage/var /var/openebs none bind,noatime,nodiratime,nodev,nosuid 0 0
+/data/k8s/openebs/storage/local-var /var/local/openebs none bind,noatime,nodiratime,nodev,nosuid 0 0
+/data/k8s/rancher/storage/var /var/lib/rancher none bind,noatime,nodiratime,nodev,nosuid 0 0
 
 # 配置文件只读绑定
-# /data/disk1/k8s/storage/k8s/etc /etc/kubernetes none bind,ro,nodev,nosuid,noexec 0 0
+# /data/k8s/k8s/storage/k8s/etc /etc/kubernetes none bind,ro,nodev,nosuid,noexec 0 0
 ```
 
 ```bash
@@ -180,7 +180,7 @@ curl -sfL https://get.k3s.io | sh -s - --flannel-backend none --token 12345
 curl -sfL https://get.rke2.io -o install.sh && chmod +x install.sh
 # curl -sfL https://rancher-mirror.rancher.cn/rke2/install.sh -o install.sh && chmod +x install.sh
 
-K8S_DATA_DIR=/data/disk1
+K8S_DATA_DIR=/data/k8s
 sudo chmod 777 $K8S_DATA_DIR/rancher/storage/data $K8S_DATA_DIR/rancher/storage/var
 sudo mkdir -p /etc/rancher/rke2
 sudo cp -f "$PWD/config.yaml" /etc/rancher/rke2/
@@ -314,7 +314,7 @@ curl -sfL https://get.k3s.io | K3S_URL=https://k3s.example.com K3S_TOKEN=mypassw
 ### 底层容器命令
 
 ```bash
-K8S_DATA_DIR=/data/disk1
+K8S_DATA_DIR=/data/k8s
 export CRI_CONFIG_FILE=$K8S_DATA_DIR/rancher/storage/data/agent/etc/crictl.yaml
 export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
 crictl ps -a
@@ -614,7 +614,7 @@ openssl x509 -in /etc/kubernetes/ssl/kube-apiserver.pem -noout -dates
 ## 完全删除集群并清理
 
 ```bash
-K8S_DATA_DIR=/data/disk1
+K8S_DATA_DIR=/data/k8s
 sudo systemctl stop kubelet
 sudo kubeadm reset -f
 

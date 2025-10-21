@@ -59,5 +59,5 @@ kubectl describe challenge $challenge_name
 kubectl -n cert-manager create secret tls root-ca-secret \
   --cert=tls.crt \
   --key=tls.key \
-  --dry-run --save-config -o yaml | kubectl apply -f -
+  --dry-run=client --save-config -o yaml | kubectl apply -f -
 ```
