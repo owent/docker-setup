@@ -56,10 +56,140 @@ psql -h localhost -U postgres
 
 ## LDAP账户清理
 
-LDAP集成见 <https://github.com/lldap/lldap/blob/main/example_configs/nextcloud.md>
-
-
 ```bash
 sudo -E -u podman exec -u www-data nextcloud php occ ldap:show-remnants
 sudo -E -u podman exec -u www-data nextcloud php occ user:delete USER_NAME
+```
+
+## LLDAP账户配置: 
+
+LDAP集成见 <https://github.com/lldap/lldap/blob/main/example_configs/nextcloud.md>
+
+## Authentik LDAP账户配置: 
+
+- `php occ ldap:show-config`
+- `php occ ldap:test-config s01`
+- `php occ ldap:check-user [username]`
+
+
+php occ ldap:set-config s01 ldapHost ldaps://ldap.example.org:6636
+php occ ldap:set-config s01 ldapPort 6636
+php occ ldap:set-config s01 ldapTLS 1
+php occ ldap:set-config s01 ldapAgentName "cn=ldap-bind,ou=users,dc=example,dc=org"
+php occ ldap:set-config s01 ldapAgentPassword "<密码>"
+php occ ldap:set-config s01 ldapBase "dc=example,dc=org"
+php occ ldap:set-config s01 ldapBaseGroups "ou=groups,dc=example,dc=org"
+php occ ldap:set-config s01 ldapBaseUsers "ou=users,dc=example,dc=org"
+php occ ldap:set-config s01 ldapGidNumber gidNumber
+# ldap_uniq 是authentik特有字段，其他平台的可能是其他字段，可以fallback成cn等，lldap可以用auto自动识别
+php occ ldap:set-config s01 ldapExpertUsernameAttr cn
+php occ ldap:set-config s01 ldapExpertUUIDUserAttr uid
+php occ ldap:set-config s01 ldapExpertUUIDGroupAttr uid
+php occ ldap:set-config s01 ldapEmailAttribute mail
+php occ ldap:set-config s01 ldapGroupFilter "(&(objectClass=group)(|(cn=admin)(cn=staff)(cn=external-collaborator)))"
+php occ ldap:set-config s01 ldapGroupFilterGroups "admin;staff;external-collaborator"
+php occ ldap:set-config s01 ldapGroupFilterObjectclass group
+php occ ldap:set-config s01 ldapGroupMemberAssocAttr member
+php occ ldap:set-config s01 ldapLoginFilter "(&(&(objectClass=user)(|(memberOf=cn=staff,ou=groups,dc=example,dc=org)(memberOf=cn=external-collaborator,ou=groups,dc=example,dc=org)))(cn=%uid))"
+php occ ldap:set-config s01 ldapUserFilter "(&(objectClass=user)(|(memberOf=cn=staff,ou=groups,dc=example,dc=org)(memberOf=cn=external-collaborator,ou=groups,dc=example,dc=org)))"
+php occ ldap:set-config s01 ldapUserDisplayName displayName
+php occ ldap:set-config s01 ldapUserDisplayName2 cn
+php occ ldap:set-config s01 ldapUserFilterObjectclass user
+# ldap_uniq 是authentik特有字段，其他平台的可能是其他字段，可以fallback成cn等，lldap可以用auto自动识别
+php occ ldap:set-config s01 homeFolderNamingRule "attr:ldap_uniq"
+php occ ldap:set-config s01 ldapGroupDisplayName cn
+php occ ldap:set-config s01 ldapUserFilterMode 1
+php occ ldap:set-config s01 ldapNestedGroups 0
+php occ ldap:set-config s01 ldapPagingSize 500
+php occ ldap:set-config s01 ldapUuidGroupAttribute auto
+php occ ldap:set-config s01 ldapUuidUserAttribute auto
+php occ ldap:set-config s01 ldapLoginFilterEmail 0
+php occ ldap:set-config s01 ldapLoginFilterUsername 1
+php occ ldap:set-config s01 ldapMatchingRuleInChainState unknown
+php occ ldap:set-config s01 ldapGroupFilterMode 0
+php occ ldap:set-config s01 turnOnPasswordChange 0
+php occ ldap:set-config s01 ldapCacheTTL 1800
+php occ ldap:set-config s01 ldapExperiencedAdmin 0
+php occ ldap:set-config s01 ldapUserFilterMode 0
+php occ ldap:set-config s01 useMemberOfToDetectMembership 1
+php occ ldap:set-config s01 ldapConfigurationActive 1
+
+```rst
++-------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| Configuration                 | s01                                                                                                                                          |
++-------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| hasMemberOfFilterSupport      | 0                                                                                                                                            |
+| homeFolderNamingRule          | attr:ldap_uniq                                                                                                                               |
+| lastJpegPhotoLookup           | 0                                                                                                                                            |
+| ldapAdminGroup                |                                                                                                                                              |
+| ldapAgentName                 | cn=ldap-bind,ou=users,dc=example,dc=org                                                                                                         |
+| ldapAgentPassword             | ***                                                                                                                                          |
+| ldapAttributeAddress          |                                                                                                                                              |
+| ldapAttributeAnniversaryDate  |                                                                                                                                              |
+| ldapAttributeBiography        |                                                                                                                                              |
+| ldapAttributeBirthDate        |                                                                                                                                              |
+| ldapAttributeFediverse        |                                                                                                                                              |
+| ldapAttributeHeadline         |                                                                                                                                              |
+| ldapAttributeOrganisation     |                                                                                                                                              |
+| ldapAttributePhone            |                                                                                                                                              |
+| ldapAttributePronouns         |                                                                                                                                              |
+| ldapAttributeRole             |                                                                                                                                              |
+| ldapAttributeTwitter          |                                                                                                                                              |
+| ldapAttributeWebsite          |                                                                                                                                              |
+| ldapAttributesForGroupSearch  |                                                                                                                                              |
+| ldapAttributesForUserSearch   |                                                                                                                                              |
+| ldapBackgroundHost            |                                                                                                                                              |
+| ldapBackgroundPort            |                                                                                                                                              |
+| ldapBackupHost                |                                                                                                                                              |
+| ldapBackupPort                |                                                                                                                                              |
+| ldapBase                      | dc=example,dc=org                                                                                                                               |
+| ldapBaseGroups                | ou=groups,dc=example,dc=org                                                                                                                     |
+| ldapBaseUsers                 | ou=users,dc=example,dc=org                                                                                                                      |
+| ldapCacheTTL                  | 1800                                                                                                                                         |
+| ldapConfigurationActive       | 1                                                                                                                                            |
+| ldapConnectionTimeout         | 15                                                                                                                                           |
+| ldapDefaultPPolicyDN          |                                                                                                                                              |
+| ldapDynamicGroupMemberURL     |                                                                                                                                              |
+| ldapEmailAttribute            | mail                                                                                                                                         |
+| ldapExperiencedAdmin          | 0                                                                                                                                            |
+| ldapExpertUUIDGroupAttr       | uid                                                                                                                                          |
+| ldapExpertUUIDUserAttr        | uid                                                                                                                                          |
+| ldapExpertUsernameAttr        | cn                                                                                                                                           |
+| ldapExtStorageHomeAttribute   |                                                                                                                                              |
+| ldapGidNumber                 | gidnumber                                                                                                                                    |
+| ldapGroupDisplayName          | cn                                                                                                                                           |
+| ldapGroupFilter               | (&(objectClass=group)(|(cn=admin)(cn=staff)(cn=external-collaborator)))                                                                      |
+| ldapGroupFilterGroups         | admin;staff;external-collaborator                                                                                                            |
+| ldapGroupFilterMode           | 0                                                                                                                                            |
+| ldapGroupFilterObjectclass    | group                                                                                                                                        |
+| ldapGroupMemberAssocAttr      | member                                                                                                                                       |
+| ldapHost                      | ldaps://ldap.example.org                                                                                                                        |
+| ldapIgnoreNamingRules         |                                                                                                                                              |
+| ldapLoginFilter               | (&(&(objectClass=user)(|(memberOf=cn=staff,ou=groups,dc=example,dc=org)(memberOf=cn=external-collaborator,ou=groups,dc=example,dc=org)))(cn=%uid)) |
+| ldapLoginFilterAttributes     |                                                                                                                                              |
+| ldapLoginFilterEmail          | 0                                                                                                                                            |
+| ldapLoginFilterMode           | 0                                                                                                                                            |
+| ldapLoginFilterUsername       | 1                                                                                                                                            |
+| ldapMatchingRuleInChainState  | unknown                                                                                                                                      |
+| ldapNestedGroups              | 0                                                                                                                                            |
+| ldapOverrideMainServer        |                                                                                                                                              |
+| ldapPagingSize                | 500                                                                                                                                          |
+| ldapPort                      | 6636                                                                                                                                         |
+| ldapQuotaAttribute            |                                                                                                                                              |
+| ldapQuotaDefault              |                                                                                                                                              |
+| ldapTLS                       | 1                                                                                                                                            |
+| ldapUserAvatarRule            | default                                                                                                                                      |
+| ldapUserDisplayName           | displayName                                                                                                                                  |
+| ldapUserDisplayName2          | cn                                                                                                                                           |
+| ldapUserFilter                | (&(objectClass=user)(|(memberOf=cn=staff,ou=groups,dc=example,dc=org)(memberOf=cn=external-collaborator,ou=groups,dc=example,dc=org)))             |
+| ldapUserFilterGroups          |                                                                                                                                              |
+| ldapUserFilterMode            | 0                                                                                                                                            |
+| ldapUserFilterObjectclass     | user                                                                                                                                         |
+| ldapUuidGroupAttribute        | auto                                                                                                                                         |
+| ldapUuidUserAttribute         | auto                                                                                                                                         |
+| markRemnantsAsDisabled        | 0                                                                                                                                            |
+| turnOffCertCheck              | 0                                                                                                                                            |
+| turnOnPasswordChange          | 0                                                                                                                                            |
+| useMemberOfToDetectMembership | 1                                                                                                                                            |
++-------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
 ```

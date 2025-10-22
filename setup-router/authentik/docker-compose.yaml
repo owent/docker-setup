@@ -8,8 +8,6 @@ services:
     ports:
       - ${COMPOSE_PORT_HTTP:-9000}:${COMPOSE_PORT_HTTP:-9000}
       - ${COMPOSE_PORT_HTTPS:-9443}:${COMPOSE_PORT_HTTPS:-9443}
-      - ${COMPOSE_PORT_LDAP:-389}:${COMPOSE_PORT_LDAP:-389}
-      - ${COMPOSE_PORT_LDAPS:-636}:${COMPOSE_PORT_LDAPS:-636}
       # - ${COMPOSE_PORT_METRICS:-9300}:${COMPOSE_PORT_METRICS:-9300}
       # - ${COMPOSE_PORT_DEBUG:-9900}:${COMPOSE_PORT_DEBUG:-9900}
     restart: unless-stopped
@@ -36,6 +34,80 @@ services:
       - ./data/media:/media
       - ./data/certs:/certs
       - ./data/custom-templates:/templates
+  # authentik_proxy:
+  #   container_name: "authentik-proxy"
+  #   image: ${AUTHENTIK_IMAGE_BASE:-ghcr.io/goauthentik}/proxy:${AUTHENTIK_TAG:-2025.8.4}
+  #   env_file:
+  #     - .env
+  #   # Optionally specify the container's network, which must be able to reach the core authentik server.
+  #   # networks:
+  #   #   - foo
+  #   ports:
+  #     - ${COMPOSE_PORT_HTTP:-9000}:${COMPOSE_PORT_HTTP:-9000}
+  #     - ${COMPOSE_PORT_HTTPS:-9443}:${COMPOSE_PORT_HTTPS:-9443}
+  #   depends_on:
+  #     authentik_server:
+  #       condition: service_started
+  #   environment:
+  #     AUTHENTIK_HOST: http://authentik-server:${COMPOSE_PORT_HTTP:-9000}
+  #     AUTHENTIK_INSECURE: "true"
+  #     AUTHENTIK_TOKEN: ${AUTHENTIK_BOOTSTRAP_TOKEN}
+  #     # Optional setting to be used when `authentik_host` for internal communication doesn't match the public URL.
+  #     # AUTHENTIK_HOST_BROWSER: ${AUTHENTIK_HOST_BROWSER}
+  #   networks:
+  #     - frontend
+  #     - backend
+  #   user: root
+  authentik_ldap:
+    container_name: "authentik-ldap"
+    image: ${AUTHENTIK_IMAGE_BASE:-ghcr.io/goauthentik}/ldap:${AUTHENTIK_TAG:-2025.8.4}
+    depends_on:
+      authentik_server:
+        condition: service_started
+    env_file:
+      - .env
+    ports:
+      - ${COMPOSE_PORT_LDAP:-389}:${COMPOSE_PORT_LDAP:-389}
+      - ${COMPOSE_PORT_LDAPS:-636}:${COMPOSE_PORT_LDAPS:-636}
+    environment:
+      AUTHENTIK_HOST: http://authentik-server:${COMPOSE_PORT_HTTP:-9000}
+      AUTHENTIK_INSECURE: "true"
+      AUTHENTIK_TOKEN: <OUTPOSTS_TOKEN> #${AUTHENTIK_BOOTSTRAP_TOKEN}
+    networks:
+      - frontend
+      - backend
+  authentik_rac:
+    container_name: "authentik-rac"
+    image: ${AUTHENTIK_IMAGE_BASE:-ghcr.io/goauthentik}/rac:${AUTHENTIK_TAG:-2025.8.4}
+    depends_on:
+      authentik_server:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      AUTHENTIK_HOST: http://authentik-server:${COMPOSE_PORT_HTTP:-9000}
+      AUTHENTIK_INSECURE: "true"
+      AUTHENTIK_TOKEN: <OUTPOSTS_TOKEN> #${AUTHENTIK_BOOTSTRAP_TOKEN}
+    networks:
+      - frontend
+      - backend
+  # authentik_radius:
+  #   container_name: "authentik-radius"
+  #   image: ${AUTHENTIK_IMAGE_BASE:-ghcr.io/goauthentik}/radius:${AUTHENTIK_TAG:-2025.8.4}
+  #   depends_on:
+  #     authentik_server:
+  #       condition: service_started
+  #   env_file:
+  #     - .env
+  #   ports:
+  #     - 1812:1812/udp
+  #   environment:
+  #     AUTHENTIK_HOST: http://authentik-server:${COMPOSE_PORT_HTTP:-9000}
+  #     AUTHENTIK_INSECURE: "true"
+  #     AUTHENTIK_TOKEN: <OUTPOSTS_TOKEN> # ${AUTHENTIK_BOOTSTRAP_TOKEN}
+  #   networks:
+  #     - frontend
+  #     - backend
 networks:
   frontend:
     name: internal-frontend
