@@ -81,7 +81,7 @@ php occ ldap:set-config s01 ldapBase "dc=example,dc=org"
 php occ ldap:set-config s01 ldapBaseGroups "ou=groups,dc=example,dc=org"
 php occ ldap:set-config s01 ldapBaseUsers "ou=users,dc=example,dc=org"
 php occ ldap:set-config s01 ldapGidNumber gidNumber
-# ldap_uniq 是authentik特有字段，其他平台的可能是其他字段，可以fallback成cn等，lldap可以用auto自动识别
+# ldap_uniq 是authentik特有字段，其他平台的可能是其他字段，可以fallback成cn,name等
 php occ ldap:set-config s01 ldapExpertUsernameAttr cn
 php occ ldap:set-config s01 ldapExpertUUIDUserAttr uid
 php occ ldap:set-config s01 ldapExpertUUIDGroupAttr uid
@@ -95,7 +95,7 @@ php occ ldap:set-config s01 ldapUserFilter "(&(objectClass=user)(|(memberOf=cn=s
 php occ ldap:set-config s01 ldapUserDisplayName displayName
 php occ ldap:set-config s01 ldapUserDisplayName2 cn
 php occ ldap:set-config s01 ldapUserFilterObjectclass user
-# ldap_uniq 是authentik特有字段，其他平台的可能是其他字段，可以fallback成cn等，lldap可以用auto自动识别
+# ldap_uniq 是authentik特有字段，其他平台的可能是其他字段，可以fallback成cn,name,uid等
 php occ ldap:set-config s01 homeFolderNamingRule "attr:ldap_uniq"
 php occ ldap:set-config s01 ldapGroupDisplayName cn
 php occ ldap:set-config s01 ldapUserFilterMode 1
