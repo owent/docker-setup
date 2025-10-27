@@ -28,6 +28,7 @@ if [[ -z "$NEXTCLOUD_DOMAIN" ]]; then
   NEXTCLOUD_DOMAIN=$ROUTER_DOMAIN
 fi
 
+NEXTCLOUD_NETWORK=(internal-backend internal-frontend)
 NEXTCLOUD_SETTINGS=(
   -e PHP_MEMORY_LIMIT=2000M
   -e PHP_UPLOAD_LIMIT=2000M # 32bit int, must less than 2GB
@@ -91,6 +92,11 @@ if [[ "x$NEXTCLOUD_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; th
     exit 1
   fi
 fi
+
+systemctl --user enable --now podman.socket
+systemctl --user start --now podman.socket
+DOCKER_SOCK_PATH="$XDG_RUNTIME_DIR/podman/podman.sock"
+# php occ app_api:daemon:register local_docker "Docker Local" "docker-install" "http" "/var/run/docker.sock" "http://nextcloud.local" --net=nextcloud
 
 systemctl --user --all | grep -F container-nextcloud.service
 
@@ -164,22 +170,46 @@ podman build \
   -t local_nextcloud -f nextcloud.Dockerfile
 
 if [[ "x$NEXTCLOUD_REVERSE_ROOT_DIR" != "x" ]]; then
-  podman run --name nextcloud_temporary local_nextcloud bash -c 'du -sh /usr/src/nextcloud/*'
+  NEXTCLOUD_COPY_PATHS=($(podman run --name nextcloud_temporary local_nextcloud bash -c 'find /usr/src/nextcloud/ -maxdepth 1 -mindepth 1 -name "*"'))
   if [[ $? -eq 0 ]]; then
     echo "[nextcloud] Remove old static files..."
-    find "$NEXTCLOUD_REVERSE_ROOT_DIR/" -maxdepth 1 -mindepth 1 -name "*" | xargs -r rm -rf
+    for OLD_PATH in $(find "$NEXTCLOUD_REVERSE_ROOT_DIR/" -maxdepth 1 -mindepth 1 -name "*"); do
+      OLD_PATH_BASENAME="$(basename "$OLD_PATH")"
+      if [[ -z "$OLD_PATH_BASENAME" ]] || [[ "$OLD_PATH_BASENAME" == "." ]] || [[ "$OLD_PATH_BASENAME" == ".." ]] \
+        || [[ "$OLD_PATH_BASENAME" == "custom_apps" ]]; then
+        continue
+      fi
+      echo "[nextcloud] Remove $OLD_PATH ..."
+      rm -rf "$OLD_PATH"
+    done
     echo "[nextcloud] Copy static files..."
-    podman cp --overwrite nextcloud_temporary:/usr/src/nextcloud/ "$NEXTCLOUD_REVERSE_ROOT_DIR"
-    if [[ -e "$NEXTCLOUD_REVERSE_ROOT_DIR/nextcloud" ]]; then
-      mv -f "$NEXTCLOUD_REVERSE_ROOT_DIR/nextcloud/"* "$NEXTCLOUD_REVERSE_ROOT_DIR/"
-      rm -rf "$NEXTCLOUD_REVERSE_ROOT_DIR/nextcloud"
-    fi
-    [ -e "$NEXTCLOUD_REVERSE_ROOT_DIR/custom_apps" ] && rm -rf "$NEXTCLOUD_REVERSE_ROOT_DIR/custom_apps/"*
+    for COPY_PATH in "${NEXTCLOUD_COPY_PATHS[@]}"; do
+      COPY_PATH_BASENAME="$(basename "$COPY_PATH")"
+      if [[ -z "$COPY_PATH_BASENAME" ]] || [[ "$COPY_PATH_BASENAME" == "." ]] || [[ "$COPY_PATH_BASENAME" == ".." ]] \
+        || [[ "$COPY_PATH_BASENAME" == "custom_apps" ]]; then
+        continue
+      fi
+      echo "[nextcloud] Copy $COPY_PATH_BASENAME ..."
+      podman cp --overwrite nextcloud_temporary:"$COPY_PATH" "$NEXTCLOUD_REVERSE_ROOT_DIR/"
+    done
 
     # 不能删除 .php 文件,否则反向代理时nginx的try_files会检测不过
     # find "$NEXTCLOUD_REVERSE_ROOT_DIR" -name "*.php" -type f | xargs -r rm -f
   fi
   podman rm nextcloud_temporary
+fi
+
+NEXTCLOUD_NETWORK_HAS_HOST=0
+if [[ ! -z "$NEXTCLOUD_NETWORK" ]]; then
+  for network in ${NEXTCLOUD_NETWORK[@]}; do
+    NEXTCLOUD_SETTINGS+=("--network=$network")
+    if [[ "$network" == "host" ]]; then
+      NEXTCLOUD_NETWORK_HAS_HOST=1
+    fi
+  done
+fi
+if [[ $NEXTCLOUD_NETWORK_HAS_HOST -eq 0 ]]; then
+  NEXTCLOUD_SETTINGS+=(-p $NEXTCLOUD_LISTEN_PORT:$NEXTCLOUD_REVERSE_PORT)
 fi
 
 podman run -d --name nextcloud \
@@ -196,11 +226,11 @@ podman run -d --name nextcloud \
   --mount type=bind,source=$NEXTCLOUD_APPS_DIR,target=/var/www/html/custom_apps \
   --mount type=bind,source=$NEXTCLOUD_EXTERNAL_DIR,target=/data/external \
   --mount type=bind,source=$NEXTCLOUD_TEMPORARY_DIR,target=/data/temporary \
+  --mount type=bind,source=$DOCKER_SOCK_PATH,target=/var/run/docker.sock \
   --mount type=tmpfs,target=/run,tmpfs-mode=1777,tmpfs-size=67108864 \
   --mount type=tmpfs,target=/run/lock,tmpfs-mode=1777,tmpfs-size=67108864 \
   --mount type=tmpfs,target=/tmp,tmpfs-mode=1777 \
   --mount type=tmpfs,target=/var/log/journal,tmpfs-mode=1777 \
-  -p $NEXTCLOUD_LISTEN_PORT:$NEXTCLOUD_REVERSE_PORT \
   local_nextcloud
 # --copy-links
 
