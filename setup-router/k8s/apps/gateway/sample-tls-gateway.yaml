@@ -1,0 +1,41 @@
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: sample-tls-gateway
+  namespace: devops
+spec:
+  gatewayClassName: cilium
+  listeners:
+    - name: https-1
+      protocol: HTTPS
+      port: 443
+      hostname: "sample.example.org"
+      tls:
+        certificateRefs:
+          - kind: Secret
+            name: cert-example.org-wildcard
+    - name: http-1
+      protocol: HTTP
+      port: 80
+      hostname: "sample.example.org"
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: sample-http-route
+  namespace: devops
+spec:
+  parentRefs:
+    - name: sample-tls-gateway
+  hostnames:
+    - "sample.example.org"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: sample
+          port: 80

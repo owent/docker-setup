@@ -10,7 +10,7 @@ metadata:
   name: ippool-ipv4-1
 spec:
   cidr: 10.100.0.0/24
-  blockSize: 22
+  blockSize: 24
   ipipMode: CrossSubnet
   natOutgoing: true
   nodeSelector: all()
@@ -22,7 +22,7 @@ metadata:
   name: ippool-ipv4-2
 spec:
   cidr: 10.100.1.0/24
-  blockSize: 22
+  blockSize: 24
   ipipMode: CrossSubnet
   natOutgoing: true
   nodeSelector: all()
@@ -34,7 +34,7 @@ metadata:
   name: ippool-ipv6-1
 spec:
   cidr: fd01:0:1:0a40:0064:0:0::/112
-  blockSize: 116
+  blockSize: 112
   ipipMode: Never
   natOutgoing: true
   nodeSelector: all()
@@ -46,7 +46,7 @@ metadata:
   name: ippool-ipv6-2
 spec:
   cidr: fd01:0:1:0a40:0064:0:1::/112
-  blockSize: 116
+  blockSize: 112
   ipipMode: Never
   natOutgoing: true
   nodeSelector: all()
