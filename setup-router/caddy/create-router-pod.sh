@@ -89,10 +89,14 @@ if [[ "x$NEXTCLOUD_REVERSE_ROOT_DIR" != "x" ]]; then
 fi
 
 if [[ ! -z "$CADDY_NETWORK" ]]; then
+  CADDY_NETWORK_HAS_HOST=0
   for network in ${CADDY_NETWORK[@]}; do
     CADDY_OPTIONS+=("--network=$network")
+    if [[ "$network" == "host" ]]; then
+      CADDY_NETWORK_HAS_HOST=1
+    fi
   done
-  if [[ ! -z "$CADDY_PUBLISH" ]]; then
+  if [[ ! -z "$CADDY_PUBLISH" ]] && [[ $CADDY_NETWORK_HAS_HOST -eq 0 ]]; then
     for publish in ${CADDY_PUBLISH[@]}; do
       CADDY_OPTIONS+=(-p "$publish")
     done
