@@ -13,7 +13,8 @@ spec:
     server: https://acme.zerossl.com/v2/DV90
     # server: https://acme-staging-v02.api.letsencrypt.org/directory
     externalAccountBinding:
-      keyID: 7hZ2UyERF1YSDesaLAmtAg
+      # Generate EAB Key from https://zerossl.com/documentation/api/generate-eab-credentials/
+      keyID: <EAB KEY ID>
       keySecretRef:
         name: zerossl-eabsecret-example.org
         key: secret
