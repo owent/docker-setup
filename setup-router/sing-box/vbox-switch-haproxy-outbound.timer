@@ -1,0 +1,17 @@
+[Unit]
+Description=Vbox auto switch haproxy outbound
+Requires=vbox-switch-haproxy-outbound.service
+
+[Timer]
+OnStartupSec=2m
+OnCalendar=*:0/30
+AccuracySec=1m
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target
+
+# systemctl --user disable vbox-switch-haproxy-outbound.timer
+# systemctl --user enable $PWD/vbox-switch-haproxy-outbound.timer
+# systemctl --user start vbox-switch-haproxy-outbound.timer
+# systemctl status --user vbox-switch-haproxy-outbound.timer

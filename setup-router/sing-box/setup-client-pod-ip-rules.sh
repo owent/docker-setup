@@ -62,6 +62,16 @@ function vbox_setup_patch_configures_without_auto_redirect() {
     for IP_CIDR in "${GEOIP_CN_ADDRESS[@]}"; do
       echo "        ,\"$IP_CIDR\"" >>"$TARGET_CONF_FILE"
     done
+    if [[ ${#VBOX_TUN_PROXY_BLACKLIST_IPV4[@]} -gt 0 ]]; then
+      for IP_CIDR in "${VBOX_TUN_PROXY_BLACKLIST_IPV4[@]}"; do
+        echo "        ,\"$IP_CIDR\"" >>"$TARGET_CONF_FILE"
+      done
+    fi
+    if [[ ${#VBOX_TUN_PROXY_BLACKLIST_IPV6[@]} -gt 0 ]]; then
+      for IP_CIDR in "${VBOX_TUN_PROXY_BLACKLIST_IPV6[@]}"; do
+        echo "        ,\"$IP_CIDR\"" >>"$TARGET_CONF_FILE"
+      done
+    fi
     echo "        // ROUTE_EXLUCDE_ADDRESS_PATCHED" >>"$TARGET_CONF_FILE"
     sed -n "$((GEOIP_ADDRESS_PLACEHOLDER + 1)),$ p" "$PATCH_CONF_FILE" >>"$TARGET_CONF_FILE"
 

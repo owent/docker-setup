@@ -1,0 +1,16 @@
+[Unit]
+Description=Vbox auto switch haproxy outbound
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /home/router/sing-box/vbox-switch-haproxy-outbound.sh
+# RemainAfterExit=yes
+
+[Install]
+WantedBy=default.target
+
+# systemctl enable --user /home/router/sing-box/vbox-switch-haproxy-outbound.service
+# systemctl start --user vbox-switch-haproxy-outbound.service
+# systemctl status --user vbox-switch-haproxy-outbound.service
