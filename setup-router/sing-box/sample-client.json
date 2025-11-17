@@ -265,7 +265,8 @@
       {
         "inbound": "in-tun",
         "action": "sniff",
-        // "sniffer": ["http", "tls", "quic", "dns", "bittorrent", "dtls", "rdp"],
+        // 不sniff SSH协议，似乎会导致DNS解析不稳定
+        "sniffer": ["http", "tls", "quic", "stun", "dns", "bittorrent", "dtls", "rdp", "ntp"],
         "timeout": "3s"
       },
       {

@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 
-SOCKET="/var/run/haproxy.sock"
-TARGET=( )                            # 探测目标，可用你上游服务器 IP
+SOCKET="/var/run/haproxy/haproxy.sock"
 COUNT=100                             # 每次发 100 个包
 LOSS_THRESHOLD=5                      # 丢包率超过 5% 认为不健康
 
+PREFER_TARGET=( )                     # 探测目标，可用你上游服务器 IP
 PREFER_BACKENDS=( bk_vbox_fast/hk_s1 bk_vbox_fast/hk_s2 )
+
+FALLBACK_TARGET=( )                     # 探测目标，可用你上游服务器 IP
 FALLBACK_BACKENDS=( bk_vbox_fast/sg_s1 bk_vbox_fast/sg_s2 )
 
 check_loss() {
@@ -13,7 +15,7 @@ check_loss() {
   local total_sent=0
   local total_received=0
   
-  for target_ip in "${TARGET[@]}"; do
+  for target_ip in "$@"; do
     local result
     result=$(ping -c "$COUNT" -q "$target_ip" 2>/dev/null \
              | awk '/packets transmitted/ {print $1, $4}')
@@ -36,27 +38,29 @@ check_loss() {
 
 function switch_to_prefer_backends() {
   for backend in "${PREFER_BACKENDS[@]}"; do
-    echo "enable server $$backend" | socat stdio "$SOCKET"
+    echo "enable server $backend" | socat stdio "$SOCKET"
   done
   for backend in "${FALLBACK_BACKENDS[@]}"; do
-    echo "disable server $$backend" | socat stdio "$SOCKET"
+    echo "disable server $backend" | socat stdio "$SOCKET"
   done
 }
 
 function switch_to_fallback_backends() {
   for backend in "${FALLBACK_BACKENDS[@]}"; do
-    echo "enable server $$backend" | socat stdio "$SOCKET"
+    echo "enable server $backend" | socat stdio "$SOCKET"
   done
   for backend in "${PREFER_BACKENDS[@]}"; do
-    echo "disable server $$backend" | socat stdio "$SOCKET"
+    echo "disable server $backend" | socat stdio "$SOCKET"
   done
 }
 
-loss_prefer=$(check_loss)
-
+loss_prefer=$(check_loss "${PREFER_TARGET[@]}")
 echo "Prefer loss: $loss_prefer%"
 
-if [ "$loss_prefer" -gt "$LOSS_THRESHOLD" ]; then
+loss_fallback=$(check_loss "${FALLBACK_TARGET[@]}")
+echo "Fallback loss: $loss_fallback%"
+
+if [ $loss_prefer -gt $(($loss_fallback+$LOSS_THRESHOLD)) ]; then
   echo "Prefer backends bad -> switch to fallback backends"
   switch_to_fallback_backends
 else

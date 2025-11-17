@@ -23,6 +23,13 @@ if [[ -z "$HAPROXY_ETC_DIR" ]]; then
 fi
 mkdir -p "$HAPROXY_ETC_DIR"
 
+if [[ -z "$HAPROXY_DATA_DIR" ]]; then
+  HAPROXY_DATA_DIR="$SCRIPT_DIR/data"
+fi
+mkdir -p "$HAPROXY_DATA_DIR/run"
+mkdir -p "$HAPROXY_DATA_DIR/lib"
+chmod 777 -R "$HAPROXY_DATA_DIR/run" "$HAPROXY_DATA_DIR/lib"
+
 if [[ -z "$HAPROXY_IMAGE" ]]; then
   HAPROXY_IMAGE="haproxy:alpine"
   # HAPROXY_IMAGE="haproxy:lts"
@@ -51,6 +58,8 @@ fi
 
 HAPROXY_OPTIONS=(-e "TZ=Asia/Shanghai"
   --mount "type=bind,source=$HAPROXY_ETC_DIR,target=/etc/haproxy"
+  --mount "type=bind,source=$HAPROXY_DATA_DIR/run,target=/var/run/haproxy"
+  --mount "type=bind,source=$HAPROXY_DATA_DIR/lib,target=/var/lib/haproxy"
 )
 if [[ ! -z "$HAPROXY_SSL_DIR" ]]; then
   HAPROXY_OPTIONS+=(--mount "type=bind,source=$HAPROXY_SSL_DIR,target=/etc/haproxy/ssl")

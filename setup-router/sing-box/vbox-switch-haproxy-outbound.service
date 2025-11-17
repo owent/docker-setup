@@ -5,8 +5,8 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/bin/bash /home/router/sing-box/vbox-switch-haproxy-outbound.sh
-# RemainAfterExit=yes
+ExecStart=/usr/bin/flock -n /home/router/sing-box/vbox-switch-haproxy-outbound.lock /bin/bash /home/router/sing-box/vbox-switch-haproxy-outbound.sh
+# Timer-driven oneshot; flock ensures overlapping triggers discard instantly.
 
 [Install]
 WantedBy=default.target
