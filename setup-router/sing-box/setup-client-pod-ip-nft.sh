@@ -367,6 +367,9 @@ function vbox_iniitialize_rule_table_ipv4() {
   # ipv4 - local network
   nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip saddr @LOCAL_IPV4 ip daddr @LOCAL_IPV4 jump POLICY_MARK_GOTO_DEFAULT
 
+  # blacklist
+  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip daddr @BLACKLIST_IPV4 jump POLICY_MARK_GOTO_DEFAULT
+
   ## DNS always goto tun
   nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip daddr != @LOCAL_IPV4 udp dport '{53, 784, 853, 8853}' jump POLICY_MARK_GOTO_TUN
   nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip daddr != @LOCAL_IPV4 tcp dport '{53, 784, 853, 8853}' jump POLICY_MARK_GOTO_TUN
@@ -387,7 +390,6 @@ function vbox_iniitialize_rule_table_ipv4() {
   nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip daddr @DEFAULT_ROUTE_IPV4 udp dport "@LOCAL_SERVICE_PORT_UDP" jump POLICY_MARK_GOTO_DEFAULT
 
   # ipv4 skip package from outside
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip daddr @BLACKLIST_IPV4 jump POLICY_MARK_GOTO_DEFAULT
   nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip daddr @GEOIP_CN_IPV4 jump POLICY_MARK_GOTO_DEFAULT
 
   ### ipv4 - default goto tun
@@ -429,6 +431,9 @@ function vbox_iniitialize_rule_table_ipv6() {
   # ipv6 - local network
   nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 saddr @LOCAL_IPV6 ip6 daddr @LOCAL_IPV6 jump POLICY_MARK_GOTO_DEFAULT
 
+  # blacklist
+  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr @BLACKLIST_IPV6 jump POLICY_MARK_GOTO_DEFAULT
+
   ## DNS always goto tun
   nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr != @LOCAL_IPV6 udp dport '{53, 784, 853, 8853}' jump POLICY_MARK_GOTO_TUN
   nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr != @LOCAL_IPV6 tcp dport '{53, 784, 853, 8853}' jump POLICY_MARK_GOTO_TUN
@@ -439,14 +444,13 @@ function vbox_iniitialize_rule_table_ipv6() {
   nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 saddr @DEFAULT_ROUTE_IPV6 tcp sport "@LOCAL_SERVICE_PORT_TCP" jump POLICY_MARK_GOTO_DEFAULT
   nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 saddr @DEFAULT_ROUTE_IPV6 udp sport "@LOCAL_SERVICE_PORT_UDP" jump POLICY_MARK_GOTO_DEFAULT
 
-  ### ipv4 - skip private network and UDP of DNS
+  ### ipv6 - skip private network and UDP of DNS
   nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr @LOCAL_IPV6 tcp dport "@LOCAL_SERVICE_PORT_TCP" jump POLICY_MARK_GOTO_DEFAULT
   nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr @LOCAL_IPV6 udp dport "@LOCAL_SERVICE_PORT_UDP" jump POLICY_MARK_GOTO_DEFAULT
   nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr @DEFAULT_ROUTE_IPV6 tcp dport "@LOCAL_SERVICE_PORT_TCP" jump POLICY_MARK_GOTO_DEFAULT
   nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr @DEFAULT_ROUTE_IPV6 udp dport "@LOCAL_SERVICE_PORT_UDP" jump POLICY_MARK_GOTO_DEFAULT
 
-  # ipv4 skip package from outside
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr @BLACKLIST_IPV6 jump POLICY_MARK_GOTO_DEFAULT
+  # ipv6 skip package from outside
   nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr @GEOIP_CN_IPV6 jump POLICY_MARK_GOTO_DEFAULT
 
   ### ipv6 - default goto tun

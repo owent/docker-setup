@@ -66,18 +66,18 @@ if [[ "x$VBOX_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
 fi
 
 VBOX_DOCKER_OPRIONS=(
-  --mount type=bind,source=$VBOX_ETC_DIR,target=/etc/vbox/,ro=true
+  --cap-add=NET_BIND_SERVICE
+  --network=host --security-opt label=disable
   --mount type=bind,source=$VBOX_DATA_DIR,target=/var/lib/vbox
   --mount type=bind,source=$VBOX_LOG_DIR,target=/var/log/vbox
+  --mount type=bind,source=$VBOX_ETC_DIR,target=/etc/vbox,ro=true
 )
 
 if [[ ! -z "$VBOX_SSL_DIR" ]]; then
   VBOX_DOCKER_OPRIONS=("${VBOX_DOCKER_OPRIONS[@]}" --mount type=bind,source=$VBOX_SSL_DIR,target=$VBOX_SSL_DIR,ro=true)
 fi
 
-podman run -d --name vbox-server --cap-add=NET_BIND_SERVICE \
-  --network=host --security-opt label=disable \
-  "${VBOX_DOCKER_OPRIONS[@]}" \
+podman run -d --name vbox-server "${VBOX_DOCKER_OPRIONS[@]}" \
   "$VBOX_IMAGE_URL" -D /var/lib/vbox -C /etc/vbox/ run
 
 # podman cp vbox-server:/usr/local/vbox-server/share/geo-all.tar.gz geo-all.tar.gz

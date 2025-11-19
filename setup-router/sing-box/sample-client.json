@@ -127,7 +127,7 @@
       "iproute2_rule_index": 9000,
       "auto_redirect": false,
       // Default: 0x2023
-      "auto_redirect_input_mark": "13",
+      "auto_redirect_input_mark": "3",
       // Default: 0x2024
       "auto_redirect_output_mark": "15",
       "strict_route": true,
@@ -222,6 +222,39 @@
   ],
   "outbounds": [
     // 大陆白名单模式,第一个或final指向默认值
+    {
+      "type": "hysteria2",
+      "tag": "out-proxy-hy2",
+
+      "server": "<HOST>",
+      "server_port": 8080,
+      // "server_ports": [
+      //   "2080:3000"
+      // ],
+      "hop_interval": "30s",
+      // "up_mbps": 100,
+      // "down_mbps": 100,
+      "obfs": {
+        "type": "salamander",
+        "password": "<PASSWORD>"
+      },
+      "password": "<Authentication password>",
+      // "network": "udp", // One of tcp udp, Both is enabled by default.
+      "tls": {
+        "enabled": true,
+        "server_name": "example.org",
+        "insecure": false
+      },
+      "brutal_debug": false // ,
+      // "domain_resolver": {
+      //   "server": "dns-proxy-bootstrap" // ,
+      //   // "rewrite_ttl": 60,
+      //   // "strategy": "prefer_ipv4", // prefer_ipv4, prefer_ipv6, ipv4_only, ipv6_only
+      //   // "client_subnet": "114.114.114.114/24" // Any China client IP address
+      //   // "client_subnet": "202.96.209.133/24" // Shanghai ChinaNet IP address
+      //   // "client_subnet": "210.22.70.3/24" // Shanghai ChinaUnion IP address
+      // }
+    },
     {
       "type": "trojan",
       "tag": "out-proxy",
