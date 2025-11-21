@@ -83,7 +83,7 @@ if [[ $? -ne 0 ]]; then
     exit 1
 fi
 
-if [[ "$$DOCKER_EXEC" == "podman" ]]; then
+if [[ "$DOCKER_EXEC" == "podman" ]]; then
     podman stop keepalived
 
     podman generate systemd --name keepalived | tee /lib/systemd/system/container-keepalived.service
