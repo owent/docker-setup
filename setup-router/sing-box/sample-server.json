@@ -186,6 +186,33 @@
         "max_early_data": 2048,
         "early_data_header_name": "Sec-WebSocket-Protocol"
       }
+    },
+    {
+      "type": "hysteria2",
+      "tag": "in-hy2",
+      "listen": "::",
+      "listen_port": 8374,
+      // "up_mbps": 100,
+      // "down_mbps": 100,
+      "obfs": {
+        "type": "salamander",
+        "password": "<PASSWORD>"
+      },
+      "users": [
+        {
+          "name": "<Authentication user>",
+          "password": "<Authentication password>"
+        }
+      ],
+      // "ignore_client_bandwidth": false,
+      "tls": {
+        "enabled": true,
+        "server_name": "example.org",
+        "key_path": "/path/to/key.pem",
+        "certificate_path": "/path/to/certificate.pem"
+      },
+      "masquerade": "http://127.0.0.1:8375", // file,http or https
+      "brutal_debug": false
     }
   ],
   "outbounds": [
@@ -207,7 +234,8 @@
       {
         "inbound": ["in-vmess", "in-vless"],
         "action": "sniff",
-        // "sniffer": ["http", "tls", "quic", "dns", "bittorrent", "dtls", "rdp"],
+        // 不sniff SSH协议，似乎会导致DNS解析不稳定
+        "sniffer": ["http", "tls", "quic", "stun", "dns", "bittorrent", "dtls", "rdp", "ntp"],
         "timeout": "1s"
       },
       {

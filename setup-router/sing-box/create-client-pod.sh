@@ -46,13 +46,17 @@ if [[ "x$VBOX_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   $DOCKER_EXEC image prune -a -f --filter "until=240h"
 fi
 
-$DOCKER_EXEC run -d --name vbox-client --cap-add=NET_ADMIN --cap-add=NET_BIND_SERVICE \
-  --network=host --security-opt label=disable \
-  --device /dev/net/tun:/dev/net/tun \
-  --mount type=bind,source=$VBOX_ETC_DIR,target=/etc/vbox/,ro=true \
-  --mount type=bind,source=$VBOX_DATA_DIR,target=/var/lib/vbox \
-  --mount type=bind,source=$VBOX_LOG_DIR,target=/var/log/vbox \
-  --mount type=bind,source=$ACMESH_SSL_DIR,target=/data/ssl,ro=true \
+VBOX_DOCKER_OPRIONS=(
+  --cap-add=NET_ADMIN --cap-add=NET_BIND_SERVICE
+  --network=host --security-opt label=disable
+  --device /dev/net/tun:/dev/net/tun
+  --mount type=bind,source=$VBOX_DATA_DIR,target=/var/lib/vbox
+  --mount type=bind,source=$VBOX_LOG_DIR,target=/var/log/vbox
+  --mount type=bind,source=$VBOX_ETC_DIR,target=/etc/vbox,ro=true
+  --mount type=bind,source=$ACMESH_SSL_DIR,target=/data/ssl,ro=true
+)
+
+$DOCKER_EXEC run -d --name vbox-client "${VBOX_DOCKER_OPRIONS[@]}" \
   "$VBOX_IMAGE_URL" -D /var/lib/vbox -C /etc/vbox/ run
 
 if [[ $? -ne 0 ]]; then
