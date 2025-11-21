@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+
 SOCKET="/var/run/haproxy/haproxy.sock"
 COUNT=100                             # 每次发 100 个包
 LOSS_THRESHOLD=2                      # 丢包率prefer比fallback超过 2% 认为不健康
@@ -46,6 +48,16 @@ check_loss() {
 function switch_to_backends() {
   ENABLE_GROUP_NAME="$1"
   shift
+
+  PREVIOUS_GROUP_NAME=""
+  if [ -e "$SCRIPT_DIR/vbox-switch-haproxy-outbound.group-name.txt" ]; then
+    PREVIOUS_GROUP_NAME=$(cat "$SCRIPT_DIR/vbox-switch-haproxy-outbound.group-name.txt")
+  fi
+  if [[ "$PREVIOUS_GROUP_NAME" == "$ENABLE_GROUP_NAME" ]]; then
+    echo "Backends not changed for group $ENABLE_GROUP_NAME, no switch needed."
+    return
+  fi
+
   echo "enable backends of group $ENABLE_GROUP_NAME"
   for backend in "$@"; do
     echo "enable server $backend" | socat stdio "$SOCKET"
@@ -80,6 +92,39 @@ function switch_to_backends() {
       echo "disable server $backend" | socat stdio "$SOCKET"
     done
   done
+
+  # Shutdown sessions on disabled backends
+  for ((i=1;i<=$PREFER_GROUP_COUNT;i++)); do
+    GROUP_NAME_VAR="PREFER_GROUP_${i}_NAME"
+    GROUP_NAME=${!GROUP_NAME_VAR}
+    if [ "$GROUP_NAME" == "$ENABLE_GROUP_NAME" ]; then
+      continue
+    fi
+    echo "shutdown sessions server of group $GROUP_NAME"
+
+    GROUP_BACKENDS_VAR="PREFER_GROUP_${i}_BACKENDS[@]"
+    GROUP_BACKENDS=("${!GROUP_BACKENDS_VAR}")
+    for backend in "${GROUP_BACKENDS[@]}"; do
+      echo "shutdown sessions server $backend" | socat stdio "$SOCKET"
+    done
+  done
+  
+  for ((i=1;i<=$FALLBACK_GROUP_COUNT;i++)); do
+    GROUP_NAME_VAR="FALLBACK_GROUP_${i}_NAME"
+    GROUP_NAME=${!GROUP_NAME_VAR}
+    if [ "$GROUP_NAME" == "$ENABLE_GROUP_NAME" ]; then
+      continue
+    fi
+    echo "shutdown sessions server of group $GROUP_NAME"
+
+    GROUP_BACKENDS_VAR="FALLBACK_GROUP_${i}_BACKENDS[@]"
+    GROUP_BACKENDS=("${!GROUP_BACKENDS_VAR}")
+    for backend in "${GROUP_BACKENDS[@]}"; do
+      echo "shutdown sessions server $backend" | socat stdio "$SOCKET"
+    done
+  done
+
+  echo "$ENABLE_GROUP_NAME" > "$SCRIPT_DIR/vbox-switch-haproxy-outbound.group-name.txt"
 }
 
 PREFER_GROUP_SELECT_LOSS=10000
