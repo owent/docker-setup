@@ -128,9 +128,19 @@ function vbox_patch_configure() {
       cp -f "$TARGET_CONF_FILE" "$VBOX_ETC_DIR/"
     done
   fi
+
+  if [[ -z "$VBOX_TUN_ENABLE_AUTO_ROUTE" ]] || [[ $VBOX_TUN_ENABLE_AUTO_ROUTE -eq 0 ]]; then
+    sed -i -E 's;(//[[:space:]]*)?"auto_route":[^,]+,;"auto_route": false,;g' "$TARGET_CONF_FILE"
+  else
+    sed -i -E 's;(//[[:space:]]*)?"auto_route":[^,]+,;"auto_route": true,;g' "$TARGET_CONF_FILE"
+  fi
 }
 
 function vbox_get_last_tun_lookup_priority() {
+  if [[ -z "$VBOX_TUN_ENABLE_AUTO_ROUTE" ]] || [[ $VBOX_TUN_ENABLE_AUTO_ROUTE -eq 0 ]]; then
+    return 0
+  fi
+
   IP_FAMILY="$1"
   FIND_PROIRITY=""
   for ((i = 0; i < 10; i++)); do
@@ -148,6 +158,10 @@ function vbox_get_last_tun_lookup_priority() {
 }
 
 function vbox_get_first_nop_lookup_priority_after_tun() {
+  if [[ -z "$VBOX_TUN_ENABLE_AUTO_ROUTE" ]] || [[ $VBOX_TUN_ENABLE_AUTO_ROUTE -eq 0 ]]; then
+    return 0
+  fi
+
   IP_FAMILY="$1"
   TUN_PRIORITY=$2
   FIND_PROIRITY=""
@@ -256,7 +270,7 @@ function vbox_setup_ip_rules() {
     # 对比测试指令: ip route get 74.125.195.113 from $PPP_IP mark 3 和 ip route get 74.125.195.113 mark 3
     VBOX_TUN_ORIGIN_TABLE_RULE=($(ip $IP_FAMILY route show table $VBOX_TUN_TABLE_ID | tail -n 1 | awk '{$1="";print $0}' | grep -E -o '.*dev[[:space:]]+[^[:space:]]+'))
     ip $IP_FAMILY route flush table $VBOX_TUN_WITH_SRC_TABLE_ID
-    if [[ ! -z "IP_FAMILY" ]] && [[ "$IP_FAMILY" == "-6" ]]; then
+    if [[ ! -z "$IP_FAMILY" ]] && [[ "$IP_FAMILY" == "-6" ]]; then
       VBOX_TUN_IP_ADDR=""
       for ((i = 0; i < 10; i++)); do
         VBOX_TUN_IP_ADDR=$(ip -o $IP_FAMILY addr show dev $VBOX_TUN_INTERFACE scope global | awk 'match($0, /inet6\s+([0-9a-fA-F:]+)/, ip) { print ip[1] }' | head -n 1)
