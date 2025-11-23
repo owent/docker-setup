@@ -57,7 +57,7 @@ fi
 
 nft add chain inet security_firewall PREROUTING '{ type filter hook prerouting priority filter + 10; policy accept; }'
 nft add rule inet security_firewall PREROUTING icmp type destination-unreachable icmp code frag-needed accept
-nft add rule inet security_firewall PREROUTING icmpv6 type '{ nd-router-advert, nd-neighbor-solicit, packet-too-big }' accept
+nft add rule inet security_firewall PREROUTING icmpv6 type '{ nd-router-advert, nd-neighbor-solicit, packet-too-big, nd-neighbor-advert }' accept
 nft add rule inet security_firewall PREROUTING meta nfproto ipv6 meta iifkind != '{ "tun" }' fib saddr . iif oif missing drop
 
 nft add chain inet security_firewall INPUT '{ type filter hook input priority filter + 10; policy accept; }'
@@ -79,6 +79,7 @@ nft add rule inet security_firewall INPUT reject with icmpx type admin-prohibite
 
 nft add chain inet security_firewall OUTPUT '{ type filter hook output priority filter + 10; policy accept; }'
 nft add rule inet security_firewall OUTPUT oifname "lo" accept
+nft add rule inet security_firewall OUTPUT icmpv6 type '{ packet-too-big, nd-router-solicit, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert, nd-redirect }' accept
 nft add rule inet security_firewall OUTPUT ip6 daddr { ::/96, ::ffff:0.0.0.0/96, 2002::/24, 2002:a00::/24, 2002:7f00::/24, 2002:a9fe::/32, 2002:ac10::/28, 2002:c0a8::/32, 2002:e000::/19 } reject with icmpv6 type addr-unreachable
 
 nft add chain inet security_firewall FORWARD '{ type filter hook forward priority filter + 10; policy accept; }'
