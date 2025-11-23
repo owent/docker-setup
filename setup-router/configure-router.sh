@@ -55,7 +55,8 @@ DNSMASQ_ENABLE_DHCP_EXCEPT_INTERFACE=(ppp0 ppp1)
 VBOX_ETC_DIR=$ROUTER_HOME/etc/vbox
 VBOX_DATA_DIR=$ROUTER_DATA_ROOT_DIR/vbox
 VBOX_SKIP_IP_RULE_PRIORITY=8123
-VBOX_TUN_ENABLE_AUTO_ROUTE=0
+# 暂不支持移除自动路由功能，因为需要读取它生成的 via 172.19.0.2 dev tun-vbox src 172.19.0.1 
+# VBOX_TUN_ENABLE_AUTO_ROUTE=1
 VBOX_TUN_INTERFACE=tun-vbox
 VBOX_TUN_TABLE_ID=2022
 # 如果走sing-box默认的tun代理设置，可能会把CN ip加入排除名单，导致无法代理DNS，所以这里手动指定常用的公共DNS服务器地址

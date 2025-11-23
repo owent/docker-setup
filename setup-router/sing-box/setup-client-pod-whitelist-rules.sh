@@ -11,6 +11,10 @@ if [[ -z "$VBOX_DATA_DIR" ]]; then
   VBOX_DATA_DIR="$HOME/vbox/data"
 fi
 
+if [[ -z "$ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY" ]]; then
+  ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY=9091
+fi
+
 if [[ -z "$VBOX_SKIP_IP_RULE_PRIORITY" ]]; then
   VBOX_SKIP_IP_RULE_PRIORITY=8123
 fi
@@ -29,52 +33,91 @@ else
   VBOX_SETUP_IP_RULE_CLEAR=1
 fi
 
-function vbox_setup_whitelist_ipv4() {
-  WHITELIST_TABLE_ID=$(($VBOX_TUN_TABLE_ID + 1))
+function vbox_get_last_tun_lookup_priority() {
+  if [[ ! -z "$VBOX_TUN_ENABLE_AUTO_ROUTE" ]] && [[ $VBOX_TUN_ENABLE_AUTO_ROUTE -eq 0 ]]; then
+    return 0
+  fi
 
-  # Checking lookup/nop rule
+  IP_FAMILY="$1"
   FIND_PROIRITY=""
   for ((i = 0; i < 10; i++)); do
-    FIND_PROIRITY=$(ip -4 rule | grep -E "lookup[[:space:]]+$VBOX_TUN_TABLE_ID" | tail -n 1 | awk 'BEGIN{FS=":"}{print $1}')
+    FIND_PROIRITY=$(ip $IP_FAMILY rule list | grep -E "\\blookup[[:space:]]+$VBOX_TUN_TABLE_ID\$" | tail -n 1 | awk 'BEGIN{FS=":"}{print $1}')
     if [[ ! -z "$FIND_PROIRITY" ]]; then
       break
     fi
     sleep 1
   done
   if [[ -z "$FIND_PROIRITY" ]]; then
-    echo "No priority found for lookup table $VBOX_TUN_TABLE_ID"
     return 1
   fi
-  FIND_NOP_PROIRITY=$(ip -4 rule | grep -E '\bnop\b' | tail -n 1 | awk 'BEGIN{FS=":"}{print $1}')
-  if [[ -z "$FIND_PROIRITY" ]]; then
-    FIND_PROIRITY=$FIND_NOP_PROIRITY
-    if [[ -z "$FIND_PROIRITY" ]]; then
-      return 1
-    else
-      WHITELIST_PROIRITY=$(($FIND_PROIRITY - 1))
-    fi
-  else
-    WHITELIST_PROIRITY=$(($FIND_PROIRITY + 1))
-  fi
-  if [[ -z "$FIND_NOP_PROIRITY" ]]; then
-    FIND_NOP_PROIRITY=$WHITELIST_PROIRITY
+
+  echo "$FIND_PROIRITY"
+}
+
+function vbox_get_first_nop_lookup_priority_after_tun() {
+  if [[ ! -z "$VBOX_TUN_ENABLE_AUTO_ROUTE" ]] && [[ $VBOX_TUN_ENABLE_AUTO_ROUTE -eq 0 ]]; then
+    return 0
   fi
 
-  ip -4 rule add priority $WHITELIST_PROIRITY lookup $WHITELIST_TABLE_ID || return 1
+  IP_FAMILY="$1"
+  TUN_PRIORITY=$2
+  FIND_PROIRITY=""
+  if [[ -z "$TUN_PRIORITY" ]]; then
+    for ((i = 0; i < 10; i++)); do
+      FIND_PROIRITY=$(ip $IP_FAMILY rule show | grep -E '\bnop$' | tail -n 1 | awk 'BEGIN{FS=":"}{print $1}')
+      if [[ ! -z "$FIND_PROIRITY" ]]; then
+        break
+      fi
+      sleep 1
+    done
+  else
+    for ((i = 0; i < 10; i++)); do
+      FIND_PROIRITY=$(ip $IP_FAMILY rule show | grep -E '\bnop$' | awk "BEGIN{FS=\":\"} \$1>$TUN_PRIORITY {print \$1}" | head -n 1)
+      if [[ ! -z "$FIND_PROIRITY" ]]; then
+        break
+      fi
+      sleep 1
+    done
+  fi
+  if [[ -z "$FIND_PROIRITY" ]]; then
+    return 1
+  fi
+
+  echo "$FIND_PROIRITY"
+}
+
+function vbox_setup_whitelist_ipv4() {
+  WHITELIST_TABLE_ID=$(($VBOX_TUN_TABLE_ID + 1))
+
+  # Checking lookup/nop rule
+  LAST_TUN_LOOKUP_PRIORITY=$(vbox_get_last_tun_lookup_priority "-4")
+  NOP_LOOKUP_PRIORITY=$(vbox_get_first_nop_lookup_priority_after_tun "-4" "$LAST_TUN_LOOKUP_PRIORITY")
+
+  if [[ -z "$NOP_LOOKUP_PRIORITY" ]]; then
+    ip -4 rule add nop priority $ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY
+    NOP_LOOKUP_PRIORITY=$ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY
+  fi
+
+  if [[ -z "$LAST_TUN_LOOKUP_PRIORITY" ]]; then
+    WHITELIST_PROIRITY=$(($VBOX_SKIP_IP_RULE_PRIORITY + 1))
+  else
+    WHITELIST_PROIRITY=$(($LAST_TUN_LOOKUP_PRIORITY + 1))
+  fi
 
   TABLE_RULE=($(ip -4 route show table $VBOX_TUN_TABLE_ID | tail -n 1 | awk '{$1="";print $0}' | grep -E -o '.*dev[[:space:]]+[^[:space:]]+'))
   for CIDR in "${VBOX_TUN_PROXY_WHITELIST_IPV4[@]}"; do
     ip -4 route add "$CIDR" "${TABLE_RULE[@]}" table $WHITELIST_TABLE_ID
   done
+  ip -4 rule add priority $WHITELIST_PROIRITY lookup $WHITELIST_TABLE_ID || return 1
 
   for SERVICE_PORT in $(echo $ROUTER_INTERNAL_SERVICE_PUBLIC_PORT_TCP | tr ',' ' '); do
-    ip -4 rule add priority $VBOX_SKIP_IP_RULE_PRIORITY ipproto tcp sport $SERVICE_PORT goto $FIND_NOP_PROIRITY
+    ip -4 rule add priority $VBOX_SKIP_IP_RULE_PRIORITY ipproto tcp sport $SERVICE_PORT goto $NOP_LOOKUP_PRIORITY
   done
   for SERVICE_PORT in $(echo $ROUTER_INTERNAL_SERVICE_PUBLIC_PORT_UDP | tr ',' ' '); do
-    ip -4 rule add priority $VBOX_SKIP_IP_RULE_PRIORITY ipproto udp sport $SERVICE_PORT goto $FIND_NOP_PROIRITY
+    ip -4 rule add priority $VBOX_SKIP_IP_RULE_PRIORITY ipproto udp sport $SERVICE_PORT goto $NOP_LOOKUP_PRIORITY
   done
   for BLACKLIST_IFNAME in $(echo $VBOX_TUN_PROXY_BLACKLIST_IFNAME | tr ',' ' '); do
-    ip -4 rule add priority $VBOX_SKIP_IP_RULE_PRIORITY iif $BLACKLIST_IFNAME goto $FIND_NOP_PROIRITY
+    ip -4 rule add priority $VBOX_SKIP_IP_RULE_PRIORITY iif $BLACKLIST_IFNAME goto $NOP_LOOKUP_PRIORITY
   done
 }
 
@@ -82,87 +125,61 @@ function vbox_setup_whitelist_ipv6() {
   WHITELIST_TABLE_ID=$(($VBOX_TUN_TABLE_ID + 1))
 
   # Checking lookup/nop rule
-  FIND_PROIRITY=""
-  for ((i = 0; i < 10; i++)); do
-    FIND_PROIRITY=$(ip -6 rule | grep -E "lookup[[:space:]]+$VBOX_TUN_TABLE_ID" | tail -n 1 | awk 'BEGIN{FS=":"}{print $1}')
-    if [[ ! -z "$FIND_PROIRITY" ]]; then
-      break
-    fi
-    sleep 1
-  done
-  if [[ -z "$FIND_PROIRITY" ]]; then
-    echo "No priority found for lookup table $VBOX_TUN_TABLE_ID"
-    return 1
-  fi
-  FIND_NOP_PROIRITY=$(ip -6 rule | grep -E '\bnop\b' | tail -n 1 | awk 'BEGIN{FS=":"}{print $1}')
-  if [[ -z "$FIND_PROIRITY" ]]; then
-    FIND_PROIRITY=$FIND_NOP_PROIRITY
-    if [[ -z "$FIND_PROIRITY" ]]; then
-      return 1
-    else
-      WHITELIST_PROIRITY=$(($FIND_PROIRITY - 1))
-    fi
-  else
-    WHITELIST_PROIRITY=$(($FIND_PROIRITY + 1))
-  fi
-  if [[ -z "$FIND_NOP_PROIRITY" ]]; then
-    FIND_NOP_PROIRITY=$WHITELIST_PROIRITY
+  LAST_TUN_LOOKUP_PRIORITY=$(vbox_get_last_tun_lookup_priority "-6")
+  NOP_LOOKUP_PRIORITY=$(vbox_get_first_nop_lookup_priority_after_tun "-6" "$LAST_TUN_LOOKUP_PRIORITY")
+
+  if [[ -z "$NOP_LOOKUP_PRIORITY" ]]; then
+    ip -6 rule add nop priority $ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY
+    NOP_LOOKUP_PRIORITY=$ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY
   fi
 
-  ip -6 rule add priority $WHITELIST_PROIRITY lookup $WHITELIST_TABLE_ID || return 1
+  if [[ -z "$LAST_TUN_LOOKUP_PRIORITY" ]]; then
+    WHITELIST_PROIRITY=$(($VBOX_SKIP_IP_RULE_PRIORITY + 1))
+  else
+    WHITELIST_PROIRITY=$(($LAST_TUN_LOOKUP_PRIORITY + 1))
+  fi
 
   TABLE_RULE=($(ip -6 route show table $VBOX_TUN_TABLE_ID | tail -n 1 | awk '{$1="";print $0}' | grep -E -o '.*dev[[:space:]]+[^[:space:]]+'))
   for CIDR in "${VBOX_TUN_PROXY_WHITELIST_IPV6[@]}"; do
     ip -6 route add "$CIDR" "${TABLE_RULE[@]}" table $WHITELIST_TABLE_ID
   done
+  ip -6 rule add priority $WHITELIST_PROIRITY lookup $WHITELIST_TABLE_ID || return 1
 
   for SERVICE_PORT in $(echo $ROUTER_INTERNAL_SERVICE_PUBLIC_PORT_TCP | tr ',' ' '); do
-    ip -6 rule add priority $VBOX_SKIP_IP_RULE_PRIORITY ipproto tcp sport $SERVICE_PORT goto $FIND_NOP_PROIRITY
+    ip -6 rule add priority $VBOX_SKIP_IP_RULE_PRIORITY ipproto tcp sport $SERVICE_PORT goto $NOP_LOOKUP_PRIORITY
   done
   for SERVICE_PORT in $(echo $ROUTER_INTERNAL_SERVICE_PUBLIC_PORT_UDP | tr ',' ' '); do
-    ip -6 rule add priority $VBOX_SKIP_IP_RULE_PRIORITY ipproto udp sport $SERVICE_PORT goto $FIND_NOP_PROIRITY
+    ip -6 rule add priority $VBOX_SKIP_IP_RULE_PRIORITY ipproto udp sport $SERVICE_PORT goto $NOP_LOOKUP_PRIORITY
   done
   for BLACKLIST_IFNAME in $(echo $VBOX_TUN_PROXY_BLACKLIST_IFNAME | tr ',' ' '); do
-    ip -6 rule add priority $VBOX_SKIP_IP_RULE_PRIORITY iif $BLACKLIST_IFNAME goto $FIND_NOP_PROIRITY
+    ip -6 rule add priority $VBOX_SKIP_IP_RULE_PRIORITY iif $BLACKLIST_IFNAME goto $NOP_LOOKUP_PRIORITY
   done
 }
 
-function vbox_cleanup_whitelist_ipv4() {
-  WHITELIST_TABLE_ID=$(($VBOX_TUN_TABLE_ID + 1))
-  ROUTER_IP_RULE_LOOPUP_VBOX_SKIP_PRIORITY=$(ip -4 rule show lookup $WHITELIST_TABLE_ID | awk 'END {print NF}')
-  while [[ 0 -ne $ROUTER_IP_RULE_LOOPUP_VBOX_SKIP_PRIORITY ]]; do
-    ip -4 rule delete lookup $WHITELIST_TABLE_ID
-    ROUTER_IP_RULE_LOOPUP_VBOX_SKIP_PRIORITY=$(ip -4 rule show lookup $WHITELIST_TABLE_ID | awk 'END {print NF}')
-  done
+function vbox_clear_ip_priority() {
+  for IP_FAMILY in "$@"; do
+    for CLEAR_PRIORITY in "$VBOX_SKIP_IP_RULE_PRIORITY" \
+                          "$ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY"; do
+      ROUTER_IP_RULE_LOOPUP_PRIORITY=$(ip $IP_FAMILY rule show priority $CLEAR_PRIORITY | awk 'END {print NF}')
+      while [[ 0 -ne $ROUTER_IP_RULE_LOOPUP_PRIORITY ]]; do
+        ip $IP_FAMILY rule delete priority $CLEAR_PRIORITY
+        ROUTER_IP_RULE_LOOPUP_PRIORITY=$(ip $IP_FAMILY rule show priority $CLEAR_PRIORITY | awk 'END {print NF}')
+      done
+    done
 
-  ip -4 route flush table $WHITELIST_TABLE_ID || true
+    # clear ip route table
+    WHITELIST_TABLE_ID=$(($VBOX_TUN_TABLE_ID + 1))
+    ROUTER_IP_RULE_LOOPUP_VBOX_SKIP_PRIORITY=$(ip $IP_FAMILY rule show lookup $WHITELIST_TABLE_ID | awk 'END {print NF}')
+    while [[ 0 -ne $ROUTER_IP_RULE_LOOPUP_VBOX_SKIP_PRIORITY ]]; do
+      ip $IP_FAMILY rule delete lookup $WHITELIST_TABLE_ID
+      ROUTER_IP_RULE_LOOPUP_VBOX_SKIP_PRIORITY=$(ip $IP_FAMILY rule show lookup $WHITELIST_TABLE_ID | awk 'END {print NF}')
+    done
 
-  ROUTER_IP_RULE_LOOPUP_VBOX_SKIP_PRIORITY=$(ip -4 rule show priority $VBOX_SKIP_IP_RULE_PRIORITY | awk 'END {print NF}')
-  while [[ 0 -ne $ROUTER_IP_RULE_LOOPUP_VBOX_SKIP_PRIORITY ]]; do
-    ip -4 rule delete priority $VBOX_SKIP_IP_RULE_PRIORITY
-    ROUTER_IP_RULE_LOOPUP_VBOX_SKIP_PRIORITY=$(ip -4 rule show priority $VBOX_SKIP_IP_RULE_PRIORITY | awk 'END {print NF}')
-  done
-}
-
-function vbox_cleanup_whitelist_ipv6() {
-  WHITELIST_TABLE_ID=$(($VBOX_TUN_TABLE_ID + 1))
-  ROUTER_IP_RULE_LOOPUP_VBOX_SKIP_PRIORITY=$(ip -6 rule show lookup $WHITELIST_TABLE_ID | awk 'END {print NF}')
-  while [[ 0 -ne $ROUTER_IP_RULE_LOOPUP_VBOX_SKIP_PRIORITY ]]; do
-    ip -6 rule delete lookup $WHITELIST_TABLE_ID
-    ROUTER_IP_RULE_LOOPUP_VBOX_SKIP_PRIORITY=$(ip -6 rule show lookup $WHITELIST_TABLE_ID | awk 'END {print NF}')
-  done
-
-  ip -6 route flush table $WHITELIST_TABLE_ID || true
-
-  ROUTER_IP_RULE_LOOPUP_VBOX_SKIP_PRIORITY=$(ip -6 rule show priority $VBOX_SKIP_IP_RULE_PRIORITY | awk 'END {print NF}')
-  while [[ 0 -ne $ROUTER_IP_RULE_LOOPUP_VBOX_SKIP_PRIORITY ]]; do
-    ip -6 rule delete priority $VBOX_SKIP_IP_RULE_PRIORITY
-    ROUTER_IP_RULE_LOOPUP_VBOX_SKIP_PRIORITY=$(ip -6 rule show priority $VBOX_SKIP_IP_RULE_PRIORITY | awk 'END {print NF}')
+    ip $IP_FAMILY route flush table $WHITELIST_TABLE_ID || true
   done
 }
 
-vbox_cleanup_whitelist_ipv4
-vbox_cleanup_whitelist_ipv6
+vbox_clear_ip_priority "-4" "-6"
 
 if [[ $VBOX_SETUP_IP_RULE_CLEAR -eq 0 ]] && [[ ${#VBOX_TUN_PROXY_WHITELIST_IPV4[@]} -gt 0 ]]; then
   vbox_setup_whitelist_ipv4

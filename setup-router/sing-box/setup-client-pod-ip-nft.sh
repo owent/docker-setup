@@ -123,21 +123,20 @@ function vbox_patch_configure() {
       sed -i -E 's;(//[[:space:]]*)?"auto_redirect":[^,]+,;"auto_redirect": false,;g' "$TARGET_CONF_FILE"
       sed -i -E 's;(//[[:space:]]*)?"default_mark":([^,]+),;"default_mark":\2,;g' "$TARGET_CONF_FILE"
       sed -i -E 's;(//[[:space:]]*)?"routing_mark":([^,]+),;"routing_mark":\2,;g' "$TARGET_CONF_FILE"
+      if [[ ! -z "$VBOX_TUN_ENABLE_AUTO_ROUTE" ]] && [[ $VBOX_TUN_ENABLE_AUTO_ROUTE -eq 0 ]]; then
+        sed -i -E 's;(//[[:space:]]*)?"auto_route":[^,]+,;"auto_route": false,;g' "$TARGET_CONF_FILE"
+      else
+        sed -i -E 's;(//[[:space:]]*)?"auto_route":[^,]+,;"auto_route": true,;g' "$TARGET_CONF_FILE"
+      fi
 
       echo "Copy patched configure file: $TARGET_CONF_FILE to $VBOX_ETC_DIR/"
       cp -f "$TARGET_CONF_FILE" "$VBOX_ETC_DIR/"
     done
   fi
-
-  if [[ -z "$VBOX_TUN_ENABLE_AUTO_ROUTE" ]] || [[ $VBOX_TUN_ENABLE_AUTO_ROUTE -eq 0 ]]; then
-    sed -i -E 's;(//[[:space:]]*)?"auto_route":[^,]+,;"auto_route": false,;g' "$TARGET_CONF_FILE"
-  else
-    sed -i -E 's;(//[[:space:]]*)?"auto_route":[^,]+,;"auto_route": true,;g' "$TARGET_CONF_FILE"
-  fi
 }
 
 function vbox_get_last_tun_lookup_priority() {
-  if [[ -z "$VBOX_TUN_ENABLE_AUTO_ROUTE" ]] || [[ $VBOX_TUN_ENABLE_AUTO_ROUTE -eq 0 ]]; then
+  if [[ ! -z "$VBOX_TUN_ENABLE_AUTO_ROUTE" ]] && [[ $VBOX_TUN_ENABLE_AUTO_ROUTE -eq 0 ]]; then
     return 0
   fi
 
@@ -158,7 +157,7 @@ function vbox_get_last_tun_lookup_priority() {
 }
 
 function vbox_get_first_nop_lookup_priority_after_tun() {
-  if [[ -z "$VBOX_TUN_ENABLE_AUTO_ROUTE" ]] || [[ $VBOX_TUN_ENABLE_AUTO_ROUTE -eq 0 ]]; then
+  if [[ ! -z "$VBOX_TUN_ENABLE_AUTO_ROUTE" ]] && [[ $VBOX_TUN_ENABLE_AUTO_ROUTE -eq 0 ]]; then
     return 0
   fi
 
