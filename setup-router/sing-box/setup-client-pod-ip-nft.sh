@@ -87,8 +87,8 @@ if [[ -z "$VBOX_TUN_TABLE_ID" ]]; then
   VBOX_TUN_TABLE_ID=2022
 fi
 
-if [[ -z "$VBOX_TUN_WITH_SRC_TABLE_ID" ]]; then
-  VBOX_TUN_WITH_SRC_TABLE_ID=$(($VBOX_TUN_TABLE_ID + 1))
+if [[ -z "$VBOX_TUN_PROXY_WHITELIST_TABLE_ID" ]]; then
+  VBOX_TUN_PROXY_WHITELIST_TABLE_ID=$(($VBOX_TUN_TABLE_ID - 200))
 fi
 
 if [[ -z "$VBOX_TUN_PROXY_BLACKLIST_IFNAME" ]]; then
@@ -208,9 +208,9 @@ function vbox_clear_ip_rules() {
     done
 
     # clear ip route table
-    TABLE_RULE_COUNT=$(ip $IP_FAMILY route show table $VBOX_TUN_WITH_SRC_TABLE_ID 2>/dev/null | wc -l)
+    TABLE_RULE_COUNT=$(ip $IP_FAMILY route show table $VBOX_TUN_PROXY_WHITELIST_TABLE_ID 2>/dev/null | wc -l)
     if [[ $TABLE_RULE_COUNT -gt 0 ]]; then
-      ip $IP_FAMILY route flush table $VBOX_TUN_WITH_SRC_TABLE_ID
+      ip $IP_FAMILY route flush table $VBOX_TUN_PROXY_WHITELIST_TABLE_ID
     fi
   done
 }
@@ -268,7 +268,7 @@ function vbox_setup_ip_rules() {
     # Include marks, 指定 src ip。否则无法触发重路由
     # 对比测试指令: ip route get 74.125.195.113 from $PPP_IP mark 3 和 ip route get 74.125.195.113 mark 3
     VBOX_TUN_ORIGIN_TABLE_RULE=($(ip $IP_FAMILY route show table $VBOX_TUN_TABLE_ID | tail -n 1 | awk '{$1="";print $0}' | grep -E -o '.*dev[[:space:]]+[^[:space:]]+'))
-    ip $IP_FAMILY route flush table $VBOX_TUN_WITH_SRC_TABLE_ID
+    ip $IP_FAMILY route flush table $VBOX_TUN_PROXY_WHITELIST_TABLE_ID
     if [[ ! -z "$IP_FAMILY" ]] && [[ "$IP_FAMILY" == "-6" ]]; then
       VBOX_TUN_IP_ADDR=""
       for ((i = 0; i < 10; i++)); do
@@ -279,7 +279,7 @@ function vbox_setup_ip_rules() {
         sleep 1
       done
       for ROUTE_CIDR in "${IPV6_TUN_ADDRESS_SET[@]}"; do
-        ip $IP_FAMILY route add "$ROUTE_CIDR" "dev" "$VBOX_TUN_INTERFACE" src "$VBOX_TUN_IP_ADDR" table $VBOX_TUN_WITH_SRC_TABLE_ID
+        ip $IP_FAMILY route add "$ROUTE_CIDR" "dev" "$VBOX_TUN_INTERFACE" src "$VBOX_TUN_IP_ADDR" table $VBOX_TUN_PROXY_WHITELIST_TABLE_ID
       done
     else
       VBOX_TUN_IP_ADDR=""
@@ -291,10 +291,10 @@ function vbox_setup_ip_rules() {
         sleep 1
       done
       for ROUTE_CIDR in "${IPV4_TUN_ADDRESS_SET[@]}"; do
-        ip $IP_FAMILY route add "$ROUTE_CIDR" "${VBOX_TUN_ORIGIN_TABLE_RULE[@]}" src "$VBOX_TUN_IP_ADDR" table $VBOX_TUN_WITH_SRC_TABLE_ID
+        ip $IP_FAMILY route add "$ROUTE_CIDR" "${VBOX_TUN_ORIGIN_TABLE_RULE[@]}" src "$VBOX_TUN_IP_ADDR" table $VBOX_TUN_PROXY_WHITELIST_TABLE_ID
       done
     fi
-    ip $IP_FAMILY rule add fwmark 0x3/0x3 lookup $VBOX_TUN_WITH_SRC_TABLE_ID priority $VBOX_IP_RULE_INCLUDE_MARK_PRIORITY
+    ip $IP_FAMILY rule add fwmark 0x3/0x3 lookup $VBOX_TUN_PROXY_WHITELIST_TABLE_ID priority $VBOX_IP_RULE_INCLUDE_MARK_PRIORITY
 
     # NO mark to default route, 自动生成的ppp0没有指定src，触发重路由会导致ip不正确。所以默认路由还是指向原本的默认路由
     ip $IP_FAMILY rule add fwmark 0x0/0xf goto $NOP_LOOKUP_PRIORITY priority $VBOX_IP_RULE_NO_MARK_DEFAULT_ROUTE_PRIORITY

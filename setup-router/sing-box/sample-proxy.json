@@ -169,6 +169,7 @@
         "min_version": "1.2"
       } // ,
       // "multiplex": {
+      //  // 实测开启后(smux)极其不稳定
       //   "enabled": true
       // },
       // "domain_resolver": {
