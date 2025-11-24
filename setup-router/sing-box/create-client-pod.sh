@@ -82,14 +82,14 @@ if [[ -z "$ROUTER_NET_LOCAL_ENABLE_VBOX" ]] || [[ $ROUTER_NET_LOCAL_ENABLE_VBOX 
     sed "/PIDFile=/a ExecStopPost=/bin/bash $SCRIPT_DIR/setup-client-pod-whitelist-rules.sh clear" |
     sed "/PIDFile=/a ExecStartPost=/bin/bash $SCRIPT_DIR/setup-client-pod-whitelist-rules.sh" |
     sed "/ExecReload=/d" |
-    sed "/PIDFile=/a ExecReload=$DOCKER_EXEC kill --signal HUP vbox-client" |
+    sed "/PIDFile=/a ExecReload=$DOCKER_EXEC kill --signal HUP vbox-client && /bin/bash $SCRIPT_DIR/setup-client-pod-whitelist-rules.sh" |
     tee /lib/systemd/system/vbox-client.service
 else
   $DOCKER_EXEC generate systemd vbox-client |
     sed "/PIDFile=/a ExecStopPost=/bin/bash $SCRIPT_DIR/setup-client-pod-ip-nft.sh clear" |
     sed "/PIDFile=/a ExecStartPost=/bin/bash $SCRIPT_DIR/setup-client-pod-ip-nft.sh" |
     sed "/ExecReload=/d" |
-    sed "/PIDFile=/a ExecReload=$DOCKER_EXEC kill --signal HUP vbox-client" |
+    sed "/PIDFile=/a ExecReload=$DOCKER_EXEC kill --signal HUP vbox-client && /bin/bash $SCRIPT_DIR/setup-client-pod-ip-nft.sh" |
     tee /lib/systemd/system/vbox-client.service
 fi
 
