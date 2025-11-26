@@ -269,8 +269,14 @@
         "min_version": "1.2"
       } // ,
       // "multiplex": {
-      //  // 实测开启后(smux)极其不稳定
-      //   "enabled": true
+      //   "enabled": true,
+      //   "max_connections": 65536,
+      //   "min_streams": 8,
+      //   "max_streams": 0, // 不要用max_streams,会导致连接极其不稳定
+      //   "padding": false, // padding配置要和服务端保持一致
+      //   "brutal": {
+      //     "enabled": false
+      //   }
       // },
       // "domain_resolver": {
       //   "server": "dns-proxy-bootstrap" // ,

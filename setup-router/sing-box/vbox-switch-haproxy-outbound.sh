@@ -69,10 +69,11 @@ function switch_to_backends() {
     if [ "$GROUP_NAME" == "$ENABLE_GROUP_NAME" ]; then
       continue
     fi
-    echo "disable backends of group $GROUP_NAME"
 
     GROUP_BACKENDS_VAR="PREFER_GROUP_${i}_BACKENDS[@]"
     GROUP_BACKENDS=("${!GROUP_BACKENDS_VAR}")
+
+    echo "disable backends of group $GROUP_NAME: ${GROUP_BACKENDS[@]}"
     for backend in "${GROUP_BACKENDS[@]}"; do
       echo "disable server $backend" | socat stdio "$SOCKET"
     done
@@ -84,10 +85,11 @@ function switch_to_backends() {
     if [ "$GROUP_NAME" == "$ENABLE_GROUP_NAME" ]; then
       continue
     fi
-    echo "disable backends of group $GROUP_NAME"
 
     GROUP_BACKENDS_VAR="FALLBACK_GROUP_${i}_BACKENDS[@]"
     GROUP_BACKENDS=("${!GROUP_BACKENDS_VAR}")
+
+    echo "disable backends of group $GROUP_NAME: ${GROUP_BACKENDS[@]}"
     for backend in "${GROUP_BACKENDS[@]}"; do
       echo "disable server $backend" | socat stdio "$SOCKET"
     done
@@ -100,10 +102,11 @@ function switch_to_backends() {
     if [ "$GROUP_NAME" == "$ENABLE_GROUP_NAME" ]; then
       continue
     fi
-    echo "shutdown sessions server of group $GROUP_NAME"
 
     GROUP_BACKENDS_VAR="PREFER_GROUP_${i}_BACKENDS[@]"
     GROUP_BACKENDS=("${!GROUP_BACKENDS_VAR}")
+
+    echo "shutdown sessions server of group $GROUP_NAME: ${GROUP_BACKENDS[@]}"
     for backend in "${GROUP_BACKENDS[@]}"; do
       echo "shutdown sessions server $backend" | socat stdio "$SOCKET"
     done
@@ -115,10 +118,11 @@ function switch_to_backends() {
     if [ "$GROUP_NAME" == "$ENABLE_GROUP_NAME" ]; then
       continue
     fi
-    echo "shutdown sessions server of group $GROUP_NAME"
 
     GROUP_BACKENDS_VAR="FALLBACK_GROUP_${i}_BACKENDS[@]"
     GROUP_BACKENDS=("${!GROUP_BACKENDS_VAR}")
+
+    echo "shutdown sessions server of group $GROUP_NAME: ${GROUP_BACKENDS[@]}"
     for backend in "${GROUP_BACKENDS[@]}"; do
       echo "shutdown sessions server $backend" | socat stdio "$SOCKET"
     done

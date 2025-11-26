@@ -25,7 +25,7 @@ services:
       - "6023:6023"
     environment:
       - TZ=Asia/Shanghai
-    # user: root
+    user: haproxy:root
     # network_mode: host
     networks:
       - internal-frontend

@@ -95,6 +95,7 @@ if [[ $? -ne 0 ]]; then
   exit 1
 fi
 
+podman exec --user root haproxy /bin/sh -c 'chmod 777 -R /var/run/haproxy /var/lib/haproxy'
 podman stop haproxy
 
 podman generate systemd --name haproxy | tee $HAPROXY_ETC_DIR/container-haproxy.service
