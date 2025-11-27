@@ -268,6 +268,7 @@
         "alpn": ["h2"],
         "min_version": "1.2"
       } // ,
+      // DNS解析不要走multiplex，否则极容易超时
       // "multiplex": {
       //   "enabled": true,
       //   "max_connections": 65536,
