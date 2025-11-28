@@ -62,11 +62,19 @@ IPV4_TUN_ADDRESS_SET=(
 ## - ::ffff:0:0/96 - IPv4映射地址
 ## - 64:ff9b::/96 - IPv4/IPv6转换
 ## - 100::/64 - 丢弃前缀
+## - 2001::/32 - Teredo隧道(需要绕过)
+## - 2002::/16 - 6to4 隧道(需要绕过)
+## - 2001:db8::/32 - 文档前缀（建议绕过）
 ## - fc00::/7 - 唯一本地地址
 ## - fe80::/10 - 链路本地地址
 ## - ff00::/8 - 多播地址
 IPV6_TUN_ADDRESS_SET=(
   2000::/3
+)
+IPV6_TUN_ADDRESS_THROW=(
+  2001::/32
+  2001:db8::/32
+  2002::/16
 )
 
 ### 策略路由(占用mark的后4位,RPDB变化均会触发重路由, meta mark and 0xf != 0x0 都跳过重路由):
@@ -280,6 +288,9 @@ function vbox_setup_ip_rules() {
       done
       for ROUTE_CIDR in "${IPV6_TUN_ADDRESS_SET[@]}"; do
         ip $IP_FAMILY route add "$ROUTE_CIDR" "dev" "$VBOX_TUN_INTERFACE" src "$VBOX_TUN_IP_ADDR" table $VBOX_TUN_PROXY_WHITELIST_TABLE_ID
+      done
+      for ROUTE_CIDR in "${IPV6_TUN_ADDRESS_THROW[@]}"; do
+        ip $IP_FAMILY route add throw "$ROUTE_CIDR" table $VBOX_TUN_PROXY_WHITELIST_TABLE_ID
       done
     else
       VBOX_TUN_IP_ADDR=""
