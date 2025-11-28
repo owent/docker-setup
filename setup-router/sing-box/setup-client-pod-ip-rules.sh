@@ -23,6 +23,24 @@ else
   VBOX_SETUP_IP_RULE_CLEAR=1
 fi
 
+## ipv6绕过本地和私有网络地址:
+## - ::1/128 - 环回地址
+## - ::/128 - 未指定地址
+## - ::ffff:0:0/96 - IPv4映射地址
+## - 64:ff9b::/96 - IPv4/IPv6转换
+## - 100::/64 - 丢弃前缀
+## - 2001::/32 - Teredo隧道(需要绕过)
+## - 2002::/16 - 6to4 隧道(需要绕过)
+## - 2001:db8::/32 - 文档前缀（建议绕过）
+## - fc00::/7 - 唯一本地地址
+## - fe80::/10 - 链路本地地址
+## - ff00::/8 - 多播地址
+IPV6_TUN_ADDRESS_THROW=(
+  2001::/32
+  2001:db8::/32
+  2002::/16
+)
+
 function vbox_setup_patch_configures_without_auto_redirect() {
   PATCH_CONF_FILES=($(find "$VBOX_ETC_DIR" -maxdepth 1 -name "*.json.template"))
   if [ ${#PATCH_CONF_FILES[@]} -eq 0 ]; then
@@ -69,6 +87,11 @@ function vbox_setup_patch_configures_without_auto_redirect() {
     fi
     if [[ ${#VBOX_TUN_PROXY_BLACKLIST_IPV6[@]} -gt 0 ]]; then
       for IP_CIDR in "${VBOX_TUN_PROXY_BLACKLIST_IPV6[@]}"; do
+        echo "        ,\"$IP_CIDR\"" >>"$TARGET_CONF_FILE"
+      done
+    fi
+    if [[ ${#IPV6_TUN_ADDRESS_THROW[@]} -gt 0 ]]; then
+      for IP_CIDR in "${IPV6_TUN_ADDRESS_THROW[@]}"; do
         echo "        ,\"$IP_CIDR\"" >>"$TARGET_CONF_FILE"
       done
     fi
