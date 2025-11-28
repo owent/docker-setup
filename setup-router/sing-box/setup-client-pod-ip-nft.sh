@@ -431,6 +431,9 @@ function vbox_iniitialize_rule_table_ipv6() {
   if [[ ${#VBOX_TUN_PROXY_BLACKLIST_IPV6[@]} -gt 0 ]]; then
     nft add element $FAMILY $TABLE BLACKLIST_IPV6 "{ $(echo "${VBOX_TUN_PROXY_BLACKLIST_IPV6[@]}" | tr ' ' ',') }"
   fi
+  if [[ ${#IPV6_TUN_ADDRESS_THROW[@]} -gt 0 ]]; then
+    nft add element $FAMILY $TABLE BLACKLIST_IPV6 "{ $(echo "${IPV6_TUN_ADDRESS_THROW[@]}" | tr ' ' ',') }"
+  fi
   nft list set $FAMILY $TABLE GEOIP_CN_IPV6 >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
     nft add set $FAMILY $TABLE GEOIP_CN_IPV6 '{ type ipv6_addr; flags interval; auto-merge; }'
