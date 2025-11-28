@@ -16,7 +16,7 @@
         "server": "8.8.8.8",
         "server_port": 853,
         "tls": {},
-        "detour": "out-proxy"
+        "detour": "out-proxy-dns"
       },
       // {
       //   "tag": "dns-proxy",
@@ -24,7 +24,7 @@
       //   "server": "1.1.1.1",
       //   "server_port": 853,
       //   "tls": {},
-      //   "detour": "out-proxy"
+      //   "detour": "out-proxy-dns"
       // },
       {
         "tag": "dns-local",
@@ -158,7 +158,11 @@
       ],
       // "route_address_set": [],
       // "route_exclude_address_set": ["geoip-cn"],
-      "udp_timeout": "5m"
+      // 过长会误判UDP连接，影响系统连接复用。比如: 影响DNS解析
+      // 过短会导致UDP连接过早被关闭，影响游戏等应用。
+      // 请务必 >= /proc/sys/net/netfilter/nf_conntrack_udp_timeout_stream + /proc/sys/net/netfilter/nf_conntrack_udp_timeout
+      //   Linux 默认值一般是 >= 120s + 30s = 150s
+      "udp_timeout": "3m"
     },
     {
       "type": "trojan",
@@ -287,6 +291,39 @@
       //   // "client_subnet": "202.96.209.133/24" // Shanghai ChinaNet IP address
       //   // "client_subnet": "210.22.70.3/24" // Shanghai ChinaUnion IP address
       // }
+    },
+    {
+      "type": "trojan",
+      "tag": "out-proxy-dns",
+      "server": "<HOST>",
+      "server_port": 8080,
+      "password": "<PASSWORD>",
+      "tls": {
+        "enabled": true,
+        "server_name": "example.org",
+        "insecure": false,
+        "alpn": ["h2"],
+        "min_version": "1.2"
+      },
+      // DNS解析不要走multiplex，否则极容易超时
+      // "multiplex": {
+      //   "enabled": true,
+      //   "max_connections": 65536,
+      //   "min_streams": 8,
+      //   "max_streams": 0, // 不要用max_streams,会导致连接极其不稳定
+      //   "padding": false, // padding配置要和服务端保持一致
+      //   "brutal": {
+      //     "enabled": false
+      //   }
+      // },
+      "domain_resolver": {
+        "server": "dns-local" // ,
+        // "rewrite_ttl": 60,
+        // "strategy": "prefer_ipv4", // prefer_ipv4, prefer_ipv6, ipv4_only, ipv6_only
+        // "client_subnet": "114.114.114.114/24" // Any China client IP address
+        // "client_subnet": "202.96.209.133/24" // Shanghai ChinaNet IP address
+        // "client_subnet": "210.22.70.3/24" // Shanghai ChinaUnion IP address
+      }
     },
     {
       "type": "direct",
