@@ -137,18 +137,40 @@ echo "$ADMIN_USENAME $ADMIN_TOKEN" | tee "$RUN_HOME/nextcloud/admin-access.log"
 #     nextcloud
 
 echo "Rebuild docker image ..."
+
+# https://github.com/nextcloud/docker/blob/master/.examples/dockerfiles/cron/fpm-alpine/Dockerfile
+# https://github.com/nextcloud/docker/blob/master/.examples/dockerfiles/cron/fpm/Dockerfile
 echo "FROM $NEXTCLOUD_BASE_IMAGE
 
 LABEL maintainer \"OWenT <admin@owent.net>\"
 
 RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ; \\
     export DEBIAN_FRONTEND=noninteractive; \\
+    sed -i -r 's;https?://.*/(debian-security/?);http://mirrors.tencent.com/\1;g' /etc/apt/sources.list.d/debian.sources ; \\
+    sed -i -r 's;https?://.*/(debian/?);http://mirrors.tencent.com/\1;g' /etc/apt/sources.list.d/debian.sources ; \\
+    apt-get update -y && apt-get install -y supervisor && rm -rf /var/lib/apt/lists/* && mkdir /var/log/supervisord /var/run/supervisord; \\
+    chmod 770 -R /var/log/supervisord /var/run/supervisord
+
+RUN export DEBIAN_FRONTEND=noninteractive; \\
     usermod -g root www-data; \\
     usermod -a -G www-data www-data; \\
     chown -R www-data:root /var/www/html/config /var/www/html/data /var/www/html/custom_apps; \\
     chmod -R 770 /var/www/html/config /var/www/html/data /var/www/html/custom_apps; \\
     chmod -R 777 /usr/local/etc
+
 " >nextcloud.Dockerfile
+
+if [[ "x$NEXTCLOUD_REVERSE_ROOT_DIR" != "x" ]]; then
+  echo "COPY supervisord-phpfpm.conf /supervisord.conf" >>nextcloud.Dockerfile
+else
+  echo "COPY supervisord-apache.conf /supervisord.conf" >>nextcloud.Dockerfile
+fi
+
+echo '
+ENV NEXTCLOUD_UPDATE=1
+
+CMD ["/usr/bin/supervisord", "-c", "/supervisord.conf"]
+' >>nextcloud.Dockerfile
 
 #     sed -i -r 's;#?https?://.*/debian-security/?[[:space:]];http://mirrors.tencent.com/debian-security/ ;g' /etc/apt/sources.list ; \\
 #     sed -i -r 's;#?https?://.*/debian/?[[:space:]];http://mirrors.tencent.com/debian/ ;g' /etc/apt/sources.list ; \\
@@ -170,7 +192,7 @@ podman build \
   -t local_nextcloud -f nextcloud.Dockerfile
 
 if [[ "x$NEXTCLOUD_REVERSE_ROOT_DIR" != "x" ]]; then
-  NEXTCLOUD_COPY_PATHS=($(podman run --name nextcloud_temporary local_nextcloud bash -c 'find /usr/src/nextcloud/ -maxdepth 1 -mindepth 1 -name "*"'))
+  NEXTCLOUD_COPY_PATHS=($(podman run --name nextcloud_temporary local_nextcloud bash -c 'find /usr/src/nextcloud/ -maxdepth 1 -mindepth 1 -name "*"' | grep -E '^/usr/src/nextcloud/'))
   if [[ $? -eq 0 ]]; then
     echo "[nextcloud] Remove old static files..."
     for OLD_PATH in $(find "$NEXTCLOUD_REVERSE_ROOT_DIR/" -maxdepth 1 -mindepth 1 -name "*"); do
