@@ -29,8 +29,24 @@ if [[ -z "$NEXTCLOUD_DOMAIN" ]]; then
 fi
 
 NEXTCLOUD_NETWORK=(internal-backend internal-frontend)
+if [[ -z "$NEXTCLOUD_PHP_MEMORY_LIMIT" ]]; then
+  TOTAL_MEM_KB=$(cat /proc/meminfo | grep MemTotal | grep -o -E '[0-9]+')
+  if [[ ! -z "$TOTAL_MEM_KB" ]]; then
+    if [[ $TOTAL_MEM_KB -lt 1048576 ]]; then
+      NEXTCLOUD_PHP_MEMORY_LIMIT=512M
+    elif [[ $TOTAL_MEM_KB -lt 4194304 ]]; then
+      NEXTCLOUD_PHP_MEMORY_LIMIT=1024M
+    elif [[ $TOTAL_MEM_KB -lt 67108864 ]]; then
+      NEXTCLOUD_PHP_MEMORY_LIMIT=$(($TOTAL_MEM_KB/4096))M
+    else
+      NEXTCLOUD_PHP_MEMORY_LIMIT=16384M
+    fi
+  else
+    NEXTCLOUD_PHP_MEMORY_LIMIT=2048M
+  fi
+fi
 NEXTCLOUD_SETTINGS=(
-  -e PHP_MEMORY_LIMIT=2000M
+  -e PHP_MEMORY_LIMIT=$NEXTCLOUD_PHP_MEMORY_LIMIT
   -e PHP_UPLOAD_LIMIT=2000M # 32bit int, must less than 2GB
 )
 if [[ ! -z "$REDIS_PRIVATE_NETWORK_NAME" ]] && [[ ! -z "$REDIS_PRIVATE_NETWORK_IP" ]]; then
