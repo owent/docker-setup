@@ -109,7 +109,7 @@ echo "============ Start to sync nextcloud to onedrive ... ============"
 for SYNC_TARGET in ${RCLONE_REPLICATE_TARGET[@]}; do
   SYNC_NEXTCLOUD_HAS_ERROR=0
   if [[ -e "$NEXTCLOUD_DATA_DIR" ]]; then
-    for DATA_FILTER_DIR in $(find "$NEXTCLOUD_DATA_DIR" -mindepth 1 -maxdepth 1 -name "appdata_*" -prune -o -name "*.log" -prune -o -print); do
+    for DATA_FILTER_DIR in $(find "$NEXTCLOUD_DATA_DIR" -mindepth 1 -maxdepth 1 -name "appdata_*" -prune -o -name "*.log" -prune -o -name "*.log.*" -prune -o -print); do
       podman run --rm --security-opt seccomp=unconfined \
         --mount type=bind,source=$RCLONE_ETC_DIR,target=/config/rclone \
         --mount type=bind,source=$NEXTCLOUD_DATA_DIR,target=$NEXTCLOUD_DATA_DIR \

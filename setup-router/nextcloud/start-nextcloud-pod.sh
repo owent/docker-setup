@@ -55,6 +55,24 @@ elif [[ ! -z "$REDIS_HOST" ]]; then
   NEXTCLOUD_CACHE_OPTIONS=(-e REDIS_HOST=$REDIS_HOST -e REDIS_HOST_PORT=$REDIS_PORT) # -e REDIS_HOST_PASSWORD=)
 fi
 
+# NEXTCLOUD_ENV_*
+#   NEXTCLOUD_ENV_OBJECTSTORE_S3_BUCKET
+#   NEXTCLOUD_ENV_OBJECTSTORE_S3_REGION
+#   NEXTCLOUD_ENV_OBJECTSTORE_S3_HOST
+#   NEXTCLOUD_ENV_OBJECTSTORE_S3_PORT
+#   NEXTCLOUD_ENV_OBJECTSTORE_S3_KEY
+#   NEXTCLOUD_ENV_OBJECTSTORE_S3_SECRET
+#   NEXTCLOUD_ENV_OBJECTSTORE_S3_STORAGE_CLASS
+#   NEXTCLOUD_ENV_OBJECTSTORE_S3_SSL
+#   NEXTCLOUD_ENV_OBJECTSTORE_S3_USEPATH_STYLE
+#   NEXTCLOUD_ENV_OBJECTSTORE_S3_LEGACYAUTH
+#   NEXTCLOUD_ENV_OBJECTSTORE_S3_OBJECT_PREFIX
+#   NEXTCLOUD_ENV_OBJECTSTORE_S3_AUTOCREATE
+#   NEXTCLOUD_ENV_OBJECTSTORE_S3_SSE_C_KE
+for nextcloud_ext_env in $(env | grep -E -o '^NEXTCLOUD_ENV_[^\=]*='); do
+  NEXTCLOUD_SETTINGS+=("-e" "${nextcloud_ext_env#NEXTCLOUD_ENV_}")
+done
+
 if [[ "x$NEXTCLOUD_LISTEN_PORT" == "x" ]]; then
   NEXTCLOUD_LISTEN_PORT=6783
 fi
@@ -156,7 +174,25 @@ echo "Rebuild docker image ..."
 
 # https://github.com/nextcloud/docker/blob/master/.examples/dockerfiles/cron/fpm-alpine/Dockerfile
 # https://github.com/nextcloud/docker/blob/master/.examples/dockerfiles/cron/fpm/Dockerfile
-echo "FROM $NEXTCLOUD_BASE_IMAGE
+if [[ "${NEXTCLOUD_BASE_IMAGE:-11:}" == ":fpm-alpine" ]]; then
+  echo "FROM $NEXTCLOUD_BASE_IMAGE
+
+LABEL maintainer \"OWenT <admin@owent.net>\"
+
+RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ; \\
+    sed -i.bak -r 's#dl-cdn.alpinelinux.org#mirrors.tencent.com#g' /etc/apk/repositories ; \\
+    apk add --no-cache supervisor && mkdir /var/log/supervisord /var/run/supervisord; \\
+    chmod 770 -R /var/log/supervisord /var/run/supervisord
+
+RUN usermod -g root www-data; \\
+    usermod -a -G www-data www-data; \\
+    chown -R www-data:root /var/www/html/config /var/www/html/data /var/www/html/custom_apps; \\
+    chmod -R 770 /var/www/html/config /var/www/html/data /var/www/html/custom_apps; \\
+    chmod -R 777 /usr/local/etc
+
+" >nextcloud.Dockerfile
+else
+  echo "FROM $NEXTCLOUD_BASE_IMAGE
 
 LABEL maintainer \"OWenT <admin@owent.net>\"
 
@@ -175,6 +211,7 @@ RUN export DEBIAN_FRONTEND=noninteractive; \\
     chmod -R 777 /usr/local/etc
 
 " >nextcloud.Dockerfile
+fi
 
 if [[ "x$NEXTCLOUD_REVERSE_ROOT_DIR" != "x" ]]; then
   echo "COPY supervisord-phpfpm.conf /supervisord.conf" >>nextcloud.Dockerfile

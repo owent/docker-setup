@@ -97,14 +97,24 @@
             "invert": true
           },
           {
+            // 走“乐观解析”（Optimistic Resolution）
             "rule_set": "geoip-cn"
           }
         ],
         "action": "route",
         // 代理DNS延长TTL，不然可能下游设备未过期这里就缓存失效了
         "rewrite_ttl": 600,
-        "server": "dns-proxy"
+        "server": "dns-local"
       }
+      // , {
+      //   "action": "route",
+      //   "server": "dns-proxy",
+      //   // 代理DNS延长TTL，不然可能下游设备未过期这里就缓存失效了
+      //   "rewrite_ttl": 600
+      //   // "client_subnet": "114.114.114.114/24" // Any China client IP address
+      //   // "client_subnet": "202.96.209.133/24" // Shanghai ChinaNet IP address
+      //   // "client_subnet": "210.22.70.3/24" // Shanghai ChinaUnion IP address
+      // }
     ],
     // "cache_capacity": 2097152,
     "reverse_mapping": true // ,
@@ -253,10 +263,7 @@
       // "domain_resolver": {
       //   "server": "dns-proxy-bootstrap" // ,
       //   // "rewrite_ttl": 60,
-      //   // "strategy": "prefer_ipv4", // prefer_ipv4, prefer_ipv6, ipv4_only, ipv6_only
-      //   // "client_subnet": "114.114.114.114/24" // Any China client IP address
-      //   // "client_subnet": "202.96.209.133/24" // Shanghai ChinaNet IP address
-      //   // "client_subnet": "210.22.70.3/24" // Shanghai ChinaUnion IP address
+      //   // "strategy": "prefer_ipv4" // prefer_ipv4, prefer_ipv6, ipv4_only, ipv6_only
       // }
     },
     {
@@ -286,10 +293,7 @@
       // "domain_resolver": {
       //   "server": "dns-proxy-bootstrap" // ,
       //   // "rewrite_ttl": 60,
-      //   // "strategy": "prefer_ipv4", // prefer_ipv4, prefer_ipv6, ipv4_only, ipv6_only
-      //   // "client_subnet": "114.114.114.114/24" // Any China client IP address
-      //   // "client_subnet": "202.96.209.133/24" // Shanghai ChinaNet IP address
-      //   // "client_subnet": "210.22.70.3/24" // Shanghai ChinaUnion IP address
+      //   // "strategy": "prefer_ipv4" // prefer_ipv4, prefer_ipv6, ipv4_only, ipv6_only
       // }
     },
     {
@@ -319,10 +323,7 @@
       "domain_resolver": {
         "server": "dns-local" // ,
         // "rewrite_ttl": 60,
-        // "strategy": "prefer_ipv4", // prefer_ipv4, prefer_ipv6, ipv4_only, ipv6_only
-        // "client_subnet": "114.114.114.114/24" // Any China client IP address
-        // "client_subnet": "202.96.209.133/24" // Shanghai ChinaNet IP address
-        // "client_subnet": "210.22.70.3/24" // Shanghai ChinaUnion IP address
+        // "strategy": "prefer_ipv4" // prefer_ipv4, prefer_ipv6, ipv4_only, ipv6_only
       }
     },
     {
@@ -331,10 +332,7 @@
       "domain_resolver": {
         "server": "dns-local" // ,
         // "rewrite_ttl": 60,
-        // "strategy": "prefer_ipv4", // prefer_ipv4, prefer_ipv6, ipv4_only, ipv6_only
-        // "client_subnet": "114.114.114.114/24" // Any China client IP address
-        // "client_subnet": "202.96.209.133/24" // Shanghai ChinaNet IP address
-        // "client_subnet": "210.22.70.3/24" // Shanghai ChinaUnion IP address
+        // "strategy": "prefer_ipv4" // prefer_ipv4, prefer_ipv6, ipv4_only, ipv6_only
       }
     }
   ],
@@ -497,11 +495,8 @@
     "default_mark": 15,
     "default_domain_resolver": {
       // 大陆白名单模式使用dns-proxy，否则默认用dns-local
-      "server": "dns-proxy",
+      "server": "dns-proxy"
       // "rewrite_ttl": 60,
-      // "client_subnet": "114.114.114.114/24" // Any China client IP address
-      // "client_subnet": "202.96.209.133/24" // Shanghai ChinaNet IP address
-      "client_subnet": "210.22.70.3/24" // Shanghai ChinaUnion IP address
     }
   },
   "experimental": {
