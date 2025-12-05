@@ -100,3 +100,6 @@ systemctl daemon-reload
 # patch end
 systemctl enable vbox-client
 systemctl start vbox-client
+
+# set -x
+# sudo -u tools /bin/bash -i -c "systemctl --user restart container-adguard-home.service"

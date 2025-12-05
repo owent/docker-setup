@@ -158,6 +158,11 @@ net.ipv6.conf.br0.autoconf=0
 " | sudo tee /etc/sysctl.d/91-forwarding.conf ;
 
 echo "
+net.netfilter.nf_conntrack_udp_timeout = 60
+net.netfilter.nf_conntrack_udp_timeout_stream = 600
+" | sudo tee /etc/sysctl.d/93-vbox.conf ;
+
+echo "
 # Disable local-link address for internal bridge(For IPv6 NAT)
 # 接口启动可能在内核初始化 sysctl 之前，最好加到启动或刷新网络的回调里
 # /etc/sysctl.d/95-interface-forwarding.conf : sysctl -p /etc/sysctl.d/95-interface-forwarding.conf

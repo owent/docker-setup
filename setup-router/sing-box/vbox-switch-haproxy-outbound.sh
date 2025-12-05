@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
@@ -19,15 +19,29 @@ FALLBACK_GROUP_2_NAME=jp
 FALLBACK_GROUP_2_TARGET=( )
 FALLBACK_GROUP_2_BACKENDS=( bk_vbox_fast/jp_s1 bk_vbox_fast/jp_s2 )
 
+SWITCH_HISTORY_DIR="$SCRIPT_DIR/vbox-switch-haproxy-outbound.group-name"
+mkdir -p "$SWITCH_HISTORY_DIR"
+
+if [[ -e "$SWITCH_HISTORY_DIR/check.log" ]]; then
+  tail -n 500 "$SWITCH_HISTORY_DIR/check.log" > "$SWITCH_HISTORY_DIR/check.log.tmp"
+  mv -f "$SWITCH_HISTORY_DIR/check.log.tmp" "$SWITCH_HISTORY_DIR/check.log"
+fi
+
+echo "======================== $(date '+%Y-%m-%d %H:%M:%S') ========================" >> "$SWITCH_HISTORY_DIR/check.log"
+
 check_loss() {
+  GROUP_NAME="$1"
+  shift
+
   # 通过指定源地址发 ping(确保路由走对应出口)
   local total_sent=0
   local total_received=0
-  
+
   for target_ip in "$@"; do
     local result
-    result=$(ping -c "$COUNT" -q "$target_ip" 2>/dev/null \
-             | awk '/packets transmitted/ {print $1, $4}')
+    ping_report="$(ping -c "$COUNT" -q "$target_ip" 2>/dev/null)"
+    echo -e "------------------------ GROUP_NAME: $GROUP_NAME - $target_ip ------------------------\n$ping_report" >> "$SWITCH_HISTORY_DIR/check.log"
+    result=$(echo "$ping_report" | awk '/packets transmitted/ {print $1, $4}')
     
     if [ -n "$result" ]; then
       local sent=$(echo "$result" | awk '{print $1}')
@@ -46,19 +60,23 @@ check_loss() {
 }
 
 function switch_to_backends() {
-  ENABLE_GROUP_NAME="$1"
+  GROUP_TYPE="$1"
+  ENABLE_GROUP_NAME="$2"
+  shift
   shift
 
   PREVIOUS_GROUP_NAME=""
-  if [ -e "$SCRIPT_DIR/vbox-switch-haproxy-outbound.group-name.txt" ]; then
-    PREVIOUS_GROUP_NAME=$(cat "$SCRIPT_DIR/vbox-switch-haproxy-outbound.group-name.txt")
+  if [ -e "$SWITCH_HISTORY_DIR/$GROUP_TYPE.txt" ]; then
+    PREVIOUS_GROUP_NAME=$(cat "$SWITCH_HISTORY_DIR/$GROUP_TYPE.txt")
   fi
   if [[ "$PREVIOUS_GROUP_NAME" == "$ENABLE_GROUP_NAME" ]]; then
-    echo "Backends not changed for group $ENABLE_GROUP_NAME, no switch needed."
+    echo "[$GROUP_TYPE]: Backends not changed for group $ENABLE_GROUP_NAME, no switch needed."
     return
   fi
 
-  echo "enable backends of group $ENABLE_GROUP_NAME"
+  echo 1 > "$SWITCH_HISTORY_DIR/last-changed.txt"
+
+  echo "[$GROUP_TYPE]: enable backends of group $ENABLE_GROUP_NAME : $@"
   for backend in "$@"; do
     echo "enable server $backend" | socat stdio "$SOCKET"
   done
@@ -73,7 +91,7 @@ function switch_to_backends() {
     GROUP_BACKENDS_VAR="PREFER_GROUP_${i}_BACKENDS[@]"
     GROUP_BACKENDS=("${!GROUP_BACKENDS_VAR}")
 
-    echo "disable backends of group $GROUP_NAME: ${GROUP_BACKENDS[@]}"
+    echo "[$GROUP_TYPE]: disable backends of group $GROUP_NAME: ${GROUP_BACKENDS[@]}"
     for backend in "${GROUP_BACKENDS[@]}"; do
       echo "disable server $backend" | socat stdio "$SOCKET"
     done
@@ -89,7 +107,7 @@ function switch_to_backends() {
     GROUP_BACKENDS_VAR="FALLBACK_GROUP_${i}_BACKENDS[@]"
     GROUP_BACKENDS=("${!GROUP_BACKENDS_VAR}")
 
-    echo "disable backends of group $GROUP_NAME: ${GROUP_BACKENDS[@]}"
+    echo "[$GROUP_TYPE]: disable backends of group $GROUP_NAME: ${GROUP_BACKENDS[@]}"
     for backend in "${GROUP_BACKENDS[@]}"; do
       echo "disable server $backend" | socat stdio "$SOCKET"
     done
@@ -99,14 +117,14 @@ function switch_to_backends() {
   for ((i=1;i<=$PREFER_GROUP_COUNT;i++)); do
     GROUP_NAME_VAR="PREFER_GROUP_${i}_NAME"
     GROUP_NAME=${!GROUP_NAME_VAR}
-    if [ "$GROUP_NAME" == "$ENABLE_GROUP_NAME" ]; then
+    if [ "$GROUP_NAME" == "$ENABLE_GROUP_NAME" ] || [ "x$GROUP_NAME" == "x$PREVIOUS_GROUP_NAME" ]; then
       continue
     fi
 
     GROUP_BACKENDS_VAR="PREFER_GROUP_${i}_BACKENDS[@]"
     GROUP_BACKENDS=("${!GROUP_BACKENDS_VAR}")
 
-    echo "shutdown sessions server of group $GROUP_NAME: ${GROUP_BACKENDS[@]}"
+    echo "[$GROUP_TYPE]: shutdown sessions server of group $GROUP_NAME: ${GROUP_BACKENDS[@]}"
     for backend in "${GROUP_BACKENDS[@]}"; do
       echo "shutdown sessions server $backend" | socat stdio "$SOCKET"
     done
@@ -115,20 +133,20 @@ function switch_to_backends() {
   for ((i=1;i<=$FALLBACK_GROUP_COUNT;i++)); do
     GROUP_NAME_VAR="FALLBACK_GROUP_${i}_NAME"
     GROUP_NAME=${!GROUP_NAME_VAR}
-    if [ "$GROUP_NAME" == "$ENABLE_GROUP_NAME" ]; then
+    if [ "$GROUP_NAME" == "$ENABLE_GROUP_NAME" ] || [ "x$GROUP_NAME" == "x$PREVIOUS_GROUP_NAME" ]; then
       continue
     fi
 
     GROUP_BACKENDS_VAR="FALLBACK_GROUP_${i}_BACKENDS[@]"
     GROUP_BACKENDS=("${!GROUP_BACKENDS_VAR}")
 
-    echo "shutdown sessions server of group $GROUP_NAME: ${GROUP_BACKENDS[@]}"
+    echo "[$GROUP_TYPE]: shutdown sessions server of group $GROUP_NAME: ${GROUP_BACKENDS[@]}"
     for backend in "${GROUP_BACKENDS[@]}"; do
       echo "shutdown sessions server $backend" | socat stdio "$SOCKET"
     done
   done
 
-  echo "$ENABLE_GROUP_NAME" > "$SCRIPT_DIR/vbox-switch-haproxy-outbound.group-name.txt"
+  echo "$ENABLE_GROUP_NAME" > "$SWITCH_HISTORY_DIR/$GROUP_TYPE.txt"
 }
 
 PREFER_GROUP_SELECT_LOSS=10000
@@ -143,7 +161,7 @@ for ((i=1;i<=$PREFER_GROUP_COUNT;i++)); do
   GROUP_TARGET=("${!GROUP_TARGET_VAR}")
   GROUP_BACKENDS=("${!GROUP_BACKENDS_VAR}")
   
-  GROUP_LOSS=$(check_loss "${GROUP_TARGET[@]}")
+  GROUP_LOSS=$(check_loss "$GROUP_NAME" "${GROUP_TARGET[@]}")
   echo "Prefer group $GROUP_NAME loss: $GROUP_LOSS%"
   
   if [ $GROUP_LOSS -lt $PREFER_GROUP_SELECT_LOSS ]; then
@@ -166,7 +184,7 @@ for ((i=1;i<=$FALLBACK_GROUP_COUNT;i++)); do
   GROUP_TARGET=("${!GROUP_TARGET_VAR}")
   GROUP_BACKENDS=("${!GROUP_BACKENDS_VAR}")
   
-  GROUP_LOSS=$(check_loss "${GROUP_TARGET[@]}")
+  GROUP_LOSS=$(check_loss "$GROUP_NAME" "${GROUP_TARGET[@]}")
   echo "Fallback group $GROUP_NAME loss: $GROUP_LOSS%"
   
   if [ $GROUP_LOSS -lt $FALLBACK_GROUP_SELECT_LOSS ]; then
@@ -176,10 +194,22 @@ for ((i=1;i<=$FALLBACK_GROUP_COUNT;i++)); do
   fi
 done
 
+echo 0 > "$SWITCH_HISTORY_DIR/last-changed.txt"
+
 if [ $PREFER_GROUP_SELECT_LOSS -gt $(($FALLBACK_GROUP_SELECT_LOSS+$LOSS_THRESHOLD)) ]; then
   echo "Prefer backends bad -> switch to fallback backends"
-  switch_to_backends "$FALLBACK_GROUP_SELECT_NAME" "${FALLBACK_GROUP_SELECT_BACKENDS[@]}"
+  switch_to_backends "bk_vbox_fast" "$FALLBACK_GROUP_SELECT_NAME" "${FALLBACK_GROUP_SELECT_BACKENDS[@]}"
 else
   echo "Prefer ok -> switch to prefer backends: $PREFER_GROUP_SELECT_NAME"
-  switch_to_backends "$PREFER_GROUP_SELECT_NAME" "${PREFER_GROUP_SELECT_BACKENDS[@]}"
+  switch_to_backends "bk_vbox_fast" "$PREFER_GROUP_SELECT_NAME" "${PREFER_GROUP_SELECT_BACKENDS[@]}"
+fi
+
+# PREFER_GROUP_COUNT=0                  # 首选组数量
+# FALLBACK_GROUP_COUNT=2                # 备用组数量
+# FALLBACK_GROUP_1_BACKENDS=( bk_vbox_sg/sg_s1 bk_vbox_sg/sg_s2 )
+# FALLBACK_GROUP_2_BACKENDS=( bk_vbox_sg/jp_s1 bk_vbox_sg/jp_s2 )
+# switch_to_backends "bk_vbox_sg" "$FALLBACK_GROUP_SELECT_NAME" "${FALLBACK_GROUP_SELECT_BACKENDS[@]//bk_vbox_fast/bk_vbox_sg}"
+
+if [[ $(cat "$SWITCH_HISTORY_DIR/last-changed.txt") -ne 0 ]]; then
+  sudo -u tools /bin/bash -i -c "systemctl --user restart container-adguard-home.service"
 fi
