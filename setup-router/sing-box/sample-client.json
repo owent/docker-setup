@@ -168,8 +168,6 @@
       ],
       // "route_address_set": [],
       // "route_exclude_address_set": ["geoip-cn"],
-      // 过长会误判UDP连接，影响系统连接复用。比如: 影响DNS解析
-      // 过短会导致UDP连接过早被关闭，影响游戏等应用。
       // 建议值 < /proc/sys/net/netfilter/nf_conntrack_udp_timeout_stream - /proc/sys/net/netfilter/nf_conntrack_udp_timeout
       //   Linux 默认值一般是 120s - 30s = 90s
       //   建议改大 /proc/sys/net/netfilter/nf_conntrack_udp_timeout_stream 到 600s。udp_timeout保持5m。

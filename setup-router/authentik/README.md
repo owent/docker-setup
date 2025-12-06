@@ -65,6 +65,13 @@ ldap_id_mapping = False
 min_id = 80000000
 max_id = 99999999
 
+# 禁用rootDSE查询，Authentik可能不提供
+ldap_disable_referrals = true
+# 不要求每个用户都有主组
+auto_private_groups = hybrid
+# 禁用 LDAP sudo，使用本地 sudoers 文件
+sudo_provider = none
+
 # 允许缓存凭证（断网也能登录）
 cache_credentials = True
 enumerate = False

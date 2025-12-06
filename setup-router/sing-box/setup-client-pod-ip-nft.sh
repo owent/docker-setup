@@ -316,175 +316,276 @@ function vbox_setup_rule_marks() {
   FAMILY="$1"
   TABLE="$2"
 
-  # POLICY_MARK_GOTO_DEFAULT
-  nft list chain $FAMILY $TABLE POLICY_MARK_GOTO_DEFAULT >/dev/null 2>&1
-  if [[ $? -ne 0 ]]; then
-    nft add chain $FAMILY $TABLE POLICY_MARK_GOTO_DEFAULT
-  fi
-  nft flush chain $FAMILY $TABLE POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_MARK_GOTO_DEFAULT meta mark set meta mark and 0xfffffff0 xor 0xc
-  nft add rule $FAMILY $TABLE POLICY_MARK_GOTO_DEFAULT ct mark set meta mark accept
+  # 如果以后要支持TPROXY，可以改POLICY_PACKET_GOTO_PROXY链即可
+  nft flush chain $FAMILY $TABLE POLICY_PACKET_GOTO_DEFAULT >/dev/null 2>&1
+  nft flush chain $FAMILY $TABLE POLICY_MARK_GOTO_DEFAULT >/dev/null 2>&1
+  nft flush chain $FAMILY $TABLE POLICY_PACKET_GOTO_PROXY >/dev/null 2>&1
+  nft flush chain $FAMILY $TABLE POLICY_MARK_GOTO_PROXY >/dev/null 2>&1
 
-  # POLICY_MARK_GOTO_TUN
-  nft list chain $FAMILY $TABLE POLICY_MARK_GOTO_TUN >/dev/null 2>&1
-  if [[ $? -ne 0 ]]; then
-    nft add chain $FAMILY $TABLE POLICY_MARK_GOTO_TUN
-  fi
-  nft flush chain $FAMILY $TABLE POLICY_MARK_GOTO_TUN
-  nft add rule $FAMILY $TABLE POLICY_MARK_GOTO_TUN meta mark set meta mark and 0xfffffff0 xor 0x3
-  nft add rule $FAMILY $TABLE POLICY_MARK_GOTO_TUN ct mark set meta mark accept
+  nft -f - <<EOF
+table $FAMILY $TABLE {
+  chain POLICY_PACKET_GOTO_DEFAULT {
+    accept
+  }
+
+  chain POLICY_MARK_GOTO_DEFAULT {
+    meta mark set meta mark and 0xfffffff0 xor 0xc
+    ct mark set meta mark
+    goto POLICY_PACKET_GOTO_DEFAULT
+  }
+
+  chain POLICY_PACKET_GOTO_PROXY {
+    accept
+  }
+
+  chain POLICY_MARK_GOTO_PROXY {
+    meta mark set meta mark and 0xfffffff0 xor 0x3
+    ct mark set meta mark
+    goto POLICY_PACKET_GOTO_PROXY
+  }
+}
+EOF
+
 }
 
-function vbox_iniitialize_rule_table_inet() {
+function vbox_initialize_rule_table_inet() {
   FAMILY="$1"
   TABLE="$2"
 
-  # Ports
-  nft list set $FAMILY $TABLE LOCAL_SERVICE_PORT_UDP >/dev/null 2>&1
-  if [[ $? -ne 0 ]]; then
-    nft add set $FAMILY $TABLE LOCAL_SERVICE_PORT_UDP '{ type inet_service; flags interval; auto-merge; }'
-    nft add element $FAMILY $TABLE LOCAL_SERVICE_PORT_UDP "{$ROUTER_INTERNAL_SERVICE_PORT_UDP}"
+  # Check if sets already exist
+  LOCAL_SERVICE_PORT_UDP_EXISTS=0
+  LOCAL_SERVICE_PORT_TCP_EXISTS=0
+  nft list set $FAMILY $TABLE LOCAL_SERVICE_PORT_UDP >/dev/null 2>&1 && LOCAL_SERVICE_PORT_UDP_EXISTS=1
+  nft list set $FAMILY $TABLE LOCAL_SERVICE_PORT_TCP >/dev/null 2>&1 && LOCAL_SERVICE_PORT_TCP_EXISTS=1
 
+  if [[ $LOCAL_SERVICE_PORT_UDP_EXISTS -eq 0 ]] || [[ $LOCAL_SERVICE_PORT_TCP_EXISTS -eq 0 ]]; then
+    LOCAL_SERVICE_PORT_UDP_ELEMENTS="$ROUTER_INTERNAL_SERVICE_PORT_UDP"
     if [[ ! -z "$ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT" ]]; then
-      nft add element $FAMILY $TABLE LOCAL_SERVICE_PORT_UDP "{$ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT}"
+      LOCAL_SERVICE_PORT_UDP_ELEMENTS="$LOCAL_SERVICE_PORT_UDP_ELEMENTS, $ROUTER_INTERNAL_DIRECTLY_VISIT_UDP_DPORT"
     fi
-  fi
-  nft list set $FAMILY $TABLE LOCAL_SERVICE_PORT_TCP >/dev/null 2>&1
-  if [[ $? -ne 0 ]]; then
-    nft add set $FAMILY $TABLE LOCAL_SERVICE_PORT_TCP '{ type inet_service; flags interval; auto-merge; }'
-    nft add element $FAMILY $TABLE LOCAL_SERVICE_PORT_TCP "{$ROUTER_INTERNAL_SERVICE_PORT_TCP}"
+
+    nft -f - <<EOF
+table $FAMILY $TABLE {
+$(if [[ $LOCAL_SERVICE_PORT_UDP_EXISTS -eq 0 ]]; then
+cat <<INNER_EOF
+  set LOCAL_SERVICE_PORT_UDP {
+    type inet_service
+    flags interval
+    auto-merge
+    elements = { $LOCAL_SERVICE_PORT_UDP_ELEMENTS }
+  }
+INNER_EOF
+fi)
+$(if [[ $LOCAL_SERVICE_PORT_TCP_EXISTS -eq 0 ]]; then
+cat <<INNER_EOF
+  set LOCAL_SERVICE_PORT_TCP {
+    type inet_service
+    flags interval
+    auto-merge
+    elements = { $ROUTER_INTERNAL_SERVICE_PORT_TCP }
+  }
+INNER_EOF
+fi)
+}
+EOF
   fi
 }
 
-function vbox_iniitialize_rule_table_ipv4() {
+function vbox_initialize_rule_table_ipv4() {
   FAMILY="$1"
   TABLE="$2"
 
-  nft list set $FAMILY $TABLE BLACKLIST_IPV4 >/dev/null 2>&1
-  if [[ $? -ne 0 ]]; then
-    nft add set $FAMILY $TABLE BLACKLIST_IPV4 '{ type ipv4_addr; flags interval; auto-merge; }'
-  fi
+  # Check if sets already exist
+  BLACKLIST_IPV4_EXISTS=0
+  GEOIP_CN_IPV4_EXISTS=0
+  LOCAL_IPV4_EXISTS=0
+  DEFAULT_ROUTE_IPV4_EXISTS=0
+  nft list set $FAMILY $TABLE BLACKLIST_IPV4 >/dev/null 2>&1 && BLACKLIST_IPV4_EXISTS=1
+  nft list set $FAMILY $TABLE GEOIP_CN_IPV4 >/dev/null 2>&1 && GEOIP_CN_IPV4_EXISTS=1
+  nft list set $FAMILY $TABLE LOCAL_IPV4 >/dev/null 2>&1 && LOCAL_IPV4_EXISTS=1
+  nft list set $FAMILY $TABLE DEFAULT_ROUTE_IPV4 >/dev/null 2>&1 && DEFAULT_ROUTE_IPV4_EXISTS=1
+
+  nft flush chain $FAMILY $TABLE POLICY_VBOX_IPV4 >/dev/null 2>&1
+
+  nft -f - <<EOF
+table $FAMILY $TABLE {
+$(if [[ $BLACKLIST_IPV4_EXISTS -eq 0 ]]; then
+cat <<INNER_EOF
+  set BLACKLIST_IPV4 {
+    type ipv4_addr
+    flags interval
+    auto-merge
+  }
+INNER_EOF
+fi)
+$(if [[ $GEOIP_CN_IPV4_EXISTS -eq 0 ]]; then
+cat <<INNER_EOF
+  set GEOIP_CN_IPV4 {
+    type ipv4_addr
+    flags interval
+    auto-merge
+  }
+INNER_EOF
+fi)
+$(if [[ $LOCAL_IPV4_EXISTS -eq 0 ]]; then
+cat <<INNER_EOF
+  set LOCAL_IPV4 {
+    type ipv4_addr
+    flags interval
+    auto-merge
+    elements = { 0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16, 172.16.0.0/12, 192.0.0.0/24, 192.168.0.0/16, 224.0.0.0/4, 240.0.0.0/4 }
+  }
+INNER_EOF
+fi)
+$(if [[ $DEFAULT_ROUTE_IPV4_EXISTS -eq 0 ]]; then
+cat <<INNER_EOF
+  set DEFAULT_ROUTE_IPV4 {
+    type ipv4_addr
+    flags interval
+    auto-merge
+  }
+INNER_EOF
+fi)
+
+  chain POLICY_VBOX_IPV4 {
+    # ipv4 - local network
+    ip saddr @LOCAL_IPV4 ip daddr @LOCAL_IPV4 jump POLICY_MARK_GOTO_DEFAULT
+
+    # blacklist
+    ip daddr @BLACKLIST_IPV4 jump POLICY_MARK_GOTO_DEFAULT
+
+    ## DNS always goto tun
+    ip daddr != @LOCAL_IPV4 udp dport { 53, 784, 853, 8853 } jump POLICY_MARK_GOTO_PROXY
+    ip daddr != @LOCAL_IPV4 tcp dport { 53, 784, 853, 8853 } jump POLICY_MARK_GOTO_PROXY
+
+    # ipv4 - DNAT or connect from outside
+    ip saddr @LOCAL_IPV4 tcp sport @LOCAL_SERVICE_PORT_TCP jump POLICY_MARK_GOTO_DEFAULT
+    ip saddr @LOCAL_IPV4 udp sport @LOCAL_SERVICE_PORT_UDP jump POLICY_MARK_GOTO_DEFAULT
+    ip saddr @DEFAULT_ROUTE_IPV4 tcp sport @LOCAL_SERVICE_PORT_TCP jump POLICY_MARK_GOTO_DEFAULT
+    ip saddr @DEFAULT_ROUTE_IPV4 udp sport @LOCAL_SERVICE_PORT_UDP jump POLICY_MARK_GOTO_DEFAULT
+
+    ### ipv4 - skip link-local and broadcast address, 172.20.1.1/24 is used for remote debug
+    ip daddr { 224.0.0.0/4, 255.255.255.255/32, 172.20.1.1/24 } jump POLICY_MARK_GOTO_DEFAULT
+
+    ### ipv4 - skip private network and UDP of DNS
+    ip daddr @LOCAL_IPV4 tcp dport @LOCAL_SERVICE_PORT_TCP jump POLICY_MARK_GOTO_DEFAULT
+    ip daddr @LOCAL_IPV4 udp dport @LOCAL_SERVICE_PORT_UDP jump POLICY_MARK_GOTO_DEFAULT
+    ip daddr @DEFAULT_ROUTE_IPV4 tcp dport @LOCAL_SERVICE_PORT_TCP jump POLICY_MARK_GOTO_DEFAULT
+    ip daddr @DEFAULT_ROUTE_IPV4 udp dport @LOCAL_SERVICE_PORT_UDP jump POLICY_MARK_GOTO_DEFAULT
+
+    # ipv4 skip package from outside
+    ip daddr @GEOIP_CN_IPV4 jump POLICY_MARK_GOTO_DEFAULT
+
+    ### ipv4 - default goto tun
+    jump POLICY_MARK_GOTO_PROXY
+  }
+}
+EOF
+
+  # Add blacklist elements if any
   if [[ ${#VBOX_TUN_PROXY_BLACKLIST_IPV4[@]} -gt 0 ]]; then
     nft add element $FAMILY $TABLE BLACKLIST_IPV4 "{ $(echo "${VBOX_TUN_PROXY_BLACKLIST_IPV4[@]}" | tr ' ' ',') }"
   fi
-  nft list set $FAMILY $TABLE GEOIP_CN_IPV4 >/dev/null 2>&1
-  if [[ $? -ne 0 ]]; then
-    nft add set $FAMILY $TABLE GEOIP_CN_IPV4 '{ type ipv4_addr; flags interval; auto-merge; }'
-  fi
-  nft list set $FAMILY $TABLE LOCAL_IPV4 >/dev/null 2>&1
-  if [[ $? -ne 0 ]]; then
-    nft add set $FAMILY $TABLE LOCAL_IPV4 '{ type ipv4_addr; flags interval; auto-merge; }'
-    nft add element $FAMILY $TABLE LOCAL_IPV4 '{0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16, 172.16.0.0/12, 192.0.0.0/24, 192.168.0.0/16, 224.0.0.0/4, 240.0.0.0/4}'
-  fi
-  nft list set $FAMILY $TABLE DEFAULT_ROUTE_IPV4 >/dev/null 2>&1
-  if [[ $? -ne 0 ]]; then
-    nft add set $FAMILY $TABLE DEFAULT_ROUTE_IPV4 '{ type ipv4_addr; flags interval; auto-merge ; }'
-  fi
-
-  # POLICY_VBOX_IPV4
-  nft list chain $FAMILY $TABLE POLICY_VBOX_IPV4 >/dev/null 2>&1
-  if [[ $? -ne 0 ]]; then
-    nft add chain $FAMILY $TABLE POLICY_VBOX_IPV4
-  fi
-  nft flush chain $FAMILY $TABLE POLICY_VBOX_IPV4
-
-  # ipv4 - local network
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip saddr @LOCAL_IPV4 ip daddr @LOCAL_IPV4 jump POLICY_MARK_GOTO_DEFAULT
-
-  # blacklist
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip daddr @BLACKLIST_IPV4 jump POLICY_MARK_GOTO_DEFAULT
-
-  ## DNS always goto tun
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip daddr != @LOCAL_IPV4 udp dport '{53, 784, 853, 8853}' jump POLICY_MARK_GOTO_TUN
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip daddr != @LOCAL_IPV4 tcp dport '{53, 784, 853, 8853}' jump POLICY_MARK_GOTO_TUN
-
-  # ipv4 - DNAT or connect from outside
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip saddr @LOCAL_IPV4 tcp sport "@LOCAL_SERVICE_PORT_TCP" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip saddr @LOCAL_IPV4 udp sport "@LOCAL_SERVICE_PORT_UDP" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip saddr @DEFAULT_ROUTE_IPV4 tcp sport "@LOCAL_SERVICE_PORT_TCP" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip saddr @DEFAULT_ROUTE_IPV4 udp sport "@LOCAL_SERVICE_PORT_UDP" jump POLICY_MARK_GOTO_DEFAULT
-
-  ### ipv4 - skip link-local and broadcast address, 172.20.1.1/24 is used for remote debug
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip daddr {224.0.0.0/4, 255.255.255.255/32, 172.20.1.1/24} jump POLICY_MARK_GOTO_DEFAULT
-
-  ### ipv4 - skip private network and UDP of DNS
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip daddr @LOCAL_IPV4 tcp dport "@LOCAL_SERVICE_PORT_TCP" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip daddr @LOCAL_IPV4 udp dport "@LOCAL_SERVICE_PORT_UDP" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip daddr @DEFAULT_ROUTE_IPV4 tcp dport "@LOCAL_SERVICE_PORT_TCP" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip daddr @DEFAULT_ROUTE_IPV4 udp dport "@LOCAL_SERVICE_PORT_UDP" jump POLICY_MARK_GOTO_DEFAULT
-
-  # ipv4 skip package from outside
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 ip daddr @GEOIP_CN_IPV4 jump POLICY_MARK_GOTO_DEFAULT
-
-  ### ipv4 - default goto tun
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV4 jump POLICY_MARK_GOTO_TUN
 }
 
-function vbox_iniitialize_rule_table_ipv6() {
+function vbox_initialize_rule_table_ipv6() {
   FAMILY="$1"
   TABLE="$2"
 
-  nft list set $FAMILY $TABLE BLACKLIST_IPV6 >/dev/null 2>&1
-  if [[ $? -ne 0 ]]; then
-    nft add set $FAMILY $TABLE BLACKLIST_IPV6 '{ type ipv6_addr; flags interval; auto-merge; }'
-  fi
+  # Check if sets already exist
+  BLACKLIST_IPV6_EXISTS=0
+  GEOIP_CN_IPV6_EXISTS=0
+  LOCAL_IPV6_EXISTS=0
+  DEFAULT_ROUTE_IPV6_EXISTS=0
+  nft list set $FAMILY $TABLE BLACKLIST_IPV6 >/dev/null 2>&1 && BLACKLIST_IPV6_EXISTS=1
+  nft list set $FAMILY $TABLE GEOIP_CN_IPV6 >/dev/null 2>&1 && GEOIP_CN_IPV6_EXISTS=1
+  nft list set $FAMILY $TABLE LOCAL_IPV6 >/dev/null 2>&1 && LOCAL_IPV6_EXISTS=1
+  nft list set $FAMILY $TABLE DEFAULT_ROUTE_IPV6 >/dev/null 2>&1 && DEFAULT_ROUTE_IPV6_EXISTS=1
+
+  nft flush chain $FAMILY $TABLE POLICY_VBOX_IPV6 >/dev/null 2>&1
+
+  nft -f - <<EOF
+table $FAMILY $TABLE {
+$(if [[ $BLACKLIST_IPV6_EXISTS -eq 0 ]]; then
+cat <<INNER_EOF
+  set BLACKLIST_IPV6 {
+    type ipv6_addr
+    flags interval
+    auto-merge
+  }
+INNER_EOF
+fi)
+$(if [[ $GEOIP_CN_IPV6_EXISTS -eq 0 ]]; then
+cat <<INNER_EOF
+  set GEOIP_CN_IPV6 {
+    type ipv6_addr
+    flags interval
+    auto-merge
+  }
+INNER_EOF
+fi)
+$(if [[ $LOCAL_IPV6_EXISTS -eq 0 ]]; then
+cat <<INNER_EOF
+  set LOCAL_IPV6 {
+    type ipv6_addr
+    flags interval
+    auto-merge
+    elements = { ::1/128, ::/128, ::ffff:0:0/96, 64:ff9b::/96, 100::/64, fc00::/7, fe80::/10, ff00::/8 }
+  }
+INNER_EOF
+fi)
+$(if [[ $DEFAULT_ROUTE_IPV6_EXISTS -eq 0 ]]; then
+cat <<INNER_EOF
+  set DEFAULT_ROUTE_IPV6 {
+    type ipv6_addr
+    flags interval
+    auto-merge
+  }
+INNER_EOF
+fi)
+
+  chain POLICY_VBOX_IPV6 {
+    # ipv6 - local network
+    ip6 saddr @LOCAL_IPV6 ip6 daddr @LOCAL_IPV6 jump POLICY_MARK_GOTO_DEFAULT
+
+    # blacklist
+    ip6 daddr @BLACKLIST_IPV6 jump POLICY_MARK_GOTO_DEFAULT
+
+    ## DNS always goto tun
+    ip6 daddr != @LOCAL_IPV6 udp dport { 53, 784, 853, 8853 } jump POLICY_MARK_GOTO_PROXY
+    ip6 daddr != @LOCAL_IPV6 tcp dport { 53, 784, 853, 8853 } jump POLICY_MARK_GOTO_PROXY
+
+    # ipv6 - DNAT or connect from outside
+    ip6 saddr @LOCAL_IPV6 tcp sport @LOCAL_SERVICE_PORT_TCP jump POLICY_MARK_GOTO_DEFAULT
+    ip6 saddr @LOCAL_IPV6 udp sport @LOCAL_SERVICE_PORT_UDP jump POLICY_MARK_GOTO_DEFAULT
+    ip6 saddr @DEFAULT_ROUTE_IPV6 tcp sport @LOCAL_SERVICE_PORT_TCP jump POLICY_MARK_GOTO_DEFAULT
+    ip6 saddr @DEFAULT_ROUTE_IPV6 udp sport @LOCAL_SERVICE_PORT_UDP jump POLICY_MARK_GOTO_DEFAULT
+
+    ### ipv6 - skip private network and UDP of DNS
+    ip6 daddr @LOCAL_IPV6 tcp dport @LOCAL_SERVICE_PORT_TCP jump POLICY_MARK_GOTO_DEFAULT
+    ip6 daddr @LOCAL_IPV6 udp dport @LOCAL_SERVICE_PORT_UDP jump POLICY_MARK_GOTO_DEFAULT
+    ip6 daddr @DEFAULT_ROUTE_IPV6 tcp dport @LOCAL_SERVICE_PORT_TCP jump POLICY_MARK_GOTO_DEFAULT
+    ip6 daddr @DEFAULT_ROUTE_IPV6 udp dport @LOCAL_SERVICE_PORT_UDP jump POLICY_MARK_GOTO_DEFAULT
+
+    # ipv6 skip package from outside
+    ip6 daddr @GEOIP_CN_IPV6 jump POLICY_MARK_GOTO_DEFAULT
+
+    ### ipv6 - default goto tun
+    jump POLICY_MARK_GOTO_PROXY
+  }
+}
+EOF
+
+  # Add blacklist elements if any
   if [[ ${#VBOX_TUN_PROXY_BLACKLIST_IPV6[@]} -gt 0 ]]; then
     nft add element $FAMILY $TABLE BLACKLIST_IPV6 "{ $(echo "${VBOX_TUN_PROXY_BLACKLIST_IPV6[@]}" | tr ' ' ',') }"
   fi
   if [[ ${#IPV6_TUN_ADDRESS_THROW[@]} -gt 0 ]]; then
     nft add element $FAMILY $TABLE BLACKLIST_IPV6 "{ $(echo "${IPV6_TUN_ADDRESS_THROW[@]}" | tr ' ' ',') }"
   fi
-  nft list set $FAMILY $TABLE GEOIP_CN_IPV6 >/dev/null 2>&1
-  if [[ $? -ne 0 ]]; then
-    nft add set $FAMILY $TABLE GEOIP_CN_IPV6 '{ type ipv6_addr; flags interval; auto-merge; }'
-  fi
-  nft list set $FAMILY $TABLE LOCAL_IPV6 >/dev/null 2>&1
-  if [[ $? -ne 0 ]]; then
-    nft add set $FAMILY $TABLE LOCAL_IPV6 '{ type ipv6_addr; flags interval; auto-merge; }'
-    nft add element $FAMILY $TABLE LOCAL_IPV6 '{::1/128, ::/128, ::ffff:0:0/96, 64:ff9b::/96, 100::/64, fc00::/7, fe80::/10, ff00::/8}'
-  fi
-  nft list set $FAMILY $TABLE DEFAULT_ROUTE_IPV6 >/dev/null 2>&1
-  if [[ $? -ne 0 ]]; then
-    nft add set $FAMILY $TABLE DEFAULT_ROUTE_IPV6 '{ type ipv6_addr; flags interval; auto-merge ; }'
-  fi
-
-  # POLICY_VBOX_IPV6
-  nft list chain $FAMILY $TABLE POLICY_VBOX_IPV6 >/dev/null 2>&1
-  if [[ $? -ne 0 ]]; then
-    nft add chain $FAMILY $TABLE POLICY_VBOX_IPV6
-  fi
-  nft flush chain $FAMILY $TABLE POLICY_VBOX_IPV6
-
-  # ipv6 - local network
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 saddr @LOCAL_IPV6 ip6 daddr @LOCAL_IPV6 jump POLICY_MARK_GOTO_DEFAULT
-
-  # blacklist
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr @BLACKLIST_IPV6 jump POLICY_MARK_GOTO_DEFAULT
-
-  ## DNS always goto tun
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr != @LOCAL_IPV6 udp dport '{53, 784, 853, 8853}' jump POLICY_MARK_GOTO_TUN
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr != @LOCAL_IPV6 tcp dport '{53, 784, 853, 8853}' jump POLICY_MARK_GOTO_TUN
-
-  # ipv6 - DNAT or connect from outside
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 saddr @LOCAL_IPV6 tcp sport "@LOCAL_SERVICE_PORT_TCP" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 saddr @LOCAL_IPV6 udp sport "@LOCAL_SERVICE_PORT_UDP" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 saddr @DEFAULT_ROUTE_IPV6 tcp sport "@LOCAL_SERVICE_PORT_TCP" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 saddr @DEFAULT_ROUTE_IPV6 udp sport "@LOCAL_SERVICE_PORT_UDP" jump POLICY_MARK_GOTO_DEFAULT
-
-  ### ipv6 - skip private network and UDP of DNS
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr @LOCAL_IPV6 tcp dport "@LOCAL_SERVICE_PORT_TCP" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr @LOCAL_IPV6 udp dport "@LOCAL_SERVICE_PORT_UDP" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr @DEFAULT_ROUTE_IPV6 tcp dport "@LOCAL_SERVICE_PORT_TCP" jump POLICY_MARK_GOTO_DEFAULT
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr @DEFAULT_ROUTE_IPV6 udp dport "@LOCAL_SERVICE_PORT_UDP" jump POLICY_MARK_GOTO_DEFAULT
-
-  # ipv6 skip package from outside
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 ip6 daddr @GEOIP_CN_IPV6 jump POLICY_MARK_GOTO_DEFAULT
-
-  ### ipv6 - default goto tun
-  nft add rule $FAMILY $TABLE POLICY_VBOX_IPV6 jump POLICY_MARK_GOTO_TUN
 }
 
-function vbox_iniitialize_rule_table() {
+function vbox_initialize_rule_table() {
   FAMILY="$1"
   TABLE="$2"
 
@@ -494,27 +595,31 @@ function vbox_iniitialize_rule_table() {
   fi
 
   vbox_setup_rule_marks "$FAMILY" "$TABLE"
-  vbox_iniitialize_rule_table_inet "$FAMILY" "$TABLE"
-  vbox_iniitialize_rule_table_ipv4 "$FAMILY" "$TABLE"
-  vbox_iniitialize_rule_table_ipv6 "$FAMILY" "$TABLE"
+  vbox_initialize_rule_table_inet "$FAMILY" "$TABLE"
+  vbox_initialize_rule_table_ipv4 "$FAMILY" "$TABLE"
+  vbox_initialize_rule_table_ipv6 "$FAMILY" "$TABLE"
 
-  # POLICY_VBOX_BOOTSTRAP
-  nft list chain $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP >/dev/null 2>&1
-  if [[ $? -ne 0 ]]; then
-    nft add chain $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP
-  fi
-  nft flush chain $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP
+  nft flush chain $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP >/dev/null 2>&1
 
-  nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP meta mark and 0xf != 0x0 ct mark and 0xf == 0x0 ct mark set meta mark accept
-  nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP meta mark and 0xf != 0x0 accept
-  nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP ct mark and 0xf != 0x0 meta mark set ct mark accept
-  nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP meta mark and 0xc == 0xc jump POLICY_MARK_GOTO_DEFAULT
+  nft -f - <<EOF
+table $FAMILY $TABLE {
+  chain POLICY_VBOX_BOOTSTRAP {
+    meta mark and 0xf != 0x0 ct mark and 0xf == 0x0 ct mark set meta mark accept
+    meta mark and 0xf != 0x0 accept
+    ct mark and 0xf != 0x0 meta mark set ct mark accept
+    # 只要有 0xc 标记的包都直接走默认路由,vbox出口设置 0xf, 包含 0xc
+    meta mark and 0xc == 0xc jump POLICY_PACKET_GOTO_DEFAULT
+    # 只要有 0x3 标记的包都走 tun, vbox出口设置 0xf, 包含 0x3, 但不能走PROXY链，防止循环重定向
+    meta mark and 0xf == 0x3 jump POLICY_PACKET_GOTO_PROXY
 
-  ### skip internal services
-  nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP meta l4proto != '{tcp, udp}' jump POLICY_MARK_GOTO_DEFAULT
+    ### skip internal services
+    meta l4proto != { tcp, udp } jump POLICY_MARK_GOTO_DEFAULT
 
-  nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP ip version 4 jump POLICY_VBOX_IPV4
-  nft add rule $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP ip6 version 6 jump POLICY_VBOX_IPV6
+    ip version 4 jump POLICY_VBOX_IPV4
+    ip6 version 6 jump POLICY_VBOX_IPV6
+  }
+}
+EOF
 }
 
 function vbox_setup_rule_chain() {
@@ -543,7 +648,9 @@ function vbox_remove_rule_marks() {
   nft delete chain $FAMILY $TABLE POLICY_VBOX_IPV4 >/dev/null 2>&1
   nft delete chain $FAMILY $TABLE POLICY_VBOX_IPV6 >/dev/null 2>&1
   nft delete chain $FAMILY $TABLE POLICY_MARK_GOTO_DEFAULT >/dev/null 2>&1
-  nft delete chain $FAMILY $TABLE POLICY_MARK_GOTO_TUN >/dev/null 2>&1
+  nft delete chain $FAMILY $TABLE POLICY_MARK_GOTO_PROXY >/dev/null 2>&1
+  nft delete chain $FAMILY $TABLE POLICY_PACKET_GOTO_DEFAULT >/dev/null 2>&1
+  nft delete chain $FAMILY $TABLE POLICY_PACKET_GOTO_PROXY >/dev/null 2>&1
 }
 
 function vbox_update_geoip() {
@@ -552,52 +659,49 @@ function vbox_update_geoip() {
     echo "$VBOX_DATA_DIR/geoip-cn.json not found"
     exit 1
   fi
-  GEOIP_CN_ADDRESS_IPV4=($(jq '.rules[].ip_cidr[]' -r "$VBOX_DATA_DIR/geoip-cn.json" | grep -v ':'))
-  GEOIP_CN_ADDRESS_IPV6=($(jq '.rules[].ip_cidr[]' -r "$VBOX_DATA_DIR/geoip-cn.json" | grep ':'))
 
-  nft flush set inet vbox GEOIP_CN_IPV4
-  nft flush set inet vbox GEOIP_CN_IPV6
-  nft flush set bridge vbox GEOIP_CN_IPV4
-  nft flush set bridge vbox GEOIP_CN_IPV6
+  # 使用 jq 直接生成逗号分隔的 IP 列表，避免 bash 数组的性能问题
+  GEOIP_CN_IPV4_LIST=$(jq -r '.rules[].ip_cidr[]' "$VBOX_DATA_DIR/geoip-cn.json" | grep -v ':' | tr '\n' ',' | sed 's/,$//')
+  GEOIP_CN_IPV6_LIST=$(jq -r '.rules[].ip_cidr[]' "$VBOX_DATA_DIR/geoip-cn.json" | grep ':' | tr '\n' ',' | sed 's/,$//')
 
-  GEOIP_CN_ADDRESS_COUNT=${#GEOIP_CN_ADDRESS_IPV4[@]}
-  GEOIP_CN_ADDRESS_START=0
-  while [[ $GEOIP_CN_ADDRESS_START -lt $GEOIP_CN_ADDRESS_COUNT ]]; do
-    GEOIP_CN_ADDRESS_END=$(($GEOIP_CN_ADDRESS_START + 2000))
-    if [[ $GEOIP_CN_ADDRESS_END -lt $GEOIP_CN_ADDRESS_COUNT ]]; then
-      nft add element inet vbox GEOIP_CN_IPV4 "{$(echo "${GEOIP_CN_ADDRESS_IPV4[@]:$GEOIP_CN_ADDRESS_START:2000}" | sed 's;[[:space:]][[:space:]]*;,;g')}"
-      nft add element bridge vbox GEOIP_CN_IPV4 "{$(echo "${GEOIP_CN_ADDRESS_IPV4[@]:$GEOIP_CN_ADDRESS_START:2000}" | sed 's;[[:space:]][[:space:]]*;,;g')}"
-      GEOIP_CN_ADDRESS_START=$GEOIP_CN_ADDRESS_END
-    else
-      GEOIP_CN_ADDRESS_OFFSET=$(($GEOIP_CN_ADDRESS_COUNT - $GEOIP_CN_ADDRESS_START))
-      nft add element inet vbox GEOIP_CN_IPV4 "{$(echo "${GEOIP_CN_ADDRESS_IPV4[@]:$GEOIP_CN_ADDRESS_START:$GEOIP_CN_ADDRESS_OFFSET}" | sed 's;[[:space:]][[:space:]]*;,;g')}"
-      nft add element bridge vbox GEOIP_CN_IPV4 "{$(echo "${GEOIP_CN_ADDRESS_IPV4[@]:$GEOIP_CN_ADDRESS_START:$GEOIP_CN_ADDRESS_OFFSET}" | sed 's;[[:space:]][[:space:]]*;,;g')}"
-      GEOIP_CN_ADDRESS_START=$GEOIP_CN_ADDRESS_COUNT
-    fi
-  done
-
-  GEOIP_CN_ADDRESS_COUNT=${#GEOIP_CN_ADDRESS_IPV6[@]}
-  GEOIP_CN_ADDRESS_START=0
-  while [[ $GEOIP_CN_ADDRESS_START -lt $GEOIP_CN_ADDRESS_COUNT ]]; do
-    GEOIP_CN_ADDRESS_END=$(($GEOIP_CN_ADDRESS_START + 2000))
-    if [[ $GEOIP_CN_ADDRESS_END -lt $GEOIP_CN_ADDRESS_COUNT ]]; then
-      nft add element inet vbox GEOIP_CN_IPV6 "{$(echo "${GEOIP_CN_ADDRESS_IPV6[@]:$GEOIP_CN_ADDRESS_START:2000}" | sed 's;[[:space:]][[:space:]]*;,;g')}"
-      nft add element bridge vbox GEOIP_CN_IPV6 "{$(echo "${GEOIP_CN_ADDRESS_IPV6[@]:$GEOIP_CN_ADDRESS_START:2000}" | sed 's;[[:space:]][[:space:]]*;,;g')}"
-      GEOIP_CN_ADDRESS_START=$GEOIP_CN_ADDRESS_END
-    else
-      GEOIP_CN_ADDRESS_OFFSET=$(($GEOIP_CN_ADDRESS_COUNT - $GEOIP_CN_ADDRESS_START))
-      nft add element inet vbox GEOIP_CN_IPV6 "{$(echo "${GEOIP_CN_ADDRESS_IPV6[@]:$GEOIP_CN_ADDRESS_START:$GEOIP_CN_ADDRESS_OFFSET}" | sed 's;[[:space:]][[:space:]]*;,;g')}"
-      nft add element bridge vbox GEOIP_CN_IPV6 "{$(echo "${GEOIP_CN_ADDRESS_IPV6[@]:$GEOIP_CN_ADDRESS_START:$GEOIP_CN_ADDRESS_OFFSET}" | sed 's;[[:space:]][[:space:]]*;,;g')}"
-      GEOIP_CN_ADDRESS_START=$GEOIP_CN_ADDRESS_COUNT
-    fi
-  done
+  # 一次性刷入所有 GEOIP 数据
+  nft -f - <<EOF
+table inet vbox {
+  set GEOIP_CN_IPV4 {
+    type ipv4_addr
+    flags interval
+    auto-merge
+    elements = { $GEOIP_CN_IPV4_LIST }
+  }
+  set GEOIP_CN_IPV6 {
+    type ipv6_addr
+    flags interval
+    auto-merge
+    elements = { $GEOIP_CN_IPV6_LIST }
+  }
+}
+table bridge vbox {
+  set GEOIP_CN_IPV4 {
+    type ipv4_addr
+    flags interval
+    auto-merge
+    elements = { $GEOIP_CN_IPV4_LIST }
+  }
+  set GEOIP_CN_IPV6 {
+    type ipv6_addr
+    flags interval
+    auto-merge
+    elements = { $GEOIP_CN_IPV6_LIST }
+  }
+}
+EOF
 }
 
 if [ $VBOX_SETUP_IP_RULE_CLEAR -ne 0 ]; then
   vbox_patch_configure
   vbox_clear_ip_rules "-4" "-6"
-  vbox_iniitialize_rule_table inet vbox
-  vbox_iniitialize_rule_table bridge vbox
+  vbox_initialize_rule_table inet vbox
+  vbox_initialize_rule_table bridge vbox
 
   vbox_setup_rule_chain inet vbox PREROUTING '{ type filter hook prerouting priority dstnat - 1 ; }'
   # 必须在高优先级（mangle）打标记，否则无法影响重路由

@@ -86,9 +86,9 @@ blacklist ip6table_nat
 # install ip6table_nat /bin/true
 " | sudo tee /etc/modprobe.d/disable-iptables.conf
 
-cp -f kernel-modules-tproxy.conf /etc/modules-load.d/tproxy.conf ;
-cp -f kernel-modules-ppp.conf /etc/modules-load.d/ppp.conf ;
-cp -f kernel-modules-network-basic.conf /etc/modules-load.d/network-basic.conf ;
+cp -f system-etc/kernel-modules/tproxy.conf /etc/modules-load.d/tproxy.conf ;
+cp -f system-etc/kernel-modules/ppp.conf /etc/modules-load.d/ppp.conf ;
+cp -f system-etc/kernel-modules/network-basic.conf /etc/modules-load.d/network-basic.conf ;
 
 for MOD_FOR_ROUTER in $(cat /etc/modules-load.d/tproxy.conf); do
     modprobe $MOD_FOR_ROUTER;
@@ -99,98 +99,17 @@ for MOD_FOR_ROUTER in $(cat /etc/modules-load.d/network-basic.conf); do
     modprobe $MOD_FOR_ROUTER;
 done
 
-echo "
-net.core.somaxconn = 16384
-net.core.rmem_default = 1048576
-net.core.rmem_max = 16777216
-net.core.wmem_default = 1048576
-net.core.wmem_max = 16777216
-net.core.optmem_max = 65536
-net.core.netdev_max_backlog = 16384
-net.ipv4.tcp_rmem = 4096 262144 33554432
-net.ipv4.tcp_wmem = 4096 65536 16777216
-net.ipv4.udp_rmem_min = 8192
-net.ipv4.udp_wmem_min = 8192
-net.ipv4.tcp_mtu_probing=1
-net.ipv4.tcp_syncookies=1
-net.ipv4.tcp_tw_reuse=1
-net.ipv4.tcp_fin_timeout=30
-net.ipv4.tcp_fastopen=3
-net.ipv4.tcp_max_syn_backlog=65536
-net.ipv4.tcp_max_tw_buckets=65536
-net.ipv4.tcp_keepalive_time = 150
-net.ipv4.tcp_keepalive_intvl = 75
-net.ipv4.tcp_keepalive_probes = 6
-net.ipv4.ip_forward=1
-net.ipv4.ip_forward_use_pmtu=1
-net.ipv4.ip_local_port_range=10240 65000
-net.ipv4.conf.all.promote_secondaries = 1
-net.ipv4.conf.default.promote_secondaries = 1
-net.ipv6.neigh.default.gc_thresh3 = 4096
-net.ipv4.neigh.default.gc_thresh3 = 4096
-net.ipv4.conf.all.forwarding=1
-net.ipv4.conf.default.forwarding=1
-net.ipv6.conf.all.forwarding=1
-net.ipv6.conf.default.forwarding=1
-net.ipv6.conf.all.accept_ra=2
-net.ipv6.conf.default.accept_ra=2
-# Configures below are used to support tproxy for bridge
-net.bridge.bridge-nf-call-arptables = 1
-net.bridge.bridge-nf-call-ip6tables = 1
-net.bridge.bridge-nf-call-iptables = 1
-net.bridge.bridge-nf-filter-vlan-tagged = 1
-net.bridge.bridge-nf-pass-vlan-input-dev = 1
-net.ipv4.conf.all.rp_filter=0
-net.ipv4.conf.default.rp_filter=0
-net.ipv4.conf.all.route_localnet=1
-net.ipv4.conf.default.route_localnet=1
-# All bridge interface should also be set
-net.ipv4.conf.br0.rp_filter=0
-net.ipv4.conf.enp1s0f0.rp_filter=0
-net.ipv4.conf.enp1s0f1.rp_filter=0
-net.ipv4.conf.br0.route_localnet=1
-net.ipv4.conf.enp1s0f0.route_localnet=1
-net.ipv4.conf.enp1s0f1.route_localnet=1
-# NDP with radvd and dnsmasq enable ipv6 router advisement with ppp interface
-net.ipv6.conf.all.proxy_ndp=1
-net.ipv6.conf.default.proxy_ndp=1
-net.ipv6.conf.br0.autoconf=0
-" | sudo tee /etc/sysctl.d/91-forwarding.conf ;
+cat system-etc/kernel-modules/sysctl.d/91-forwarding.conf | sudo tee /etc/sysctl.d/91-forwarding.conf
 
-echo "
-net.netfilter.nf_conntrack_udp_timeout = 60
-net.netfilter.nf_conntrack_udp_timeout_stream = 600
-" | sudo tee /etc/sysctl.d/93-vbox.conf ;
+echo system-etc/kernel-modules/sysctl.d/92-container.conf | sudo tee /etc/sysctl.d/92-container.conf
 
-echo "
-# Disable local-link address for internal bridge(For IPv6 NAT)
-# 接口启动可能在内核初始化 sysctl 之前，最好加到启动或刷新网络的回调里
-# /etc/sysctl.d/95-interface-forwarding.conf : sysctl -p /etc/sysctl.d/95-interface-forwarding.conf
-net.ipv6.conf.eno1.forwarding=1
-net.ipv6.conf.eno1.proxy_ndp=1
-# 开启转发的接口内核会关闭掉RA，需要重新设置一下
-net.ipv6.conf.eno1.accept_ra=2
-net.ipv6.conf.enp2s0.forwarding=1
-net.ipv6.conf.enp2s0.proxy_ndp=1
-net.ipv6.conf.enp2s0.accept_ra=2
-# 配置里.是目录分隔符，要名字里包含.采用/代替(这里实际设备名是 enp2s0.5)
-net.ipv6.conf.enp2s0/5.forwarding=1
-net.ipv6.conf.enp2s0/5.proxy_ndp=1
-net.ipv6.conf.enp2s0/5.accept_ra=2
-# For all other interfaces set these 3 options
-" | sudo tee /etc/sysctl.d/95-interface-forwarding.conf ;
+cat system-etc/kernel-modules/sysctl.d/93-vbox.conf | sudo tee /etc/sysctl.d/93-vbox.conf
 
-echo "net.ipv4.ip_unprivileged_port_start=67
-kernel.unprivileged_userns_clone=1
-user.max_user_namespaces=28633
+# 请根据实际interface设置修改95-interface-forwarding.conf配置
+cat system-etc/kernel-modules/sysctl.d/95-interface-forwarding.conf | sudo tee /etc/sysctl.d/95-interface-forwarding.conf
 
-fs.inotify.max_user_instances=16384
-fs.inotify.max_user_watches=1048576
-
-vm.swappiness=10
-" | sudo tee /etc/sysctl.d/92-container.conf ;
-
-sudo sysctl -p ;
+# 请根据实际场景修改99-nf_conntrack配置
+cat system-etc/kernel-modules/sysctl.d/90-nf_conntrack-router.conf | sudo tee /etc/sysctl.d/90-nf_conntrack-router.conf
 
 # Check and enable bbr
 find "/lib/modules/$(uname -r)" -type f -name '*.ko*' | awk '{if (match($0, /^\/lib\/modules\/([^\/]+).*\/([^\/]+)\.ko(\.[^\/\.]+)?$/, m)) {print m[1] " : " m[2];}}' | sort | uniq | grep tcp_bbr ;
@@ -205,6 +124,8 @@ if [ $? -eq 0 ]; then
 net.ipv4.tcp_congestion_control = bbr" >> /etc/sysctl.d/91-forwarding.conf ;
     fi
 fi
+
+sudo sysctl -p
 
 # rlimit
 echo "
