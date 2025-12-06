@@ -142,6 +142,10 @@
       "auto_redirect_output_mark": "15",
       "strict_route": true,
       "stack": "mixed",
+      // "stack": "gvisor",
+      // 1.12.0版本测试，gvisor模式比mixed模式
+      // - download开销大约高50% -> 400Mbps: CPU 60% vs 90%
+      // - upload开销低60% -> 400Mbps: CPU 50% vs 20%
       // "endpoint_independent_nat": false,
       // 开启ROUTER_NET_LOCAL_ENABLE_VBOX时尽量关闭tun的include和excelude规则，性能很差
       // include_interface": ["enp2s0"],
