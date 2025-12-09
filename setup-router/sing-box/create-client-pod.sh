@@ -63,6 +63,8 @@ if [[ $? -ne 0 ]]; then
   exit 1
 fi
 
+$DOCKER_EXEC exec vbox-client ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/timezone
+
 if [[ -z "$ROUTER_NET_LOCAL_ENABLE_VBOX" ]] || [[ $ROUTER_NET_LOCAL_ENABLE_VBOX -eq 0 ]]; then
   bash "$SCRIPT_DIR/setup-client-pod-ip-nft.sh" clear
   bash "$SCRIPT_DIR/setup-client-pod-ip-rules.sh"

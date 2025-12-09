@@ -4,7 +4,6 @@ LDAP属性文档: <https://docs.goauthentik.io/add-secure-apps/providers/ldap>
 
 ## LDAP for debian
 
-
 ```bash
 sudo apt install -y sssd-ldap libpam-sss libnss-sss libpam-mkhomedir
 
@@ -107,3 +106,7 @@ sudo rm -f /var/lib/sss/mc/*
 
 sudo systemctl restart sssd
 ```
+
+## OIDC for debian
+
+可使用 [teleport](https://goteleport.com/)

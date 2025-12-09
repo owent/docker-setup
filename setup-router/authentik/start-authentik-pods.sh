@@ -5,6 +5,8 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 export XDG_RUNTIME_DIR="/run/user/$UID"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
 
+DOCKER_EXEC=$((which podman > /dev/null 2>&1 && echo podman) || (which docker > /dev/null 2>&1 && echo docker))
+
 if [[ -z "$RUN_USER" ]]; then
   export RUN_USER=$(id -un)
 fi
@@ -40,34 +42,34 @@ COMPOSE_CONFIGURE=docker-compose.yaml
 
 if [[ ! -z "$AUTHENTIK_UPDATE" ]] || [[ ! -z "$ROUTER_IMAGE_UPDATE" ]]; then
   source "$SCRIPT_DIR/.env"
-  podman-compose -f $COMPOSE_CONFIGURE pull
+  $DOCKER_EXEC-compose -f $COMPOSE_CONFIGURE pull
   if [[ $? -ne 0 ]]; then
     echo "Pull $COMPOSE_CONFIGURE failed"
     exit 1
   fi
-  podman pull ghcr.io/goauthentik/ldap:${AUTHENTIK_TAG}
+  $DOCKER_EXEC pull ghcr.io/goauthentik/ldap:${AUTHENTIK_TAG}
   if [[ $? -ne 0 ]]; then
     echo "Pull $COMPOSE_CONFIGURE failed"
     exit 1
   fi
-  podman pull ghcr.io/goauthentik/proxy:${AUTHENTIK_TAG}
+  $DOCKER_EXEC pull ghcr.io/goauthentik/proxy:${AUTHENTIK_TAG}
   if [[ $? -ne 0 ]]; then
     echo "Pull $COMPOSE_CONFIGURE failed"
     exit 1
   fi
-  podman pull ghcr.io/goauthentik/rac:${AUTHENTIK_TAG}
+  $DOCKER_EXEC pull ghcr.io/goauthentik/rac:${AUTHENTIK_TAG}
   if [[ $? -ne 0 ]]; then
     echo "Pull $COMPOSE_CONFIGURE failed"
     exit 1
   fi
-  podman pull ghcr.io/goauthentik/radius:${AUTHENTIK_TAG}
+  $DOCKER_EXEC pull ghcr.io/goauthentik/radius:${AUTHENTIK_TAG}
   if [[ $? -ne 0 ]]; then
     echo "Pull $COMPOSE_CONFIGURE failed"
     exit 1
   fi
 fi
 
-DOCKER_SOCK_PATH="$XDG_RUNTIME_DIR/podman/podman.sock"
+DOCKER_SOCK_PATH="$XDG_RUNTIME_DIR/$DOCKER_EXEC/$DOCKER_EXEC.sock"
 if [[ ! -e "$DOCKER_SOCK_PATH" ]]; then
   if [[ -e "/var/run/docker.sock" ]]; then
     DOCKER_SOCK_PATH="$DOCKER_SOCK_PATH"
@@ -82,13 +84,13 @@ if [[ $? -eq 0 ]]; then
   systemctl --user disable container-authentik-server
 fi
 
-systemctl --user enable --now podman.socket
-systemctl --user start --now podman.socket
+systemctl --user enable --now $DOCKER_EXEC.socket
+systemctl --user start --now $DOCKER_EXEC.socket
 
-podman-compose -f $COMPOSE_CONFIGURE down
+$DOCKER_EXEC-compose -f $COMPOSE_CONFIGURE down
 
 if [[ ! -z "$AUTHENTIK_UPDATE" ]] || [[ ! -z "$ROUTER_IMAGE_UPDATE" ]]; then
-  podman image prune -a -f --filter "until=240h"
+  $DOCKER_EXEC image prune -a -f --filter "until=240h"
 fi
 
 echo "[Unit]
@@ -97,8 +99,8 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=podman-compose -f $SCRIPT_DIR/$COMPOSE_CONFIGURE up
-ExecStop=podman-compose -f $SCRIPT_DIR/$COMPOSE_CONFIGURE down
+ExecStart=$DOCKER_EXEC-compose -f $SCRIPT_DIR/$COMPOSE_CONFIGURE up
+ExecStop=$DOCKER_EXEC-compose -f $SCRIPT_DIR/$COMPOSE_CONFIGURE down
 
 [Install]
 WantedBy=default.target

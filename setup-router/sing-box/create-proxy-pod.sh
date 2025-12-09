@@ -4,6 +4,8 @@
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
+DOCKER_EXEC=$((which podman > /dev/null 2>&1 && echo podman) || (which docker > /dev/null 2>&1 && echo docker))
+
 if [[ -z "$VBOX_ETC_DIR" ]]; then
   VBOX_ETC_DIR="$HOME/vbox/etc"
 fi
@@ -23,7 +25,7 @@ mkdir -p "$VBOX_DATA_DIR"
 mkdir -p "$VBOX_LOG_DIR"
 
 if [[ "x$VBOX_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman pull "$VBOX_IMAGE_URL"
+  $DOCKER_EXEC pull "$VBOX_IMAGE_URL"
   if [[ $? -ne 0 ]]; then
     exit 1
   fi
@@ -56,14 +58,14 @@ else
   fi
 fi
 
-podman container inspect vbox-proxy >/dev/null 2>&1
+$DOCKER_EXEC container inspect vbox-proxy >/dev/null 2>&1
 if [[ $? -eq 0 ]]; then
-  podman stop vbox-proxy
-  podman rm -f vbox-proxy
+  $DOCKER_EXEC stop vbox-proxy
+  $DOCKER_EXEC rm -f vbox-proxy
 fi
 
 if [[ "x$VBOX_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman image prune -a -f --filter "until=240h"
+  $DOCKER_EXEC image prune -a -f --filter "until=240h"
 fi
 
 VBOX_DOCKER_OPRIONS=(
@@ -76,10 +78,14 @@ VBOX_DOCKER_OPRIONS=(
   --mount type=bind,source=$VBOX_ETC_DIR,target=/etc/vbox,ro=true
 )
 
-podman run -d --name vbox-proxy "${VBOX_DOCKER_OPRIONS[@]}" \
+$DOCKER_EXEC run -d --name vbox-proxy "${VBOX_DOCKER_OPRIONS[@]}" \
   "$VBOX_IMAGE_URL" -D /var/lib/vbox -C /etc/vbox/ run
 
-# podman cp vbox-proxy:/usr/local/vbox-proxy/share/geo-all.tar.gz geo-all.tar.gz
+if [[ $? -ne 0 ]]; then
+  exit 1
+fi
+
+# $DOCKER_EXEC cp vbox-proxy:/usr/local/vbox-proxy/share/geo-all.tar.gz geo-all.tar.gz
 # if [[ $? -eq 0 ]]; then
 #   tar -axvf geo-all.tar.gz
 #   if [ $? -eq 0 ]; then
@@ -87,9 +93,11 @@ podman run -d --name vbox-proxy "${VBOX_DOCKER_OPRIONS[@]}" \
 #   fi
 # fi
 
-podman generate systemd vbox-proxy | tee $SYSTEMD_SERVICE_DIR/vbox-proxy.service
+$DOCKER_EXEC exec vbox-proxy ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/timezone
 
-podman container stop vbox-proxy
+$DOCKER_EXEC generate systemd vbox-proxy | tee $SYSTEMD_SERVICE_DIR/vbox-proxy.service
+
+$DOCKER_EXEC container stop vbox-proxy
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
   systemctl enable vbox-proxy.service

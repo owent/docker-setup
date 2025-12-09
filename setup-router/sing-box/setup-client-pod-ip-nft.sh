@@ -55,6 +55,7 @@ IPV4_TUN_ADDRESS_SET=(
   192.128.0.0/11 192.160.0.0/13 192.169.0.0/16 192.170.0.0/15 192.172.0.0/14 192.176.0.0/12 192.192.0.0/10
   193.0.0.0/8 194.0.0.0/7 196.0.0.0/6 200.0.0.0/5 208.0.0.0/4
 )
+IPV4_TUN_ADDRESS_THROW=( )
 
 ## ipv6绕过本地和私有网络地址:
 ## - ::1/128 - 环回地址
@@ -237,6 +238,19 @@ function vbox_setup_ip_rules() {
       NOP_LOOKUP_PRIORITY=$ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY
     fi
 
+    # If no proxy addresses, skip all rules setup
+    if [[ ! -z "$IP_FAMILY" ]] && [[ "$IP_FAMILY" == "-6" ]]; then
+      if [[ ${#IPV6_TUN_ADDRESS_SET[@]} -eq 0 ]]; then
+        ip $IP_FAMILY rule add goto $NOP_LOOKUP_PRIORITY priority $VBOX_IP_RULE_EXCLUDE_IF_PRIORITY
+        continue
+      fi
+    else
+      if [[ ${#IPV4_TUN_ADDRESS_SET[@]} -eq 0 ]]; then
+        ip $IP_FAMILY rule add goto $NOP_LOOKUP_PRIORITY priority $VBOX_IP_RULE_EXCLUDE_IF_PRIORITY
+        continue
+      fi
+    fi
+
     # Exclude interfaces
     if [[ -z "$VBOX_TUN_INTERFACE" ]]; then
       DETECT_TUN_IF_NAME_FROM_IP_ROUTE_TABLE="$(ip $IP_FAMILY route show table $VBOX_TUN_TABLE_ID 2>/dev/null | grep -E -o 'dev[[:space:]]+[^[:space:]]+' | awk '{print $NF}')"
@@ -303,6 +317,9 @@ function vbox_setup_ip_rules() {
       done
       for ROUTE_CIDR in "${IPV4_TUN_ADDRESS_SET[@]}"; do
         ip $IP_FAMILY route add "$ROUTE_CIDR" "${VBOX_TUN_ORIGIN_TABLE_RULE[@]}" src "$VBOX_TUN_IP_ADDR" table $VBOX_TUN_PROXY_WHITELIST_TABLE_ID
+      done
+      for ROUTE_CIDR in "${IPV4_TUN_ADDRESS_THROW[@]}"; do
+        ip $IP_FAMILY route add throw "$ROUTE_CIDR" table $VBOX_TUN_PROXY_WHITELIST_TABLE_ID
       done
     fi
     ip $IP_FAMILY rule add fwmark 0x3/0x3 lookup $VBOX_TUN_PROXY_WHITELIST_TABLE_ID priority $VBOX_IP_RULE_INCLUDE_MARK_PRIORITY
