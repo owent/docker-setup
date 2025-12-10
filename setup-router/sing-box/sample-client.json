@@ -370,8 +370,9 @@
         }
       } // ,
       // DNS解析不要走multiplex，否则极容易超时
+      // xtls-rprx-vision 和多路复用冲突，不能使用
       // "multiplex": {
-      //   "enabled": true,
+      //   "enabled": false,
       //   "max_connections": 65536,
       //   "min_streams": 8,
       //   "max_streams": 0, // 不要用max_streams,会导致连接极其不稳定
@@ -411,8 +412,9 @@
         }
       },
       // DNS解析不要走multiplex，否则极容易超时
+      // xtls-rprx-vision 和多路复用冲突，不能使用
       // "multiplex": {
-      //   "enabled": true,
+      //   "enabled": false,
       //   "max_connections": 65536,
       //   "min_streams": 8,
       //   "max_streams": 0, // 不要用max_streams,会导致连接极其不稳定

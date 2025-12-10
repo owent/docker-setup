@@ -134,12 +134,9 @@
           "max_time_difference": "5m"
         }
       },
+      // xtls-rprx-vision 和多路复用冲突，不能使用
       "multiplex": {
-        "enabled": true,
-        "padding": false,
-        "brutal": {
-          "enabled": false
-        }
+        "enabled": false
       }
     },
     {
@@ -235,12 +232,9 @@
       //   "max_early_data": 2048,
       //   "early_data_header_name": "Sec-WebSocket-Protocol"
       // }
+      // xtls-rprx-vision 和多路复用冲突，不能使用
       "multiplex": {
-        "enabled": true,
-        "padding": false,
-        "brutal": {
-          "enabled": false
-        }
+        "enabled": false
       }
     },
     {
