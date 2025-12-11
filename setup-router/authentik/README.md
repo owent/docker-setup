@@ -73,6 +73,11 @@ sudo_provider = none
 
 # 允许缓存凭证（断网也能登录）
 cache_credentials = True
+# 离线凭据过期时间(天)
+offline_credentials_expiration = 30
+# 即使在线，也缓存用户信息一段时间，降低拉取LDAP服务频率。(秒)
+entry_cache_timeout = 7200
+
 enumerate = False
 
 # SSL/TLS 设置 (如果是自签名证书或测试环境，可以设为 allow 或 never)
