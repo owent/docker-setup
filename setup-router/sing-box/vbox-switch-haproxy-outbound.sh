@@ -347,6 +347,6 @@ fi
 # PREFER_GROUP_COUNT=$PREFER_GROUP_COUNT_BACKUP
 
 
-if [[ $(cat "$SWITCH_HISTORY_DIR/last-changed.txt") -ne 0 ]]; then
+if [[ $SWITCH_TEST_MODE -eq 0 ]] && [[ $(cat "$SWITCH_HISTORY_DIR/last-changed.txt") -ne 0 ]]; then
   sudo -u tools /bin/bash -i -c "systemctl --user restart container-adguard-home.service"
 fi
