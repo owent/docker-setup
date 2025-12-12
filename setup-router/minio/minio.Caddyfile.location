@@ -1,0 +1,84 @@
+# MinIO Caddy Reverse Proxy Configuration
+# 
+# 将此文件内容添加到 Caddy 的 Caddyfile 中
+# 或者通过 import 指令导入：import /path/to/minio.Caddyfile.location
+#
+# 访问地址：
+#   - S3 API:  https://it-s3.example.org:6023/
+#   - Console: https://it-s3-console.example.org:6023/
+
+# ============================================
+# 全局配置
+# ============================================
+{
+  log {
+    output stdout
+    format json
+    level ERROR
+    # level DEBUG
+  }
+}
+
+# ============================================
+# MinIO S3 API
+# ============================================
+it-s3.example.org:6023 {
+  reverse_proxy http://127.0.0.1:9000 {
+    header_up Host {http.request.hostport}
+    header_up X-Real-IP {remote_host}
+    header_up X-Forwarded-For {remote_host}
+    header_up X-Forwarded-Proto {scheme}
+    header_up X-Forwarded-Host {http.request.hostport}
+    
+    # 传输设置
+    transport http {
+      compression off
+    }
+  }
+
+  # TLS 配置 - 请根据你的证书路径修改
+  tls /data/ssl/m-oa.com_ecc/fullchain.cer /data/ssl/m-oa.com_ecc/example.org.key {
+    protocols tls1.2 tls1.3
+  }
+}
+
+# ============================================
+# MinIO Console (Web UI)
+# ============================================
+it-s3-console.example.org:6023 {
+  # WebSocket 路径单独处理
+  @websocket {
+    path /ws/*
+  }
+  handle @websocket {
+    reverse_proxy http://127.0.0.1:9001 {
+      # 保留完整的 Host 包含端口
+      header_up Host {http.request.hostport}
+      header_up X-Real-IP {http.request.remote.host}
+      header_up X-Forwarded-For {http.request.remote.host}
+      header_up X-Forwarded-Proto https
+    }
+  }
+
+  # 其他请求
+  handle {
+    reverse_proxy http://127.0.0.1:9001 {
+      # 保留完整的 Host 包含端口
+      header_up Host {http.request.hostport}
+      header_up X-Real-IP {http.request.remote.host}
+      header_up X-Forwarded-For {http.request.remote.host}
+      header_up X-Forwarded-Proto https
+      header_up X-Forwarded-Host {http.request.hostport}
+      
+      # 传输设置
+      transport http {
+        compression off
+      }
+    }
+  }
+
+  # TLS 配置 - 请根据你的证书路径修改
+  tls /data/ssl/m-oa.com_ecc/fullchain.cer /data/ssl/m-oa.com_ecc/example.org.key {
+    protocols tls1.2 tls1.3
+  }
+}

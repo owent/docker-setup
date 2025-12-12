@@ -41,6 +41,8 @@ elif [ "x$DISTRIBUTE_NAME" == "xubuntu" ]; then
       sed -i -r 's;archive.ubuntu.com/ubuntu;mirrors.tencent.com/ubuntu;g' $source_file
     done
   fi
+  echo 'Acquire::https::mirrors.tencent.com::Verify-Peer "false";' > /etc/apt/apt.conf.d/99ignore-ssl-mirrors-tencent
+  echo 'Acquire::https::mirrors.tencent.com::Verify-Host "false";' >> /etc/apt/apt.conf.d/99ignore-ssl-mirrors-tencent
 
   apt update -y
 elif [ "x$DISTRIBUTE_NAME" == "xdebian" ] || [[ "${DISTRIBUTE_LIKE_NAMES[@]}" =~ "debian" ]]; then

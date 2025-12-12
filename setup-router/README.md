@@ -394,6 +394,24 @@ else
 fi
 ```
 
+## 创建交换区
+
+```bash
+# 如果是btrfs需要关闭文件的CoW
+SWAPFILE_PATH=/swapfile
+sudo dd if=/dev/zero of=$SWAPFILE_PATH bs=1M count=2048 status=progress
+sudo chmod 600 $SWAPFILE_PATH
+sudo mkswap $SWAPFILE_PATH
+sudo swapon $SWAPFILE_PATH
+
+# 启动挂载
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+
+# 验证
+swapon --show
+free -h
+```
+
 ## Get My Ip
 
 + http://ifconfig.me

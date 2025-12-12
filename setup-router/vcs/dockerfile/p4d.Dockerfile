@@ -3,9 +3,10 @@ FROM docker.io/library/ubuntu:noble
 LABEL maintainer "OWenT <admin@owent.net>"
 
 RUN export DEBIAN_FRONTEND=noninteractive; \
-    sed -i -r 's;security.ubuntu.com/ubuntu;mirrors.tencent.com/ubuntu;g' /etc/apt/sources.list.d/* ; \
-    sed -i -r 's;archive.ubuntu.com/ubuntu;mirrors.tencent.com/ubuntu;g' /etc/apt/sources.list.d/* ; \
-    cat /etc/apt/sources.list ;                                                                                 \
+    echo 'Acquire::https::mirrors.tencent.com::Verify-Peer "false";' > /etc/apt/apt.conf.d/99ignore-ssl-mirrors-tencent ; \
+    echo 'Acquire::https::mirrors.tencent.com::Verify-Host "false";' >> /etc/apt/apt.conf.d/99ignore-ssl-mirrors-tencent ; \
+    sed -i -r 's;security.ubuntu.com/ubuntu;mirrors.ustc.edu.cn/ubuntu;g' /etc/apt/sources.list.d/* ; \
+    sed -i -r 's;archive.ubuntu.com/ubuntu;mirrors.ustc.edu.cn/ubuntu;g' /etc/apt/sources.list.d/* ; \
     apt update -y; apt upgrade -y;                                                                              \
     apt install -y procps locales tzdata less iproute2 gawk lsof bash systemd ;                                 \
     apt install -y vim wget curl ca-certificates telnet yq jq gpg logrotate supervisor;                         \

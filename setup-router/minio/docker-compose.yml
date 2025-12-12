@@ -1,39 +1,72 @@
-version: "3"
+# MinIO Docker Compose Configuration for it-s3.example.org:6023
+# Reference: https://min.io/docs/minio/container/index.html
 
 networks:
   minio:
     external: false
+  # 如果需要和 Caddy 在同一网络，可以使用外部网络
+  # internal-backend:
+  #   external: true
 
 services:
-  server:
-    # quay.io/minio/minio or docker.io/minio/minio
-    image: minio/minio:latest
+  minio:
+    # 使用最新稳定版镜像
+    # quay.io/minio/minio 或 docker.io/minio/minio
+    image: quay.io/minio/minio:latest
     container_name: minio
+    hostname: minio
     restart: unless-stopped
     networks:
       - minio
     volumes:
+      # 数据目录 - 生产环境建议使用多个独立磁盘
       - "./data/disk1/minio:/data/disk1/minio"
       - "./data/disk2/minio:/data/disk2/minio"
       - "./data/disk3/minio:/data/disk3/minio"
       - "./data/disk4/minio:/data/disk4/minio"
-      - "./data/ssl:/root/.minio/certs"
+      # SSL 证书目录 (可选，如果使用反向代理可以不配置)
+      # - "./data/ssl:/root/.minio/certs"
+      # 配置文件 (可选)
       # - "./etc/config.env:/etc/config.env"
     ports:
+      # S3 API 端口
       - "9000:9000"
+      # Console Web UI 端口
       - "9001:9001"
     environment:
-      - MINIO_ROOT_USER=admin
-      - MINIO_ROOT_PASSWORD=adminPassword
-      # - MINIO_VOLUMES="https://minio{1...3}.example.org:9000/data/disk{1...4}/minio"
-      # - MINIO_VOLUMES="/data/disk{1...4}/minio"
-      # - MINIO_OPTS="--console-address :9001"
-      # - MINIO_CONFIG_ENV_FILE=/etc/config.env
+      # 管理员账号 - 请修改为强密码
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: adminPassword123!
+      # 服务器 URL 配置 - 用于反向代理，不设置MINIO_SERVER_URL让内网走不加密地址更高效
+      # MINIO_SERVER_URL: "https://it-s3.example.org:6023"
+      MINIO_BROWSER_REDIRECT_URL: "https://it-s3-console.example.org:6023"
+      MINIO_CONSOLE_TLS_SKIP_VERIFY: "on" # 让 Console 内部请求跳过 SSL 验证
+      # 区域设置 (可选)
+      MINIO_REGION: cn-east-1
+      # 时区
+      TZ: Asia/Shanghai
+      # 压缩 (可选)
+      # MINIO_COMPRESSION_ENABLE: "on"
+      # MINIO_COMPRESSION_EXTENSIONS: ".txt,.log,.csv,.json,.tar,.xml,.bin"
+      # 分布式模式配置 (如果有多个节点)
+      # MINIO_VOLUMES: "https://minio{1...3}.example.org:9000/data/disk{1...4}/minio"
     command:
-      [
-        "minio",
-        "server",
-        "/data/disk{1...4}/minio",
-        "--console-address",
-        ":9001",
-      ]
+      - "server"
+      - "/data/disk{1...4}/minio"
+      - "--console-address"
+      - ":9001"
+      - "--address"
+      - ":9000"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 30s
+    # 资源限制 (可选)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 4G
+    #     reservations:
+    #       memory: 1G
