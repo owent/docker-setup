@@ -5,12 +5,15 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 export XDG_RUNTIME_DIR="/run/user/$UID"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
 
+DOCKER_EXEC=$((which podman > /dev/null 2>&1 && echo podman) || (which docker > /dev/null 2>&1 && echo docker))
+DOCKER_EXEC_PATH="$(which $DOCKER_EXEC)"
+
 if [[ -z "$RUN_USER" ]]; then
   export RUN_USER=$(id -un)
 fi
 
 # sudo loginctl enable-linger $RUN_USER
-# podman-compose 在 --network=host 下有兼容性问题
+# $DOCKER_EXEC-compose 在 --network=host 下有兼容性问题
 # 非 --network=host 下会导致丢失DNS请求来源信息
 
 if [[ -z "$RUN_USER" ]] || [[ "$RUN_USER" == "root" ]]; then
@@ -27,15 +30,20 @@ fi
 cd "$SCRIPT_DIR"
 
 if [[ -z "$ADGUARD_HOME_ETC_DIR" ]]; then
-  ADGUARD_HOME_ETC_DIR="$SCRIPT_DIR/etc"
+  ADGUARD_HOME_ETC_DIR="$SCRIPT_DIR/adguard-home-etc"
 fi
 mkdir -p "$ADGUARD_HOME_ETC_DIR"
+
+if [[ -z "$UNBOUND_ETC_DIR" ]]; then
+  UNBOUND_ETC_DIR="$SCRIPT_DIR/unbound-etc"
+fi
+mkdir -p "$UNBOUND_ETC_DIR"
 
 COMPOSE_CONFIGURE=docker-compose.yml
 COMPOSE_ENV_FILE=.env
 
 if [[ ! -z "$ROUTER_IMAGE_UPDATE" ]]; then
-  podman-compose -f $COMPOSE_CONFIGURE pull
+  $DOCKER_EXEC-compose -f $COMPOSE_CONFIGURE pull
   if [[ $? -ne 0 ]]; then
     echo "Error: Unable to pull images"
     exit 1
@@ -49,10 +57,10 @@ if [[ $? -eq 0 ]]; then
   systemctl --user disable container-adguard-home
 fi
 
-podman-compose -f $COMPOSE_CONFIGURE down
+$DOCKER_EXEC-compose -f $COMPOSE_CONFIGURE down
 
 if [[ ! -z "$ROUTER_IMAGE_UPDATE" ]]; then
-  podman image prune -a -f --filter "until=240h"
+  $DOCKER_EXEC image prune -a -f --filter "until=240h"
 fi
 
 echo "[Unit]
@@ -61,8 +69,8 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=podman-compose -f $SCRIPT_DIR/$COMPOSE_CONFIGURE up
-ExecStop=podman-compose -f $SCRIPT_DIR/$COMPOSE_CONFIGURE down
+ExecStart=$DOCKER_EXEC-compose -f $SCRIPT_DIR/$COMPOSE_CONFIGURE up
+ExecStop=$DOCKER_EXEC-compose -f $SCRIPT_DIR/$COMPOSE_CONFIGURE down
 
 [Install]
 WantedBy=default.target

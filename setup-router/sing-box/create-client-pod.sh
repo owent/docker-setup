@@ -104,4 +104,8 @@ systemctl enable vbox-client
 systemctl start vbox-client
 
 # set -x
-# sudo -u tools /bin/bash -i -c "systemctl --user restart container-adguard-home.service"
+# CHECK_RUNNING=$($DOCKER_EXEC inspect --format="{{.State.Running}}" vbox-client)
+# if [[ ! -z "$CHECK_RUNNING" ]] && [[ "$CHECK_RUNNING" != "false" ]] && [[ "$CHECK_RUNNING" != "0" ]]; then
+#   sudo -u tools /bin/bash -i -c "systemctl --user restart container-adguard-home.service"
+#   sudo -u tools /bin/bash -i -c "systemctl --user restart container-unbound.service"
+# fi

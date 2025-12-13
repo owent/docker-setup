@@ -12,11 +12,11 @@ services:
     container_name: adguardhome
     restart: unless-stopped
     volumes:
-      - ./etc:/opt/adguardhome/conf
+      - ./adguard-home-etc:/opt/adguardhome/conf
       - ./ssl:/opt/adguardhome/ssl
-      - ./data:/opt/adguardhome/work
+      - ./adguard-home-data:/opt/adguardhome/work
       # - /etc/resolv.conf:/etc/resolv.conf:ro # 只读挂载宿主机的 DNS 配置
-      - ./etc/resolv.conf:/etc/resolv.conf:ro # 只读挂载宿主机的 DNS 配置
+      - ./adguard-home-etc/resolv.conf:/etc/resolv.conf:ro # 只读挂载宿主机的 DNS 配置
     cap_add:
       - NET_BIND_SERVICE # 绑定到1024以下的端口
       # - NET_ADMIN # (DHCP)网络管理权限，可能需要用于配置网络接口
@@ -48,3 +48,30 @@ services:
       # - "67:67/udp" # DHCP server
       # - "68:68/udp" # DHCP Client
     # command: ["--no-check-update","-c", "/opt/adguardhome/conf/AdGuardHome.yaml", "-w", "/opt/adguardhome/work"]
+  unbound:
+    image: alpinelinux/unbound:latest
+    container_name: unbound
+    restart: unless-stopped
+    user: "root"
+    volumes:
+      - ./unbound-etc/unbound.conf:/etc/unbound/unbound.conf:ro
+      - ./unbound-data:/etc/unbound
+      - ./ssl:/opt/unbound/ssl
+      - ./unbound-etc/resolv.conf:/etc/resolv.conf:ro # 只读挂载宿主机的 DNS 配置
+    cap_add:
+      - NET_BIND_SERVICE # 绑定到1024以下的端口
+      # - NET_ADMIN # (DHCP)网络管理权限，可能需要用于配置网络接口
+      # - NET_RAW # (DHCP)创建原始套接字
+      # - NET_BROADCAST # (DHCP) 发送广播包
+    # network_mode: host # DHCP
+    networks:
+      - internal-backend
+      - internal-frontend
+    security_opt:
+      - label=disable
+      - seccomp=unconfined
+    ports:
+      - "1053:1053/tcp" # Plain DNS
+      - "1053:1053/udp" # Plain DNS
+      - "1853:1853/tcp" # DoT: DNS over TLS
+      - "1853:1853/udp" # DoQ: DNS over QUIC

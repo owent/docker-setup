@@ -3,6 +3,9 @@
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 
+DOCKER_EXEC=$((which podman > /dev/null 2>&1 && echo podman) || (which docker > /dev/null 2>&1 && echo docker))
+DOCKER_EXEC_PATH="$(which $DOCKER_EXEC)"
+
 export XDG_RUNTIME_DIR="/run/user/$UID"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
 
@@ -19,7 +22,7 @@ fi
 # ADGUARD_HOME_NETWORK=(host)
 # ADGUARD_HOME_RUN_USER=(root)
 if [[ -z "$ADGUARD_HOME_ETC_DIR" ]]; then
-  ADGUARD_HOME_ETC_DIR="$SCRIPT_DIR/etc"
+  ADGUARD_HOME_ETC_DIR="$SCRIPT_DIR/adguard-home-etc"
 fi
 mkdir -p "$ADGUARD_HOME_ETC_DIR"
 
@@ -29,7 +32,7 @@ fi
 mkdir -p "$ADGUARD_HOME_SSL_DIR"
 
 if [[ -z "$ADGUARD_HOME_DATA_DIR" ]]; then
-  ADGUARD_HOME_DATA_DIR="$SCRIPT_DIR/data"
+  ADGUARD_HOME_DATA_DIR="$SCRIPT_DIR/adguard-home-data"
 fi
 mkdir -p "$ADGUARD_HOME_DATA_DIR"
 
@@ -37,7 +40,7 @@ if [[ -z "$ADGUARD_HOME_IMAGE" ]]; then
   ADGUARD_HOME_IMAGE="adguard/adguardhome:latest"
 fi
 if [[ "x$ADGUARD_HOME_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman pull $ADGUARD_HOME_IMAGE
+  $DOCKER_EXEC pull $ADGUARD_HOME_IMAGE
 fi
 if [[ -z "$ADGUARD_HOME_RESOLV_CONF" ]]; then
   if [[ -e "$ADGUARD_HOME_ETC_DIR/resolv.conf" ]]; then
@@ -54,15 +57,15 @@ if [[ $? -eq 0 ]]; then
   systemctl --user disable container-adguard-home
 fi
 
-podman container exists adguardhome >/dev/null 2>&1
+$DOCKER_EXEC container exists adguardhome >/dev/null 2>&1
 
 if [[ $? -eq 0 ]]; then
-  podman stop adguardhome
-  podman rm -f adguardhome
+  $DOCKER_EXEC stop adguardhome
+  $DOCKER_EXEC rm -f adguardhome
 fi
 
 if [[ "x$REDIS_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman image prune -a -f --filter "until=240h"
+  $DOCKER_EXEC image prune -a -f --filter "until=240h"
 fi
 
 ADGUARD_HOME_OPTIONS=(
@@ -93,7 +96,7 @@ if [[ ! -z "$ADGUARD_HOME_RUN_USER" ]]; then
   ADGUARD_HOME_OPTIONS+=("--user=$ADGUARD_HOME_RUN_USER")
 fi
 
-podman run -d --name adguardhome --security-opt label=disable \
+$DOCKER_EXEC run -d --name adguardhome --security-opt label=disable \
   "${ADGUARD_HOME_OPTIONS[@]}" \
   $ADGUARD_HOME_IMAGE
 
@@ -102,9 +105,9 @@ if [[ $? -ne 0 ]]; then
   exit 1
 fi
 
-podman stop adguardhome
+$DOCKER_EXEC stop adguardhome
 
-podman generate systemd --name adguardhome | tee $ADGUARD_HOME_ETC_DIR/container-adguard-home.service
+$DOCKER_EXEC generate systemd --name adguardhome | tee $ADGUARD_HOME_ETC_DIR/container-adguard-home.service
 
 systemctl --user enable $ADGUARD_HOME_ETC_DIR/container-adguard-home.service
 systemctl --user restart container-adguard-home
