@@ -244,7 +244,7 @@
       "type": "direct",
       "tag": "in-dns",
       "listen": "127.0.0.1",
-      "listen_port": 1053,
+      "listen_port": 2053,
       "network": "udp"
     }
   ],

@@ -6,6 +6,8 @@ SOCKET="/var/run/haproxy/haproxy.sock"
 COUNT=100                             # 每次发 100 个包
 LOSS_THRESHOLD=2                      # 丢包率prefer比fallback超过 2% 认为不健康
 
+BLACKLIST_GROUP_NAME=() # (hk)
+
 PREFER_GROUP_COUNT=1                  # 首选组数量
 ORIGIN_PREFER_GROUP_COUNT=$PREFER_GROUP_COUNT
 PREFER_GROUP_1_NAME=hk                # 首选组名称
@@ -70,6 +72,11 @@ fi
 check_loss() {
   GROUP_NAME="$1"
   shift
+
+  if [[ " ${BLACKLIST_GROUP_NAME[@]} " =~ " ${GROUP_NAME} " ]]; then
+    echo "100"
+    return
+  fi
 
   # 通过指定源地址发 ping(确保路由走对应出口)
   local total_sent=0
