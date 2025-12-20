@@ -363,7 +363,7 @@
       "packet_encoding": "xudp",
       "tls": {
         "enabled": true,
-        "server_name": "www.microsoft.com", // 要和server端的 tls.reality.handshake.server 保持一致
+        "server_name": "cdn.jsdelivr.net", // 要和server端的 tls.reality.handshake.server 保持一致
         "insecure": false,
         "alpn": ["h2", "http/1.1"],
         "min_version": "1.3", // reality 需求 1.3 以上
@@ -405,7 +405,7 @@
       "packet_encoding": "xudp",
       "tls": {
         "enabled": true,
-        "server_name": "www.microsoft.com", // 要和server端的 tls.reality.handshake.server 保持一致
+        "server_name": "cdn.jsdelivr.net", // 要和server端的 tls.reality.handshake.server 保持一致
         "insecure": false,
         "alpn": ["h2", "http/1.1"],
         "min_version": "1.3", // reality 需求 1.3 以上

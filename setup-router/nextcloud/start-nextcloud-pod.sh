@@ -186,6 +186,7 @@ RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ; \\
 
 RUN usermod -g root www-data; \\
     usermod -a -G www-data www-data; \\
+    usermod -a -G root nobody || true; \\
     chown -R www-data:root /var/www/html/config /var/www/html/data /var/www/html/custom_apps; \\
     chmod -R 770 /var/www/html/config /var/www/html/data /var/www/html/custom_apps; \\
     chmod -R 777 /usr/local/etc
@@ -206,6 +207,7 @@ RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ; \\
 RUN export DEBIAN_FRONTEND=noninteractive; \\
     usermod -g root www-data; \\
     usermod -a -G www-data www-data; \\
+    usermod -a -G root nobody || true; \\
     chown -R www-data:root /var/www/html/config /var/www/html/data /var/www/html/custom_apps; \\
     chmod -R 770 /var/www/html/config /var/www/html/data /var/www/html/custom_apps; \\
     chmod -R 777 /usr/local/etc
@@ -219,7 +221,18 @@ else
   echo "COPY supervisord-apache.conf /supervisord.conf" >>nextcloud.Dockerfile
 fi
 
+echo '#!/bin/sh
+set -eu
+
+while true; do
+  php -f /var/www/html/cron.php
+  sleep 300
+done
+' > nextcloud-cron.sh
+chmod +x nextcloud-cron.sh
+
 echo '
+COPY nextcloud-cron.sh /nextcloud-cron.sh
 ENV NEXTCLOUD_UPDATE=1
 
 CMD ["/usr/bin/supervisord", "-c", "/supervisord.conf"]
@@ -299,8 +312,8 @@ podman run -d --name nextcloud \
   --mount type=bind,source=$NEXTCLOUD_ETC_DIR,target=/var/www/html/config \
   --mount type=bind,source=$NEXTCLOUD_DATA_DIR,target=/var/www/html/data \
   --mount type=bind,source=$NEXTCLOUD_APPS_DIR,target=/var/www/html/custom_apps \
-  --mount type=bind,source=$NEXTCLOUD_EXTERNAL_DIR,target=/data/external \
-  --mount type=bind,source=$NEXTCLOUD_TEMPORARY_DIR,target=/data/temporary \
+  --mount type=bind,source=$NEXTCLOUD_EXTERNAL_DIR,target=/data-ext/external \
+  --mount type=bind,source=$NEXTCLOUD_TEMPORARY_DIR,target=/data-ext/temporary \
   --mount type=bind,source=$DOCKER_SOCK_PATH,target=/var/run/docker.sock \
   --mount type=tmpfs,target=/run,tmpfs-mode=1777,tmpfs-size=67108864 \
   --mount type=tmpfs,target=/run/lock,tmpfs-mode=1777,tmpfs-size=67108864 \

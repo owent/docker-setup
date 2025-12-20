@@ -501,19 +501,19 @@ helm upgrade --install rancher rancher-stable/rancher --namespace cattle-system 
 # 注意：文件名必须是 cacerts.pem （rancher的坑，否则会报 failed to setup TLS listener: read /etc/rancher/ssl/cacerts.pem: is a directory ）
 kubectl -n cattle-system create secret generic tls-ca --from-file=cacerts.pem
 
-# 更新证书: https://ranchermanager.docs.rancher.com/getting-started/installation-and-upgrade/resources/update-rancher-certificate
+# 更新/rotate/轮转 证书: https://ranchermanager.docs.rancher.com/getting-started/installation-and-upgrade/resources/update-rancher-certificate
 # 更新CA
 # 注意：文件名必须是 cacerts.pem （rancher的坑，否则会报 failed to setup TLS listener: read /etc/rancher/ssl/cacerts.pem: is a directory ）
 kubectl -n cattle-system create secret generic tls-ca \
   --from-file=cacerts.pem \
-  --dry-run --save-config -o yaml | kubectl apply -f -
+  --dry-run=client --save-config -o yaml | kubectl apply -f -
 
-# 更新ingress证书(--set ingress.tls.source=secret)
+# 更新/rotate/轮转 ingress证书(--set ingress.tls.source=secret)
 # 不确定文件是不是必须一致，以防万一最好还是保持 tls.crt 和 tls.key
 kubectl -n cattle-system create secret tls tls-rancher-ingress \
   --cert=tls.crt \
   --key=tls.key \
-  --dry-run --save-config -o yaml | kubectl apply -f -
+  --dry-run=client --save-config -o yaml | kubectl apply -f -
 
 # 更新完证书后要重置一下
 kubectl rollout restart deploy/rancher -n cattle-system

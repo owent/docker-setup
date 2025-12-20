@@ -197,7 +197,7 @@
       "packet_encoding": "xudp",
       "tls": {
         "enabled": true,
-        "server_name": "www.microsoft.com", // 如果开启reality的话这里指向服务器的 reality.handshake.server
+        "server_name": "cdn.jsdelivr.net", // 如果开启reality的话这里指向服务器的 reality.handshake.server
         "insecure": false,
         "min_version": "1.3", // reality 需求 1.3 以上
         "utls": {
