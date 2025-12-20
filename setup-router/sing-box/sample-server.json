@@ -123,7 +123,7 @@
             "server": "cdn.jsdelivr.net",
             // 兼容性较好的域名: (推荐使用 RealiTLScanner 或 Sing-box 自带的测试命令扫描，延迟 <= 20ms|50ms)
             // - www.microsoft.com , itunes.apple.com , azure.microsoft.com , vscode.dev , update.microsoft.com
-            // - www.amazon.com , aws.amazon.com , www.digitalocean.com , www.oracle.com , cdn.jsdelivr.net
+            // - www.amazon.com , aws.amazon.com , www.digitalocean.com , www.oracle.com , dw
             // - addons.mozilla.org , swdist.apple.com , dl.google.com
             "server_port": 443
           },
