@@ -1,0 +1,121 @@
+server default {
+    # 监听外部端口 (1812)
+    listen {
+        type = auth
+        ipaddr = *
+        port = 0
+        limit {
+             max_connections = 16
+             lifetime = 0
+             idle_timeout = 30
+        }
+    }
+
+    # 监听计费端口 (1813) - 可选，如果不做计费可忽略
+    listen {
+        ipaddr = *
+        port = 0
+        type = acct
+    }
+
+    authorize {
+        # 1. 基础清理和预处理
+        filter_username
+        preprocess
+
+        # 2. 处理域名后缀 (如 user@example.com -> user)
+        # 如果大家都不带域名登录，或者你想保留域名，可以注释掉 suffix
+        # suffix 
+
+        # 3. [关键] 调用 EAP 模块
+        # 这里会识别客户端发来的是 EAP 包，并启动 TLS 握手。
+        # 一旦握手开始，后续流量会被 FreeRADIUS 内部路由到 inner-tunnel。
+        eap
+
+        # 4. fallback使用LDAP,pap查找用户
+        ldap
+        pap
+
+        # 5. 这里的 files/unix 统统注释掉！
+        # 外层不需要验证用户是否存在，尤其是当用户使用 "anonymous" 作为外层身份时。
+        # files
+        # unix
+        
+        # 6. 默认策略
+        if (!EAP-Message) {
+            update control {
+                Auth-Type := PAP
+            }
+        } else {
+          update control {
+              &Auth-Type := EAP
+          }
+        }
+    }
+
+    authenticate {
+        # ---------------------------------------------------------
+        # 外层只验证 EAP 协议本身 (证书握手)
+        # ---------------------------------------------------------
+        Auth-Type EAP {
+            eap
+        }
+        
+        # 绝对不要在这里放 PAP/CHAP/MSCHAP/LDAP
+        # 所有的密码验证都在 inner-tunnel 里发生
+        # **以下测试完成后请注释掉**
+        # # 处理 PAP 认证 (radtest/测试)
+        # # 允许通过 LDAP 验证明文密码请求
+        # Auth-Type PAP {
+        #     ldap
+        # }
+        # 
+        # # 3. 处理 LDAP (如果某些请求被标记为 LDAP 认证类型)
+        # Auth-Type LDAP {
+        #     ldap
+        # }
+    }
+
+    # 计费部分 (保持默认即可，或者精简如下)
+    preacct {
+        preprocess
+        acct_unique
+        suffix
+    }
+
+    accounting {
+        detail
+        # unix  <-- 注释掉
+        # radutmp <-- 记录在线用户，建议保留
+        radutmp
+        exec
+        attr_filter.accounting_response
+    }
+
+    post-auth {
+        # 验证成功后的处理
+        update {
+            &reply: += &session-state:
+        }
+        
+        # 只有 EAP 成功了，才会有 Post-Auth
+        eap
+
+        # 如果需要记录日志
+        # detail
+        
+        # 处理拒绝
+        Post-Auth-Type REJECT {
+            attr_filter.access_reject
+            eap
+        }
+    }
+
+    pre-proxy {
+        # 保持默认或留空
+    }
+
+    post-proxy {
+        eap
+    }
+}

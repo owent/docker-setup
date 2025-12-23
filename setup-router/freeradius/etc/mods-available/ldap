@@ -1,0 +1,109 @@
+# ln -s /etc/raddb/mods-available/ldap /etc/raddb/mods-enabled/
+ldap {
+    # Authentik LDAP Outpost 的地址
+    server = "ldaps://ldap.yourdomain.com"
+    port = 636
+    
+    # 这里的 identity 是 Authentik 中专门用于查找用户的服务账号
+    identity = "cn=radius_service,ou=users,dc=example,dc=org"
+    password = "service_account_password"
+    
+    base_dn = "dc=example,dc=org"
+
+    # LDAP 连接超时设置
+    timeout = 10
+    timelimit = 10
+    net_timeout = 10
+
+    # 3. 关键：TLS 配置块
+    tls {
+        # 必须禁用 start_tls，因为 LDAPS 已经是 SSL 连接了
+        # 如果开启这个，FreeRADIUS 会尝试在加密隧道里再发 STARTTLS 指令，会导致错误
+        start_tls = no
+
+        # 证书验证设置
+        # 'allow' 表示允许连接，即使证书验证失败（例如自签名证书）
+        # 如果 'allow' 依然报错，可以尝试改为 'never' (完全不请求/验证证书)
+        require_cert = allow
+        
+        # 由于我们忽略验证，以下 CA 路径其实不生效，但建议保留默认或留空
+        ca_path = /etc/ssl/certs
+        ca_file = /etc/ssl/certs/ca-certificates.crt
+    }
+
+    # 用户查找配置
+    user {
+        base_dn = "dc=example,dc=org"
+        scope = "sub"
+        
+        # 根据 Authentik 的设置，这里可能是 uid 或 cn 或 sAMAccountName
+        # 默认 Authentik LDAP 通常映射 username 到 cn
+        # 限制组成员身份（可选，如果不需要限制组可注释）
+        filter = "(&(cn=%{%{Stripped-User-Name}:-%{User-Name}})(|(memberOf=cn=staff,ou=groups,dc=example,dc=org)(memberOf=cn=external-collaborator,ou=groups,dc=example,dc=org)))"
+
+        # 属性映射
+        # Authentik 不会直接暴露明文密码，但如果 Provider 开启了 NTLM 支持，
+        # 这里可能需要调整。对于标准 TTLS-PAP，不需要读取 userPassword。
+        # 但为了兼容性，通常保留默认映射。
+        # 注意：Authentik 这里的 userPassword 通常是哈希值。
+    }
+
+    # -------------------------------------------------------------------------
+    # 4. 密码读取与验证策略 (重要！)
+    # -------------------------------------------------------------------------
+    # Authentik 特殊性说明：
+    # Authentik 的 LDAP 接口是虚拟的。
+    # 1. 如果做 EAP-PEAP (MSCHAPv2)：FreeRADIUS 需要明文或 NTLM 哈希。
+    #    你必须在 Authentik 此时使用的 LDAP Provider 中开启 "Support for NTLM/LANMAN hashes"！
+    #    否则 MSCHAPv2 必挂。
+    # 2. 如果做 EAP-TTLS (PAP)：FreeRADIUS 会尝试用用户的密码去 LDAP "Bind"。
+    
+    update {
+        # 1. 映射 PAP 密码 (用于 TTLS-PAP) - 这个通常没用因为 Authentik 不给明文
+        # - 客户端（Windows 11）：原生支持，但配置稍微麻烦一点点。Windows 默认首选 PEAP-MSCHAPv2，如果要用 TTLS-PAP，不能直接点击 WiFi 连接，必须手动创建网络配置文件。
+        # - 客户端（Android）：原生支持 TTLS-PAP，EAP 方法：选 TTLS，阶段 2 认证：选 PAP (有的手机叫 GTC，但通常是 PAP)。
+        # - 客户端（iOS/macOS）：通常会自动检测，在检测到 PEAP 失败后，经常会询问是否尝试其他模式，或者允许手动选择 TTLS。
+        control:Password-With-Header += 'userPassword'
+
+        # 2. 映射 NTLM 哈希 (用于 PEAP-MSCHAPv2 - 也就是 Windows/Android 默认)
+        # 这里的逻辑是：把 LDAP 里的 sambaNTPassword 字段读取出来，
+        # 赋值给 FreeRADIUS 内部的 NT-Password 属性。
+        # control:NT-Password := 'sambaNTPassword'
+    }
+
+    # -------------------------------------------------------------------------
+    # 5. 组映射
+    # -------------------------------------------------------------------------
+    # Authentik 使用标准的 groupOfNames 结构
+    group {
+        base_dn = "ou=groups,dc=example,dc=org"
+        filter = "(objectClass=groupOfNames)"
+        
+        # Authentik 组名为 cn
+        name_attribute = cn
+        
+        # 成员属性为 member (存放的是用户的 DN)
+        membership_attribute = member
+        
+        cacheable_name = no
+        cacheable_dn = no
+    }
+
+    # 保持连接
+    pool {
+        start = ${thread[pool].start_servers}
+        min = ${thread[pool].min_spare_servers}
+        max = ${thread[pool].max_servers}
+        spare = ${thread[pool].max_spare_servers}
+        # 一个连接无限次使用，减少频繁重建连接的开销
+        uses = 0
+        # 遇到后端挂了，重试间隔 30 秒
+        retry_delay = 30
+        # 连接永不过期（除非被 idle_timeout 杀掉）
+        lifetime = 0
+        # 关键设置：60秒无操作就关闭多余连接
+        # 这个值建议设置得比较小（比如 60-300），
+        # 因为路由器/防火墙通常会杀掉空闲 TCP 连接，我们最好主动关闭它
+        idle_timeout = 60
+    }
+}

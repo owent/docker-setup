@@ -1,0 +1,105 @@
+# 802.1x 认证分为两层，外层建立隧道，内层验证身份。LDAP 验证必须发生在内层隧道 (Inner-Tunnel) 中。
+server inner-tunnel {
+    # 监听本地端口，接收外层隧道解密后的请求
+    listen {
+        ipaddr = 127.0.0.1
+        port = 18120
+        type = auth
+    }
+
+    authorize {
+        # 1. 预处理：清理格式，处理 Hints
+        filter_username
+        preprocess
+        
+        # 2. 如果您配置了白名单/黑名单，可以在这里启用 attr_filter
+        # attr_filter.access_reject
+
+        # 3. 核心：查询 LDAP
+        # 这里会去 Authentik 查找用户。
+        # 如果找到用户，LDAP 模块通常会将 Auth-Type 设置为 LDAP
+        ldap
+        
+        # 如果 LDAP 找到了用户，强制使用 LDAP 进行认证 (Bind 操作)
+        if (ok) {
+            update control {
+                Auth-Type := LDAP
+            }
+        }
+        # 如果在 authorize 阶段 ldap 没能成功接管 Auth-Type，可以尝试强制走LDAP认证：（通常发生在 GTC 流程中）
+        # update control {
+        #     Auth-Type := LDAP
+        # }
+        
+        # 4. 检查是否过期 (依赖 LDAP 返回的属性或本地逻辑)
+        expiration
+        logintime
+
+        # 5. 处理 EAP (针对 PEAP-GTC)
+        # 如果内部请求是 EAP (如 GTC)，这里会处理握手
+        eap
+
+        # 6. 处理 PAP (针对 EAP-TTLS/PAP)
+        # 这一步很关键，它能识别 PAP 请求并准备 User-Password 属性
+        pap
+
+        # 7. 更新控制列表 (通常保持默认)
+        update control {
+            &Proxy-To-Realm := LOCAL
+        }
+    }
+
+    authenticate {
+        # ---------------------------------------------------------
+        # 核心验证逻辑：所有密码验证都指向 LDAP
+        # ---------------------------------------------------------
+
+        # 情况 A: Auth-Type 已经被 authorize 阶段的 ldap 模块接管
+        Auth-Type LDAP {
+            ldap
+        }
+
+        # 情况 B: EAP-TTLS/PAP (最常见)
+        # 客户端发送的是 PAP 包，我们强制用 LDAP 去验证它
+        Auth-Type PAP {
+            ldap
+        }
+
+        # 情况 C: PEAP-GTC
+        # GTC 协议携带明文密码，我们也强制用 LDAP 去验证它
+        # 注意：某些旧版本可能需要手动在 authorize 里设置 Auth-Type
+        Auth-Type GTC {
+            ldap
+        }
+
+        # 处理 EAP 协议本身的握手 (PEAP 内部的 GTC 握手)
+        eap
+    }
+    
+    # 认证成功后执行
+    post-auth {
+        # 再次调用 LDAP 以获取用户的回复属性 (如 VLAN ID, Reply-Message 等)
+        # update reply { ... }
+        ldap
+
+        # 如果有必要，记录详细日志
+        # detail
+        
+        # 记录登录成功的日志到 SQL (如果以后上了 SQL)
+        # sql
+
+        # 确保回复给客户端
+        Post-Auth-Type REJECT {
+            # 登录失败时的属性处理
+            attr_filter.access_reject
+        }
+    }
+
+    pre-proxy {
+        # 本场景通常不涉及代理转发，保持默认为空或简单配置
+    }
+
+    post-proxy {
+        eap
+    }
+}

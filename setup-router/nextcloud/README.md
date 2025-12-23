@@ -96,8 +96,8 @@ php occ ldap:set-config s01 ldapUserFilter "(&(objectClass=user)(|(memberOf=cn=s
 php occ ldap:set-config s01 ldapUserDisplayName displayName
 php occ ldap:set-config s01 ldapUserDisplayName2 cn
 php occ ldap:set-config s01 ldapUserFilterObjectclass user
-# ldap_uniq 是authentik特有字段，其他平台的可能是其他字段，可以fallback成cn,name,uid等
-php occ ldap:set-config s01 homeFolderNamingRule "attr:ldap_uniq"
+# cn 是authentik和大多数LDAP服务都支持的字段，其他平台的可能是其他字段，可以fallback成name,uid,ldap_uniq等
+php occ ldap:set-config s01 homeFolderNamingRule "attr:cn"
 php occ ldap:set-config s01 ldapGroupDisplayName cn
 php occ ldap:set-config s01 ldapUserFilterMode 1
 php occ ldap:set-config s01 ldapNestedGroups 0
@@ -121,7 +121,7 @@ php occ ldap:set-config s01 ldapConfigurationActive 1
 | Configuration                 | s01                                                                                                                                          |
 +-------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
 | hasMemberOfFilterSupport      | 0                                                                                                                                            |
-| homeFolderNamingRule          | attr:ldap_uniq                                                                                                                               |
+| homeFolderNamingRule          | attr:cn                                                                                                                               |
 | lastJpegPhotoLookup           | 0                                                                                                                                            |
 | ldapAdminGroup                |                                                                                                                                              |
 | ldapAgentName                 | cn=ldap-bind,ou=users,dc=example,dc=org                                                                                                         |

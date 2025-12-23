@@ -1,0 +1,66 @@
+# EAP-TTLS/PAP
+eap {
+    default_eap_type = ttls
+    
+    # SSL 证书配置 (802.1x 必须要有证书，即便客户端不验证)
+    tls-config tls-common {
+        # private_key_password = whatever
+        private_key_file = /etc/raddb/certs/server.key
+        # 可以指向ACME签发的证书
+        certificate_file = /etc/raddb/certs/fullchain.cer
+        # 可以指向系统CA证书
+        ca_file = /etc/ssl/certs/ca-certificates.crt
+        cipher_list = "DEFAULT"
+        min_tls_version = "1.2"
+    }
+
+    # =================================================
+    # [重点] TTLS 配置 (您现在的核心方案)
+    # =================================================
+    ttls {
+        # 引用上面的 TLS 配置
+        tls = tls-common
+        
+        # 默认内部 EAP 类型 (虽然用 PAP，但这里通常留 md5 或 gtc)
+        # 这里写 md5 只是为了语法正确，实际上 Windows 客户端配置为 PAP 后，
+        # 会忽略这个默认值，直接发送 PAP 数据包。
+        default_eap_type = md5
+        
+        # 将请求复制到隧道内 (关键！让 Inner Tunnel 能拿到 User-Password)
+        copy_request_to_tunnel = yes
+        
+        # 使用隧道内的回复
+        use_tunneled_reply = yes
+        
+        # [关键修复] 指定虚拟服务器处理解密后的数据
+        virtual_server = "inner-tunnel"
+        
+        include_length = yes
+    }
+
+    # =================================================
+    # PEAP 配置 (保留作为备用)
+    # 需要LDAP服务支持扩展 Samba Schema 或 NTLM 哈希(大多数情况并不支持)，配合 Samba 的 ntlm_auth 工具
+    # =================================================
+
+    ## 设置 PEAP
+    # peap {
+    #     tls = tls-common
+    #     default_eap_type = mschapv2
+    #     
+    #     copy_request_to_tunnel = no
+    #     use_tunneled_reply = no
+    #     
+    #     # [关键修复] PEAP 也必须有这个
+    #     virtual_server = "inner-tunnel"
+    # }
+
+    # 辅助模块 (TTLS 内部可能会协商这些，保留即可)
+    md5 {
+    }
+    gtc {
+        auth_type = PAP
+    }
+    # mschapv2 {
+    # }
+}
