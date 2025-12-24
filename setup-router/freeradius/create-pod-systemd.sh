@@ -87,8 +87,9 @@ cp -rf "$FREE_RADIUS_SERVER_ETC_DIR/"* "$FREE_RADIUS_SERVER_CONFIG_DIR/"
 sed -i -E 's/destination[[:space:]]*=[[:space:]]*[a-zA-Z0-9"].*/destination = stdout/g' "$FREE_RADIUS_SERVER_CONFIG_DIR/radiusd.conf"
 sed -i -E 's/colourise[[:space:]]*=[[:space:]]*[a-zA-Z0-9"].*/colourise = yes/g' "$FREE_RADIUS_SERVER_CONFIG_DIR/radiusd.conf"
 sed -i -E 's/auth[[:space:]]*=[[:space:]]*[a-zA-Z0-9"].*/auth = yes/g' "$FREE_RADIUS_SERVER_CONFIG_DIR/radiusd.conf"
-sed -i -E 's/auth_badpass[[:space:]]*=[[:space:]]*[a-zA-Z0-9"].*/auth_badpass = yes/g' "$FREE_RADIUS_SERVER_CONFIG_DIR/radiusd.conf"
-sed -i -E 's/auth_goodpass[[:space:]]*=[[:space:]]*[a-zA-Z0-9"].*/auth_goodpass = yes/g' "$FREE_RADIUS_SERVER_CONFIG_DIR/radiusd.conf"
+# 不在日志中打印密码
+sed -i -E 's/auth_badpass[[:space:]]*=[[:space:]]*[a-zA-Z0-9"].*/auth_badpass = no/g' "$FREE_RADIUS_SERVER_CONFIG_DIR/radiusd.conf"
+sed -i -E 's/auth_goodpass[[:space:]]*=[[:space:]]*[a-zA-Z0-9"].*/auth_goodpass = no/g' "$FREE_RADIUS_SERVER_CONFIG_DIR/radiusd.conf"
 
 systemctl --user --all | grep -F container-freeradius.service
 

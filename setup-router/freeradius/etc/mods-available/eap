@@ -15,6 +15,8 @@ eap {
 
         # Disable anonymous user login
         anonymous_identity = ""
+        # 不需要客户端证书
+        require_client_cert = no
     }
 
     # =================================================
@@ -24,10 +26,13 @@ eap {
         # 引用上面的 TLS 配置
         tls = tls-common
         
-        # 默认内部 EAP 类型 (虽然用 PAP，但这里通常留 md5 或 gtc)
-        # 这里写 md5 只是为了语法正确，实际上 Windows 客户端配置为 PAP 后，
-        # 会忽略这个默认值，直接发送 PAP 数据包。
-        default_eap_type = md5
+        # 默认内部 EAP 类型
+        # 重要：使用 gtc 而不是 md5！
+        # - md5 需要服务器端有明文密码（LDAP 不支持）
+        # - gtc 可以传输明文密码，通过 LDAP Bind 验证
+        # - 苹果设备 (iOS/macOS) 在 TTLS 内部会尝试使用这里指定的 EAP 类型
+        # - Windows/Android 配置为 PAP 后会忽略此设置，直接发送 PAP 包
+        default_eap_type = gtc
         
         # 将请求复制到隧道内 (关键！让 Inner Tunnel 能拿到 User-Password)
         copy_request_to_tunnel = yes
@@ -35,7 +40,7 @@ eap {
         # 使用隧道内的回复
         use_tunneled_reply = yes
         
-        # [关键修复] 指定虚拟服务器处理解密后的数据
+        # 指定虚拟服务器处理解密后的数据
         virtual_server = "inner-tunnel"
         
         include_length = yes
@@ -47,16 +52,16 @@ eap {
     # =================================================
 
     ## 设置 PEAP
-    # peap {
-    #     tls = tls-common
-    #     default_eap_type = mschapv2
-    #     
-    #     copy_request_to_tunnel = no
-    #     use_tunneled_reply = no
-    #     
-    #     # [关键修复] PEAP 也必须有这个
-    #     virtual_server = "inner-tunnel"
-    # }
+    peap {
+        tls = tls-common
+        default_eap_type = ttls
+        
+        copy_request_to_tunnel = no
+        use_tunneled_reply = no
+        
+        # PEAP 也必须有这个
+        virtual_server = "inner-tunnel"
+    }
 
     # 辅助模块 (TTLS 内部可能会协商这些，保留即可)
     md5 {
