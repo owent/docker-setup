@@ -119,6 +119,7 @@ if [[ ! -z "$FREE_RADIUS_SERVER_CERTS_DIR" ]]; then
   )
 fi
 
+# Use command to run and view logs: radiusd -X
 $DOCKER_EXEC run -d --name freeradius --security-opt label=disable \
   -e "TZ=Asia/Shanghai" \
   # -e RADIUS_DEBUG=yes \

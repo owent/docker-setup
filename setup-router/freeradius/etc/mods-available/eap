@@ -12,6 +12,9 @@ eap {
         ca_file = /etc/ssl/certs/ca-certificates.crt
         cipher_list = "DEFAULT"
         min_tls_version = "1.2"
+
+        # Disable anonymous user login
+        anonymous_identity = ""
     }
 
     # =================================================

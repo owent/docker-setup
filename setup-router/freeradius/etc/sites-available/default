@@ -30,7 +30,16 @@ server default {
         # 3. [关键] 调用 EAP 模块
         # 这里会识别客户端发来的是 EAP 包，并启动 TLS 握手。
         # 一旦握手开始，后续流量会被 FreeRADIUS 内部路由到 inner-tunnel。
-        eap
+        eap {
+            ok = return
+        }
+
+        # 注意：外层 EAP 使用 anonymous 是正常的隐私保护机制
+        # EAP-TTLS/PEAP 的真实认证发生在 inner-tunnel 中
+        # 如果想禁止非 EAP 请求使用 anonymous（如 radtest），可以启用以下规则：
+        # if (!EAP-Message && User-Name == "anonymous") {
+        #     reject
+        # }
 
         # 4. fallback使用LDAP,pap查找用户
         ldap
