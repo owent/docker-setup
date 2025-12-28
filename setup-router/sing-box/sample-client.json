@@ -102,9 +102,12 @@
           }
         ],
         "action": "route",
-        // 代理DNS延长TTL，不然可能下游设备未过期这里就缓存失效了
-        "rewrite_ttl": 600,
         "server": "dns-local"
+      },
+      {
+        "action": "route",
+        "rewrite_ttl": 600,
+        "server": "dns-proxy"
       }
       // , {
       //   "action": "route",
