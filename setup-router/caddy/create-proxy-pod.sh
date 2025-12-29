@@ -45,6 +45,16 @@ else
   mkdir -p "$SYSTEMD_SERVICE_DIR"
 fi
 
+podman container inspect proxy-caddy >/dev/null 2>&1
+
+if [[ $? -eq 0 ]]; then
+  podman exec proxy-caddy caddy validate --config /etc/caddy/Caddyfile 2>/dev/null
+  if [[ $? -ne 0 ]]; then
+    echo "Caddyfile validation failed"
+    exit 1
+  fi
+fi
+
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
   systemctl --all | grep -F proxy-caddy.service >/dev/null 2>&1
   if [ $? -eq 0 ]; then

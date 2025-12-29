@@ -45,6 +45,14 @@ if [[ ! -z "$ROUTER_IMAGE_UPDATE" ]]; then
   fi
 fi
 
+if [[ $? -eq 0 ]]; then
+  podman exec caddy caddy validate --config /etc/caddy/Caddyfile 2>/dev/null
+  if [[ $? -ne 0 ]]; then
+    echo "Caddyfile validation failed"
+    exit 1
+  fi
+fi
+
 systemctl --user --all | grep -F container-caddy.service
 
 if [[ $? -eq 0 ]]; then

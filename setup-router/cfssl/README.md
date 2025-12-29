@@ -47,7 +47,7 @@ cfssl gencert -ca ./$USECA_NAME.pem                             \
 cat fullchain.prefix.cer ./$APP_NAME.pem > fullchain.$APP_NAME.cer
 
 # 验证证书链
-openssl verify -CAfile root-ca.pem $SUBCA_NAME.pem
+openssl verify -CAfile root-ca.pem $USECA_NAME.pem
 ```
 
 ## 生成客户端证书
@@ -62,7 +62,7 @@ cfssl gencert -ca ./$USECA_NAME.pem                             \
             ./csr-endpoint.json | cfssljson -bare ./$APP_NAME -
 
 # 验证证书链
-openssl verify -CAfile root-ca.pem $SUBCA_NAME.pem
+openssl verify -CAfile root-ca.pem $USECA_NAME.pem
 ```
 
 ## 生成对端证书，即服务器认证+客户端认证
@@ -78,8 +78,35 @@ cfssl gencert -ca ./$USECA_NAME.pem                             \
 
 
 # 验证证书链
-openssl verify -CAfile root-ca.pem $SUBCA_NAME.pem
+openssl verify -CAfile root-ca.pem $USECA_NAME.pem
 ```
+
+## 生成吊销文件
+
+```bash
+for USECA_NAME in root-ca child-ca; do
+    if [[ ! -e "revoked_certs.$USECA_NAME.txt" ]]; then
+        echo "[]" > "revoked_certs.$USECA_NAME.txt"
+    fi
+    cfssl gencrl revoked_certs.$USECA_NAME.txt $USECA_NAME.pem $USECA_NAME-key.pem | base64 -d > $USECA_NAME.crl
+done
+```
+
+## 安装自签CA证书
+
+### Linux
+
+```bash
+for USECA_NAME in root-ca child-ca; do
+    echo "$(cat $USECA_NAME.pem)" | sudo tee /usr/local/share/ca-certificates/$USECA_NAME.crt
+done
+
+sudo update-ca-certificates
+```
+
+### Windows
+
+重命名为 .crt 文件名安装到“受信任的根证书颁发机构”目录下
 
 ## Usages参数说明
 
