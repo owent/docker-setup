@@ -1,5 +1,6 @@
 # GitHub 域名配置
-GITHUB_DOMAINS = [
+# 这些域名的查询参数是 AWS S3 签名，可以安全移除
+GITHUB_SAFE_STRIP_DOMAINS = [
     r'^https?://release-assets\.githubusercontent\.com/',
     r'^https?://objects\.githubusercontent\.com/',
     r'^https?://codeload\.github\.com/',

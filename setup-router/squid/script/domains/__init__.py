@@ -1,10 +1,28 @@
 # 域名配置模块
-from .github import GITHUB_DOMAINS
-from .cdn import CDN_DOMAINS
-from .microsoft import MICROSOFT_DOMAINS
-from .unreal_engine import UNREAL_ENGINE_DOMAINS
-from .unity import UNITY_DOMAINS
+#
+# 分为两类:
+# 1. SAFE_STRIP_DOMAINS - 可以安全移除所有查询参数的域名
+# 2. VERSION_REQUIRED_DOMAINS - 需要检查版本号的 CDN (有版本号才缓存)
+#
 
-# 合并所有域名模式
-ALL_PATTERNS = (GITHUB_DOMAINS + CDN_DOMAINS + MICROSOFT_DOMAINS +
-                UNREAL_ENGINE_DOMAINS + UNITY_DOMAINS)
+from .github import GITHUB_SAFE_STRIP_DOMAINS
+from .cdn import CDN_SAFE_STRIP_DOMAINS, CDN_VERSION_REQUIRED_DOMAINS
+from .microsoft import MICROSOFT_SAFE_STRIP_DOMAINS
+from .unreal_engine import UNREAL_ENGINE_SAFE_STRIP_DOMAINS
+from .unity import UNITY_SAFE_STRIP_DOMAINS
+from .golang import GOLANG_SAFE_STRIP_DOMAINS
+from .maven import MAVEN_SAFE_STRIP_DOMAINS, MAVEN_EXCLUDE_PATTERNS
+
+# 合并所有可安全移除参数的域名模式
+ALL_SAFE_STRIP_PATTERNS = (GITHUB_SAFE_STRIP_DOMAINS + CDN_SAFE_STRIP_DOMAINS +
+                           MICROSOFT_SAFE_STRIP_DOMAINS +
+                           UNREAL_ENGINE_SAFE_STRIP_DOMAINS +
+                           UNITY_SAFE_STRIP_DOMAINS +
+                           GOLANG_SAFE_STRIP_DOMAINS +
+                           MAVEN_SAFE_STRIP_DOMAINS)
+
+# 需要版本号检查的域名模式 (元组列表: 域名正则, 版本正则)
+ALL_VERSION_REQUIRED_PATTERNS = CDN_VERSION_REQUIRED_DOMAINS
+
+# Maven 排除模式 (匹配这些模式的不做 store_id 重写)
+ALL_EXCLUDE_PATTERNS = MAVEN_EXCLUDE_PATTERNS

@@ -16,6 +16,9 @@ Directory structure:
         cdn.py
         microsoft.py
         unreal_engine.py
+        unity.py
+        golang.py
+        maven.py
 """
 
 from __future__ import annotations
@@ -23,82 +26,39 @@ from __future__ import annotations
 import sys
 import os
 import re
-from urllib.parse import urlparse, urlunparse, parse_qs
-from typing import Optional
+from urllib.parse import urlparse, urlunparse
+from typing import Optional, List, Tuple, Pattern
 
 # 添加脚本所在目录到模块搜索路径
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, SCRIPT_DIR)
 
+# 从 domains 模块导入配置
+from domains import (
+    ALL_SAFE_STRIP_PATTERNS,
+    ALL_VERSION_REQUIRED_PATTERNS,
+    ALL_EXCLUDE_PATTERNS,
+)
+
 # =============================================================================
-# 域名分类配置
+# 编译正则表达式
 # =============================================================================
 
 # 完全安全移除参数的域名 (参数仅用于签名/跟踪，不影响内容)
-SAFE_STRIP_PATTERNS = [
-    # GitHub - 参数是 AWS S3 签名
-    re.compile(r'^https?://release-assets\.githubusercontent\.com/'),
-    re.compile(r'^https?://objects\.githubusercontent\.com/'),
-    re.compile(r'^https?://codeload\.github\.com/'),
-    re.compile(r'^https?://github\.com/[^/]+/[^/]+/releases/download/'),
-    re.compile(r'^https?://github\.com/[^/]+/[^/]+/archive/'),
-    re.compile(r'^https?://gist\.githubusercontent\.com/'),
-    re.compile(r'^https?://user-attachments\.githubusercontent\.com/'),
-    # CDNJS - 版本在路径中
-    re.compile(r'^https?://cdnjs\.cloudflare\.com/ajax/libs/'),
-    # Google Fonts 静态资源 - 路径包含哈希
-    re.compile(r'^https?://fonts\.gstatic\.com/'),
-    # Google AJAX - 版本在路径中
-    re.compile(r'^https?://ajax\.googleapis\.com/ajax/libs/'),
-    # Bootstrap CDN - 版本在路径中
-    re.compile(r'^https?://cdn\.bootcdn\.net/ajax/libs/'),
-    re.compile(r'^https?://stackpath\.bootstrapcdn\.com/'),
-    re.compile(r'^https?://cdn\.staticfile\.org/'),
-    # 微软下载 - 参数是签名/跟踪
-    re.compile(r'^https?://download\.microsoft\.com/'),
-    re.compile(r'^https?://download\.windowsupdate\.com/'),
-    re.compile(r'^https?://dl\.delivery\.mp\.microsoft\.com/'),
-    re.compile(r'^https?://emdl\.ws\.microsoft\.com/'),
-    re.compile(r'^https?://download\.visualstudio\.microsoft\.com/'),
-    re.compile(r'^https?://download\.visualstudio\.com/'),
-    re.compile(r'^https?://az764295\.vo\.msecnd\.net/'),
-    re.compile(r'^https?://vscode\.download\.prss\.microsoft\.com/'),
-    # VS Code 扩展下载 (vsix 文件)
-    re.compile(r'^https?://gallery\.vsassets\.io/.*\.vsix'),
-    # Unreal Engine
-    re.compile(r'^https?://cdn\.unrealengine\.com/'),
-    # Unity 下载
-    re.compile(r'^https?://download\.unity3d\.com/'),
-    re.compile(r'^https?://download\.unity\.com/'),
-    re.compile(r'^https?://beta\.unity3d\.com/'),
-    re.compile(r'^https?://netstorage\.unity3d\.com/'),
-    re.compile(r'^https?://public-cdn\.cloud\.unity3d\.com/'),
-    re.compile(r'^https?://cdn-fastly\.unity3d\.com/'),
-    re.compile(r'^https?://cdn\.unity\.cn/'),
-    re.compile(r'^https?://upm-cdn\.unity\.com/'),
-    re.compile(r'^https?://assetstorev1-prd-cdn\.unity3dusercontent\.com/'),
-    re.compile(r'^https?://d2ujflorbtfzji\.cloudfront\.net/'),
-    # NuGet 包下载 (nupkg 文件)
-    re.compile(r'^https?://globalcdn\.nuget\.org/'),
+SAFE_STRIP_PATTERNS: List[Pattern[str]] = [
+    re.compile(pattern) for pattern in ALL_SAFE_STRIP_PATTERNS
 ]
 
 # 需要检查路径中是否有版本号的 CDN (有版本号才缓存)
-# 匹配 @版本号 或 /版本号/ 格式
-VERSION_REQUIRED_PATTERNS = [
-    # jsDelivr: /npm/package@version/ 或 /gh/user/repo@version/
-    (re.compile(r'^https?://cdn\.jsdelivr\.net/'), re.compile(r'@[\d\w\.\-]+')
-     ),
-    # unpkg: /package@version/
-    (re.compile(r'^https?://(?:www\.)?unpkg\.com/'),
-     re.compile(r'@[\d\w\.\-]+')),
+VERSION_REQUIRED_PATTERNS: List[Tuple[Pattern[str], Pattern[str]]] = [
+    (re.compile(domain_pattern), re.compile(version_pattern))
+    for domain_pattern, version_pattern in ALL_VERSION_REQUIRED_PATTERNS
 ]
 
-# 不应处理的域名/路径 (参数会影响返回内容)
-# fonts.googleapis.com - family 参数决定返回的 CSS
-# api.nuget.org - API 查询参数
-# marketplace.visualstudio.com - 除了实际下载外的 API
-# update.code.visualstudio.com - 更新检查 API
-# packages.unity.com - 元数据 API
+# 排除模式 (匹配这些模式的 URL 不做 store_id 重写)
+EXCLUDE_PATTERNS: List[Pattern[str]] = [
+    re.compile(pattern) for pattern in ALL_EXCLUDE_PATTERNS
+]
 
 
 def get_store_id(url: str) -> Optional[str]:
@@ -108,6 +68,11 @@ def get_store_id(url: str) -> Optional[str]:
     """
     try:
         parsed = urlparse(url)
+
+        # 首先检查排除模式 (如 -SNAPSHOT)
+        for pattern in EXCLUDE_PATTERNS:
+            if pattern.search(url):
+                return None
 
         # 检查完全安全的域名
         for pattern in SAFE_STRIP_PATTERNS:

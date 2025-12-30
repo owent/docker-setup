@@ -1,23 +1,22 @@
 # 微软下载域名配置
-MICROSOFT_DOMAINS = [
+# 仅包含可安全移除查询参数的下载域名
+# API 域名不在此列表中 (参数会影响返回内容)
+MICROSOFT_SAFE_STRIP_DOMAINS = [
     # Windows Update
     r'^https?://download\.microsoft\.com/',
     r'^https?://download\.windowsupdate\.com/',
     r'^https?://dl\.delivery\.mp\.microsoft\.com/',
-    r'^https?://emdl\.ws\.microsoft\.com/',
     # Visual Studio
     r'^https?://download\.visualstudio\.microsoft\.com/',
     r'^https?://download\.visualstudio\.com/',
-    r'^https?://az764295\.vo\.msecnd\.net/',
     # VS Code
     r'^https?://vscode\.download\.prss\.microsoft\.com/',
-    r'^https?://update\.code\.visualstudio\.com/',
-    r'^https?://vscode-update\.azurewebsites\.net/',
-    # VS Code 扩展市场
-    r'^https?://marketplace\.visualstudio\.com/',
-    r'^https?://gallery\.vsassets\.io/',
-    r'^https?://vsmarketplacebadges\.dev/',
-    # NuGet
-    r'^https?://api\.nuget\.org/',
+    # NuGet 包下载
     r'^https?://globalcdn\.nuget\.org/',
 ]
+
+# API 域名 (不做 store_id 重写)
+# update.code.visualstudio.com - 更新检查 API
+# vscode-update.azurewebsites.net - 更新检查 API
+# api.nuget.org - API 查询
+# vsmarketplacebadges.dev - 徽章 API

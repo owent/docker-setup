@@ -73,8 +73,7 @@ download.visualstudio.com,
 vscode.download.prss.microsoft.com,
 globalcdn.nuget.org,
 update.code.visualstudio.com,
-api.nuget.org,
-marketplace.visualstudio.com {
+api.nuget.org {
     reverse_proxy squid:3128 {
         header_up Host {host}
         header_up X-Real-IP {remote_host}
