@@ -17,6 +17,4 @@ MICROSOFT_SAFE_STRIP_DOMAINS = [
 
 # API 域名 (不做 store_id 重写)
 # update.code.visualstudio.com - 更新检查 API
-# vscode-update.azurewebsites.net - 更新检查 API
 # api.nuget.org - API 查询
-# vsmarketplacebadges.dev - 徽章 API
