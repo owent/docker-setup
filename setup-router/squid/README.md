@@ -1,9 +1,52 @@
 # Squid 缓存代理配置
 
+## 架构
+
+```mermaid
+flowchart LR
+    subgraph 客户端
+        C[浏览器/下载工具]
+    end
+    
+    subgraph 代理服务器
+        Caddy[Caddy<br/>HTTPS:443<br/>SSL 终止]
+        Squid[Squid<br/>HTTP:3128<br/>缓存代理]
+    end
+    
+    subgraph 源站
+        GH[GitHub]
+        CDN[CDN<br/>jsdelivr/cdnjs]
+        MS[Microsoft]
+        Unity[Unity]
+        Go[Golang]
+        Maven[Maven]
+    end
+    
+    C -->|HTTPS| Caddy
+    Caddy -->|HTTP| Squid
+    Squid -->|HTTPS<br/>cache_peer| GH
+    Squid -->|HTTPS<br/>cache_peer| CDN
+    Squid -->|HTTPS<br/>cache_peer| MS
+    Squid -->|HTTPS<br/>cache_peer| Unity
+    Squid -->|HTTPS<br/>cache_peer| Go
+    Squid -->|HTTPS<br/>cache_peer| Maven
+    
+    style Squid fill:#4a90d9,stroke:#333,color:#fff
+    style Caddy fill:#22c55e,stroke:#333,color:#fff
+```
+
+**流程说明：**
+1. **Caddy** - SSL 终止，提供 HTTPS 入口，转发请求到 Squid
+2. **Squid** - HTTP 反向代理缓存，通过 `cache_peer` (TLS) 连接源站
+3. **缓存命中** - Squid 直接返回缓存内容，不请求源站
+
 ## 目录结构
 
 ```
 squid/
+├── squid.Dockerfile            # 容器镜像构建
+├── supervisor/
+│   └── supervisord.conf        # supervisor 配置 (进程管理 + 日志轮转)
 ├── etc/
 │   ├── squid.conf              # 主配置文件
 │   └── conf.d/                 # 模块化配置目录
@@ -12,23 +55,50 @@ squid/
 │       ├── 20-cdn.conf             # 主流 CDN (jsDelivr, cdnjs, etc.)
 │       ├── 30-microsoft.conf       # 微软下载 (VS, VS Code, Windows Update)
 │       ├── 35-unity.conf           # Unity 下载
+│       ├── 40-golang.conf          # Golang 模块代理
+│       ├── 45-maven.conf           # Maven/Gradle 仓库
 │       └── 99-deny-store-id.conf   # 默认拒绝 store_id
 └── script/
-    ├── store_id_rewriter.py    # Store ID 重写程序 (内置所有规则)
-    └── domains/                # 域名配置模块 (仅供参考)
-        └── ...
+    ├── store_id_rewriter.py    # Store ID 重写程序
+    └── domains/                # 域名配置模块
+        ├── __init__.py
+        ├── github.py
+        ├── cdn.py
+        ├── microsoft.py
+        ├── unity.py
+        ├── unreal_engine.py
+        ├── golang.py
+        └── maven.py
 ```
 
-## 安装
+## Docker/Podman 部署
+
+```bash
+# 构建镜像
+podman build -f squid.Dockerfile -t squid-cache .
+
+# 运行容器
+podman run -d \
+  --name squid \
+  -p 3128:3128 \
+  -v /path/to/squid/etc:/etc/squid:ro \
+  -v /path/to/squid/script:/opt/squid/script:ro \
+  -v /path/to/squid/cache:/var/spool/squid \
+  -v /path/to/squid/logs:/var/log/squid \
+  squid-cache
+```
+
+## 手动安装
 
 ```bash
 # 复制配置文件
 cp -r etc/squid.conf /etc/squid/
 cp -r etc/conf.d /etc/squid/
 
-# 复制脚本 (只需要主程序，不需要 domains 目录)
-cp script/store_id_rewriter.py /usr/local/bin/
-chmod +x /usr/local/bin/store_id_rewriter.py
+# 复制脚本 (包括 domains 目录)
+mkdir -p /opt/squid/script
+cp -r script/* /opt/squid/script/
+chmod +x /opt/squid/script/store_id_rewriter.py
 
 # 创建缓存目录
 mkdir -p /var/spool/squid
@@ -58,6 +128,8 @@ squid -k reconfigure
 | 微软下载 | `download.microsoft.com` | 签名/跟踪参数 |
 | Unity | `download.unity3d.com` | CDN 参数 |
 | CDNJS | `cdnjs.cloudflare.com` | 版本在路径中 |
+| Golang | `proxy.golang.org` | 版本在路径中 |
+| Maven | `repo1.maven.org` | 版本在路径中 |
 
 ### 2. 需要版本号才缓存的 CDN
 
@@ -100,33 +172,47 @@ refresh_pattern -i api\.example\.com 10 50% 60
 
 ### 2. 添加 Store ID 重写规则
 
-编辑 `script/store_id_rewriter.py`，在 `SAFE_STRIP_PATTERNS` 中添加：
+在 `script/domains/` 下创建新文件，例如 `example.py`:
 
 ```python
-SAFE_STRIP_PATTERNS = [
-    # ... 已有配置 ...
-    # Example CDN
-    re.compile(r'^https?://cdn\.example\.com/'),
+# Example CDN 域名配置
+EXAMPLE_SAFE_STRIP_DOMAINS = [
+    r'^https?://cdn\.example\.com/',
 ]
+```
+
+然后在 `script/domains/__init__.py` 中导入：
+
+```python
+from .example import EXAMPLE_SAFE_STRIP_DOMAINS
+
+ALL_SAFE_STRIP_PATTERNS = (
+    # ... 已有配置 ...
+    EXAMPLE_SAFE_STRIP_DOMAINS +
+)
 ```
 
 ## 测试 Store ID 重写
 
 ```bash
 # 测试 GitHub Release (应移除参数)
-echo "https://release-assets.githubusercontent.com/xxx?X-Amz-Algorithm=AWS4" | python3 /usr/local/bin/store_id_rewriter.py
+echo "https://release-assets.githubusercontent.com/xxx?X-Amz-Algorithm=AWS4" | python3 /opt/squid/script/store_id_rewriter.py
 # 输出: OK store-id=https://release-assets.githubusercontent.com/xxx
 
 # 测试 jsDelivr 带版本 (应移除参数)
-echo "https://cdn.jsdelivr.net/npm/vue@3.2.0/dist/vue.js" | python3 /usr/local/bin/store_id_rewriter.py
+echo "https://cdn.jsdelivr.net/npm/vue@3.2.0/dist/vue.js" | python3 /opt/squid/script/store_id_rewriter.py
 # 输出: OK store-id=https://cdn.jsdelivr.net/npm/vue@3.2.0/dist/vue.js
 
 # 测试 jsDelivr @latest (不应重写)
-echo "https://cdn.jsdelivr.net/npm/vue@latest/dist/vue.js" | python3 /usr/local/bin/store_id_rewriter.py
+echo "https://cdn.jsdelivr.net/npm/vue@latest/dist/vue.js" | python3 /opt/squid/script/store_id_rewriter.py
 # 输出: ERR
 
 # 测试 fonts.googleapis.com (不应重写，参数影响内容)
-echo "https://fonts.googleapis.com/css?family=Roboto" | python3 /usr/local/bin/store_id_rewriter.py
+echo "https://fonts.googleapis.com/css?family=Roboto" | python3 /opt/squid/script/store_id_rewriter.py
+# 输出: ERR
+
+# 测试 Maven SNAPSHOT (不应重写)
+echo "https://repo1.maven.org/maven2/com/example/1.0-SNAPSHOT/example.jar" | python3 /opt/squid/script/store_id_rewriter.py
 # 输出: ERR
 ```
 
@@ -134,8 +220,23 @@ echo "https://fonts.googleapis.com/css?family=Roboto" | python3 /usr/local/bin/s
 
 ```bash
 # 查看日志中的缓存状态
-tail -f /var/log/squid/accel.log | grep -E 'HIT|MISS'
+tail -f /var/log/squid/access.log | grep -E 'HIT|MISS'
 
-# 检查缓存内容
-squidclient -h 127.0.0.1 -p 3128 mgr:storedir
+# 查看缓存目录使用情况
+du -sh /var/spool/squid/
+
+# 查看缓存索引状态
+ls -la /var/spool/squid/swap.state
+```
+
+## 日志轮转
+
+supervisor 配置中包含自动日志轮转：
+- 每小时检查日志大小
+- 超过 30MB 自动执行 `squid -k rotate`
+- 保留 5 个轮转文件 (`logfile_rotate 5`)
+
+手动轮转：
+```bash
+podman exec squid squid -k rotate
 ```
