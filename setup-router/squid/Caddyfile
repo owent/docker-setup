@@ -1,0 +1,14 @@
+cdn.unrealengine.com,
+release-assets.githubusercontent.com {
+  reverse_proxy {
+    to http://127.0.0.1:3128
+    # header_up Host {http.request.hostport}
+    header_up X-Real-IP {http.request.remote}
+    # header_up X-Forwarded-Port {http.request.port}
+    header_up X-Forwarded-Proto {scheme}
+    header_up X-Forwarded-Host {host}
+    header_up X-Forwarded-For {remote}
+  }
+
+  tls /data/ssl/squid/squid-full-chain.pem /data/ssl/squid/squid-cert-key.pem
+}

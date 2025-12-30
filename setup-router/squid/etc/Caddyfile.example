@@ -1,0 +1,125 @@
+# Caddy 反向代理配置示例
+# 用于将 HTTPS 请求转发到 Squid 缓存代理
+#
+# 架构: 客户端 (HTTPS:443) -> Caddy -> Squid (HTTP:3128) -> 源站 (HTTPS:443)
+
+# =============================================================================
+# 全局配置
+# =============================================================================
+{
+    # 自动 HTTPS 证书管理
+    email your-email@example.com
+    
+    # 如果使用自签名证书测试，取消下面的注释
+    # local_certs
+}
+
+# =============================================================================
+# GitHub 资产
+# =============================================================================
+release-assets.githubusercontent.com,
+objects.githubusercontent.com,
+codeload.github.com,
+gist.githubusercontent.com,
+user-attachments.githubusercontent.com {
+    reverse_proxy squid:3128 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+}
+
+# =============================================================================
+# Unreal Engine
+# =============================================================================
+cdn.unrealengine.com {
+    reverse_proxy squid:3128 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+}
+
+# =============================================================================
+# 主流 CDN
+# =============================================================================
+cdnjs.cloudflare.com,
+cdn.jsdelivr.net,
+unpkg.com, www.unpkg.com,
+cdn.staticfile.org,
+cdn.bootcdn.net,
+fonts.googleapis.com,
+fonts.gstatic.com,
+ajax.googleapis.com,
+stackpath.bootstrapcdn.com {
+    reverse_proxy squid:3128 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+}
+
+# =============================================================================
+# 微软下载
+# =============================================================================
+download.microsoft.com,
+download.windowsupdate.com,
+dl.delivery.mp.microsoft.com,
+download.visualstudio.microsoft.com,
+download.visualstudio.com,
+vscode.download.prss.microsoft.com,
+globalcdn.nuget.org,
+update.code.visualstudio.com,
+api.nuget.org,
+marketplace.visualstudio.com {
+    reverse_proxy squid:3128 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+}
+
+# =============================================================================
+# Unity
+# =============================================================================
+download.unity3d.com,
+public-cdn.cloud.unity3d.com,
+packages.unity.com {
+    reverse_proxy squid:3128 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+}
+
+# =============================================================================
+# Golang 模块代理
+# =============================================================================
+proxy.golang.org,
+sum.golang.org {
+    reverse_proxy squid:3128 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+}
+
+# =============================================================================
+# Java Maven 仓库
+# =============================================================================
+repo1.maven.org,
+repo.maven.apache.org,
+plugins.gradle.org {
+    reverse_proxy squid:3128 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+}
