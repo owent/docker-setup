@@ -118,6 +118,8 @@ files.pythonhosted.org {
 # =============================================================================
 registry.npmjs.org,
 registry.yarnpkg.com,
-registry.npmmirror.com {
+registry.npmmirror.com,
+cdn.npmmirror.com,
+mirrors.cloud.tencent.com {
     import squid_proxy
 }

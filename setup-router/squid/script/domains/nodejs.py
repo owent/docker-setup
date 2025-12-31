@@ -7,6 +7,12 @@ NPM_SAFE_STRIP_DOMAINS = [
     r'^https?://registry\.npmjs\.org/[^/]+/-/',
     r'^https?://registry\.yarnpkg\.com/[^/]+/-/',
     r'^https?://registry\.npmmirror\.com/[^/]+/-/',
+    # cdn.npmmirror.com 包文件
+    # URL: cdn.npmmirror.com/package/-/package-version.tgz
+    r'^https?://cdn\.npmmirror\.com/',
+    # 腾讯云镜像包文件
+    # URL: mirrors.cloud.tencent.com/npm/package/-/package-version.tgz
+    r'^https?://mirrors\.cloud\.tencent\.com/npm/',
 ]
 
 # npm 元数据不做 store_id 重写 (需要保持最新)
