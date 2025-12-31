@@ -15,6 +15,22 @@
 }
 
 # =============================================================================
+# 代码片段 - 统一的反向代理配置
+# =============================================================================
+(squid_proxy) {
+    reverse_proxy squid:3128 {
+        header_up Host {host}
+        # 删除所有代理标识头，防止源站检测
+        header_up -Via
+        header_up -X-Forwarded-For
+        header_up -X-Forwarded-Proto
+        header_up -X-Forwarded-Host
+        header_up -X-Real-IP
+        header_up -Forwarded
+    }
+}
+
+# =============================================================================
 # GitHub 资产
 # =============================================================================
 release-assets.githubusercontent.com,
@@ -22,24 +38,14 @@ objects.githubusercontent.com,
 codeload.github.com,
 gist.githubusercontent.com,
 user-attachments.githubusercontent.com {
-    reverse_proxy squid:3128 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-        header_up X-Forwarded-Proto {scheme}
-    }
+    import squid_proxy
 }
 
 # =============================================================================
 # Unreal Engine
 # =============================================================================
 cdn.unrealengine.com {
-    reverse_proxy squid:3128 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-        header_up X-Forwarded-Proto {scheme}
-    }
+    import squid_proxy
 }
 
 # =============================================================================
@@ -54,12 +60,7 @@ fonts.googleapis.com,
 fonts.gstatic.com,
 ajax.googleapis.com,
 stackpath.bootstrapcdn.com {
-    reverse_proxy squid:3128 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-        header_up X-Forwarded-Proto {scheme}
-    }
+    import squid_proxy
 }
 
 # =============================================================================
@@ -74,12 +75,7 @@ vscode.download.prss.microsoft.com,
 globalcdn.nuget.org,
 update.code.visualstudio.com,
 api.nuget.org {
-    reverse_proxy squid:3128 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-        header_up X-Forwarded-Proto {scheme}
-    }
+    import squid_proxy
 }
 
 # =============================================================================
@@ -88,12 +84,7 @@ api.nuget.org {
 download.unity3d.com,
 public-cdn.cloud.unity3d.com,
 packages.unity.com {
-    reverse_proxy squid:3128 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-        header_up X-Forwarded-Proto {scheme}
-    }
+    import squid_proxy
 }
 
 # =============================================================================
@@ -101,12 +92,7 @@ packages.unity.com {
 # =============================================================================
 proxy.golang.org,
 sum.golang.org {
-    reverse_proxy squid:3128 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-        header_up X-Forwarded-Proto {scheme}
-    }
+    import squid_proxy
 }
 
 # =============================================================================
@@ -115,10 +101,5 @@ sum.golang.org {
 repo1.maven.org,
 repo.maven.apache.org,
 plugins.gradle.org {
-    reverse_proxy squid:3128 {
-        header_up Host {host}
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-        header_up X-Forwarded-Proto {scheme}
-    }
+    import squid_proxy
 }

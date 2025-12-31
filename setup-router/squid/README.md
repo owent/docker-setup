@@ -165,7 +165,7 @@ cache allow example_api
 store_id_access allow example_downloads
 
 # 下载: 长期缓存
-refresh_pattern -i cdn\.example\.com 10080 100% 43200 override-expire ignore-reload ignore-no-store ignore-private
+refresh_pattern -i cdn\.example\.com 10080 100% 43200 override-expire ignore-reload ignore-no-store ignore-private ignore-must-revalidate
 # API: 短期缓存
 refresh_pattern -i api\.example\.com 10 50% 60
 ```
