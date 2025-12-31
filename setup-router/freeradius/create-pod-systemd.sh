@@ -28,6 +28,9 @@ if [[ "x$FREE_RADIUS_ACCT_PORT" == "x" ]]; then
   FREE_RADIUS_ACCT_PORT=1813
 fi
 
+# FREE_RADIUS_SERVER_NETWORK=(internal-frontend internal-backend)
+# FREE_RADIUS_SERVER_PUBLISH=( )
+
 # FREE_RADIUS_SERVER_CERTS_DIR=
 if [[ "x$FREE_RADIUS_SERVER_ETC_DIR" == "x" ]]; then
   FREE_RADIUS_SERVER_ETC_DIR="$SCRIPT_DIR/etc"
@@ -109,10 +112,30 @@ if [[ "x$FREE_RADIUS_SERVER_UPDATE" != "x" ]] || [[ "x$FREE_RADIUS_UPDATE" != "x
   $DOCKER_EXEC image prune -a -f --filter "until=240h"
 fi
 
-FREE_RADIUS_SERVER_OPTIONS=(
-  -p $FREE_RADIUS_AUTH_PORT:$FREE_RADIUS_AUTH_PORT/udp
-  -p $FREE_RADIUS_ACCT_PORT:$FREE_RADIUS_ACCT_PORT/udp
-)
+FREE_RADIUS_SERVER_OPTIONS=()
+
+if [[ ! -z "$FREE_RADIUS_SERVER_NETWORK" ]]; then
+  FREE_RADIUS_SERVER_NETWORK_HAS_HOST=0
+  for network in ${FREE_RADIUS_SERVER_NETWORK[@]}; do
+    FREE_RADIUS_SERVER_OPTIONS+=("--network=$network")
+    if [[ "$network" == "host" ]]; then
+      FREE_RADIUS_SERVER_NETWORK_HAS_HOST=1
+    fi
+  done
+  if [[ $FREE_RADIUS_SERVER_NETWORK_HAS_HOST -eq 0 ]]; then
+    FREE_RADIUS_SERVER_OPTIONS=+(
+      -p $FREE_RADIUS_AUTH_PORT:$FREE_RADIUS_AUTH_PORT/udp
+      -p $FREE_RADIUS_ACCT_PORT:$FREE_RADIUS_ACCT_PORT/udp
+    )
+    if [[ ! -z "$FREE_RADIUS_SERVER_PUBLISH" ]]; then
+      for publish in ${FREE_RADIUS_SERVER_PUBLISH[@]}; do
+        FREE_RADIUS_SERVER_OPTIONS+=(-p "$publish")
+      done
+    fi
+  fi 
+else
+  FREE_RADIUS_SERVER_OPTIONS+=(--network=host)
+fi
 
 if [[ ! -z "$FREE_RADIUS_SERVER_CERTS_DIR" ]]; then
   FREE_RADIUS_SERVER_OPTIONS+=(

@@ -15,6 +15,15 @@ ldap {
     timelimit = 10
     net_timeout = 10
 
+    accounting {
+    }
+
+    #
+    #  Post-Auth can modify LDAP objects too
+    #
+    post-auth {
+    }
+
     # 3. 关键：TLS 配置块
     tls {
         # 必须禁用 start_tls，因为 LDAPS 已经是 SSL 连接了
