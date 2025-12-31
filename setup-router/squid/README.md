@@ -240,3 +240,9 @@ supervisor 配置中包含自动日志轮转：
 ```bash
 podman exec squid squid -k rotate
 ```
+
+## 查询缓存信息
+
+```bash
+curl -s "http://127.0.0.1:3128/squid-internal-mgr/storedir"
+```
