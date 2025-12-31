@@ -12,6 +12,8 @@ from .unreal_engine import UNREAL_ENGINE_SAFE_STRIP_DOMAINS
 from .unity import UNITY_SAFE_STRIP_DOMAINS
 from .golang import GOLANG_SAFE_STRIP_DOMAINS
 from .maven import MAVEN_SAFE_STRIP_DOMAINS, MAVEN_EXCLUDE_PATTERNS
+from .python import PYTHON_SAFE_STRIP_DOMAINS
+from .nodejs import NPM_SAFE_STRIP_DOMAINS
 
 # 合并所有可安全移除参数的域名模式
 ALL_SAFE_STRIP_PATTERNS = (GITHUB_SAFE_STRIP_DOMAINS + CDN_SAFE_STRIP_DOMAINS +
@@ -19,7 +21,8 @@ ALL_SAFE_STRIP_PATTERNS = (GITHUB_SAFE_STRIP_DOMAINS + CDN_SAFE_STRIP_DOMAINS +
                            UNREAL_ENGINE_SAFE_STRIP_DOMAINS +
                            UNITY_SAFE_STRIP_DOMAINS +
                            GOLANG_SAFE_STRIP_DOMAINS +
-                           MAVEN_SAFE_STRIP_DOMAINS)
+                           MAVEN_SAFE_STRIP_DOMAINS +
+                           PYTHON_SAFE_STRIP_DOMAINS + NPM_SAFE_STRIP_DOMAINS)
 
 # 需要版本号检查的域名模式 (元组列表: 域名正则, 版本正则)
 ALL_VERSION_REQUIRED_PATTERNS = CDN_VERSION_REQUIRED_DOMAINS

@@ -103,3 +103,21 @@ repo.maven.apache.org,
 plugins.gradle.org {
     import squid_proxy
 }
+
+# =============================================================================
+# Python PyPI
+# =============================================================================
+pypi.org,
+pypi.python.org,
+files.pythonhosted.org {
+    import squid_proxy
+}
+
+# =============================================================================
+# Node.js npm
+# =============================================================================
+registry.npmjs.org,
+registry.yarnpkg.com,
+registry.npmmirror.com {
+    import squid_proxy
+}
