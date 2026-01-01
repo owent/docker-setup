@@ -87,10 +87,12 @@ squid/
 podman build -f squid.Dockerfile -t squid-cache .
 
 # 运行容器
+# 注意这里只挂载squid.conf文件和conf.d目录，因为 /etc/squid 下有其他文件，不能掩盖，否则会启动失败。
 podman run -d \
   --name squid \
   -p 3128:3128 \
-  -v /path/to/squid/etc:/etc/squid:ro \
+  -v /path/to/squid/etc/squid.conf:/etc/squid/squid.conf:ro \
+  -v /path/to/squid/etc/conf.d:/etc/squid/conf.d:ro \
   -v /path/to/squid/script:/opt/squid/script:ro \
   -v /path/to/squid/cache:/var/spool/squid \
   -v /path/to/squid/logs:/var/log/squid \
