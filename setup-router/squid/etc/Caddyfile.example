@@ -18,9 +18,52 @@
 # 代码片段 - 统一的反向代理配置
 # =============================================================================
 (squid_proxy) {
+    # 对客户端响应启用压缩：优先 zstd，其次 gzip
+    # 前提：当前 Caddy 构建启用了 encode 模块并支持 zstd
+    encode zstd gzip
+
     reverse_proxy squid:3128 {
         header_up Host {host}
         # 删除所有代理标识头，防止源站检测
+        header_up -Via
+        header_up -X-Forwarded-For
+        header_up -X-Forwarded-Proto
+        header_up -X-Forwarded-Host
+        header_up -X-Real-IP
+        header_up -Forwarded
+    }
+}
+
+# =============================================================================
+# 代码片段 - 仅对特定域名收敛 Accept-Encoding 变体
+# =============================================================================
+(squid_proxy_ae_identity) {
+    # 对客户端响应启用压缩：优先 zstd，其次 gzip
+    encode zstd gzip
+
+    reverse_proxy squid:3128 {
+        header_up Host {host}
+        # 仅对“有问题的域名”固定上游 Accept-Encoding，收敛缓存对象变体
+        # 使用 identity 让 Squid 缓存单一“未压缩”对象，避免 Vary: Accept-Encoding 导致的多变体与循环匹配告警
+        header_up Accept-Encoding "identity"
+        header_up -Via
+        header_up -X-Forwarded-For
+        header_up -X-Forwarded-Proto
+        header_up -X-Forwarded-Host
+        header_up -X-Real-IP
+        header_up -Forwarded
+    }
+}
+
+(squid_proxy_ae_gzip) {
+    # 对客户端响应启用压缩：优先 zstd，其次 gzip
+    encode zstd gzip
+
+    reverse_proxy squid:3128 {
+        header_up Host {host}
+        # 仅对“有问题的域名”固定上游 Accept-Encoding，收敛缓存对象变体
+        # 使用 identity 让 Squid 缓存单一“未压缩”对象，避免 Vary: Accept-Encoding 导致的多变体与循环匹配告警
+        header_up Accept-Encoding "gzip"
         header_up -Via
         header_up -X-Forwarded-For
         header_up -X-Forwarded-Proto
@@ -82,9 +125,29 @@ api.nuget.org {
 # Unity
 # =============================================================================
 download.unity3d.com,
-public-cdn.cloud.unity3d.com,
 packages.unity.com {
     import squid_proxy
+}
+
+# public-cdn.cloud.unity3d.com 可能出现 Vary: Accept-Encoding 多变体导致的 Vary object loop
+public-cdn.cloud.unity3d.com {
+    # 对客户端响应启用压缩：优先 zstd，其次 gzip
+    encode zstd gzip
+
+    # 仅对 /config* 这类配置/元数据端点固定 gzip：
+    # - 让 Squid 看到稳定的 Accept-Encoding，收敛 Vary 变体
+    # - 同时减少回源字节数（通常是小文本/JSON）
+    @unity_public_cdn_config path /config*
+    handle @unity_public_cdn_config {
+        import squid_proxy_ae_gzip
+    }
+
+    # 其他路径固定 identity：
+    # - 让 Squid 缓存单一“未压缩”对象，避免多变体
+    # - 由 Caddy 面向客户端做 zstd/gzip 压缩协商
+    handle {
+        import squid_proxy_ae_identity
+    }
 }
 
 # =============================================================================
