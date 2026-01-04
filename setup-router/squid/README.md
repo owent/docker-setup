@@ -20,6 +20,8 @@ flowchart LR
         Unity[Unity]
         Go[Golang]
         Maven[Maven]
+        NodeJs[NodeJs/yarnpkg...]
+        Python[Python/Pypi]
     end
     
     C -->|HTTPS| Caddy
@@ -30,12 +32,15 @@ flowchart LR
     Squid -->|HTTPS<br/>cache_peer| Unity
     Squid -->|HTTPS<br/>cache_peer| Go
     Squid -->|HTTPS<br/>cache_peer| Maven
+    Squid -->|HTTPS<br/>cache_peer| NodeJs
+    Squid -->|HTTPS<br/>cache_peer| Python
     
     style Squid fill:#4a90d9,stroke:#333,color:#fff
     style Caddy fill:#22c55e,stroke:#333,color:#fff
 ```
 
 **流程说明：**
+
 1. **Caddy** - SSL 终止，提供 HTTPS 入口，转发请求到 Squid
 2. **Squid** - HTTP 反向代理缓存，通过 `cache_peer` (TLS) 连接源站
 3. **缓存命中** - Squid 直接返回缓存内容，不请求源站
@@ -58,6 +63,8 @@ squid/
 │       ├── 35-unity.conf           # Unity 下载
 │       ├── 40-golang.conf          # Golang 模块代理
 │       ├── 45-maven.conf           # Maven/Gradle 仓库
+│       ├── 50-python.conf          # Python/PyPi仓库
+│       ├── 55-nodejs.conf          # NodeJs/yarn仓库
 │       └── 99-deny-store-id.conf   # 默认拒绝 store_id
 └── script/
     ├── store_id_rewriter.py    # Store ID 重写程序
@@ -69,7 +76,9 @@ squid/
         ├── unity.py
         ├── unreal_engine.py
         ├── golang.py
-        └── maven.py
+        ├── maven.py
+        ├── python.py
+        └── nodejs.py
 ```
 
 ## Docker/Podman 部署
@@ -79,10 +88,12 @@ squid/
 podman build -f squid.Dockerfile -t squid-cache .
 
 # 运行容器
+# 注意这里只挂载squid.conf文件和conf.d目录，因为 /etc/squid 下有其他文件，不能掩盖，否则会启动失败。
 podman run -d \
   --name squid \
   -p 3128:3128 \
-  -v /path/to/squid/etc:/etc/squid:ro \
+  -v /path/to/squid/etc/squid.conf:/etc/squid/squid.conf:ro \
+  -v /path/to/squid/etc/conf.d:/etc/squid/conf.d:ro \
   -v /path/to/squid/script:/opt/squid/script:ro \
   -v /path/to/squid/cache:/var/spool/squid \
   -v /path/to/squid/logs:/var/log/squid \
@@ -123,14 +134,14 @@ squid -k reconfigure
 
 参数仅用于签名/跟踪，不影响返回内容：
 
-| 类型 | 域名示例 | 说明 |
-|------|----------|------|
-| GitHub | `release-assets.githubusercontent.com` | AWS S3 签名参数 |
-| 微软下载 | `download.microsoft.com` | 签名/跟踪参数 |
-| Unity | `download.unity3d.com` | CDN 参数 |
-| CDNJS | `cdnjs.cloudflare.com` | 版本在路径中 |
-| Golang | `proxy.golang.org` | 版本在路径中 |
-| Maven | `repo1.maven.org` | 版本在路径中 |
+| 类型     | 域名示例                               | 说明            |
+| -------- | -------------------------------------- | --------------- |
+| GitHub   | `release-assets.githubusercontent.com` | AWS S3 签名参数 |
+| 微软下载 | `download.microsoft.com`               | 签名/跟踪参数   |
+| Unity    | `download.unity3d.com`                 | CDN 参数        |
+| CDNJS    | `cdnjs.cloudflare.com`                 | 版本在路径中    |
+| Golang   | `proxy.golang.org`                     | 版本在路径中    |
+| Maven    | `repo1.maven.org`                      | 版本在路径中    |
 
 ### 2. 需要版本号才缓存的 CDN
 
@@ -233,11 +244,13 @@ ls -la /var/spool/squid/swap.state
 ## 日志轮转
 
 supervisor 配置中包含自动日志轮转：
+
 - 每小时检查日志大小
 - 超过 30MB 自动执行 `squid -k rotate`
 - 保留 5 个轮转文件 (`logfile_rotate 5`)
 
 手动轮转：
+
 ```bash
 podman exec squid squid -k rotate
 ```
