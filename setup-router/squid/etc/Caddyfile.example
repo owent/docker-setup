@@ -186,3 +186,18 @@ cdn.npmmirror.com,
 mirrors.cloud.tencent.com {
     import squid_proxy
 }
+
+# =============================================================================
+# Github pages cache
+# =============================================================================
+grafana.github.io,
+charts.jenkins.io,
+openebs.github.io,
+helm.goharbor.io,
+opensearch-project.github.io,
+releases.rancher.com,
+git.rancher.io,
+charts.rancher.io {
+    import squid_proxy
+}
+
