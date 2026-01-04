@@ -8,7 +8,6 @@
 #   - *.github.io (所有 GitHub Pages 子域名)
 #   - *.jenkins.io
 #   - *.goharbor.io
-#   - *.rancher.com
 #   - *.rancher.io
 
 _STATIC_ASSET_EXTS = (r'css|js|mjs|map|json|'
@@ -21,5 +20,5 @@ STATIC_SITES_SAFE_STRIP_DOMAINS = [
     rf'^https?://[^/]+\.github\.io/.*\.(?:{_STATIC_ASSET_EXTS})(?:\?.*)?$',
 
     # 其它静态站点/发布站点（只对资源后缀生效）
-    rf'^https?://([^/]+\.jenkins\.io|[^/]+\.goharbor\.io|[^/]+\.rancher\.com|[^/]+\.rancher\.io)/.*\.(?:{_STATIC_ASSET_EXTS})(?:\?.*)?$',
+    rf'^https?://([^/]+\.jenkins\.io|[^/]+\.goharbor\.io|[^/]+\.rancher\.io)/.*\.(?:{_STATIC_ASSET_EXTS})(?:\?.*)?$',
 ]

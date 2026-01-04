@@ -195,7 +195,6 @@ charts.jenkins.io,
 openebs.github.io,
 helm.goharbor.io,
 opensearch-project.github.io,
-releases.rancher.com,
 git.rancher.io,
 charts.rancher.io {
     import squid_proxy
