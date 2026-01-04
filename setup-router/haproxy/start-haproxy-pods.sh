@@ -69,3 +69,23 @@ WantedBy=default.target
 systemctl --user enable $HAPROXY_ETC_DIR/container-haproxy.service
 systemctl --user daemon-reload
 systemctl --user restart container-haproxy.service
+
+# 设置 HAProxy 监控
+if [[ -f "$RUN_HOME/.config/haproxy-monitor.env" ]]; then
+  MONITOR_CONFIG_DIR="$RUN_HOME/.config/haproxy"
+  mkdir -p "$MONITOR_CONFIG_DIR"
+
+  # 复制监控脚本
+  cp -f "$SCRIPT_DIR/monitor-haproxy.sh" "$MONITOR_CONFIG_DIR/"
+  chmod +x "$MONITOR_CONFIG_DIR/monitor-haproxy.sh"
+
+  # 安装监控服务
+  cp -f "$SCRIPT_DIR/haproxy-monitor.service" "$RUN_HOME/.config/systemd/user/"
+  cp -f "$SCRIPT_DIR/haproxy-monitor.timer" "$RUN_HOME/.config/systemd/user/"
+
+  systemctl --user daemon-reload
+  systemctl --user enable haproxy-monitor.timer
+  systemctl --user restart haproxy-monitor.timer
+
+  echo "HAProxy 监控服务已部署，请配置 $RUN_HOME/.config/haproxy-monitor.env"
+fi

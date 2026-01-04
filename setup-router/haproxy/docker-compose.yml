@@ -19,6 +19,7 @@ services:
     volumes:
       - ./etc:/etc/haproxy
       # - ./ssl:/etc/haproxy/ssl
+      - haproxy-socket:/var/run
     ports:
       - "8666:8666"
       - "6022:6022"
@@ -37,3 +38,6 @@ services:
       - label=disable
       - seccomp=unconfined
     command: ["haproxy", "-f", "/etc/haproxy/haproxy.cfg"]
+
+volumes:
+  haproxy-socket:

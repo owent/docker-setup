@@ -52,6 +52,7 @@ squid/
 │   └── conf.d/                 # 模块化配置目录
 │       ├── 00-unreal-engine.conf   # Unreal Engine CDN
 │       ├── 10-github.conf          # GitHub 资产
+│       ├── 15-github-pages.conf    # GitHub Pages/静态站点/Helm 仓库
 │       ├── 20-cdn.conf             # 主流 CDN (jsDelivr, cdnjs, etc.)
 │       ├── 30-microsoft.conf       # 微软下载 (VS, VS Code, Windows Update)
 │       ├── 35-unity.conf           # Unity 下载

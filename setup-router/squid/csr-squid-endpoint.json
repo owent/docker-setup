@@ -8,9 +8,17 @@
         "unrealengine.com",
         "*.unrealengine.com",
 
+        "*.github.io",
         "github.com",
         "*.github.com",
         "*.githubusercontent.com",
+
+        "*.jenkins.io",
+        "*.goharbor.io",
+        "rancher.com",
+        "*.rancher.com",
+        "rancher.io",
+        "*.rancher.io",
 
         "cloudflare.com",
         "*.cloudflare.com",

@@ -1,0 +1,13 @@
+[Unit]
+Description=HAProxy Backend Status Monitor
+After=network.target container-haproxy.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=%h/.config/haproxy-monitor.env
+ExecStart=/bin/bash %h/.config/haproxy/monitor-haproxy.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,12 @@
+[Unit]
+Description=HAProxy Backend Status Monitor Timer
+Requires=haproxy-monitor.service
+
+[Timer]
+# 每2分钟运行一次监控检查
+OnBootSec=2min
+OnUnitActiveSec=2min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target
