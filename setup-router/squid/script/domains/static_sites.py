@@ -21,4 +21,7 @@ STATIC_SITES_SAFE_STRIP_DOMAINS = [
 
     # 其它静态站点/发布站点（只对资源后缀生效）
     rf'^https?://([^/]+\.jenkins\.io|[^/]+\.goharbor\.io|[^/]+\.rancher\.io)/.*\.(?:{_STATIC_ASSET_EXTS})(?:\?.*)?$',
+
+    # 镜像站点（仅对资源后缀生效）
+    rf'^https?://(mirror\.freedif\.org|mirror\.ossplanet\.net)/.*\.(?:{_STATIC_ASSET_EXTS})(?:\?.*)?$',
 ]

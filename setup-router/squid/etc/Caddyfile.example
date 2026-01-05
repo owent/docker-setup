@@ -184,7 +184,40 @@ registry.yarnpkg.com,
 registry.npmmirror.com,
 cdn.npmmirror.com,
 mirrors.cloud.tencent.com {
-    import squid_proxy
+	# -------------------------------------------------------------------------
+	# CORS (宽松模式)
+	# -------------------------------------------------------------------------
+	# 说明：
+	# - 让浏览器/Service Worker 对 npm 相关资源的跨域 fetch 不再被 CORS 拦截
+	# - 这里统一允许所有 Origin；因此不要启用 credentials（否则规范不允许 '*'
+	#   且会带来安全风险）。
+	# - 预检 OPTIONS 在边缘直接返回 204，避免上游不支持 OPTIONS 导致 net::ERR_FAILED
+
+	# 对所有响应添加 CORS 允许头（即使没有 Origin 也无害）
+	header {
+		Access-Control-Allow-Origin "*"
+		Access-Control-Expose-Headers "Content-Length, Content-Range, Accept-Ranges, ETag, Last-Modified, Cache-Control, Content-Type"
+	}
+
+	# CORS preflight: 直接响应
+	@cors_preflight {
+		method OPTIONS
+		header Origin *
+	}
+	handle @cors_preflight {
+		header {
+			Access-Control-Allow-Origin "*"
+			Access-Control-Allow-Methods "GET, HEAD, OPTIONS, POST, PUT, PATCH, DELETE"
+			Access-Control-Allow-Headers "*"
+			Access-Control-Max-Age "86400"
+		}
+		respond "" 204
+	}
+
+	# 其他请求照常转发给 Squid
+	handle {
+		import squid_proxy
+	}
 }
 
 # =============================================================================
@@ -192,6 +225,9 @@ mirrors.cloud.tencent.com {
 # =============================================================================
 grafana.github.io,
 charts.jenkins.io,
+get.jenkins.io,
+mirror.freedif.org,
+mirror.ossplanet.net,
 openebs.github.io,
 helm.goharbor.io,
 opensearch-project.github.io,
