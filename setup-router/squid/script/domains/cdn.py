@@ -1,5 +1,9 @@
 # 主流 CDN 域名配置
 
+_STATIC_ASSET_EXTS = (r'css|js|mjs|map|json|'
+                      r'png|jpe?g|gif|webp|svg|ico|'
+                      r'woff2?|ttf|eot|wasm')
+
 # 完全安全移除参数的 CDN (版本号在路径中)
 CDN_SAFE_STRIP_DOMAINS = [
     # CDNJS - /ajax/libs/package/version/file
@@ -13,6 +17,9 @@ CDN_SAFE_STRIP_DOMAINS = [
     # Bootstrap CDN - 版本在路径中
     r'^https?://cdn\.bootcdn\.net/ajax/libs/',
     r'^https?://stackpath\.bootstrapcdn\.com/',
+
+    # diagrams.net - 仅对静态资源去 query，提高命中率（避免影响 HTML/动态接口）
+    rf'^https?://(app|viewer)\.diagrams\.net/.*\.(?:{_STATIC_ASSET_EXTS})(?:\?.*)?$',
 ]
 
 # 需要检查版本号的 CDN (有 @version 才缓存，@latest 不缓存)

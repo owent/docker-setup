@@ -260,3 +260,27 @@ podman exec squid squid -k rotate
 ```bash
 curl -s "http://127.0.0.1:3128/squid-internal-mgr/storedir"
 ```
+
+## 额外的CA信任
+
+```bash
+# Linux
+cp -f /etc/ssl/certs/my-proxy-ca.pem /usr/local/share/ca-certificates/
+update-ca-certificates
+# Windows 安装到受信任的根证书颁发机构
+# macOS 安装到系统区域后需要手动点击信任
+
+# ============ NodeJS ============
+# Linux/macOS
+export NODE_EXTRA_CA_CERTS=/etc/ssl/certs/my-proxy-ca.pem
+
+# Windows PowerShell（示例）
+$env:NODE_EXTRA_CA_CERTS = "C:\\path\\to\\my-proxy-ca.pem"
+
+yarn install
+
+# ============ Java ============
+keytool -importcert -file <path-to-your-ca-certificate> -alias <your-alias> -keystore <path-to-cacerts-file> -storepass changeit
+keytool -importcert -file <path-to-your-ca-certificate> -alias <your-alias> -keystore $JAVA_HOME/lib/security/cacerts -storepass changeit
+
+```

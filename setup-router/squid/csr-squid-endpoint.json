@@ -39,6 +39,19 @@
         "unpkg.com",
         "*.unpkg.com",
 
+        "*.diagrams.net",
+
+        "esm.sh",
+        "*.esm.sh",
+        "esm.run",
+        "*.esm.run",
+        "skypack.dev",
+        "*.skypack.dev",
+        "jspm.io",
+        "*.jspm.io",
+
+        "*.aspnetcdn.com",
+
         "microsoft.com",
         "*.microsoft.com",
         "visualstudio.microsoft.com",
@@ -61,6 +74,8 @@
         "*.code.visualstudio.com",
         "vsassets.io",
         "*.vsassets.io",
+        "gallerycdn.vsassets.io",
+        "*.gallerycdn.vsassets.io",
         "nuget.org",
         "*.nuget.org",
         "msecnd.net",
