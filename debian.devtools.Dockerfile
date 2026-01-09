@@ -16,7 +16,7 @@ RUN /bin/bash /opt/docker-setup/replace-source.sh ;                             
     fi                                                                                                                      \
     apt update; apt install -y --reinstall apt coreutils bash sed procps;                                                   \
     apt install -y man-db locales tzdata less iproute2 gawk lsof systemd-cron openssh-client openssh-server systemd dnsutils ; \
-    apt install -y vim wget curl ca-certificates telnet iotop htop knot-dnsutils sysstat ;                                  \
+    apt install -y vim wget curl ca-certificates telnet iotop btop knot-dnsutils sysstat ;                                  \
     apt install -y traceroute tcptraceroute tcpdump netcat-openbsd ncat nftables yq jq;                                     \
     echo "LANG=en_US.UTF-8" >  /etc/default/locale;                                                                         \
     echo "LANGUAGE=en_US.UTF-8" >> /etc/default/locale;                                                                     \

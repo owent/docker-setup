@@ -8,7 +8,7 @@ RUN cp -f /etc/apt/sources.list /etc/apt/sources.list.bak ;                     
     cat /etc/apt/sources.list ;                                                                                 \
     apt update -y;                                                                                              \
     apt install -y procps locales tzdata less iproute2 gawk lsof openssh-client openssh-server systemd  ;       \
-    apt install -y vim wget curl ca-certificates telnet iotop htop knot-dnsutils dnsutils sysstat;              \
+    apt install -y vim wget curl ca-certificates telnet iotop btop knot-dnsutils dnsutils sysstat;              \
     apt install -y dnsmasq dnsmasq-utils ppp pppconfig pppoe pppoeconf ca-certificates ipset ndisc6;            \
     apt install -y traceroute tcptraceroute tcpdump netcat-openbsd ncat network-manager nftables;               \
     apt install -y systemd-timesyncd yq jq;                                                                     \

@@ -14,9 +14,9 @@ COPY . /opt/docker-setup
 RUN /bin/bash /opt/docker-setup/replace-source.sh ;                                                                 \
     sed -i '/^tsflags=nodocs/ s|^|#|' /etc/yum.conf ;                                                               \
     dnf reinstall -y coreutils bash gawk sed;                                                                       \
-    dnf install -y vim curl wget perl unzip lzip p7zip p7zip-plugins net-tools telnet iotop htop iproute nftables;  \
+    dnf install -y vim curl wget perl unzip lzip p7zip p7zip-plugins net-tools telnet iotop btop iproute nftables;  \
     dnf install -y man-db tzdata less lsof openssh-clients openssh-server systemd vim wget curl ca-certificates  ;  \
-    dnf install -y traceroute knot-utils tcpdump htop iotop nmap-ncat yq jq; ;                                      \
+    dnf install -y traceroute knot-utils tcpdump btop iotop nmap-ncat yq jq; ;                                      \
     localectl set-locale LANG=en_GB.utf8 ;                                                                          \
     timedatectl set-timezone Asia/Shanghai;                                                                         \
     timedatectl set-ntp true;                                                                                       \

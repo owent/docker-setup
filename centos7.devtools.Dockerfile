@@ -14,7 +14,7 @@ COPY . /opt/docker-setup
 RUN /bin/bash /opt/docker-setup/replace-source.sh ;                                                                 \
     sed -i '/^tsflags=nodocs/ s|^|#|' /etc/yum.conf ;                                                               \
     yum reinstall -y coreutils bash gawk sed mlocate procps-ng;                                                     \
-    yum install -y vim curl wget perl unzip lzip p7zip p7zip-plugins net-tools telnet iotop htop iproute psmisc;    \
+    yum install -y vim curl wget perl unzip lzip p7zip p7zip-plugins net-tools telnet iotop btop iproute psmisc;    \
     yum install -y man-db tzdata less lsof openssh-clients openssh-server systemd vim wget curl ca-certificates  ;  \
     localectl set-locale LANG=en_GB.utf8 ;                                                                          \
     timedatectl set-timezone Asia/Shanghai;                                                                         \
