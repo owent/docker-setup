@@ -7,7 +7,7 @@ LDAP属性文档: <https://docs.goauthentik.io/add-secure-apps/providers/ldap>
 **注意: Authentik在同时存在多个Provider和Base DN时，不允许一个Provider的Base DN是另一个的前缀。**
 
 ```bash
-sudo apt install -y sssd-ldap libpam-sss libnss-sss libpam-mkhomedir
+sudo apt install -y sssd-ldap libpam-sss libnss-sss libpam-mkhomedir libpam-runtime
 ## RHEL like
 ## sudo dnf install -y sssd sssd-client sssd-ldap sssd-tools oddjob-mkhomedir
 
@@ -92,7 +92,7 @@ sudo bash -c 'chmod 600 /etc/sssd/conf.d/*'
 sudo bash -c 'chown root:root /etc/sssd/conf.d/*'
 
 # LDAP 用户搜词启动自动创建Home目录
-sudo pam-auth-update --enable mkhomedir
+sudo bash -l -c 'pam-auth-update --enable mkhomedir'
 ## RHEL like
 ## sudo systemctl enable --now oddjobd
 ## sudo authselect enable-feature with-mkhomedir
@@ -110,7 +110,7 @@ echo "
 
 # 启动
 sudo systemctl restart sssd
-sudo pam-auth-update
+sudo bash -l -c 'pam-auth-update'
 ```
 
 如果修改了配置规则，且开启了ldap_id_mapping 可能会有数据库缓存问题。可以手动清空缓存。

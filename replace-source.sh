@@ -19,30 +19,30 @@ DISTRIBUTE_LIKE_NAMES=${DISTRIBUTE_LIKE_NAMES//\"/}
 
 if [ "x$DISTRIBUTE_NAME" == "xcentos" ] || [ "x$DISTRIBUTE_NAME" == "xrhel" ] || [[ "${DISTRIBUTE_LIKE_NAMES[@]}" =~ "centos" ]] || [[ "${DISTRIBUTE_LIKE_NAMES[@]}" =~ "rhel" ]]; then
   sed -i -r 's/#?\s*mirrorlist=/#mirrorlist=/g' /etc/yum.repos.d/CentOS-*.repo
-  sed -i -r 's;#?\s*baseurl\s*=\s*http://[^\$]+\$contentdir;baseurl=http://mirrors.tencent.com/centos;g' /etc/yum.repos.d/CentOS-*.repo
+  sed -i -r 's;#?\s*baseurl\s*=\s*http://[^\$]+\$contentdir;baseurl=http://mirrors.ustc.edu.cn/centos;g' /etc/yum.repos.d/CentOS-*.repo
   if [ "x$DISTRIBUTE_VERSION_ID" == "x8" ]; then
     dnf install -y epel-release
   else
     yum install -y epel-release
   fi
   sed -i -r 's/#?\s*metalink=/#metalink=/g' /etc/yum.repos.d/epel*.repo
-  sed -i -r 's;#?\s*baseurl\s*=\s*https?://[^\$]+\$releasever;baseurl=http://mirrors.tencent.com/epel/\$releasever;g' /etc/yum.repos.d/epel*.repo
+  sed -i -r 's;#?\s*baseurl\s*=\s*https?://[^\$]+\$releasever;baseurl=http://mirrors.ustc.edu.cn/epel/\$releasever;g' /etc/yum.repos.d/epel*.repo
 elif [ "x$DISTRIBUTE_NAME" == "xubuntu" ]; then
   if [ ! -e "/etc/apt/sources.list.bak" ]; then
     cp /etc/apt/sources.list /etc/apt/sources.list.bak
   fi
 
-  sed -i -r 's;#?https?://security.ubuntu.com/ubuntu/?[[:space:]];http://mirrors.tencent.com/ubuntu/ ;g' /etc/apt/sources.list
-  sed -i -r 's;#?https?://archive.ubuntu.com/ubuntu/?[[:space:]];http://mirrors.tencent.com/ubuntu/ ;g' /etc/apt/sources.list
+  sed -i -r 's;#?https?://security.ubuntu.com/ubuntu/?[[:space:]];http://mirrors.ustc.edu.cn/ubuntu/ ;g' /etc/apt/sources.list
+  sed -i -r 's;#?https?://archive.ubuntu.com/ubuntu/?[[:space:]];http://mirrors.ustc.edu.cn/ubuntu/ ;g' /etc/apt/sources.list
 
   if [[ -e /etc/apt/sources.list.d ]]; then
     for source_file in /etc/apt/sources.list.d/*; do
-      sed -i -r 's;security.ubuntu.com/ubuntu;mirrors.tencent.com/ubuntu;g' $source_file
-      sed -i -r 's;archive.ubuntu.com/ubuntu;mirrors.tencent.com/ubuntu;g' $source_file
+      sed -i -r 's;security.ubuntu.com/ubuntu;mirrors.ustc.edu.cn/ubuntu;g' $source_file
+      sed -i -r 's;archive.ubuntu.com/ubuntu;mirrors.ustc.edu.cn/ubuntu;g' $source_file
     done
   fi
-  echo 'Acquire::https::mirrors.tencent.com::Verify-Peer "false";' > /etc/apt/apt.conf.d/99ignore-ssl-mirrors-tencent
-  echo 'Acquire::https::mirrors.tencent.com::Verify-Host "false";' >> /etc/apt/apt.conf.d/99ignore-ssl-mirrors-tencent
+  echo 'Acquire::https::mirrors.ustc.edu.cn::Verify-Peer "false";' > /etc/apt/apt.conf.d/99ignore-ssl-mirrors-tencent
+  echo 'Acquire::https::mirrors.ustc.edu.cn::Verify-Host "false";' >> /etc/apt/apt.conf.d/99ignore-ssl-mirrors-tencent
 
   apt update -y
 elif [ "x$DISTRIBUTE_NAME" == "xdebian" ] || [[ "${DISTRIBUTE_LIKE_NAMES[@]}" =~ "debian" ]]; then
@@ -51,27 +51,27 @@ elif [ "x$DISTRIBUTE_NAME" == "xdebian" ] || [[ "${DISTRIBUTE_LIKE_NAMES[@]}" =~
       cp /etc/apt/sources.list /etc/apt/sources.list.bak
     fi
 
-    sed -i -r 's;https?://.*/(debian-security/?);http://mirrors.tencent.com/\1;g' /etc/apt/sources.list
-    sed -i -r 's;https?://.*/(debian/?);http://mirrors.tencent.com/\1;g' /etc/apt/sources.list
+    sed -i -r 's;https?://.*/(debian-security/?);http://mirrors.ustc.edu.cn/\1;g' /etc/apt/sources.list
+    sed -i -r 's;https?://.*/(debian/?);http://mirrors.ustc.edu.cn/\1;g' /etc/apt/sources.list
   fi
 
   if [ -e "/etc/apt/sources.list.d/debian.sources" ]; then
     if [ ! -e "/etc/apt/sources.list.d/debian.sources.bak" ]; then
       cp /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list.d/debian.sources.bak
     fi
-    sed -i -r 's;https?://.*/(debian-security/?);http://mirrors.tencent.com/\1;g' /etc/apt/sources.list.d/debian.sources
-    sed -i -r 's;https?://.*/(debian/?);http://mirrors.tencent.com/\1;g' /etc/apt/sources.list.d/debian.sources
+    sed -i -r 's;https?://.*/(debian-security/?);http://mirrors.ustc.edu.cn/\1;g' /etc/apt/sources.list.d/debian.sources
+    sed -i -r 's;https?://.*/(debian/?);http://mirrors.ustc.edu.cn/\1;g' /etc/apt/sources.list.d/debian.sources
   fi
 
   apt update -y
 elif [ "x$DISTRIBUTE_NAME" == "xalpine" ]; then
-  sed -i.bak -r 's#dl-cdn.alpinelinux.org#mirrors.tencent.com#g' /etc/apk/repositories
+  sed -i.bak -r 's#dl-cdn.alpinelinux.org#mirrors.ustc.edu.cn#g' /etc/apk/repositories
 elif [ "x$DISTRIBUTE_NAME" == "xmanjaro" ]; then
   sed -i -r '/Server\s*=\s*.*tencent.com/d' /etc/pacman.d/mirrorlist
-  sed -i '1i Server = http://mirrors.tencent.com/manjaro/stable/$repo/$arch' /etc/pacman.d/mirrorlist
+  sed -i '1i Server = http://mirrors.ustc.edu.cn/manjaro/stable/$repo/$arch' /etc/pacman.d/mirrorlist
 elif [ "x$DISTRIBUTE_NAME" == "xarch" ] || [[ "${DISTRIBUTE_LIKE_NAMES[@]}" =~ "arch" ]]; then
   sed -i -r '/Server\s*=\s*.*tencent.com/d' /etc/pacman.d/mirrorlist
   sed -i -r '/Server\s*=\s*.*aliyun.com/d' /etc/pacman.d/mirrorlist
   sed -i '1i Server = http://mirrors.aliyun.com/archlinux/$repo/os/$arch' /etc/pacman.d/mirrorlist
-  sed -i '1i Server = https://mirrors.tencent.com/archlinux/$repo/os/$arch' /etc/pacman.d/mirrorlist
+  sed -i '1i Server = https://mirrors.ustc.edu.cn/archlinux/$repo/os/$arch' /etc/pacman.d/mirrorlist
 fi
