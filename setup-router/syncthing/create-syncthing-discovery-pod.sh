@@ -12,6 +12,8 @@ export XDG_RUNTIME_DIR="/run/user/$UID"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
 
 RUN_USER=$(id -un)
+# SYNCTHING_NETWORK=(internal-frontend)
+# SYNCTHING_PUBLISH=()
 # sudo loginctl enable-linger $RUN_USER
 
 if [[ "x$RUN_USER" == "x" ]] || [[ "x$RUN_USER" == "xroot" ]]; then
@@ -84,6 +86,31 @@ if [[ "x$SYNCTHING_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; th
   podman image prune -a -f --filter "until=240h"
 fi
 
+SYNCTHING_OPTIONS=(
+  --mount type=bind,source=$SYNCTHING_DISCOVERY_SSL_COPY_TO_DIR,target=/syncthing/ssl/
+  --mount type=bind,source=$SYNCTHING_DISCOVERY_DATA_DIR,target=/syncthing/data/
+)
+if [[ ! -z "$SYNCTHING_NETWORK" ]]; then
+  SYNCTHING_NETWORK_HAS_HOST=0
+  for network in ${SYNCTHING_NETWORK[@]}; do
+    SYNCTHING_OPTIONS+=("--network=$network")
+    if [[ "$network" == "host" ]]; then
+      SYNCTHING_NETWORK_HAS_HOST=1
+    fi
+  done
+  if [[ ! -z "$SYNCTHING_PUBLISH" ]] && [[ $SYNCTHING_NETWORK_HAS_HOST -eq 0 ]]; then
+    for publish in ${SYNCTHING_PUBLISH[@]}; do
+      SYNCTHING_OPTIONS+=(-p "$publish")
+    done
+  else
+    SYNCTHING_OPTIONS+=( 
+      -p "$SYNCTHING_DISCOVERY_LISTEN_PORT:$SYNCTHING_DISCOVERY_LISTEN_PORT"
+    )
+  fi
+else
+  SYNCTHING_OPTIONS+=(--network=host)
+fi
+
 # Use these options if the discovery is not under a reserve proxy and remove -http
 #   -cert=/syncthing/ssl/http-cert.pem \
 #   -key=/syncthing/ssl/http-key.pem \
@@ -99,9 +126,7 @@ else
   SYNCTHING_SSL_OPTIONS=(--http)
 fi
 podman run -d --name syncthing-discovery --security-opt label=disable \
-  --mount type=bind,source=$SYNCTHING_DISCOVERY_SSL_COPY_TO_DIR,target=/syncthing/ssl/ \
-  --mount type=bind,source=$SYNCTHING_DISCOVERY_DATA_DIR,target=/syncthing/data/ \
-  -p 127.0.0.1:$SYNCTHING_DISCOVERY_LISTEN_PORT:$SYNCTHING_DISCOVERY_LISTEN_PORT/tcp \
+  "${SYNCTHING_OPTIONS[@]}" \
   docker.io/syncthing/discosrv:latest \
   ${SYNCTHING_SSL_OPTIONS[@]} \
   --listen ":$SYNCTHING_DISCOVERY_LISTEN_PORT" \

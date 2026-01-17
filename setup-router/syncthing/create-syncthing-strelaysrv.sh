@@ -11,6 +11,9 @@ fi
 export XDG_RUNTIME_DIR="/run/user/$UID"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
 
+# SYNCTHING_NETWORK=(internal-frontend)
+# SYNCTHING_PUBLISH=()
+
 RUN_USER=$(id -un)
 # sudo loginctl enable-linger $RUN_USER
 
@@ -39,28 +42,30 @@ fi
 mkdir -p "$SYNCTHING_ETC_DIR"
 chmod 777 "$SYNCTHING_ETC_DIR"
 
+if [[ "x$SYNCTHING_RELAYSRV_ETC_DIR" == "x" ]]; then
+  SYNCTHING_RELAYSRV_ETC_DIR="$RUN_HOME/syncthing/strelaysrv/etc"
+fi
+mkdir -p "$SYNCTHING_RELAYSRV_ETC_DIR"
+chmod 777 "$SYNCTHING_RELAYSRV_ETC_DIR"
+
 if [[ "x$SYNCTHING_DATA_DIR" == "x" ]]; then
   SYNCTHING_DATA_DIR="$RUN_HOME/syncthing/data"
 fi
 mkdir -p "$SYNCTHING_DATA_DIR"
 chmod 777 "$SYNCTHING_DATA_DIR"
 
-if [[ "x$SYNCTHING_SSL_DIR" == "x" ]]; then
-  SYNCTHING_SSL_DIR="$RUN_HOME/syncthing/ssl/"
+if [[ -e "$RUN_HOME/syncthing/strelaysrv.token.txt" ]]; then
+  SYNCTHING_RELAYSRV_TOKEN=$(cat "$RUN_HOME/syncthing/strelaysrv.token.txt" | tr -d '\n\r ')
+  echo "Found existing relay server token."
 fi
-mkdir -p "$SYNCTHING_SSL_DIR"
-chmod 777 "$SYNCTHING_SSL_DIR"
-
-if [[ "x$SYNCTHING_SSL_CERT" == "x" ]]; then
-  SYNCTHING_SSL_CERT="$SYNCTHING_SSL_DIR/cert.pem"
-fi
-
-if [[ "x$SYNCTHING_SSL_KEY" == "x" ]]; then
-  SYNCTHING_SSL_KEY="$SYNCTHING_SSL_DIR/key.pem"
+if [[ -z "$SYNCTHING_RELAYSRV_TOKEN" ]]; then
+  SYNCTHING_RELAYSRV_TOKEN=$(head -c 16 /dev/urandom | base64 | tr '/+' '_-' | tr -d '= \n\r')
+  echo -n "$SYNCTHING_RELAYSRV_TOKEN" > "$RUN_HOME/syncthing/strelaysrv.token.txt"
+  echo "Generated new relay server token."
 fi
 
 if [[ "x$SYNCTHING_UPDATE" != "x" ]] && [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman pull exists docker.io/syncthing/relaysrv:latest
+  podman pull docker.io/syncthing/relaysrv:latest
   if [[ $? -ne 0 ]]; then
     exit 1
   fi
@@ -80,15 +85,14 @@ if [[ $? -eq 0 ]]; then
   podman rm -f syncthing-relay-node
 fi
 
-if [[ "x$SYNCTHING_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman image prune -a -f --filter "until=240h"
-fi
-
-if [[ -e "$SYNCTHING_SSL_CERT" ]] && [[ -e "$SYNCTHING_SSL_KEY" ]]; then
-  SYNCTHING_RELAYSVR_EXT_OPTIONS=(-keys=/syncthing/ssl)
-else
-  SYNCTHING_RELAYSVR_EXT_OPTIONS=()
-fi
+SYNCTHING_RELAYSVR_EXT_OPTIONS=(
+  -keys=/etc/strelaysrv
+  -token "$SYNCTHING_RELAYSRV_TOKEN"
+  -listen ":$SYNCTHING_RELAY_SERVER_LISTEN_PORT"
+  -status-srv "127.0.0.1:$SYNCTHING_RELAY_SERVER_STATUS_PORT"
+  -protocol "tcp"
+  -provided-by "owent"
+)
 
 if [[ ! -z "$SYNCTHING_RELAY_SERVER_EXT_ADDRSS" ]]; then
   SYNCTHING_RELAYSVR_EXT_OPTIONS=(${SYNCTHING_RELAYSVR_EXT_OPTIONS[@]} -ext-address "$SYNCTHING_RELAY_SERVER_EXT_ADDRSS")
@@ -105,16 +109,46 @@ fi
 #   -p $SYNCTHING_RELAY_SERVER_LISTEN_PORT:$SYNCTHING_RELAY_SERVER_LISTEN_PORT/udp \
 #   -p $SYNCTHING_RELAY_SERVER_STATUS_PORT:$SYNCTHING_RELAY_SERVER_STATUS_PORT/tcp \
 
+SYNCTHING_OPTIONS=(
+  --mount type=bind,source=$SYNCTHING_DATA_DIR,target=/syncthing/data/
+  --mount type=bind,source=$SYNCTHING_RELAYSRV_ETC_DIR,target=/etc/strelaysrv/
+)
+if [[ ! -z "$SYNCTHING_NETWORK" ]]; then
+  SYNCTHING_NETWORK_HAS_HOST=0
+  for network in ${SYNCTHING_NETWORK[@]}; do
+    SYNCTHING_OPTIONS+=("--network=$network")
+    if [[ "$network" == "host" ]]; then
+      SYNCTHING_NETWORK_HAS_HOST=1
+    fi
+  done
+  if [[ ! -z "$SYNCTHING_PUBLISH" ]] && [[ $SYNCTHING_NETWORK_HAS_HOST -eq 0 ]]; then
+    for publish in ${SYNCTHING_PUBLISH[@]}; do
+      SYNCTHING_OPTIONS+=(-p "$publish")
+    done
+  else
+    SYNCTHING_OPTIONS+=( 
+      -p "$SYNCTHING_RELAY_SERVER_LISTEN_PORT:$SYNCTHING_RELAY_SERVER_LISTEN_PORT/tcp"
+      -p "$SYNCTHING_RELAY_SERVER_LISTEN_PORT:$SYNCTHING_RELAY_SERVER_LISTEN_PORT/udp"
+      -p "$SYNCTHING_RELAY_SERVER_STATUS_PORT:$SYNCTHING_RELAY_SERVER_STATUS_PORT"
+    )
+  fi
+else
+  SYNCTHING_OPTIONS+=(--network=host)
+fi
+
 podman run -d --name syncthing-relay-node --security-opt label=disable \
-  --mount type=bind,source=$SYNCTHING_SSL_DIR,target=/syncthing/ssl/ \
-  --mount type=bind,source=$SYNCTHING_DATA_DIR,target=/syncthing/data/ \
-  --network=host \
+  "${SYNCTHING_OPTIONS[@]}" \
   docker.io/syncthing/relaysrv:latest \
-  ${SYNCTHING_RELAYSVR_EXT_OPTIONS[@]} \
-  -listen ":$SYNCTHING_RELAY_SERVER_LISTEN_PORT" \
-  -status-srv "127.0.0.1:$SYNCTHING_RELAY_SERVER_STATUS_PORT" \
-  -protocol "tcp" \
-  -provided-by "owent"
+  "${SYNCTHING_RELAYSVR_EXT_OPTIONS[@]}"
+
+if [[ $? -ne 0 ]]; then
+  echo "Failed to start syncthing relay server container."
+  exit 1
+fi
+
+if [[ "x$SYNCTHING_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman image prune -a -f --filter "until=240h"
+fi
 
 podman exec syncthing-relay-node ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 

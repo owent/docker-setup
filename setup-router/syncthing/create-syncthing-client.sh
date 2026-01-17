@@ -12,6 +12,8 @@ export XDG_RUNTIME_DIR="/run/user/$UID"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
 
 RUN_USER=$(id -un)
+# SYNCTHING_NETWORK=(internal-frontend)
+# SYNCTHING_PUBLISH=($SYNCTHING_CLIENT_LISTEN_PORT:$SYNCTHING_CLIENT_LISTEN_PORT 11000:11000/tcp 11000:11000/udp 11001:11001/tcp 11001:11001/udp)
 # sudo loginctl enable-linger $RUN_USER
 
 if [[ "x$RUN_USER" == "x" ]] || [[ "x$RUN_USER" == "xroot" ]]; then
@@ -31,22 +33,6 @@ fi
 if [[ ! -e "$SYNCTHING_CLIENT_HOME_DIR/data" ]]; then
   mkdir -p "$SYNCTHING_CLIENT_HOME_DIR/data"
   chmod 777 "$SYNCTHING_CLIENT_HOME_DIR"
-fi
-
-if [[ "x$SYNCTHING_SSL_DIR" == "x" ]]; then
-  SYNCTHING_SSL_DIR="$RUN_HOME/syncthing/ssl/"
-fi
-if [[ ! -e "$SYNCTHING_SSL_DIR" ]]; then
-  mkdir -p "$SYNCTHING_SSL_DIR"
-  chmod 777 "$SYNCTHING_SSL_DIR"
-fi
-
-if [[ "x$SYNCTHING_SSL_CERT" == "x" ]]; then
-  SYNCTHING_SSL_CERT="$SYNCTHING_SSL_DIR/cert.pem"
-fi
-
-if [[ "x$SYNCTHING_SSL_KEY" == "x" ]]; then
-  SYNCTHING_SSL_KEY="$SYNCTHING_SSL_DIR/key.pem"
 fi
 
 if [[ "x$SYNCTHING_UPDATE" != "x" ]] && [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
@@ -70,19 +56,38 @@ if [[ $? -eq 0 ]]; then
   podman rm -f syncthing-client
 fi
 
-if [[ "x$SYNCTHING_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman image prune -a -f --filter "until=240h"
-fi
-
-if [[ -e "$SYNCTHING_SSL_CERT" ]] && [[ -e "$SYNCTHING_SSL_KEY" ]]; then
-  SYNCTHING_SSL_OPTIONS=(-keys=/syncthing/ssl)
-else
-  SYNCTHING_SSL_OPTIONS=()
-fi
-SYNCTHING_MOUNT_DIRS=(
-  --mount "type=bind,source=$SYNCTHING_SSL_DIR,target=/syncthing/ssl/"
+SYNCTHING_SERVER_OPTIONS=(
+  --home=/syncthing/home/
+  --no-port-probing
+  --no-browser
+  --no-restart
+  --no-upgrade
+)
+SYNCTHING_OPTIONS=(
+  -e PUID=$(id -u) -e PGID=$(id -g)
+  --userns=keep-id
   --mount "type=bind,source=$SYNCTHING_CLIENT_HOME_DIR,target=/syncthing/home/"
 )
+if [[ ! -z "$SYNCTHING_NETWORK" ]]; then
+  SYNCTHING_NETWORK_HAS_HOST=0
+  for network in ${SYNCTHING_NETWORK[@]}; do
+    SYNCTHING_OPTIONS+=("--network=$network")
+    if [[ "$network" == "host" ]]; then
+      SYNCTHING_NETWORK_HAS_HOST=1
+    fi
+  done
+  if [[ ! -z "$SYNCTHING_PUBLISH" ]] && [[ $SYNCTHING_NETWORK_HAS_HOST -eq 0 ]]; then
+    for publish in ${SYNCTHING_PUBLISH[@]}; do
+      SYNCTHING_OPTIONS+=(-p "$publish")
+    done
+  else
+    SYNCTHING_OPTIONS+=( 
+      -p "$SYNCTHING_CLIENT_LISTEN_PORT:$SYNCTHING_CLIENT_LISTEN_PORT"
+    )
+  fi
+else
+  SYNCTHING_OPTIONS+=(--network=host)
+fi
 
 HAS_MAKE_EXT_DIR=0
 for EXT_MOUNTS in ${SYNCTHING_CLIENT_EXT_DIRS[@]}; do
@@ -96,7 +101,7 @@ for EXT_MOUNTS in ${SYNCTHING_CLIENT_EXT_DIRS[@]}; do
     mkdir -p "$SYNCTHING_CLIENT_HOME_DIR/data/$EXT_MOUNTS_TARGET"
     HAS_MAKE_EXT_DIR=1
   fi
-  SYNCTHING_MOUNT_DIRS=(${SYNCTHING_MOUNT_DIRS[@]} --mount "type=bind,source=$EXT_MOUNTS_SOURCE,target=/syncthing/home/data/$EXT_MOUNTS_TARGET")
+  SYNCTHING_OPTIONS=(${SYNCTHING_OPTIONS[@]} --mount "type=bind,source=$EXT_MOUNTS_SOURCE,target=/syncthing/home/data/$EXT_MOUNTS_TARGET")
 done
 
 if [[ $HAS_MAKE_EXT_DIR -ne 0 ]]; then
@@ -105,27 +110,32 @@ if [[ $HAS_MAKE_EXT_DIR -ne 0 ]]; then
 fi
 
 SYNCTHING_CLIENT_GUI_APIKEY=""
-if [[ -e "$SCRIPT_DIR/.syncthing-client.token" ]]; then
-  SYNCTHING_CLIENT_GUI_APIKEY=$(cat "$SCRIPT_DIR/.syncthing-client.token")
+if [[ -e "$RUN_HOME/syncthing/syncthing-client.token.txt" ]]; then
+  SYNCTHING_CLIENT_GUI_APIKEY=$(cat "$RUN_HOME/syncthing/syncthing-client.token.txt")
 fi
 if [[ -z "$SYNCTHING_CLIENT_GUI_APIKEY" ]]; then
-  SYNCTHING_CLIENT_GUI_APIKEY=$(openssl rand -base64 15 | tr '/' '_' | tr '+' '-')
+  SYNCTHING_CLIENT_GUI_APIKEY=$(head -c 16 /dev/urandom | base64 | tr '/+' '_-' | tr -d '= \n\r')
+  echo -n "$SYNCTHING_CLIENT_GUI_APIKEY" > "$RUN_HOME/syncthing/syncthing-client.token.txt"
 fi
 
+SYNCTHING_SERVER_OPTIONS+=(
+  "--gui-address=$SYNCTHING_CLIENT_GUI_ADDRESS"
+  "--gui-apikey=$SYNCTHING_CLIENT_GUI_APIKEY"
+)
+
 podman run -d --name syncthing-client --security-opt label=disable \
-  ${SYNCTHING_MOUNT_DIRS[@]} \
-  --network=host \
-  --userns=keep-id \
-  -e PUID=$(id -u) -e PGID=$(id -g) \
+  ${SYNCTHING_OPTIONS[@]} \
   docker.io/syncthing/syncthing:latest \
-  ${SYNCTHING_SSL_OPTIONS[@]} \
-  --home=/syncthing/home/ \
-  --no-port-probing \
-  "--gui-address=$SYNCTHING_CLIENT_GUI_ADDRESS" \
-  "--gui-apikey=$SYNCTHING_CLIENT_GUI_APIKEY" \
-  --no-browser \
-  --no-restart \
-  --no-upgrade
+  "${SYNCTHING_SERVER_OPTIONS[@]}"
+
+if [[ $? -ne 0 ]]; then
+  echo "Failed to start syncthing client container."
+  exit 1
+fi
+
+if [[ "x$SYNCTHING_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman image prune -a -f --filter "until=240h"
+fi
 
 podman exec syncthing-client ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
