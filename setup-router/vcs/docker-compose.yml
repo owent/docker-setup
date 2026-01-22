@@ -6,7 +6,11 @@ networks:
 
 services:
   git:
-    image: docker.gitea.com/gitea:latest-rootless
+    image: gitea
+    build:
+      network: host
+      context: dockerfile
+      dockerfile: ./gitea.Dockerfile
     container_name: gitea
     environment:
       - USER_UID=1000
@@ -26,6 +30,7 @@ services:
   p4d:
     image: p4d
     build:
+      network: host
       context: dockerfile
       dockerfile: ./p4d.Dockerfile
     container_name: p4d

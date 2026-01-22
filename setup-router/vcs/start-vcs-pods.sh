@@ -32,6 +32,12 @@ mkdir -p "$VCS_ETC_DIR"
 COMPOSE_CONFIGURE=docker-compose.yml
 COMPOSE_ENV_FILE=.env
 
+mkdir -p dockerfile/ca-certificates
+
+for SELF_SIGNED_CERT in /usr/local/share/ca-certificates/*; do
+  cp -f "$SELF_SIGNED_CERT" "dockerfile/ca-certificates/$(basename $SELF_SIGNED_CERT)"
+done
+
 if [[ ! -z "$ROUTER_IMAGE_UPDATE" ]]; then
   podman-compose -f $COMPOSE_CONFIGURE pull
   if [[ $? -ne 0 ]]; then

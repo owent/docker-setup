@@ -20,7 +20,10 @@ RUN wget -qO - https://package.perforce.com/perforce.pubkey | gpg --dearmor > /u
     echo 'deb [signed-by=/usr/share/keyrings/perforce.gpg] https://package.perforce.com/apt/ubuntu noble release' > /etc/apt/sources.list.d/perforce.list; \
     apt update -y && apt install -y helix-p4d
 
-COPY ./bootstrap.sh /opt/
+COPY ./ca-certificates/* /usr/local/share/ca-certificates/
+RUN update-ca-certificates
+
+COPY ./bootstrap-p4d.sh /opt/bootstrap.sh
 COPY ./supervisord.conf /etc/supervisor/
 COPY ./supervisor-p4d.conf ./supervisor-cron.conf /etc/supervisor/conf.d/
 
