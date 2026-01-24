@@ -18,7 +18,11 @@ if [[ -z "$RUN_HOME" ]]; then
   RUN_HOME="$HOME"
 fi
 
+if [[ -z "$POSTGRESQL_PORT" ]]; then
+  POSTGRESQL_PORT=5432
+fi
 #POSTGRESQL_NETWORK=(internal-backend)
+#POSTGRESQL_PUBLISH=($POSTGRESQL_PORT:5432/tcp)
 if [[ -z "$POSTGRESQL_ETC_DIR" ]]; then
   POSTGRESQL_ETC_DIR="$RUN_HOME/postgresql/etc"
 fi
@@ -70,10 +74,6 @@ if [[ -z "$POSTGRESQL_MAX_CONNECTIONS" ]]; then
   POSTGRESQL_MAX_CONNECTIONS=256
 fi
 
-if [[ -z "$POSTGRESQL_PORT" ]]; then
-  POSTGRESQL_PORT=5432
-fi
-
 if [[ -z "$POSTGRESQL_IMAGE" ]]; then
   POSTGRESQL_IMAGE="docker.io/postgres:latest"
   # POSTGRESQL_IMAGE="docker.io/pgvector/pgvector:pg18"
@@ -107,10 +107,6 @@ if [[ $? -eq 0 ]]; then
   podman rm -f postgresql
 fi
 
-if [[ "x$NEXTCLOUD_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman image prune -a -f --filter "until=240h"
-fi
-
 ADMIN_TOKEN=""
 if [[ -e "$POSTGRESQL_ETC_DIR/admin-token" ]]; then
   ADMIN_TOKEN=$(cat "$POSTGRESQL_ETC_DIR/admin-token")
@@ -127,10 +123,19 @@ POSTGRES_OPTIONS=(
   --mount "type=bind,source=$POSTGRESQL_DATA_DIR,target=/data/postgresql"
 )
 
+POSTGRESQL_NETWORK_HAS_HOST=0
 if [[ ! -z "$POSTGRESQL_NETWORK" ]]; then
   for network in ${POSTGRESQL_NETWORK[@]}; do
     POSTGRES_OPTIONS+=("--network=$network")
+    if [[ "$network" == "host" ]]; then
+      POSTGRESQL_NETWORK_HAS_HOST=1
+    fi
   done
+  if [[ $POSTGRESQL_NETWORK_HAS_HOST -eq 0 ]] && [[ ! -z "$POSTGRESQL_PUBLISH" ]]; then
+    for publish in ${POSTGRESQL_PUBLISH[@]}; do
+      POSTGRES_OPTIONS+=(-p "$publish")
+    done
+  fi
 else
   POSTGRES_OPTIONS+=(-p $POSTGRESQL_PORT:5432/tcp)
 fi
@@ -152,6 +157,15 @@ podman run -d --name postgresql --security-opt label=disable \
   -c track_activities=on \
   -c track_counts=on \
   -c default_statistics_target=100
+
+if [[ $? -ne 0 ]] ; then
+  echo "Failed to start postgresql container."
+  exit 1
+fi
+
+if [[ "x$POSTGRESQL_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman image prune -a -f --filter "until=240h"
+fi
 
 podman exec postgresql ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 podman stop postgresql

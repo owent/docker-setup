@@ -18,10 +18,11 @@ if [[ "x$RUN_HOME" == "x" ]]; then
   RUN_HOME="$HOME"
 fi
 
-#REDIS_NETWORK=(internal-backend)
 if [[ "x$REDIS_PORT" == "x" ]]; then
   REDIS_PORT=6379
 fi
+#REDIS_NETWORK=(internal-backend)
+#REDIS_PUBLISH=($REDIS_PORT:6379/tcp)
 
 if [[ "x$REDIS_ETC_DIR" == "x" ]]; then
   REDIS_ETC_DIR="$RUN_HOME/redis/etc"
@@ -72,12 +73,23 @@ REDIS_OPTIONS=(
   --mount type=bind,source=$REDIS_DATA_DIR,target=/data
 )
 
+REDIS_NETWORK_HAS_HOST=0
 if [[ ! -z "$REDIS_NETWORK" ]]; then
   for network in ${REDIS_NETWORK[@]}; do
     REDIS_OPTIONS+=("--network=$network")
+    if [[ "$network" == "host" ]]; then
+      REDIS_NETWORK_HAS_HOST=1
+    fi
   done
-else
-  REDIS_OPTIONS+=(-p $REDIS_PORT:6379/tcp)
+fi
+if [[ $REDIS_NETWORK_HAS_HOST -eq 0 ]]; then
+  if [[ -z "$REDIS_PUBLISH" ]]; then
+    REDIS_OPTIONS+=(-p $REDIS_PORT:6379/tcp)
+  else
+    for publish in ${REDIS_PUBLISH[@]}; do
+      REDIS_OPTIONS+=(-p "$publish")
+    done
+  fi
 fi
 
 podman run -d --name redis --security-opt label=disable \
