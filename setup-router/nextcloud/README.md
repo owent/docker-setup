@@ -17,6 +17,7 @@
   >  'default_phone_region' => 'CN',
   >  'versions_retention_obligation' => 'auto, 30',
   >  'trashbin_retention_obligation' => 'auto, 180',
+  >  'log_rotate_size' => 10 * 1024 * 1024,
   > );
   > ```
   >

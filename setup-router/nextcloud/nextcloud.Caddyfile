@@ -10,13 +10,6 @@ subdomain.example.com {
 
 subdomain.example.com {
   root * <nextcloud静态页面路径>
-	file_server
-
-  php_fastcgi <宿主机IP>:6783 {
-    env front_controller_active true
-    env modHeadersAvailable true
-    root /var/www/html/
-  }
 
 	# client support (e.g. os x calendar / contacts)
 	redir /.well-known/carddav /remote.php/dav 301
@@ -80,5 +73,21 @@ subdomain.example.com {
 	}
 
 	respond @forbidden 404
+
+	route {
+		# 静态文件
+    @staticfiles {
+        not path *.php
+        file
+    }
+    file_server @staticfiles
+
+    # 所有其他请求重写到 index.php
+    php_fastcgi <宿主机IP>:6783 {
+        env front_controller_active true
+        env modHeadersAvailable true
+        root /var/www/html/
+    }
+	}
 }
 

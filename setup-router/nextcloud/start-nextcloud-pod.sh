@@ -329,6 +329,15 @@ podman exec nextcloud sed -i 's;pm.max_children[[:space:]]*=[[:space:]][0-9]*;pm
 podman exec nextcloud sed -i 's;group[[:space:]]*=[[:space:]]*www-data;group = root;g' /usr/local/etc/php-fpm.d/www.conf
 podman exec nextcloud bash -c 'rm -rf /var/www/html/core/skeleton/*'
 
+# 解决DAV请求session锁冲突
+# （推荐）方案 1：禁用 session 锁定，避免大量并发DAV请求时的阻塞问题
+podman exec -it --user root nextcloud sed -i 's/^redis\.session\.locking_enabled.*/redis.session.locking_enabled = 0/' /usr/local/etc/php/conf.d/redis-session.ini
+# 方案 2：保留锁但优化参数
+# podman exec -it --user root nextcloud sed -i \
+#   -e 's/^redis\.session\.lock_retries.*/redis.session.lock_retries = 10/' \
+#   -e 's/^redis\.session\.lock_wait_time.*/redis.session.lock_wait_time = 2000/' \
+#   /usr/local/etc/php/conf.d/redis-session.ini
+
 podman stop nextcloud
 
 systemctl --user enable "$RUN_HOME/nextcloud/container-nextcloud.service"
