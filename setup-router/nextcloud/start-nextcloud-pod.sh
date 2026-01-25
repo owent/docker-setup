@@ -229,10 +229,27 @@ while true; do
   sleep 300
 done
 ' > nextcloud-cron.sh
-chmod +x nextcloud-cron.sh
+
+echo "#!/bin/bash
+
+sed -i 's;pm.max_children[[:space:]]*=[[:space:]][0-9]*;pm.max_children = 16;g' /usr/local/etc/php-fpm.d/www.conf
+sed -i 's;group[[:space:]]*=[[:space:]]*www-data;group = root;g' /usr/local/etc/php-fpm.d/www.conf
+bash -c 'rm -rf /var/www/html/core/skeleton/*'
+
+# 解决DAV请求session锁冲突
+# （推荐）方案 1：禁用 session 锁定，避免大量并发DAV请求时的阻塞问题
+echo 'redis.session.locking_enabled = 0' | tee /usr/local/etc/php/conf.d/zzz-99-redis-session-override.ini
+# 方案 2：保留锁但优化参数
+# echo 'redis.session.lock_retries = 10' | tee /usr/local/etc/php/conf.d/zzz-99-redis-session-override.ini
+# echo 'redis.session.lock_wait_time = 2000' | tee -a /usr/local/etc/php/conf.d/zzz-99-redis-session-override.ini
+" > nextcloud-patch-settings.sh
+
+chmod +x nextcloud-cron.sh nextcloud-patch-settings.sh
 
 echo '
 COPY nextcloud-cron.sh /nextcloud-cron.sh
+COPY nextcloud-patch-settings.sh /nextcloud-patch-settings.sh
+RUN /bin/bash /nextcloud-patch-settings.sh
 ENV NEXTCLOUD_UPDATE=1
 
 CMD ["/usr/bin/supervisord", "-c", "/supervisord.conf"]
@@ -325,18 +342,6 @@ podman run -d --name nextcloud \
 podman generate systemd --name nextcloud \
   | sed "/ExecStart=/a ExecStartPost=/usr/bin/podman exec -d nextcloud /bin/bash /cron.sh" \
   | tee "$RUN_HOME/nextcloud/container-nextcloud.service"
-podman exec nextcloud sed -i 's;pm.max_children[[:space:]]*=[[:space:]][0-9]*;pm.max_children = 16;g' /usr/local/etc/php-fpm.d/www.conf
-podman exec nextcloud sed -i 's;group[[:space:]]*=[[:space:]]*www-data;group = root;g' /usr/local/etc/php-fpm.d/www.conf
-podman exec nextcloud bash -c 'rm -rf /var/www/html/core/skeleton/*'
-
-# 解决DAV请求session锁冲突
-# （推荐）方案 1：禁用 session 锁定，避免大量并发DAV请求时的阻塞问题
-podman exec -it --user root nextcloud sed -i 's/^redis\.session\.locking_enabled.*/redis.session.locking_enabled = 0/' /usr/local/etc/php/conf.d/redis-session.ini
-# 方案 2：保留锁但优化参数
-# podman exec -it --user root nextcloud sed -i \
-#   -e 's/^redis\.session\.lock_retries.*/redis.session.lock_retries = 10/' \
-#   -e 's/^redis\.session\.lock_wait_time.*/redis.session.lock_wait_time = 2000/' \
-#   /usr/local/etc/php/conf.d/redis-session.ini
 
 podman stop nextcloud
 
