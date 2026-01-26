@@ -80,3 +80,10 @@ dns_bind_port=1053
 
 podman network inspect internal-backend | grep -A 20 -B 5 "containers"
 podman inspect unifi-db | grep -A 10 -B 5 "Networks"
+
+## FAQ
+
+rootless容器内访问宿主机服务不通？
+
+> 宿主机服务进程必须通过pasta启动并设置port publish（不能和 `--network host` 混用）。否则容器组件不认识会无法转发。
+

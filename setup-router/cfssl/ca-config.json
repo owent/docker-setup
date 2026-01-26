@@ -9,6 +9,9 @@
             // - 生成CRL文件: cfssl gencrl revoked_certs.txt sub-ca.pem sub-ca-key.pem | base64 -d > $CRL_DIR/sub-ca.crl
             "crl_url": "http://crl.example.org/sub-ca.crl",
             "crl_expiry": "168h",
+            "issuer_urls": [
+                "http://pki.example.org/sub-ca.crt"
+            ],
             "expiry": "1128h"
         },
         "profiles": {
@@ -50,6 +53,9 @@
                 "expiry": "43800h",
                 "crl_url": "http://ca-crl.example.org/root-ca.crl",
                 "crl_expiry": "168h",
+                "issuer_urls": [
+                    "http://pki.example.org/root-ca.crt"
+                ],
                 "usages": [
                     "signing",
                     "digital signature",
@@ -68,6 +74,9 @@
                 "expiry": "87600h",
                 "crl_url": "http://ca-crl.example.org/root-ca.crl",
                 "crl_expiry": "168h",
+                "issuer_urls": [
+                    "http://pki.example.org/root-ca.crt"
+                ],
                 "usages": [
                     "signing",
                     "digital signature",
@@ -86,6 +95,9 @@
                 "expiry": "175200h",
                 "crl_url": "http://ca-crl.example.org/sub-ca.crl",
                 "crl_expiry": "168h",
+                "issuer_urls": [
+                    "http://pki.example.org/sub-ca.crt"
+                ],
                 "usages": [
                     "signing",
                     "key encipherment",
@@ -96,6 +108,9 @@
                 "expiry": "175200h",
                 "crl_url": "http://ca-crl.example.org/sub-ca.crl",
                 "crl_expiry": "168h",
+                "issuer_urls": [
+                    "http://pki.example.org/sub-ca.crt"
+                ],
                 "usages": [
                     "signing",
                     "key encipherment",
@@ -106,6 +121,9 @@
                 "expiry": "175200h",
                 "crl_url": "http://ca-crl.example.org/sub-ca.crl",
                 "crl_expiry": "168h",
+                "issuer_urls": [
+                    "http://pki.example.org/sub-ca.crt"
+                ],
                 "usages": [
                     "signing",
                     "key encipherment",
@@ -117,6 +135,9 @@
                 "expiry": "9552h",
                 "crl_url": "http://ca-crl.example.org/sub-ca.crl",
                 "crl_expiry": "168h",
+                "issuer_urls": [
+                    "http://pki.example.org/sub-ca.crt"
+                ],
                 "usages": [
                     "signing",
                     "key encipherment",
@@ -127,6 +148,9 @@
                 "expiry": "9552h",
                 "crl_url": "http://ca-crl.example.org/sub-ca.crl",
                 "crl_expiry": "168h",
+                "issuer_urls": [
+                    "http://pki.example.org/sub-ca.crt"
+                ],
                 "usages": [
                     "signing",
                     "key encipherment",
@@ -137,6 +161,9 @@
                 "expiry": "9552h",
                 "crl_url": "http://ca-crl.example.org/sub-ca.crl",
                 "crl_expiry": "168h",
+                "issuer_urls": [
+                    "http://pki.example.org/sub-ca.crt"
+                ],
                 "usages": [
                     "signing",
                     "key encipherment",
@@ -148,6 +175,9 @@
                 "expiry": "2400h",
                 "crl_url": "http://ca-crl.example.org/sub-ca.crl",
                 "crl_expiry": "168h",
+                "issuer_urls": [
+                    "http://pki.example.org/sub-ca.crt"
+                ],
                 "usages": [
                     "signing",
                     "key encipherment",
@@ -158,6 +188,9 @@
                 "expiry": "2400h",
                 "crl_url": "http://ca-crl.example.org/sub-ca.crl",
                 "crl_expiry": "168h",
+                "issuer_urls": [
+                    "http://pki.example.org/sub-ca.crt"
+                ],
                 "usages": [
                     "signing",
                     "key encipherment",
@@ -168,6 +201,9 @@
                 "expiry": "2400h",
                 "crl_url": "http://ca-crl.example.org/sub-ca.crl",
                 "crl_expiry": "168h",
+                "issuer_urls": [
+                    "http://pki.example.org/sub-ca.crt"
+                ],
                 "usages": [
                     "signing",
                     "key encipherment",
@@ -179,6 +215,9 @@
                 "expiry": "1128h",
                 "crl_url": "http://ca-crl.example.org/sub-ca.crl",
                 "crl_expiry": "168h",
+                "issuer_urls": [
+                    "http://pki.example.org/sub-ca.crt"
+                ],
                 "usages": [
                     "signing",
                     "key encipherment",
@@ -189,6 +228,9 @@
                 "expiry": "1128h",
                 "crl_url": "http://ca-crl.example.org/sub-ca.crl",
                 "crl_expiry": "168h",
+                "issuer_urls": [
+                    "http://pki.example.org/sub-ca.crt"
+                ],
                 "usages": [
                     "signing",
                     "key encipherment",
@@ -199,6 +241,9 @@
                 "expiry": "1128h",
                 "crl_url": "http://ca-crl.example.org/sub-ca.crl",
                 "crl_expiry": "168h",
+                "issuer_urls": [
+                    "http://pki.example.org/sub-ca.crt"
+                ],
                 "usages": [
                     "signing",
                     "key encipherment",

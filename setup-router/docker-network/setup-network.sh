@@ -12,18 +12,24 @@ INTERNAL_BACKEND_IPV6_GATEWAY="fd02:0:0:2::1"
 
 podman network exists internal-frontend >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
-  podman network create --driver bridge --ipam-driver host-local \
-    --ipv6 --subnet $INTERNAL_FRONTEND_IPV6_CIDR --gateway $INTERNAL_FRONTEND_IPV6_GATEWAY \
-    --subnet $INTERNAL_FRONTEND_IPV4_CIDR --gateway $INTERNAL_FRONTEND_IPV4_GATEWAY \
-    internal-frontend
+  INTERNAL_FRONTEND_OPTIONS=(
+    --driver bridge --ipam-driver host-local
+    --ipv6 --subnet $INTERNAL_FRONTEND_IPV6_CIDR --gateway $INTERNAL_FRONTEND_IPV6_GATEWAY
+    --subnet $INTERNAL_FRONTEND_IPV4_CIDR --gateway $INTERNAL_FRONTEND_IPV4_GATEWAY
+    # -o pasta=true # 如果rootless模式无法访问宿主机ip，可尝试强制走 pasta
+  )
+  podman network create "${INTERNAL_FRONTEND_OPTIONS[@]}" internal-frontend
 fi
 
 podman network exists internal-backend >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
-  podman network create --driver bridge --ipam-driver host-local \
-    --ipv6 --subnet $INTERNAL_BACKEND_IPV6_CIDR --gateway $INTERNAL_BACKEND_IPV6_GATEWAY \
-    --subnet $INTERNAL_BACKEND_IPV4 --gateway $INTERNAL_BACKEND_GATEWAY \
-    internal-backend
+  INTERNAL_BACKEND_IPV6_OPTIONS=(
+    --driver bridge --ipam-driver host-local
+    --ipv6 --subnet $INTERNAL_BACKEND_IPV6_CIDR --gateway $INTERNAL_BACKEND_IPV6_GATEWAY
+    --subnet $INTERNAL_BACKEND_IPV4 --gateway $INTERNAL_BACKEND_GATEWAY
+    # -o pasta=true # 如果rootless模式无法访问宿主机ip，可尝试强制走 pasta
+  )
+  podman network create "${INTERNAL_BACKEND_IPV6_OPTIONS[@]}" internal-backend
 fi
 
 # 开启DNS
