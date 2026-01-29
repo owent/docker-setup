@@ -53,7 +53,8 @@ squid/
 ├── supervisor/
 │   └── supervisord.conf        # supervisor 配置 (进程管理 + 日志轮转)
 ├── etc/
-│   ├── squid.conf              # 主配置文件
+│   ├── squid.conf              # 主配置文件 (aufs 单 worker)
+│   ├── squid.rock.conf.sample  # Rock 存储配置示例 (多 worker)
 │   └── conf.d/                 # 模块化配置目录
 │       ├── 00-unreal-engine.conf   # Unreal Engine CDN
 │       ├── 10-github.conf          # GitHub 资产
@@ -83,18 +84,18 @@ squid/
 
 ## Docker/Podman 部署
 
+### 方案一：推荐配置（单 Worker + AUFS）
+
+稳定性最好的配置，适合大多数场景。
+
 ```bash
 # 构建镜像
 podman build -f squid.Dockerfile -t squid-cache .
 
 # 运行容器
-# 注意这里只挂载squid.conf文件和conf.d目录，因为 /etc/squid 下有其他文件，不能掩盖，否则会启动失败。
-# 启动workers失败可以试试增大共享内存的大小 --shm-size=256m 或 --ipc=host
-# 共享内存可以设置和 cache_mem 配置一致
 podman run -d       \
   --name squid      \
-  --shm-size=1024m   \
-  -p 3128:3128      \
+  --network=host    \
   -v /path/to/squid/etc/squid.conf:/etc/squid/squid.conf:ro \
   -v /path/to/squid/etc/conf.d:/etc/squid/conf.d:ro \
   -v /path/to/squid/script:/opt/squid/script:ro \
@@ -102,6 +103,136 @@ podman run -d       \
   -v /path/to/squid/logs:/var/log/squid \
   squid-cache
 ```
+
+**squid.conf 配置:**
+
+```squid
+cache_dir aufs /var/spool/squid 204800 32 256
+workers 1
+```
+
+### 方案二：Rock 存储 + 多 Worker（高并发）
+
+Rock 是唯一支持 SMP 多 worker 共享磁盘缓存的存储类型。在容器中使用需要额外的 IPC 配置。
+
+**关键要求：**
+- `--ipc=host` 或 `--shm-size` - Rock 需要共享内存进行 worker/disker 通信
+- `/dev/shm` 需要足够大且可写
+- `/var/run/squid` 需要在容器内可写（用于 IPC 套接字）
+
+> **注意**: `--cap-add` 无法替代 `--ipc=host`
+>
+> - `--cap-add=CAP_IPC_LOCK` / `--cap-add=CAP_IPC_OWNER` 是添加 Linux capabilities（权限能力）
+> - `--ipc=host` 是共享宿主机的 IPC **命名空间**（POSIX 共享内存、信号量、消息队列）
+>
+> Squid Rock 存储的 workers 和 diskers 需要通过共享内存通信。在默认的容器隔离环境中，
+> 每个容器有独立的 IPC 命名空间，导致 Squid 进程间无法通过 POSIX 共享内存（`shm_open`）通信。
+> 这是命名空间隔离问题，不是权限问题，因此 `--cap-add` 无法解决。
+
+```bash
+# 构建镜像
+podman build -f squid.Dockerfile -t squid-cache .
+
+# Rock 存储需要 IPC 支持
+# 方式一：使用宿主机 IPC 命名空间（推荐，最稳定）
+podman run -d       \
+  --name squid      \
+  --network=host    \
+  --ipc=host        \
+  -v /path/to/squid/etc/squid.conf:/etc/squid/squid.conf:ro \
+  -v /path/to/squid/etc/conf.d:/etc/squid/conf.d:ro \
+  -v /path/to/squid/script:/opt/squid/script:ro \
+  -v /path/to/squid/cache:/var/spool/squid \
+  -v /path/to/squid/logs:/var/log/squid \
+  squid-cache
+
+# 方式二：增大容器内共享内存（保持 IPC 隔离，但可能仍有问题）
+# 注意: 此方式容器内的 /dev/shm 仍是隔离的，Squid 进程间通信应该可以工作
+# 但如果遇到 IPC 超时问题，建议切换到方式一
+podman run -d       \
+  --name squid      \
+  --network=host    \
+  --shm-size=512m   \
+  -v /path/to/squid/etc/squid.conf:/etc/squid/squid.conf:ro \
+  -v /path/to/squid/etc/conf.d:/etc/squid/conf.d:ro \
+  -v /path/to/squid/script:/opt/squid/script:ro \
+  -v /path/to/squid/cache:/var/spool/squid \
+  -v /path/to/squid/logs:/var/log/squid \
+  squid-cache
+```
+
+**squid.conf 配置（Rock + 多 Worker）:**
+
+```squid
+# Rock 存储配置
+# 语法: cache_dir rock <目录> <大小MB> [max-size=<字节>] [swap-timeout=<毫秒>]
+# max-size: 单个对象最大大小，默认 512KB，建议根据缓存内容调整
+# swap-timeout: I/O 超时，防止磁盘过载，建议 300ms 起步
+cache_dir rock /var/spool/squid 204800 max-size=32768 swap-timeout=300
+
+# 多 worker 配置
+workers 6
+
+# 共享内存缓存 (SMP 模式必需)
+cache_mem 2048 MB
+memory_cache_shared on
+
+# collapsed_forwarding 在 SMP 模式下可以减少重复请求
+collapsed_forwarding on
+```
+
+**Rock 存储的限制：**
+- 默认单对象最大 32KB（由 IPC 页面大小决定），可通过 `max-size` 调整
+- 对于大文件缓存效率较低
+- 需要调优 `swap-timeout` 和 `max-swap-rate` 防止磁盘过载
+
+### 存储类型与 Worker 配置对比
+
+| 配置 | 稳定性 | 并发能力 | 容器兼容性 | 说明 |
+|-----|-------|---------|-----------|------|
+| **aufs + 单worker** | ✅ 稳定 | 中等 | ✅ 好 | **推荐** |
+| **rock + 多worker** | ⚠️ 需调优 | 高 | ⚠️ 需 IPC | 高并发场景 |
+| aufs + 多worker | ❌ 不稳定 | 高 | ❌ 差 | cache_peer 连接问题 |
+| ufs + 单worker | ✅ 稳定 | 低 | ✅ 好 | 同步 I/O，性能较差 |
+
+> **注意**: ufs/aufs/diskd 不是 SMP 感知的，多 worker 模式下会导致缓存损坏。
+> 只有 Rock 存储支持多 worker 共享磁盘缓存。
+
+### 切换存储类型注意事项
+
+**重要**: 切换存储类型时必须清空缓存目录！
+
+```bash
+# 1. 停止容器
+podman stop squid
+
+# 2. 清空缓存目录 (rock/aufs/ufs 格式互不兼容)
+rm -rf /path/to/squid/cache/*
+
+# 3. 修改 squid.conf 中的 cache_dir 配置
+
+# 4. 重新启动
+podman start squid
+```
+
+### Rock 存储调优
+
+如果出现 IPC 超时或队列溢出警告，调整以下参数：
+
+```squid
+# 限制每秒 I/O 操作数（普通磁盘: 200，SSD: 300+）
+cache_dir rock /var/spool/squid 204800 max-swap-rate=200 swap-timeout=300
+
+# 如果仍有警告，降低 max-swap-rate 或增加 swap-timeout
+```
+
+### 提高并发能力的替代方案
+
+如果 Rock + 多 Worker 在容器中不稳定：
+
+1. **多容器实例 + 负载均衡**：部署多个单 worker 的 Squid 容器，使用 Caddy/Nginx 负载均衡
+2. **裸机部署**：在非容器环境中使用多 worker 模式，IPC 问题更少
+3. **增加缓存命中率**：通过优化 refresh_pattern 和 store_id 减少源站请求
 
 ## 手动安装
 

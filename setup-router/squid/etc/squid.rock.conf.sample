@@ -1,5 +1,9 @@
-# Squid 主配置文件
-# 使用 include 加载模块化配置
+# Squid 主配置文件 - Rock 存储 + 多 Worker 版本
+# 
+# 使用说明:
+#   1. 复制此文件为 squid.conf
+#   2. 清空缓存目录: rm -rf /var/spool/squid/*
+#   3. 使用 --ipc=host 或 --shm-size=512m 启动容器
 #
 # 架构: 客户端 -> Caddy (HTTPS) -> Squid (HTTP) -> 源站 (HTTPS)
 # Caddy 负责 SSL 终止，Squid 只处理 HTTP 反向代理缓存
@@ -81,35 +85,49 @@ client_lifetime 4 hours
 pconn_timeout 30 seconds
 
 # ==============================================================================
-# 缓存参数
-# 存储类型说明:
-#   - ufs: 仅支持单 worker，同步 I/O
-#   - aufs: 仅支持单 worker，异步 I/O，性能较好
-#   - rock: 唯一支持 SMP 多 worker 的存储类型
-#           需要 --ipc=host 或 --shm-size 支持 IPC 通信
-#           参见 squid.rock.conf.sample 配置示例
-#
-# 当前配置: aufs + 单 worker (稳定性优先)
-# 如需多 worker，请参考 squid.rock.conf.sample 切换到 rock 存储
+# Rock 存储配置 (SMP 多 Worker)
 # ==============================================================================
-cache_dir aufs /var/spool/squid 204800 32 256
+# Rock 是唯一支持 SMP 多 worker 共享磁盘缓存的存储类型
+#
+# 参数说明:
+#   - 204800: 缓存大小 (MB)，约 200GB
+#   - max-size=32768: 单个对象最大大小 (字节)，默认 512KB
+#                     注意: IPC 页面大小限制为 32KB，更大的对象缓存效率降低
+#   - swap-timeout=300: I/O 超时 (毫秒)，防止磁盘过载
+#   - max-swap-rate=200: 每秒最大 I/O 操作数 (可选)
+#                        普通 HDD: 100-200，SSD: 300+
+#
+# 容器要求:
+#   - 需要 --ipc=host 或 --shm-size=512m
+#   - /dev/shm 需要足够大
+# ==============================================================================
+cache_dir rock /var/spool/squid 204800 max-size=32768 swap-timeout=300
+
+# 内存缓存配置
 cache_mem 2048 MB
 maximum_object_size 5 GB
 maximum_object_size_in_memory 64 MB
 range_offset_limit none
 
-# collapsed_forwarding 需要 rock 存储的 SMP transients 支持
-# 单 worker 模式下无意义，故注释掉
-# collapsed_forwarding on
+# SMP 共享内存缓存 (多 worker 必需)
+memory_cache_shared on
+
+# collapsed_forwarding 减少重复请求 (SMP 模式下有效)
+collapsed_forwarding on
 
 # ==============================================================================
-# 并发数
-# 注意: 容器环境中多 worker 会导致 cache_peer 连接不稳定，建议使用 1
-# 如需更高并发，可以考虑:
-#   1. 裸机部署（非容器）使用多 worker
-#   2. 部署多个单 worker 容器实例，前端负载均衡
+# 多 Worker 配置
 # ==============================================================================
-workers 1
+# Rock 存储支持 SMP 多 worker 共享磁盘缓存
+# 建议 worker 数 = CPU 核心数 - 1 (留一个给 disker)
+#
+# 进程结构 (workers=6 + 1 个 rock cache_dir):
+#   - 1 个 coordinator (协调进程)
+#   - 6 个 workers (处理请求)
+#   - 1 个 disker (Rock 存储 I/O)
+#   - 总共 8 个 Squid 进程
+# ==============================================================================
+workers 6
 
 # ==============================================================================
 # Store ID 重写程序

@@ -1,0 +1,35 @@
+# Apache Traffic Server SNI 配置
+#
+# 用于连接 HTTPS 源站时的 TLS 配置
+#
+# 语法:
+#   fqdn: <域名模式>
+#   verify_origin_server: <策略>
+#   client_cert: <客户端证书路径>
+#
+# verify_origin_server 策略:
+#   NONE     - 不验证
+#   MODERATE - 验证证书，但允许自签名
+#   STRICT   - 严格验证
+
+sni:
+  # Microsoft CDN - 证书可能不匹配 SNI
+  - fqdn: dl.delivery.mp.microsoft.com
+    verify_server_policy: DISABLED
+  - fqdn: download.windowsupdate.com
+    verify_server_policy: DISABLED
+  - fqdn: download.microsoft.com
+    verify_server_policy: DISABLED
+  - fqdn: officecdn.microsoft.com
+    verify_server_policy: DISABLED
+  - fqdn: "*.mp.microsoft.com"
+    verify_server_policy: DISABLED
+
+  # 默认配置 - 使用系统 CA 验证服务器证书
+  - fqdn: "*"
+    verify_server_policy: PERMISSIVE
+
+  # 如需特定域名使用不同配置，在此添加
+  # - fqdn: '*.example.com'
+  #   verify_server_policy: DISABLED
+  #   client_cert: /path/to/cert.pem

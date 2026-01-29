@@ -1,0 +1,156 @@
+# Apache Traffic Server 10.x 主配置文件
+#
+# 架构: 客户端 -> Caddy (HTTPS:443) -> ATS (HTTP:3126) -> 源站 (HTTPS:443)
+# Caddy 负责 SSL 终止，ATS 只处理 HTTP 反向代理缓存
+#
+# 配置文件说明:
+#   - records.yaml: 主配置文件 (本文件)
+#   - remap.config: URL 重映射规则 (必需, 定义域名到源站的映射)
+#   - cache.config: 缓存策略
+#   - hosting.config: 缓存分区
+#   - storage.config: 存储配置
+
+# ==============================================================================
+# ATS 10.x 使用嵌套 YAML 结构
+# proxy.config.xxx.yyy.zzz 变为 xxx: yyy: zzz:
+# ==============================================================================
+records:
+  # ==============================================================================
+  # 基础配置
+  # ==============================================================================
+  # 代理模式: 反向代理 (Caddy -> ATS -> 源站)
+  reverse_proxy:
+    enabled: 1
+
+  url_remap:
+    remap_required: 1
+
+  # 监听端口 (HTTP only, Caddy 处理 HTTPS)
+  http:
+    server_ports: "3126"
+
+    # Keep-Alive 配置
+    keep_alive_enabled_in: 1
+    keep_alive_enabled_out: 1
+    keep_alive_no_activity_timeout_in: 60
+    keep_alive_no_activity_timeout_out: 60
+
+    # 连接超时
+    connect_attempts_timeout: 30
+    transaction_no_activity_timeout_in: 120
+    transaction_no_activity_timeout_out: 120
+
+    # 重试配置
+    connect_attempts_max_retries: 3
+    connect_attempts_rr_retries: 2
+
+    # 请求头处理 - 隐藏代理标识
+    # 不添加 Via 头
+    insert_request_via_str: 0
+    insert_response_via_str: 0
+
+    # 不添加 X-Forwarded-For
+    insert_forwarded: 0
+
+    # 删除可能暴露代理的头
+    anonymize_remove_from: 1
+    anonymize_remove_referer: 0
+    anonymize_remove_user_agent: 0
+    anonymize_remove_cookie: 0
+    anonymize_remove_client_ip: 1
+
+    # 缓存配置
+    cache:
+      http: 1
+      # 缓存过期时间 (秒)
+      heuristic_min_lifetime: 3600
+      heuristic_max_lifetime: 86400
+      heuristic_lm_factor: 0.1
+      # 忽略源站的缓存控制头
+      ignore_server_no_cache: 1
+      ignore_client_no_cache: 1
+      ignore_client_cc_max_age: 1
+      # 缓存认证响应
+      cache_responses_to_cookies: 1
+
+    # 源站连接失败时的行为
+    parent_proxy:
+      retry_time: 30
+      fail_threshold: 3
+
+  # 运行用户
+  admin:
+    user_id: trafficserver
+
+  # ==============================================================================
+  # 高并发配置
+  # ==============================================================================
+  exec_thread:
+    # 启用自动配置线程数 (基于 CPU 核心数)
+    autoconfig:
+      enabled: 1
+      # 线程数 = CPU核心数 * scale，scale=1.5 表示 8核=12线程
+      scale: 1.5
+    # 限制最大线程数为 16 (适用于 8核及以上 CPU)
+    limit: 16
+
+  # 接受线程数 (建议为 2-4)
+  accept_threads: 2
+
+  # 任务线程数 (异步任务处理)
+  task_threads: 8
+
+  # ==============================================================================
+  # 连接配置 (支持2000000连接)
+  # ==============================================================================
+  net:
+    # 最大客户端连接数
+    connections_throttle: 2000000
+
+  # ==============================================================================
+  # 缓存配置
+  # ==============================================================================
+  cache:
+    # 内存缓存大小 (2GB)
+    ram_cache:
+      size: 2G
+    # 磁盘缓存启用
+    enable_read_while_writer: 1
+
+  # ==============================================================================
+  # 日志配置
+  # ==============================================================================
+  log:
+    logging_enabled: 3
+    max_space_mb_for_logs: 2048
+    rolling_enabled: 1
+    rolling_interval_sec: 86400
+    rolling_size_mb: 200
+    auto_delete_rolled_files: 1
+
+  # ==============================================================================
+  # 错误页面模板
+  # ==============================================================================
+  body_factory:
+    template_sets_dir: /usr/share/trafficserver/body_factory
+
+  # ==============================================================================
+  # DNS 配置
+  # ==============================================================================
+  dns:
+    nameservers: "223.5.5.5 119.29.29.29"
+    resolv_conf: "NULL"
+
+  # ==============================================================================
+  # SSL/TLS 配置 (连接源站)
+  # ==============================================================================
+  ssl:
+    # CA 证书文件路径 (Debian)
+    client:
+      CA:
+        cert:
+          filename: /etc/ssl/certs/ca-certificates.crt
+      # 启用证书验证
+      verify:
+        server:
+          policy: ENFORCED

@@ -1,0 +1,53 @@
+networks:
+  internal-backend:
+    external: true
+  internal-frontend:
+    external: true
+
+services:
+  trafficserver:
+    # 使用 ./build.sh 构建镜像 (支持源码包缓存)
+    # 或手动: docker build -v $(pwd)/download:/download -t trafficserver-cache .
+    image: trafficserver-cache
+    container_name: trafficserver
+    # network_mode: host
+    networks:
+      - internal-backend
+      - internal-frontend
+    restart: unless-stopped
+    # 高并发需要增加文件描述符限制
+    # ulimits:
+    #   nofile:
+    #     soft: 2500000
+    #     hard: 2500000
+    volumes:
+      # 配置文件 (只读)
+      - ./etc/records.yaml:/etc/trafficserver/records.yaml:ro
+      - ./etc/remap.config:/etc/trafficserver/remap.config:ro
+      - ./etc/cache.config:/etc/trafficserver/cache.config:ro
+      - ./etc/storage.config:/etc/trafficserver/storage.config:ro
+      - ./etc/hosting.config:/etc/trafficserver/hosting.config:ro
+      - ./etc/ip_allow.yaml:/etc/trafficserver/ip_allow.yaml:ro
+      - ./etc/logging.yaml:/etc/trafficserver/logging.yaml:ro
+      - ./etc/sni.yaml:/etc/trafficserver/sni.yaml:ro
+      - ./etc/bypass_auth.conf:/etc/trafficserver/bypass_auth.conf:ro
+      - ./etc/parent.config:/etc/trafficserver/parent.config:ro
+      - ./etc/plugin.config:/etc/trafficserver/plugin.config:ro
+      - ./etc/ssl_multicert.config:/etc/trafficserver/ssl_multicert.config:ro
+      - ./etc/volume.config:/etc/trafficserver/volume.config:ro
+      # 错误页面模板
+      - ./body_factory:/usr/share/trafficserver/body_factory:ro
+      # 数据目录 (可通过环境变量配置)
+      - ${TRAFFICSERVER_CACHE_DIR:-./cache}:/var/cache/trafficserver
+      - ${TRAFFICSERVER_LOG_DIR:-./logs}:/var/log/trafficserver
+    environment:
+      - TZ=Asia/Shanghai
+    # 暴露端口给前端 Caddy
+    ports:
+      - "3126:3126"
+    # 资源限制 (可选)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '8'
+    #       memory: 8G

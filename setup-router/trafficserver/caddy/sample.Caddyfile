@@ -1,0 +1,252 @@
+# Caddy 配置 - Traffic Server 前端
+#
+# Caddy 负责 HTTPS 终止，将请求转发到 ATS (端口 3126)
+# ATS 再以 HTTPS 连接源站
+#
+# 注意: 此域名列表与 setup-router/squid 和 remap.config 保持完全一致
+
+# ==============================================================================
+# 公共配置片段
+# ==============================================================================
+
+# 反向代理到 Traffic Server 的通用配置
+(proxy_to_ats) {
+    reverse_proxy trafficserver:3126 {
+        header_up Host {upstream_hostport}
+        transport http {
+            dial_timeout 30s
+            response_header_timeout 120s
+            read_timeout 300s
+            write_timeout 300s
+        }
+    }
+}
+
+# 带自定义超时的反向代理 (用于大文件下载)
+(proxy_to_ats_large) {
+    reverse_proxy trafficserver:3126 {
+        header_up Host {upstream_hostport}
+        transport http {
+            dial_timeout 30s
+            response_header_timeout 300s
+            read_timeout 1800s
+            write_timeout 1800s
+        }
+    }
+}
+
+# 删除可能暴露代理的响应头
+(hide_proxy_headers) {
+    header {
+        -Via
+        -X-Cache
+        -X-Cache-Lookup
+        -X-Served-By
+    }
+}
+
+# ==============================================================================
+# GitHub 域名配置
+# ==============================================================================
+release-assets.githubusercontent.com, objects.githubusercontent.com, codeload.github.com {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+gist.githubusercontent.com, user-attachments.githubusercontent.com {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+github.com, raw.githubusercontent.com {
+    import proxy_to_ats
+    import hide_proxy_headers
+}
+
+# ==============================================================================
+# GitHub Pages / 静态站点 / Helm 仓库
+# ==============================================================================
+grafana.github.io, charts.jenkins.io, updates.jenkins.io, get.jenkins.io {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+openebs.github.io, helm.goharbor.io, opensearch-project.github.io {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+git.rancher.io, charts.rancher.io {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+mirror.freedif.org, mirror.ossplanet.net {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+# ==============================================================================
+# CDN 域名配置
+# ==============================================================================
+cdnjs.cloudflare.com, cdn.staticfile.org, cdn.bootcdn.net, stackpath.bootstrapcdn.com {
+    import proxy_to_ats
+    import hide_proxy_headers
+}
+
+cdn.jsdelivr.net, unpkg.com, www.unpkg.com {
+    import proxy_to_ats
+    import hide_proxy_headers
+}
+
+fonts.googleapis.com, fonts.gstatic.com, ajax.googleapis.com {
+    import proxy_to_ats
+    import hide_proxy_headers
+}
+
+esm.sh, esm.run, cdn.skypack.dev, ga.jspm.io {
+    import proxy_to_ats
+    import hide_proxy_headers
+}
+
+app.diagrams.net, viewer.diagrams.net {
+    import proxy_to_ats
+    import hide_proxy_headers
+}
+
+# ==============================================================================
+# Microsoft 下载域名配置
+# ==============================================================================
+download.microsoft.com, download.windowsupdate.com, dl.delivery.mp.microsoft.com {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+download.visualstudio.microsoft.com, download.visualstudio.com, vscode.download.prss.microsoft.com {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+officecdn.microsoft.com {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+marketplace.visualstudio.com, update.code.visualstudio.com {
+    import proxy_to_ats
+    import hide_proxy_headers
+}
+
+cdn.vsassets.io, ms-python.gallerycdn.vsassets.io, ms-toolsai.gallerycdn.vsassets.io, ms-vscode.gallerycdn.vsassets.io {
+    import proxy_to_ats
+    import hide_proxy_headers
+}
+
+ajax.aspnetcdn.com, ajax.microsoft.com {
+    import proxy_to_ats
+    import hide_proxy_headers
+}
+
+globalcdn.nuget.org, api.nuget.org {
+    import proxy_to_ats
+    import hide_proxy_headers
+}
+
+# ==============================================================================
+# Unity 下载域名配置
+# ==============================================================================
+download.unity3d.com, beta.unity3d.com, netstorage.unity3d.com, public-cdn.cloud.unity3d.com {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+packages.unity.com {
+    import proxy_to_ats
+    import hide_proxy_headers
+}
+
+# ==============================================================================
+# Unreal Engine 域名配置
+# ==============================================================================
+cdn.unrealengine.com {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+# ==============================================================================
+# Golang 域名配置
+# ==============================================================================
+proxy.golang.org, sum.golang.org {
+    import proxy_to_ats
+    import hide_proxy_headers
+}
+
+# ==============================================================================
+# Maven / Gradle 仓库域名配置
+# ==============================================================================
+repo1.maven.org, repo.maven.apache.org {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+plugins.gradle.org {
+    import proxy_to_ats
+    import hide_proxy_headers
+}
+
+# ==============================================================================
+# Python / PyPI 域名配置
+# ==============================================================================
+pypi.org, pypi.python.org {
+    import proxy_to_ats
+    import hide_proxy_headers
+}
+
+files.pythonhosted.org {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+# ==============================================================================
+# Node.js / npm / yarn 域名配置
+# ==============================================================================
+registry.npmjs.org, registry.yarnpkg.com {
+    import proxy_to_ats
+    import hide_proxy_headers
+}
+
+registry.npmmirror.com, cdn.npmmirror.com, mirrors.cloud.tencent.com {
+    import proxy_to_ats
+    import hide_proxy_headers
+}
+
+# ==============================================================================
+# CMake 域名配置
+# ==============================================================================
+cmake.org {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+# ==============================================================================
+# C++ 文档域名配置
+# ==============================================================================
+en.cppreference.com, cppreference.com, zh.cppreference.com {
+    import proxy_to_ats
+    import hide_proxy_headers
+}
+
+cplusplus.com, www.cplusplus.com {
+    import proxy_to_ats
+    import hide_proxy_headers
+}
+
+isocpp.org {
+    import proxy_to_ats
+    import hide_proxy_headers
+}
+
+www.boost.org, boost.org {
+    import proxy_to_ats
+    import hide_proxy_headers
+}

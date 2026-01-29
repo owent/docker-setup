@@ -1,0 +1,46 @@
+# Apache Traffic Server IP 访问控制
+#
+# 语法:
+#   src_ip=<IP/CIDR> action=<ip_allow|ip_deny> [method=<ALL|方法列表>]
+#
+# 允许内网访问
+
+ip_allow:
+  - apply: in
+    ip_addrs: 127.0.0.1
+    action: allow
+    methods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - HEAD
+      - CONNECT
+      - OPTIONS
+      - TRACE
+      - PURGE
+      - PUSH
+  - apply: in
+    ip_addrs: 10.0.0.0/8
+    action: allow
+    methods: ALL
+  - apply: in
+    ip_addrs: 172.16.0.0/12
+    action: allow
+    methods: ALL
+  - apply: in
+    ip_addrs: 192.168.0.0/16
+    action: allow
+    methods: ALL
+  - apply: in
+    ip_addrs: ::1
+    action: allow
+    methods: ALL
+  - apply: in
+    ip_addrs: fe80::/10
+    action: allow
+    methods: ALL
+  - apply: in
+    ip_addrs: fc00::/7
+    action: allow
+    methods: ALL

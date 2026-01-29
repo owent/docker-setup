@@ -1,7 +1,7 @@
 FROM alpine:latest
 
 RUN sed -i.bak -r 's#dl-cdn.alpinelinux.org#mirrors.tencent.com#g' /etc/apk/repositories ; \
-  apk add --no-cache squid ca-certificates tzdata bash vim python3 supervisor curl bind-tools && update-ca-certificates
+  apk add --no-cache squid squid-lang-zh ca-certificates tzdata bash vim python3 supervisor curl bind-tools && update-ca-certificates
 
 RUN set -e; \
   mkdir -p /var/spool/squid /var/cache/squid /var/run/squid /etc/squid/ssl /var/log/supervisor; \
