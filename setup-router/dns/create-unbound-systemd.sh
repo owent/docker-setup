@@ -39,8 +39,16 @@ mkdir -p "$UNBOUND_SSL_DIR"
 if [[ -z "$UNBOUND_IMAGE" ]]; then
   UNBOUND_IMAGE="alpinelinux/unbound:latest"
 fi
+$DOCKER_EXEC image inspect $UNBOUND_IMAGE > /dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  UNBOUND_UPDATE=1
+fi
 if [[ "x$UNBOUND_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   $DOCKER_EXEC pull $UNBOUND_IMAGE
+  if [[ $? -ne 0 ]]; then
+    echo "Error: Unable to pull $UNBOUND_IMAGE"
+    exit 1
+  fi
 fi
 if [[ -z "$UNBOUND_RESOLV_CONF" ]]; then
   if [[ -e "$UNBOUND_ETC_DIR/resolv.conf" ]]; then

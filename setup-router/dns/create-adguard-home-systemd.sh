@@ -39,8 +39,16 @@ mkdir -p "$ADGUARD_HOME_DATA_DIR"
 if [[ -z "$ADGUARD_HOME_IMAGE" ]]; then
   ADGUARD_HOME_IMAGE="adguard/adguardhome:latest"
 fi
+$DOCKER_EXEC image inspect $ADGUARD_HOME_IMAGE > /dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  ADGUARD_HOME_UPDATE=1
+fi
 if [[ "x$ADGUARD_HOME_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   $DOCKER_EXEC pull $ADGUARD_HOME_IMAGE
+  if [[ $? -ne 0 ]]; then
+    echo "Error: Unable to pull $ADGUARD_HOME_IMAGE"
+    exit 1
+  fi
 fi
 if [[ -z "$ADGUARD_HOME_RESOLV_CONF" ]]; then
   if [[ -e "$ADGUARD_HOME_ETC_DIR/resolv.conf" ]]; then

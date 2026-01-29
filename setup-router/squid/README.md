@@ -89,9 +89,12 @@ podman build -f squid.Dockerfile -t squid-cache .
 
 # 运行容器
 # 注意这里只挂载squid.conf文件和conf.d目录，因为 /etc/squid 下有其他文件，不能掩盖，否则会启动失败。
-podman run -d \
-  --name squid \
-  -p 3128:3128 \
+# 启动workers失败可以试试增大共享内存的大小 --shm-size=256m 或 --ipc=host
+# 共享内存可以设置和 cache_mem 配置一致
+podman run -d       \
+  --name squid      \
+  --shm-size=1024m   \
+  -p 3128:3128      \
   -v /path/to/squid/etc/squid.conf:/etc/squid/squid.conf:ro \
   -v /path/to/squid/etc/conf.d:/etc/squid/conf.d:ro \
   -v /path/to/squid/script:/opt/squid/script:ro \
