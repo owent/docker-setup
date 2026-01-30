@@ -52,6 +52,12 @@ records:
     # 不添加 X-Forwarded-For
     insert_forwarded: 0
 
+    # Accept-Encoding 标准化 (请求源站时的压缩支持)
+    # 0 = 不修改 Accept-Encoding
+    # 1 = 标准化为 gzip, deflate
+    # 2 = 标准化为 br, gzip, deflate (包含 Brotli)
+    normalize_ae: 2
+
     # 删除可能暴露代理的头
     anonymize_remove_from: 1
     anonymize_remove_referer: 0
@@ -62,16 +68,58 @@ records:
     # 缓存配置
     cache:
       http: 1
-      # 缓存过期时间 (秒)
-      heuristic_min_lifetime: 3600
-      heuristic_max_lifetime: 86400
+
+      # ==============================================================================
+      # 启发式缓存 (Heuristic Caching)
+      # 当响应没有 Cache-Control/Expires 但有 Last-Modified 时，自动计算缓存时间
+      # ==============================================================================
+      # required_headers 决定何时可以缓存响应:
+      #   0 = 必须有 Cache-Control 或 Expires (默认，最严格)
+      #   1 = 必须有 Last-Modified 或 Cache-Control 或 Expires
+      #   2 = 只要有以上任意头就可以缓存
+      required_headers: 1
+
+      # 启发式缓存时间计算: 缓存时间 = (当前时间 - Last-Modified) * lm_factor
+      # 例如: 文件3天前修改, lm_factor=0.1, 缓存时间 = 3天 * 0.1 = 7.2小时
       heuristic_lm_factor: 0.1
-      # 忽略源站的缓存控制头
-      ignore_server_no_cache: 1
+      # 启发式缓存最小/最大时间 (秒)
+      heuristic_min_lifetime: 3600 # 最少1小时
+      heuristic_max_lifetime: 604800 # 最多7天
+
+      # ==============================================================================
+      # 忽略缓存控制头 (强制缓存)
+      # ==============================================================================
+      # 忽略客户端请求中的 Cache-Control/Pragma: no-cache
       ignore_client_no_cache: 1
       ignore_client_cc_max_age: 1
-      # 缓存认证响应
+      ims_on_client_no_cache: 0 # 不因客户端 no-cache 发送条件请求
+
+      # 忽略服务端响应中的 Cache-Control: no-cache/no-store/private
+      # 注意: 这会强制缓存所有响应，即使源站明确禁止
+      ignore_server_no_cache: 1
+
+      # 设置默认缓存时间 (当没有任何缓存头时)
+      # never_cache_hdr: 0              # 默认0，允许缓存无缓存头的响应
+
+      # ==============================================================================
+      # 缓存键标准化 (Cache Key Normalization)
+      # ==============================================================================
+      # 忽略 Vary 头相关的差异，简化缓存 key
+      ignore_accept_mismatch: 1
+      ignore_accept_language_mismatch: 1
+      ignore_accept_charset_mismatch: 1
+      ignore_accept_encoding_mismatch: 1
+
+      # 缓存认证响应 (对于需要Cookie的响应)
       cache_responses_to_cookies: 1
+
+      # ==============================================================================
+      # 缓存重定向响应 (3xx)
+      # ==============================================================================
+      # 允许缓存 301/302/303/307/308 重定向
+      # 对于稳定的下载链接 (如 GitHub releases)，缓存重定向可显著提升性能
+      # ATS 10.x 默认会缓存 3xx 响应（如果响应头允许）
+      # 这里通过 header_rewrite 为特定路径添加 Cache-Control
 
     # 源站连接失败时的行为
     parent_proxy:
@@ -116,6 +164,14 @@ records:
       size: 2G
     # 磁盘缓存启用
     enable_read_while_writer: 1
+
+  # ==============================================================================
+  # 调试配置 (诊断缓存问题后可关闭)
+  # ==============================================================================
+  diags:
+    debug:
+      enabled: 1
+      tags: "http_hdrs|http_trans|cache"
 
   # ==============================================================================
   # 日志配置

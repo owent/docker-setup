@@ -59,52 +59,88 @@ flowchart LR
 
 ```
 trafficserver/
-├── trafficserver.Dockerfile     # 容器镜像构建
+├── trafficserver.Dockerfile     # 容器镜像构建 (ATS 10.x 源码编译)
+├── build-trafficserver-image.sh # 构建脚本 (支持源码包缓存)
+├── docker-compose.yml           # Docker Compose 配置
 ├── supervisor/
-│   └── supervisord.conf         # supervisor 配置
+│   └── supervisord.conf         # supervisor 进程管理配置
 ├── etc/
-│   ├── records.yaml             # 主配置文件
+│   ├── records.yaml             # 主配置文件 (ATS 10.x YAML 格式)
 │   ├── remap.config             # URL 重映射 (类似 cache_peer)
 │   ├── cache.config             # 缓存策略 (类似 refresh_pattern)
 │   ├── storage.config           # 磁盘缓存配置
 │   ├── hosting.config           # 缓存分区配置
-│   └── logging.yaml             # 日志配置
+│   ├── logging.yaml             # 日志配置
+│   ├── sni.yaml                 # SNI/TLS 配置
+│   ├── ip_allow.yaml            # IP 访问控制
+│   ├── bypass_auth.conf         # header_rewrite 规则
+│   ├── parent.config            # 父代理配置
+│   ├── plugin.config            # 全局插件配置
+│   ├── ssl_multicert.config     # SSL 证书配置
+│   └── volume.config            # 缓存卷配置
+├── body_factory/
+│   └── default/                 # 错误页面模板
+├── ca-certificates/             # 自定义 CA 证书
+├── download/                    # 源码包缓存目录
 └── README.md
 ```
 
 ## Docker/Podman 部署
 
-### 构建和运行
+### 构建镜像
 
 ```bash
-# 构建镜像
-podman build -f trafficserver.Dockerfile -t trafficserver .
+# 使用构建脚本 (推荐，支持源码包缓存)
+./build-trafficserver-image.sh
 
-# 运行容器
+# 或手动构建 (需要挂载下载目录以缓存源码包)
+docker build -v $(pwd)/download:/download -f trafficserver.Dockerfile -t trafficserver-cache .
+```
+
+### 使用 Docker Compose 运行
+
+```bash
+# 创建网络 (如果不存在)
+docker network create internal-backend
+docker network create internal-frontend
+
+# 启动服务
+docker-compose up -d
+
+# 查看日志
+docker-compose logs -f
+```
+
+### 手动运行容器
+
+```bash
 podman run -d                   \
   --name trafficserver          \
   --network=host                \
   -v /path/to/trafficserver/etc:/etc/trafficserver:ro \
   -v /path/to/trafficserver/cache:/var/cache/trafficserver \
   -v /path/to/trafficserver/logs:/var/log/trafficserver \
-  trafficserver
+  trafficserver-cache
 ```
 
 ### 高并发配置
 
-ATS 是多线程架构，在 `records.yaml` 中配置：
+ATS 10.x 使用嵌套 YAML 结构，在 `records.yaml` 中配置：
 
 ```yaml
 records:
   # 启用自动配置线程数 (基于 CPU 核心数)
-  proxy.config.exec_thread.autoconfig: 1
-  # 线程数 = CPU核心数 * scale，scale=1.5 表示 8核=12线程
-  proxy.config.exec_thread.autoconfig.scale: 1.5
-  # 限制最大线程数为 16 (适用于 8核及以上 CPU)
-  proxy.config.exec_thread.limit: 16
+  exec_thread:
+    autoconfig:
+      enabled: 1
+      # 线程数 = CPU核心数 * scale，scale=1.5 表示 8核=12线程
+      scale: 1.5
+    # 限制最大线程数为 16
+    limit: 16
   
   # 最大连接数 (2百万)
-  proxy.config.net.connections_throttle: 2000000
+  net:
+    connections_throttle: 2000000
 ```
 
 ### 目录配置
@@ -120,22 +156,85 @@ TRAFFICSERVER_LOG_DIR=/data/trafficserver/logs \
 
 ## 配置文件说明
 
-### records.yaml - 主配置
+### records.yaml - 主配置 (ATS 10.x 格式)
 
-类似 Squid 的 `squid.conf`，包含：
-- 监听端口
-- 线程/并发配置
-- 缓存参数
-- 超时设置
-- 日志配置
+ATS 10.x 使用嵌套 YAML 结构，配置项名称变化：
+
+| ATS 9.x 格式 | ATS 10.x 格式 |
+|-------------|--------------|
+| `proxy.config.http.server_ports: "3126"` | `http: server_ports: "3126"` |
+| `proxy.config.exec_thread.autoconfig: 1` | `exec_thread: autoconfig: enabled: 1` |
+| `proxy.config.cache.ram_cache.size: 2G` | `cache: ram_cache: size: 2G` |
+| `proxy.config.dns.nameservers: "..."` | `dns: nameservers: "..."` |
+
+示例配置：
+
+```yaml
+records:
+  # 反向代理模式
+  reverse_proxy:
+    enabled: 1
+  
+  url_remap:
+    remap_required: 1
+  
+  # HTTP 配置
+  http:
+    server_ports: "3126"
+    keep_alive_enabled_in: 1
+    keep_alive_enabled_out: 1
+    cache:
+      http: 1
+      heuristic_min_lifetime: 3600
+      heuristic_max_lifetime: 86400
+  
+  # DNS 配置 (不使用系统 DNS)
+  dns:
+    nameservers: "223.5.5.5 119.29.29.29"
+    resolv_conf: "NULL"
+  
+  # SSL 配置 (连接源站)
+  ssl:
+    client:
+      CA:
+        cert:
+          filename: /etc/ssl/certs/ca-certificates.crt
+      verify:
+        server:
+          policy: ENFORCED
+```
 
 ### remap.config - URL 重映射
 
-类似 Squid 的 `cache_peer`，定义源站映射：
+类似 Squid 的 `cache_peer`，定义源站映射。
+
+**注意**: 当 Caddy 转发 HTTP 请求到 ATS 时，左侧使用 `http://`，右侧使用 `https://` 连接源站：
 
 ```
-map https://cdn.jsdelivr.net/ https://cdn.jsdelivr.net/
-map https://github.com/ https://github.com/
+# 格式: map <接收请求> <转发到源站>
+map http://cdn.jsdelivr.net/ https://cdn.jsdelivr.net/
+map http://github.com/ https://github.com/
+
+# 使用插件
+map http://release-assets.githubusercontent.com/ https://release-assets.githubusercontent.com/ @plugin=cachekey.so @pparam=--remove-all-params=true
+map http://github.com/ https://github.com/ @plugin=header_rewrite.so @pparam=bypass_auth.conf
+```
+
+### sni.yaml - SNI/TLS 配置
+
+配置连接特定源站时的 TLS 行为，解决 CDN 证书不匹配问题：
+
+```yaml
+sni:
+  # Microsoft CDN - 证书可能不匹配 SNI
+  - fqdn: dl.delivery.mp.microsoft.com
+    verify_server_policy: DISABLED
+  - fqdn: '*.mp.microsoft.com'
+    verify_server_policy: DISABLED
+  
+  # 默认配置
+  - fqdn: "*"
+    verify_server_policy: PERMISSIVE
 ```
 
 ### cache.config - 缓存策略
@@ -191,16 +290,23 @@ cdn.example.com {
 
 ```bash
 # 进入容器
-podman exec -it trafficserver bash
+docker exec -it trafficserver bash
 
 # 检查配置
 traffic_ctl config status
 
-# 查看缓存统计
-traffic_ctl metric get proxy.process.cache.bytes_used
-traffic_ctl metric get proxy.process.cache.bytes_total
+# 查看所有缓存相关指标
+traffic_ctl metric match cache
 
-# 重新加载配置
+# 查看缓存统计
+traffic_ctl metric get proxy.process.cache.bytes_used      # 已使用缓存
+traffic_ctl metric get proxy.process.cache.bytes_total     # 总缓存大小
+
+# 查看缓存命中
+traffic_ctl metric get proxy.process.cache.hits            # 缓存命中次数
+traffic_ctl metric get proxy.process.cache.misses          # 缓存未命中次数
+
+# 重新加载配置 (不重启)
 traffic_ctl config reload
 
 # 清空缓存
@@ -210,7 +316,24 @@ traffic_ctl storage online /var/cache/trafficserver
 
 # 查看日志
 tail -f /var/log/trafficserver/access.log
+tail -f /var/log/trafficserver/diags.log
 ```
+
+### 查看缓存文件大小
+
+```bash
+# 逻辑大小 (配置的最大值)
+ls -lh /var/cache/trafficserver/cache.db
+
+# 实际占用的磁盘空间 (稀疏文件)
+du -h /var/cache/trafficserver/cache.db
+
+# 同时显示
+echo "逻辑大小: $(ls -lh /var/cache/trafficserver/cache.db | awk '{print $5}')"
+echo "实际占用: $(du -h /var/cache/trafficserver/cache.db | awk '{print $1}')"
+```
+
+**说明**: ATS 使用稀疏文件，`ls` 显示配置的最大大小，`du` 显示实际占用空间。
 
 ## 与 Squid 配置对照
 
@@ -220,8 +343,10 @@ tail -f /var/log/trafficserver/access.log
 | `refresh_pattern` | `cache.config` | 缓存策略 |
 | `cache_dir` | `storage.config` | 磁盘缓存 |
 | `workers` | `exec_thread.limit` | 并发数 |
-| `cache_mem` | `ram_cache.size` | 内存缓存 |
-| `store_id_program` | 无直接对应 | ATS 用 URL 本身做 key |
+| `cache_mem` | `cache.ram_cache.size` | 内存缓存 |
+| `store_id_program` | `@plugin=cachekey.so` | 缓存键处理 |
+| `acl` | `ip_allow.yaml` | 访问控制 |
+| `dns_nameservers` | `dns.nameservers` | DNS 服务器 |
 
 ## 添加新的缓存域名
 
@@ -263,6 +388,9 @@ traffic_ctl metric get proxy.process.http.origin_server_total_transactions_count
 ### 检查缓存命中率
 
 ```bash
+# 查看缓存统计
+traffic_ctl metric match cache
+
 # 缓存命中
 traffic_ctl metric get proxy.process.cache.hits
 
@@ -275,10 +403,31 @@ traffic_ctl metric get proxy.process.cache.misses
 
 ### 调试日志
 
-在 `records.yaml` 中启用调试：
+在 `records.yaml` 中启用调试 (ATS 10.x 格式)：
 
 ```yaml
 records:
-  proxy.config.diags.debug.enabled: 1
-  proxy.config.diags.debug.tags: "http|cache"
+  diags:
+    debug:
+      enabled: 1
+      tags: "http|cache"
 ```
+
+## ATS 10.x 升级注意事项
+
+从 ATS 9.x 升级到 10.x 需要注意：
+
+1. **配置格式变化**: `records.yaml` 从扁平格式改为嵌套 YAML 格式
+2. **移除的配置项**:
+   - `proxy.config.http.anonymize_insert_client_ip`
+   - `proxy.config.http.cache.max_object_size`
+   - `proxy.config.exec_thread.autoconfig` (改为 `exec_thread.autoconfig.enabled`)
+3. **构建系统**: 从 autotools 改为 CMake
+4. **依赖变化**: 需要 glibc (不支持 musl/Alpine)
+
+## 参考文档
+
+- [ATS 10.x records.yaml 文档](https://docs.trafficserver.apache.org/en/10.0.x/admin-guide/files/records.yaml.en.html)
+- [ATS 配置变量参考](https://docs.trafficserver.apache.org/en/latest/admin-guide/configuration.en.html)
+- [remap.config 文档](https://docs.trafficserver.apache.org/en/latest/admin-guide/files/remap.config.en.html)
+- [cache.config 文档](https://docs.trafficserver.apache.org/en/latest/admin-guide/files/cache.config.en.html)

@@ -30,7 +30,8 @@ services:
       - ./etc/ip_allow.yaml:/etc/trafficserver/ip_allow.yaml:ro
       - ./etc/logging.yaml:/etc/trafficserver/logging.yaml:ro
       - ./etc/sni.yaml:/etc/trafficserver/sni.yaml:ro
-      - ./etc/bypass_auth.conf:/etc/trafficserver/bypass_auth.conf:ro
+      # 站点特定规则
+      - ./etc/sites:/etc/trafficserver/sites:ro
       - ./etc/parent.config:/etc/trafficserver/parent.config:ro
       - ./etc/plugin.config:/etc/trafficserver/plugin.config:ro
       - ./etc/ssl_multicert.config:/etc/trafficserver/ssl_multicert.config:ro
