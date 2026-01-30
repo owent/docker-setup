@@ -63,6 +63,12 @@ github.com, raw.githubusercontent.com {
     import hide_proxy_headers
 }
 
+# GitHub LFS: 大文件下载
+lfs.github.com {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
 # ==============================================================================
 # GitHub Pages / 静态站点 / Helm 仓库
 # ==============================================================================
