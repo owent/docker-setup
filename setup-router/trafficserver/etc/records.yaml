@@ -49,8 +49,9 @@ records:
     insert_request_via_str: 0
     insert_response_via_str: 0
 
-    # 不添加 X-Forwarded-For
-    insert_forwarded: 0
+    # 不添加 Forwarded 头 (none = 禁用)
+    # 可选值: none, for, by, proto, host (可用 | 组合)
+    insert_forwarded: none
 
     # Accept-Encoding 标准化 (请求源站时的压缩支持)
     # 0 = 不修改 Accept-Encoding
