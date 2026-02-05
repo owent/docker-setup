@@ -6,39 +6,39 @@ eval "INSTALL_DISTRIBUTION=$(cat /etc/os-release | awk 'match($0, "^ID=(.+)", a)
 INSTALL_PREFIX=/opt
 TOOLS_INSTALL_PREFIX=$INSTALL_PREFIX/tools
 
-CMAKE_VERSION=3.21.3
+CMAKE_VERSION=3.31.4
 CMAKE_DOWNLOAD_URL=https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-linux-x86_64.sh
-NINJA_VERSION=v1.10.2
+NINJA_VERSION=v1.12.1
 NINJA_DOWNLOAD_URL=https://github.com/ninja-build/ninja/releases/download/$NINJA_VERSION/ninja-linux.zip
-BAZEL_VERSION=4.2.1
+BAZEL_VERSION=7.4.1
 BAZEL_DOWN_URL=https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh
-GCC_INSTALLER_VERSION=11
-LLVM_INSTALLER_VERSION=13.0
+GCC_INSTALLER_VERSION=14
+LLVM_INSTALLER_VERSION=19.1
 GCC_INSTALLER_URL=https://raw.githubusercontent.com/owent-utils/bash-shell/main/GCC%20Installer/gcc-$GCC_INSTALLER_VERSION/installer.sh
 LLVM_INSTALLER_URL=https://raw.githubusercontent.com/owent-utils/bash-shell/main/LLVM%26Clang%20Installer/$LLVM_INSTALLER_VERSION/installer-bootstrap.sh
 if [[ "x$JDK_DOWNLOAD_URL" == "x" ]]; then
-  JDK_DOWNLOAD_URL=https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.13%2B8/OpenJDK11U-jdk_x64_linux_hotspot_11.0.13_8.tar.gz
+  JDK_DOWNLOAD_URL=https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.5%2B11/OpenJDK21U-jdk_x64_linux_hotspot_21.0.5_11.tar.gz
 fi
 VCPKG_GIT_UTL=https://github.com/microsoft/vcpkg.git
-VCPKG_VERSION=2021.05.12
-RE2C_VERSION=2.2
+VCPKG_VERSION=2024.11.16
+RE2C_VERSION=3.1
 RE2C_DOWNLOAD_URL=https://github.com/skvadrik/re2c/releases/download/$RE2C_VERSION/re2c-$RE2C_VERSION.tar.xz
-GIT_VERSION=2.33.0
+GIT_VERSION=2.47.1
 GIT_DOWNLOAD_URL=https://mirrors.edge.kernel.org/pub/software/scm/git/git-$GIT_VERSION.tar.xz
-GIT_LFS_VERSION=3.0.1
+GIT_LFS_VERSION=3.6.0
 GIT_LFS_DOWNLOAD_URL=https://github.com/git-lfs/git-lfs/releases/download/v$GIT_LFS_VERSION/git-lfs-linux-amd64-v$GIT_LFS_VERSION.tar.gz
-CURL_VERSION=7.78.0
+CURL_VERSION=8.11.1
 CURL_DOWNLOAD_URL=https://github.com/curl/curl/releases/download/curl-${CURL_VERSION//./_}/curl-$CURL_VERSION.tar.xz
-VALGRIND_VERSION=3.17.0
+VALGRIND_VERSION=3.24.0
 VALGRIND_DOWNLOAD_URL=https://sourceware.org/pub/valgrind/valgrind-$VALGRIND_VERSION.tar.bz2
 DISTCC_VERSION=3.4
 DISTCC_DOWNLOAD_URL=https://github.com/distcc/distcc/releases/download/v$DISTCC_VERSION/distcc-$DISTCC_VERSION.tar.gz
-CCACHE_VERSION=4.4.2
+CCACHE_VERSION=4.10.2
 CCACHE_DOWNLOAD_URL=https://github.com/ccache/ccache/releases/download/v$CCACHE_VERSION/ccache-$CCACHE_VERSION.tar.gz
-GOLANG_VERSION=1.17.2
+GOLANG_VERSION=1.23.4
 # GOLANG_DOWNLOAD_URL=https://golang.org/dl/go$GOLANG_VERSION.linux-amd64.tar.gz
 GOLANG_DOWNLOAD_URL=https://gomirrors.org/dl/go/go$GOLANG_VERSION.linux-amd64.tar.gz
-HELM_VERSION=v3.7.0
+HELM_VERSION=v3.16.3
 HELM_DOWNLOAD_URL=https://get.helm.sh/helm-$HELM_VERSION-linux-amd64.tar.gz
 HELM_DOWNLOAD_PLUGINS=(
   # https://github.com/chartmuseum/helm-push.git
@@ -46,20 +46,20 @@ HELM_DOWNLOAD_PLUGINS=(
 )
 
 # ============ external packages ============
-READLINE_VERSION=8.1
+READLINE_VERSION=8.2
 READLINE_DOWNLOAD_URL="https://ftp.gnu.org/gnu/readline/readline-$READLINE_VERSION.tar.gz"
-LIBCAP_VERSION=2.59
+LIBCAP_VERSION=2.73
 LIBCAP_DOWNLOAD_URL=https://mirrors.edge.kernel.org/pub/linux/libs/security/linux-privs/libcap2/libcap-$LIBCAP_VERSION.tar.xz
-ZSH_VERSION=5.8
+ZSH_VERSION=5.9
 ZSH_DOWNLOAD_URL="http://www.zsh.org/pub/zsh-$ZSH_VERSION.tar.xz"
 # http://www.zsh.org/pub/zsh-$ZSH_VERSION-doc.tar.xz
-NODEJS_VERSION=v14.18.0
+NODEJS_VERSION=v22.12.0
 NODEJS_DOWNLOAD_URL=https://nodejs.org/dist/$NODEJS_VERSION/node-$NODEJS_VERSION-linux-x64.tar.xz
 LIBEVENT_VERSION=2.1.12-stable
 LIBEVENT_DOWNLOAD_URL=https://github.com/libevent/libevent/releases/download/release-$LIBEVENT_VERSION/libevent-$LIBEVENT_VERSION.tar.gz
-UTF8PROC_VERSION=2.6.1
+UTF8PROC_VERSION=2.9.0
 UTF8PROC_DOWNLOAD_URL=https://github.com/JuliaStrings/utf8proc/archive/refs/tags/v$UTF8PROC_VERSION.tar.gz
-TMUX_VERSION=3.2a
+TMUX_VERSION=3.5a
 TMUX_DOWNLOAD_URL=https://github.com/tmux/tmux/releases/download/$TMUX_VERSION/tmux-$TMUX_VERSION.tar.gz
 
 mkdir -p /opt/setup/

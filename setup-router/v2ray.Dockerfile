@@ -38,7 +38,7 @@ RUN set -ex ;                                                                   
     apk --no-cache add ca-certificates tzdata ;                                             \
     ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                               \
     mkdir -p /var/log/v2ray/ ;                                                              \
-    mkdir -p /usr/local/vproxy/bin ; mkdir -p /usr/local/vproxy/etc ; /var/log/vproxy/ ;    \
+    mkdir -p /usr/local/vproxy/bin ; mkdir -p /usr/local/vproxy/etc ; mkdir -p /var/log/vproxy/ ;    \
     ln $(find /usr/local/v2ray/bin -type f) /usr/local/vproxy/bin;                          \
     ln $(find /usr/local/v2ray/etc -type f) /usr/local/vproxy/etc;                          \
     ln /usr/local/vproxy/bin/v2ray /usr/local/vproxy/bin/vproxyd;                           \
@@ -48,7 +48,7 @@ ENV PATH /usr/local/vproxy/bin/:$PATH
 
 VOLUME /var/log/vproxy
 
-CMD ["vproxyd", "run" "-c", "/usr/local/vproxy/etc/config.json"]
+CMD ["vproxyd", "run", "-c", "/usr/local/vproxy/etc/config.json"]
 
 # podman run -d --name vproxy -v /etc/vproxy:/usr/local/vproxy/etc -v /data/logs/vproxy:/var/log/vproxy --cap-add=NET_ADMIN --network=host docker.io/owt5008137/proxy-with-geo vproxy -config=/usr/local/vproxy/etc/config.json
 # podman generate systemd vproxy | sudo tee /lib/systemd/system/v2ray.service

@@ -1,4 +1,4 @@
-FROM docker.io/library/library/ubuntu:18.04
+FROM docker.io/library/debian:bookworm
 
 ENV PATH="/opt/bin:$PATH"
 
@@ -13,7 +13,7 @@ COPY . /opt/docker-setup
 RUN /bin/bash /opt/docker-setup/replace-source.sh ;                                                                         \
     if [ -e '/etc/dpkg/dpkg.cfg.d/excludes' ]; then                                                                         \
     sed -i '/^path-exclude=\/usr\/share\/man\// s|^|#|' /etc/dpkg/dpkg.cfg.d/excludes ;                                     \
-    fi                                                                                                                      \
+    fi ;                                                                                                                    \
     apt update; apt install -y --reinstall apt coreutils bash sed procps;                                                   \
     apt install -y man-db locales tzdata less iproute2 gawk lsof systemd-cron openssh-client openssh-server systemd dnsutils ; \
     apt install -y vim wget curl ca-certificates telnet iotop btop knot-dnsutils sysstat ;                                  \

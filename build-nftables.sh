@@ -1,12 +1,12 @@
 #!/bin/bash
 
-NFTABLES_VERSION=0.9.3
-LIBNFTNL_VERSION=1.1.5
-LIBNML_VERSION=1.0.4
+NFTABLES_VERSION=1.1.1
+LIBNFTNL_VERSION=1.2.8
+LIBNML_VERSION=1.0.5
 
 NFTABLES_INSTALL_PREFIX=/opt/nftables
-NFTABLES_URL="https://netfilter.org/projects/nftables/files/nftables-$NFTABLES_VERSION.tar.bz2"
-LIBNFTNL_URL="https://netfilter.org/projects/libnftnl/files/libnftnl-$LIBNFTNL_VERSION.tar.bz2"
+NFTABLES_URL="https://netfilter.org/projects/nftables/files/nftables-$NFTABLES_VERSION.tar.xz"
+LIBNFTNL_URL="https://netfilter.org/projects/libnftnl/files/libnftnl-$LIBNFTNL_VERSION.tar.xz"
 LIBNML_URL="https://netfilter.org/projects/libmnl/files/libmnl-$LIBNML_VERSION.tar.bz2"
 
 WORKING_DIR="$PWD"
