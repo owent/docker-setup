@@ -51,3 +51,17 @@ podman exec -it postgresql psql -h localhost -d postgres -U postgres/或其他�
 
   \q
 ```
+
+### For Lobehub
+
+清空远程模型设置缓存。
+
+```bash
+podman exec -it postgresql psql -h localhost -d postgres -U postgres/或其他默认用户
+
+  DELETE FROM ai_models WHERE source = 'remote';
+  DELETE FROM ai_models WHERE provider_id = 'openai' AND source = 'remote';
+  DELETE FROM ai_models WHERE provider_id = 'aihubmix' AND source = 'remote';
+  DELETE FROM ai_models WHERE provider_id = 'openrouter' AND source = 'remote';
+  DELETE FROM ai_models WHERE source = 'remote' AND id in ('gpt-latest', 'gpt-latest', 'gpt-latest-mini', 'gpt-latest-nano', 'gpt-latest-pro', 'gpt-latest-image', 'gpt-latest-image-mini', 'gpt-latest-codex', 'gpt-latest-codex-mini', 'gpt-latest-codex-max');
+```
