@@ -143,7 +143,14 @@ marketplace.visualstudio.com, update.code.visualstudio.com {
     import hide_proxy_headers
 }
 
-cdn.vsassets.io, ms-python.gallerycdn.vsassets.io, ms-toolsai.gallerycdn.vsassets.io, ms-vscode.gallerycdn.vsassets.io {
+cdn.vsassets.io {
+    import proxy_to_ats
+    import hide_proxy_headers
+}
+
+# VS Code 扩展 CDN - 通配所有 publisher 的 gallerycdn/gallery 域名
+# 资产 URL 路径含版本号，内容不可变，与 remap.config regex_map 保持一致
+*.gallerycdn.vsassets.io, *.gallery.vsassets.io {
     import proxy_to_ats
     import hide_proxy_headers
 }
