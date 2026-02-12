@@ -12,7 +12,7 @@
 # 反向代理到 Traffic Server 的通用配置
 (proxy_to_ats) {
     reverse_proxy trafficserver:3126 {
-        header_up Host {upstream_hostport}
+        header_up Host {http.request.host}
         transport http {
             dial_timeout 30s
             response_header_timeout 120s
@@ -25,23 +25,28 @@
 # 带自定义超时的反向代理 (用于大文件下载)
 (proxy_to_ats_large) {
     reverse_proxy trafficserver:3126 {
-        header_up Host {upstream_hostport}
+        header_up Host {http.request.host}
         transport http {
             dial_timeout 30s
             response_header_timeout 300s
-            read_timeout 1800s
-            write_timeout 1800s
+            read_timeout 3600s
+            write_timeout 3600s
         }
     }
 }
 
-# 删除可能暴露代理的响应头
+# 删除可能暴露代理的响应头，防止源站检测
 (hide_proxy_headers) {
     header {
         -Via
         -X-Cache
         -X-Cache-Lookup
         -X-Served-By
+        -X-Forwarded-For
+        -X-Forwarded-Proto
+        -X-Forwarded-Host
+        -X-Real-IP
+        -Forwarded
     }
 }
 

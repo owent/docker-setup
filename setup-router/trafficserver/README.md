@@ -263,14 +263,15 @@ Caddy 作为 HTTPS 前端，转发到 ATS：
 ```caddyfile
 cdn.example.com {
     reverse_proxy trafficserver:3126 {
-        header_up Host {upstream_hostport}
+    # 需要保留客户端 Host 以匹配 ATS remap.config
+    header_up Host {http.request.host}
     }
 }
 
 # 或使用通配符
 *.githubusercontent.com {
     reverse_proxy trafficserver:3126 {
-        header_up Host {host}
+    header_up Host {http.request.host}
     }
 }
 ```
