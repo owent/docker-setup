@@ -6,6 +6,9 @@
 # https://docs.openclaw.ai/help/environment
 # https://docs.openclaw.ai/gateway/security/index#reverse-proxy-configuration
 
+# podman exec -it openclaw node openclaw.mjs agents add owent-dev
+# podman exec -it openclaw node openclaw.mjs agents --help
+
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
 OPENCLAW_IMAGE_URL="${OPENCLAW_IMAGE_URL:-ghcr.io/openclaw/openclaw:latest}"
@@ -47,7 +50,7 @@ mkdir -p "$OPENCLAW_ETC_DIR"
 mkdir -p "$OPENCLAW_ETC_DIR/canvas"
 mkdir -p "$OPENCLAW_ETC_DIR/cron"
 mkdir -p "$OPENCLAW_ETC_DIR/devices"
-mkdir -p "$OPENCLAW_DATA_DIR"
+mkdir -p "$OPENCLAW_DATA_DIR/default"
 
 # Create minimal config if not present so gateway can start without the wizard
 # See https://docs.openclaw.ai/install/podman
@@ -94,6 +97,17 @@ if [[ ! -e "$OPENCLAW_ETC_DIR/openclaw.json" ]]; then
 ${OPENCLAW_PROVIDER_ENTRIES}
     }
   }"
+  fi
+
+  # Build gateway.auth block when OPENCLAW_GATEWAY_PASSWORD is set
+  # This ensures password mode persists in config across pod recreation
+  OPENCLAW_GATEWAY_AUTH_BLOCK=""
+  if [[ -n "$OPENCLAW_GATEWAY_PASSWORD" ]]; then
+    OPENCLAW_GATEWAY_AUTH_BLOCK=",
+    \"auth\": {
+      \"mode\": \"password\",
+      \"password\": \"${OPENCLAW_GATEWAY_PASSWORD}\"
+    }"
   fi
 
   # Build controlUi block
@@ -176,18 +190,43 @@ ${OPENCLAW_PROVIDER_ENTRIES}
   "gateway": {
     "mode": "local",
     "port": 18789,
-    "bind": "${OPENCLAW_GATEWAY_BIND}"${OPENCLAW_TRUSTED_PROXIES_BLOCK}${OPENCLAW_CONTROL_UI_BLOCK}
+    "bind": "${OPENCLAW_GATEWAY_BIND}"${OPENCLAW_GATEWAY_AUTH_BLOCK}${OPENCLAW_TRUSTED_PROXIES_BLOCK}${OPENCLAW_CONTROL_UI_BLOCK}
   },
   "canvasHost": {
     "root": "/openclaw/etc/canvas"
   },
   "agents": {
     "defaults": {
-      "workspace": "/openclaw/data"
+      "workspace": "/openclaw/data/default"
     }
   }${OPENCLAW_MODELS_BLOCK}
 }
 EOF
+fi
+
+# Update gateway.auth in existing config when OPENCLAW_GATEWAY_PASSWORD is set
+# This prevents auth mode from reverting to "token" on pod recreation
+if [[ -n "$OPENCLAW_GATEWAY_PASSWORD" ]] && [[ -e "$OPENCLAW_ETC_DIR/openclaw.json" ]]; then
+  if command -v python3 >/dev/null 2>&1; then
+    python3 -c "
+import json, sys
+with open(sys.argv[1], 'r') as f:
+    config = json.load(f)
+config.setdefault('gateway', {})['auth'] = {'mode': 'password', 'password': sys.argv[2]}
+with open(sys.argv[1], 'w') as f:
+    json.dump(config, f, indent=2)
+    f.write('\\n')
+" "$OPENCLAW_ETC_DIR/openclaw.json" "$OPENCLAW_GATEWAY_PASSWORD"
+  elif command -v jq >/dev/null 2>&1; then
+    OPENCLAW_TMP_JSON="$(jq --arg pw "$OPENCLAW_GATEWAY_PASSWORD" '.gateway.auth = {"mode": "password", "password": $pw}' \
+      "$OPENCLAW_ETC_DIR/openclaw.json")"
+    if [[ $? -eq 0 ]] && [[ -n "$OPENCLAW_TMP_JSON" ]]; then
+      echo "$OPENCLAW_TMP_JSON" >"$OPENCLAW_ETC_DIR/openclaw.json"
+    fi
+  else
+    echo "WARNING: OPENCLAW_GATEWAY_PASSWORD is set but cannot update existing config (need python3 or jq)."
+    echo "         Run manually: podman exec -it openclaw node openclaw.mjs config set gateway.auth.mode password"
+  fi
 fi
 
 # ====================================== start deploy ======================================
