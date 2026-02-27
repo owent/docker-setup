@@ -1,0 +1,48 @@
+# OpenClaw Gateway reverse proxy configuration for Caddy
+# See https://docs.openclaw.ai/gateway/security/index#reverse-proxy-configuration
+# See https://docs.openclaw.ai/gateway/trusted-proxy-auth
+#
+# Prerequisites (start-openclaw.sh env vars):
+#   OPENCLAW_TRUSTED_PROXIES=127.0.0.1           # Caddy's IP (same host)
+#   OPENCLAW_ALLOWED_ORIGINS=https://openclaw.example.com
+#   OPENCLAW_GATEWAY_PASSWORD=your-strong-password
+#
+# Then run: bash start-openclaw.sh
+# (delete existing openclaw.json first if re-generating config)
+
+openclaw.example.com {
+  # ── TLS ──────────────────────────────────────────────────────────
+  # Option 1: Auto HTTPS (default, Caddy manages certs via ACME)
+  # Option 2: Manual TLS with pre-existing certificates
+  # tls /data/ssl/example.com_ecc/fullchain.cer /data/ssl/example.com_ecc/example.com.key {
+  #   protocols tls1.2 tls1.3
+  # }
+  # Option 3: Cloudflare DNS challenge (wildcard certs)
+  # tls {
+  #   protocols tls1.2 tls1.3
+  #   key_type p256
+  #   dns cloudflare {env.CF_API_TOKEN}
+  #   on_demand
+  # }
+
+  # ── Reverse Proxy ────────────────────────────────────────────────
+  # OpenClaw multiplexes HTTP + WebSocket on one port (default 18789).
+  # Caddy auto-handles WebSocket upgrade (Upgrade + Connection headers).
+  #
+  # IMPORTANT: Overwrite X-Forwarded-For (do NOT append/preserve untrusted headers).
+  # See https://docs.openclaw.ai/gateway/security/index#reverse-proxy-configuration
+  reverse_proxy http://127.0.0.1:18789 {
+    # Overwrite forwarding headers (security: prevent spoofing)
+    header_up X-Forwarded-For {http.request.remote}
+    header_up X-Real-IP {http.request.remote}
+    header_up X-Forwarded-Proto {http.request.scheme}
+    header_up X-Forwarded-Host {http.request.host}
+    header_up Host {http.request.host}
+
+    # WebSocket: long-lived connections need extended timeouts
+    # Caddy handles Upgrade/Connection automatically
+    transport http {
+      versions 1.1
+    }
+  }
+}
