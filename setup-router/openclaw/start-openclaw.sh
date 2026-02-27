@@ -233,21 +233,21 @@ OPENCLAW_ENV=(
   -e TZ=Asia/Shanghai
 )
 
-# Authentication: OPENCLAW_GATEWAY_TOKEN
-# See https://docs.openclaw.ai/gateway/configuration-reference (gateway.auth)
-if [[ -e "$SCRIPT_DIR/openclaw.GATEWAY_TOKEN" ]]; then
-  OPENCLAW_GATEWAY_TOKEN="$(cat "$SCRIPT_DIR/openclaw.GATEWAY_TOKEN")"
-elif [[ -e "$OPENCLAW_ETC_DIR/.env" ]] && grep -q '^OPENCLAW_GATEWAY_TOKEN=' "$OPENCLAW_ETC_DIR/.env" 2>/dev/null; then
-  OPENCLAW_GATEWAY_TOKEN="$(grep '^OPENCLAW_GATEWAY_TOKEN=' "$OPENCLAW_ETC_DIR/.env" | head -1 | cut -d= -f2-)"
-else
-  OPENCLAW_GATEWAY_TOKEN="$(head -c 24 /dev/urandom | base64 | tr '/' '_' | tr '+' '-')"
-  echo "$OPENCLAW_GATEWAY_TOKEN" >"$SCRIPT_DIR/openclaw.GATEWAY_TOKEN"
-fi
-OPENCLAW_ENV+=(-e OPENCLAW_GATEWAY_TOKEN="$OPENCLAW_GATEWAY_TOKEN")
-
 # Authentication: OPENCLAW_GATEWAY_PASSWORD (optional)
 if [[ ! -z "$OPENCLAW_GATEWAY_PASSWORD" ]]; then
   OPENCLAW_ENV+=(-e OPENCLAW_GATEWAY_PASSWORD="$OPENCLAW_GATEWAY_PASSWORD")
+else
+  # Authentication: OPENCLAW_GATEWAY_TOKEN
+  # See https://docs.openclaw.ai/gateway/configuration-reference (gateway.auth)
+  if [[ -e "$SCRIPT_DIR/openclaw.GATEWAY_TOKEN" ]]; then
+    OPENCLAW_GATEWAY_TOKEN="$(cat "$SCRIPT_DIR/openclaw.GATEWAY_TOKEN")"
+  elif [[ -e "$OPENCLAW_ETC_DIR/.env" ]] && grep -q '^OPENCLAW_GATEWAY_TOKEN=' "$OPENCLAW_ETC_DIR/.env" 2>/dev/null; then
+    OPENCLAW_GATEWAY_TOKEN="$(grep '^OPENCLAW_GATEWAY_TOKEN=' "$OPENCLAW_ETC_DIR/.env" | head -1 | cut -d= -f2-)"
+  else
+    OPENCLAW_GATEWAY_TOKEN="$(head -c 24 /dev/urandom | base64 | tr '/' '_' | tr '+' '-')"
+    echo "$OPENCLAW_GATEWAY_TOKEN" >"$SCRIPT_DIR/openclaw.GATEWAY_TOKEN"
+  fi
+  OPENCLAW_ENV+=(-e OPENCLAW_GATEWAY_TOKEN="$OPENCLAW_GATEWAY_TOKEN")
 fi
 
 # Path env vars: https://docs.openclaw.ai/help/environment
@@ -370,7 +370,6 @@ fi
 echo "============================================="
 echo "OpenClaw gateway started on port $OPENCLAW_PORT"
 echo "Control UI: http://127.0.0.1:$OPENCLAW_PORT/"
-echo "Gateway token: $OPENCLAW_GATEWAY_TOKEN"
 echo "Config dir: $OPENCLAW_ETC_DIR"
 echo "Workspace:  $OPENCLAW_DATA_DIR"
 echo "============================================="
