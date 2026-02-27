@@ -13,6 +13,10 @@ OPENCLAW_IMAGE_URL="${OPENCLAW_IMAGE_URL:-ghcr.io/openclaw/openclaw:latest}"
 # OPENCLAW_NETWORK=(internal-frontend)
 # OPENCLAW_ALLOWED_ORIGINS=https://your-allowed-origin.com,https://another-allowed-origin.com
 # OPENCLAW_TRUSTED_PROXIES=127.0.0.1,10.0.0.0/8  # comma-separated, enables reverse proxy mode (loopback bind)
+# OPENCLAW_LITELLM_BASE_URL=http://litellm-host:4000  # LiteLLM proxy endpoint (see https://docs.openclaw.ai/providers/litellm)
+# OPENCLAW_GATEWAY_PASSWORD=
+# # podman exec -it openclaw node openclaw.mjs config set gateway.auth.mode "password"
+# # podman exec -it openclaw node openclaw.mjs config set gateway.auth.password "your-strong-password"
 
 if [[ "x$OPENCLAW_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman pull $OPENCLAW_IMAGE_URL
@@ -50,11 +54,13 @@ mkdir -p "$OPENCLAW_DATA_DIR"
 # agents.defaults.workspace sets the agent workspace directory
 if [[ ! -e "$OPENCLAW_ETC_DIR/openclaw.json" ]]; then
   # Build models.providers block for custom base URLs (only applied on initial config creation)
-  # OPENCLAW_OPENAI_BASE_URL: custom OpenAI-compatible proxy endpoint (e.g. https://your-proxy.example.com/v1)
-  # OPENCLAW_ZAI_BASE_URL:    custom Z.AI/智谱 endpoint (e.g. https://open.bigmodel.cn/api/paas/v4)
+  # OPENCLAW_OPENAI_BASE_URL:   custom OpenAI-compatible proxy endpoint (e.g. https://your-proxy.example.com/v1)
+  # OPENCLAW_ZAI_BASE_URL:      custom Z.AI/智谱 endpoint (e.g. https://open.bigmodel.cn/api/paas/v4)
+  # OPENCLAW_LITELLM_BASE_URL:  LiteLLM proxy endpoint (e.g. http://localhost:4000)
+  #   See https://docs.openclaw.ai/providers/litellm
   # See https://docs.openclaw.ai/gateway/configuration-reference#custom-providers-and-base-urls
   OPENCLAW_MODELS_BLOCK=""
-  if [[ -n "$OPENCLAW_OPENAI_BASE_URL" ]] || [[ -n "$OPENCLAW_ZAI_BASE_URL" ]]; then
+  if [[ -n "$OPENCLAW_OPENAI_BASE_URL" ]] || [[ -n "$OPENCLAW_ZAI_BASE_URL" ]] || [[ -n "$OPENCLAW_LITELLM_BASE_URL" ]]; then
     OPENCLAW_PROVIDER_ENTRIES=""
     OPENCLAW_ENTRY_SEP=""
     if [[ -n "$OPENCLAW_OPENAI_BASE_URL" ]]; then
@@ -69,6 +75,15 @@ if [[ ! -e "$OPENCLAW_ETC_DIR/openclaw.json" ]]; then
     if [[ -n "$OPENCLAW_ZAI_BASE_URL" ]]; then
       OPENCLAW_PROVIDER_ENTRIES+="${OPENCLAW_ENTRY_SEP}      \"zai\": {
         \"baseUrl\": \"${OPENCLAW_ZAI_BASE_URL}\",
+        \"api\": \"openai-completions\",
+        \"models\": []
+      }"
+      OPENCLAW_ENTRY_SEP=",
+"
+    fi
+    if [[ -n "$OPENCLAW_LITELLM_BASE_URL" ]]; then
+      OPENCLAW_PROVIDER_ENTRIES+="${OPENCLAW_ENTRY_SEP}      \"litellm\": {
+        \"baseUrl\": \"${OPENCLAW_LITELLM_BASE_URL}\",
         \"api\": \"openai-completions\",
         \"models\": []
       }"
@@ -275,6 +290,12 @@ if [[ ! -z "$OPENCLAW_GOOGLE_API_KEY" ]]; then
   OPENCLAW_ENV+=(-e GOOGLE_API_KEY="$OPENCLAW_GOOGLE_API_KEY")
 fi
 
+# LITELLM_API_KEY (LiteLLM proxy)
+# See https://docs.openclaw.ai/providers/litellm
+if [[ ! -z "$OPENCLAW_LITELLM_API_KEY" ]]; then
+  OPENCLAW_ENV+=(-e LITELLM_API_KEY="$OPENCLAW_LITELLM_API_KEY")
+fi
+
 # Channel tokens (optional, can also be set in openclaw.json)
 # TELEGRAM_BOT_TOKEN
 if [[ ! -z "$OPENCLAW_TELEGRAM_BOT_TOKEN" ]]; then
@@ -391,6 +412,10 @@ echo "============================================="
 #   podman exec -it openclaw node openclaw.mjs onboard --non-interactive --accept-risk \
 #     --auth-choice openai-api-key --openai-api-key "sk-..."
 #
+# # 非交互式添加 LiteLLM API key
+#   podman exec -it openclaw node openclaw.mjs onboard --non-interactive --accept-risk \
+#     --auth-choice litellm-api-key --litellm-api-key "sk-..."
+#
 # NOTE: 'paste-token' is for OAuth/session tokens only (creates mode:"token" profile).
 #       For API keys, use 'models auth add' interactively, or pass keys via env vars
 #       (OPENCLAW_OPENAI_API_KEY, OPENCLAW_OPENROUTER_API_KEY, etc.) in this script.
@@ -403,11 +428,13 @@ echo "============================================="
 #
 # Set default model:
 #   podman exec -it openclaw node openclaw.mjs models set "zai/glm-5"
+#   podman exec -it openclaw node openclaw.mjs config set agents.defaults.model '{"primary":"zai/glm-5","fallbacks":["openrouter/google/gemini-3.1-pro-preview","litellm/gemini-3.1-pro-preview","litellm/gpt-5.2","litellm/claude-sonnet-4.6","openrouter/openai/gpt-5.2"]}'
 #
 # Scan models from a specific provider:
-#   podman exec -it openclaw node openclaw.mjs models scan --provider openai
 #   podman exec -it openclaw node openclaw.mjs models scan --provider openrouter
 #   podman exec -it openclaw node openclaw.mjs models scan --provider zai
+#   podman exec -it openclaw node openclaw.mjs models scan --provider litellm
+#   podman exec -it openclaw node openclaw.mjs models scan --provider openai
 # # 列出 openrouter 所有可用模型
 #   podman exec -it openclaw node openclaw.mjs models list --all --provider openrouter
 #
@@ -419,3 +446,19 @@ echo "============================================="
 #
 # Remove a misconfigured auth profile:
 #   podman exec -it openclaw node openclaw.mjs config unset auth.profiles.openai:manual
+#
+# ====================================== LiteLLM ======================================
+# LiteLLM is an open-source LLM gateway for unified model routing + cost tracking.
+# See https://docs.openclaw.ai/providers/litellm
+#
+# Env vars for LiteLLM:
+#   OPENCLAW_LITELLM_BASE_URL=http://litellm-host:4000
+#   OPENCLAW_LITELLM_API_KEY=sk-litellm-key
+#
+# 同步 LiteLLM 模型列表到 OpenClaw（查询 /model/info 或 /v1/models，需要 jq）:
+#   OPENCLAW_LITELLM_BASE_URL=http://litellm-host:4000 \
+#     OPENCLAW_LITELLM_API_KEY=sk-litellm-key \
+#     bash update-litellm-models.sh
+#
+# After deploy, set default model to a LiteLLM-routed model:
+#   podman exec -it openclaw node openclaw.mjs models set "litellm/claude-opus-4-6"
