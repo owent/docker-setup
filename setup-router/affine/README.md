@@ -73,23 +73,7 @@ AFFiNE.use('copilot', {
 
 Hint: `podman exec -it postgresql psql -U affinedb`
 
-+ 查看功能ID和限制: `select id, feature, configs from features;`
-  
->```bash
->---
->| id  | feature                | version | type | configs                                                                                                                                                        | created_at                   | updated_at                   |
->| --- | ---------------------- | ------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | ---------------------------- |
->| 1   | "free_plan_v1"         | 4       | 1    | "{""name"":""Pro"",""blobLimit"":104857600,""storageQuota"":107374182400,""historyPeriod"":2592000000,""memberLimit"":10,""copilotActionLimit"":10}"           | "2025-04-04 00:32:44.872+08" | "2025-04-06 00:23:20.525+08" |
->| 2   | "pro_plan_v1"          | 2       | 1    | "{""name"":""Pro"",""blobLimit"":104857600,""storageQuota"":107374182400,""historyPeriod"":2592000000,""memberLimit"":10,""copilotActionLimit"":10}"           | "2025-04-04 00:32:44.876+08" | "2025-04-06 00:23:20.531+08" |
->| 3   | "lifetime_pro_plan_v1" | 1       | 1    | "{""name"":""Lifetime Pro"",""blobLimit"":104857600,""storageQuota"":1099511627776,""historyPeriod"":2592000000,""memberLimit"":10,""copilotActionLimit"":10}" | "2025-04-04 00:32:44.878+08" | "2025-04-06 00:23:20.536+08" |
->| 4   | "team_plan_v1"         | 1       | 1    | "{""name"":""Team Workspace"",""blobLimit"":524288000,""storageQuota"":107374182400,""historyPeriod"":2592000000,""memberLimit"":1,""seatQuota"":21474836480}" | "2025-04-04 00:32:44.882+08" | "2025-04-06 00:23:20.541+08" |
->| 5   | "early_access"         | 2       | 0    | "{""whitelist"":[]}"                                                                                                                                           | "2025-04-04 00:32:44.886+08" | "2025-04-06 00:23:20.546+08" |
->| 6   | "unlimited_workspace"  | 1       | 0    | "{}"                                                                                                                                                           | "2025-04-04 00:32:44.888+08" | "2025-04-06 00:23:20.549+08" |
->| 7   | "unlimited_copilot"    | 1       | 0    | "{}"                                                                                                                                                           | "2025-04-04 00:32:44.893+08" | "2025-04-06 00:23:20.553+08" |
->| 8   | "ai_early_access"      | 1       | 0    | "{}"                                                                                                                                                           | "2025-04-04 00:32:44.895+08" | "2025-04-06 00:23:20.556+08" |
->| 9   | "administrator"        | 1       | 0    | "{}"                                                                                                                                                           | "2025-04-04 00:32:44.897+08" | "2025-04-06 00:23:20.559+08" |
->(16 rows)
->```
++ ~~查看功能ID和限制: `select id, feature, configs from features;`~~（新版配额已硬编码在程序中，修改该表无效）
 
 + 查看用户ID和当前权限: `select * from user_features;`
 
@@ -104,14 +88,20 @@ Hint: `podman exec -it postgresql psql -U affinedb`
 > | 6    | "3b0dba9a-0513-4935-8de1-70620ca65af7" | 9            | "admin panel"    | "2025-04-04 00:59:50.012+08" | [null]       | true         | "administrator"     | 0      |
 >```
 
-+ 插入权限Flag:
-  > + reason这个项可以随便写，记录权限描述的项
-  > + 依次插入3,6,7
-  >  + `insert into user_features (id,user_id,feature_id,reason,activated,name,type) values (7,'d5bdf98f-af29-4ccd-bd55-d643e803891f',3,'sql','t', 'lifetime_pro_plan_v1', 1);`
-  >  + `insert into user_features (id,user_id,feature_id,reason,activated,name,type) values (8,'d5bdf98f-af29-4ccd-bd55-d643e803891f',6,'sql','t', 'unlimited_workspace', 0);`
-  >  + `insert into user_features (id,user_id,feature_id,reason,activated,name,type) values (9,'d5bdf98f-af29-4ccd-bd55-d643e803891f',7,'sql','t', 'unlimited_copilot', 0);`
-  > + 删除free_plan_v1
-  >  + `delete from user_features where id = 1;`
-+ 修改成员数: `update features set configs = '{"name":"Lifetime Pro","blobLimit":104857600,"storageQuota":1099511627776,"historyPeriod":2592000000,"memberLimit":1000,"copilotActionLimit":10}' where id = 16;`
-  + 如果无效，直接改Pro的授权限制
-  + 每次更新会被重置，需要重新设置一下
++ 插入权限Flag（**新版SQL，无需 feature_id，触发器自动填充**）:
+  > + reason 可以随便写，记录变更描述
+  > + `type=1` 为配额类权限(quota)，`type=0` 为普通feature
+  > + 切换到 lifetime_pro_plan_v1（先停用旧配额再添加新配额）：
+  >  + `UPDATE user_features SET activated = false WHERE user_id = 'd5bdf98f-af29-4ccd-bd55-d643e803891f' AND type = 1 AND activated = true;`
+  >  + `INSERT INTO user_features (user_id, name, type, activated, reason) VALUES ('d5bdf98f-af29-4ccd-bd55-d643e803891f', 'lifetime_pro_plan_v1', 1, true, 'sql');`
+  > + 开启无限 Copilot AI：
+  >  + `INSERT INTO user_features (user_id, name, type, activated, reason) VALUES ('d5bdf98f-af29-4ccd-bd55-d643e803891f', 'unlimited_copilot', 0, true, 'sql');`
+  > + 开启 unlimited_workspace（跳过存储配额检查）：
+  >  + `INSERT INTO user_features (user_id, name, type, activated, reason) VALUES ('d5bdf98f-af29-4ccd-bd55-d643e803891f', 'unlimited_workspace', 0, true, 'sql');`
+
+> **注意（新版变更 2025-12）**：
+> - `features` 表仍存在供向后兼容，但配额配置（blobLimit/storageQuota/memberLimit等）已**硬编码在应用程序源码**中
+> - ~~修改 `features.configs`~~ **不再有效**，新版代码不再从数据库读取配额配置
+> - 配额计划定义见：<https://github.com/toeverything/affine/blob/main/packages/backend/server/src/models/common/feature.ts>
+> - Self-hosted 实例中 `free_plan_v1` 被当作 Pro 处理（100GB存储，10成员）
+> - 工作区超过10席位需要 Team License，无法通过SQL绕过
