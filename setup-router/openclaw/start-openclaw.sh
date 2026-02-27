@@ -328,6 +328,12 @@ if [[ $? -ne 0 ]]; then
 fi
 
 podman generate systemd openclaw | tee -p "$SYSTEMD_SERVICE_DIR/openclaw.service"
+# OpenClaw does "full process restart" on config changes (e.g. models auth paste-token),
+# which exits PID 1 and stops the container. Restart=always ensures systemd brings it back.
+sed -i 's/^Restart=.*$/Restart=always/' "$SYSTEMD_SERVICE_DIR/openclaw.service"
+if ! grep -q '^RestartSec=' "$SYSTEMD_SERVICE_DIR/openclaw.service"; then
+  sed -i '/^Restart=always$/a RestartSec=3' "$SYSTEMD_SERVICE_DIR/openclaw.service"
+fi
 podman container stop openclaw
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
@@ -355,9 +361,12 @@ echo "============================================="
 # Logs:   journalctl [--user] -u openclaw.service -f
 #
 # Control UI: http://127.0.0.1:18789/
-# Dashboard:  openclaw dashboard (or podman exec openclaw node openclaw.mjs dashboard)
-# Onboard:    podman exec -it openclaw node openclaw.mjs onboard
-# Doctor:     podman exec openclaw node openclaw.mjs doctor
+# CLI inside container (use 'node openclaw.mjs' instead of 'openclaw'):
+#   podman exec -it openclaw node openclaw.mjs onboard
+#   podman exec openclaw node openclaw.mjs doctor
+#   podman exec openclaw node openclaw.mjs security audit
+#   podman exec openclaw node openclaw.mjs dashboard
+#   podman exec openclaw node openclaw.mjs dashboard --no-open
 #
 # ====================================== Reverse Proxy (Caddy) ====================
 # See openclaw.Caddyfile.location for Caddy reverse proxy configuration.
@@ -370,3 +379,43 @@ echo "============================================="
 # The gateway will bind to loopback and trust proxy headers from OPENCLAW_TRUSTED_PROXIES.
 # Caddy handles TLS termination, HSTS, and WebSocket upgrade.
 # See https://docs.openclaw.ai/gateway/security/index#reverse-proxy-configuration
+#
+# ====================================== Model Auth ======================================
+# Interactive auth wizard (prompts for provider + credentials, creates api_key profile):
+#   podman exec -it openclaw node openclaw.mjs models auth add
+# # 非交互式添加 OpenRouter API key
+#   podman exec -it openclaw node openclaw.mjs onboard --non-interactive --accept-risk \
+#     --auth-choice openrouter-api-key --openrouter-api-key "sk-or-v1-..."
+# 
+# # 非交互式添加 OpenAI API key
+#   podman exec -it openclaw node openclaw.mjs onboard --non-interactive --accept-risk \
+#     --auth-choice openai-api-key --openai-api-key "sk-..."
+#
+# NOTE: 'paste-token' is for OAuth/session tokens only (creates mode:"token" profile).
+#       For API keys, use 'models auth add' interactively, or pass keys via env vars
+#       (OPENCLAW_OPENAI_API_KEY, OPENCLAW_OPENROUTER_API_KEY, etc.) in this script.
+#
+# Paste OAuth token for a specific provider (NOT for API keys):
+#   podman exec -it openclaw node openclaw.mjs models auth paste-token --provider anthropic
+#
+# Setup token (OAuth flow, default anthropic):
+#   podman exec -it openclaw node openclaw.mjs models auth setup-token --provider anthropic
+#
+# Set default model:
+#   podman exec -it openclaw node openclaw.mjs models set "zai/glm-5"
+#
+# Scan models from a specific provider:
+#   podman exec -it openclaw node openclaw.mjs models scan --provider openai
+#   podman exec -it openclaw node openclaw.mjs models scan --provider openrouter
+#   podman exec -it openclaw node openclaw.mjs models scan --provider zai
+# # 列出 openrouter 所有可用模型
+#   podman exec -it openclaw node openclaw.mjs models list --all --provider openrouter
+#
+# # 直接设置你想用的模型（不需要 scan）
+#   podman exec -it openclaw node openclaw.mjs models set "openrouter/anthropic/claude-sonnet-4"
+#
+# Check model/auth status:
+#   podman exec -it openclaw node openclaw.mjs models status
+#
+# Remove a misconfigured auth profile:
+#   podman exec -it openclaw node openclaw.mjs config unset auth.profiles.openai:manual
