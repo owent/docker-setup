@@ -13,6 +13,7 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
 OPENCLAW_IMAGE_URL="${OPENCLAW_IMAGE_URL:-ghcr.io/openclaw/openclaw:latest}"
 
+# 注意: dangerouslyDisableDeviceAuth: true 会导致pairing认证被禁用，要同时支持WebChat和其他IM只能把dmPolicy设置成open或allowlist+allowFrom
 # OPENCLAW_NETWORK=(internal-frontend)
 # OPENCLAW_ALLOWED_ORIGINS=https://your-allowed-origin.com,https://another-allowed-origin.com
 # OPENCLAW_TRUSTED_PROXIES=127.0.0.1,10.0.0.0/8  # comma-separated, enables reverse proxy mode (loopback bind)
@@ -40,6 +41,12 @@ if [[ -z "$OPENCLAW_ETC_DIR" ]]; then
   OPENCLAW_ETC_DIR="$HOME/openclaw/etc"
 fi
 
+# Extensions (Plugins) directory
+# Maps to ~/.openclaw/extensions inside container
+if [[ -z "$OPENCLAW_EXTENSIONS_DIR" ]]; then
+  OPENCLAW_EXTENSIONS_DIR="$OPENCLAW_ETC_DIR/extensions"
+fi
+
 # Workspace (agent workspace data)
 # Maps to ~/.openclaw/workspace inside container
 if [[ -z "$OPENCLAW_DATA_DIR" ]]; then
@@ -50,6 +57,7 @@ mkdir -p "$OPENCLAW_ETC_DIR"
 mkdir -p "$OPENCLAW_ETC_DIR/canvas"
 mkdir -p "$OPENCLAW_ETC_DIR/cron"
 mkdir -p "$OPENCLAW_ETC_DIR/devices"
+mkdir -p "$OPENCLAW_EXTENSIONS_DIR"
 mkdir -p "$OPENCLAW_DATA_DIR/default"
 
 # Create minimal config if not present so gateway can start without the wizard
@@ -352,11 +360,14 @@ if [[ ! -z "$OPENCLAW_LOG_LEVEL" ]]; then
 fi
 
 # Container volume mounts:
-#   etc dir  → /openclaw/etc   (state: config, credentials, sessions, .env)
-#   data dir → /openclaw/data  (agent workspace, set via agents.defaults.workspace)
+#   etc dir          → /openclaw/etc             (state: config, credentials, sessions, .env)
+#   extensions dir   → /openclaw/etc/extensions  (plugins and extensions)
+#   data dir         → /openclaw/data            (agent workspace, set via agents.defaults.workspace)
 OPENCLAW_OPTIONS=(
   --mount type=bind,source=$OPENCLAW_ETC_DIR,target=/openclaw/etc
+  --mount type=bind,source=$OPENCLAW_EXTENSIONS_DIR,target=/openclaw/etc/extensions
   --mount type=bind,source=$OPENCLAW_DATA_DIR,target=/openclaw/data
+  --mount type=bind,source=/etc/ssl/certs/,target=/etc/ssl/certs/,ro
 )
 
 OPENCLAW_HAS_HOST_NETWORK=0
@@ -387,6 +398,9 @@ if [[ $? -ne 0 ]]; then
   exit 1
 fi
 
+# podman cp /usr/local/share/ca-certificates/* openclaw:/usr/local/share/ca-certificates/
+# podman exec openclaw update-ca-certificates
+
 podman generate systemd openclaw | tee -p "$SYSTEMD_SERVICE_DIR/openclaw.service"
 # OpenClaw does "full process restart" on config changes (e.g. models auth paste-token),
 # which exits PID 1 and stops the container. Restart=always ensures systemd brings it back.
@@ -410,6 +424,7 @@ echo "============================================="
 echo "OpenClaw gateway started on port $OPENCLAW_PORT"
 echo "Control UI: http://127.0.0.1:$OPENCLAW_PORT/"
 echo "Config dir: $OPENCLAW_ETC_DIR"
+echo "Extensions: $OPENCLAW_EXTENSIONS_DIR"
 echo "Workspace:  $OPENCLAW_DATA_DIR"
 echo "============================================="
 
@@ -426,6 +441,16 @@ echo "============================================="
 #   podman exec openclaw node openclaw.mjs security audit
 #   podman exec openclaw node openclaw.mjs dashboard
 #   podman exec openclaw node openclaw.mjs dashboard --no-open
+#
+# ====================================== Plugins (Extensions) ==============================
+# Manage plugins loaded in-process (e.g., Voice Call, external tools/handlers):
+#   podman exec -it openclaw node openclaw.mjs plugins list
+#   podman exec -it openclaw node openclaw.mjs plugins install @openclaw/voice-call
+#   podman exec -it openclaw node openclaw.mjs plugins uninstall <id>
+#   podman exec -it openclaw node openclaw.mjs plugins enable <id>
+#   podman exec -it openclaw node openclaw.mjs plugins update --all
+# Note: npm specs are registry-only. Dependency installs run with --ignore-scripts.
+# Configs for plugins go into openclaw.json under plugins.entries.<id>.config.
 #
 # ====================================== Reverse Proxy (Caddy) ====================
 # See openclaw.Caddyfile.location for Caddy reverse proxy configuration.
