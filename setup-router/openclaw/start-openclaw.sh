@@ -5,6 +5,7 @@
 # https://docs.openclaw.ai/install/podman
 # https://docs.openclaw.ai/help/environment
 # https://docs.openclaw.ai/gateway/security/index#reverse-proxy-configuration
+# 特殊指令: https://docs.openclaw.ai/tools/slash-commands#command-list
 
 # podman exec -it openclaw node openclaw.mjs agents add owent-dev
 # podman exec -it openclaw node openclaw.mjs agents --help
