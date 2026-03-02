@@ -14,13 +14,18 @@ fi
 echo "" > sync-to-replications.log
 REPLICATION_NODES=(
   "USER@HOST:PORT"
+  "USER@HOST:PORT:SSL_KEY_PATH"
 );
 
 for NODE_ADDR in ${REPLICATION_NODES[@]}; do
-    NODE_USER=${NODE_ADDR//@*};
-    NODE_HOST_PORT=${NODE_ADDR/*@};
-    NODE_HOST=${NODE_HOST_PORT//:*};
-    NODE_PORT=${NODE_ADDR/*:};
+    NODE_USER="${NODE_ADDR%%@*}"
+    NODE_REMAINDER="${NODE_ADDR#*@}"
+    IFS=':' read -r NODE_HOST NODE_PORT NODE_KEY <<< "$NODE_REMAINDER"
+
+    LOCAL_DEPLOY_KEY="$REMOTE_DEPLOY_KEY"
+    if [[ -n "$NODE_KEY" ]]; then
+        LOCAL_DEPLOY_KEY="$NODE_KEY"
+    fi
 
     echo "============ Upload SSL files to $NODE_USER@$NODE_HOST:$NODE_PORT ... " 
 
@@ -29,32 +34,36 @@ for NODE_ADDR in ${REPLICATION_NODES[@]}; do
             continue
         fi
         REMOTE_DEPLOY_SSL_PATH=$INSTALL_CERT_DIR
-        ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i $REMOTE_DEPLOY_KEY "$NODE_USER@$NODE_HOST" "mkdir -p $REMOTE_DEPLOY_SSL_PATH" 
+        ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$LOCAL_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "mkdir -p $REMOTE_DEPLOY_SSL_PATH" 
         scp -P $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i \
-          "$REMOTE_DEPLOY_KEY" "$INSTALL_CERT_DIR/$DOMAIN_NAME.cer"                                         \
+          "$LOCAL_DEPLOY_KEY" "$INSTALL_CERT_DIR/$DOMAIN_NAME.cer"                                         \
           "$INSTALL_CERT_DIR/$DOMAIN_NAME.key" "$INSTALL_CERT_DIR/fullchain.cer"                            \
           "$NODE_USER@$NODE_HOST:$REMOTE_DEPLOY_SSL_PATH"
-        ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$REMOTE_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "cd $REMOTE_DEPLOY_SSL_PATH && chmod 640 *"
+        ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$LOCAL_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "cd $REMOTE_DEPLOY_SSL_PATH && chmod 640 *"
     done
 done
 
 # Update remote services
 for NODE_ADDR in ${REPLICATION_NODES[@]}; do
-    NODE_USER=${NODE_ADDR//@*};
-    NODE_HOST_PORT=${NODE_ADDR/*@};
-    NODE_HOST=${NODE_HOST_PORT//:*};
-    NODE_PORT=${NODE_ADDR/*:};
+    NODE_USER="${NODE_ADDR%%@*}"
+    NODE_REMAINDER="${NODE_ADDR#*@}"
+    IFS=':' read -r NODE_HOST NODE_PORT NODE_KEY <<< "$NODE_REMAINDER"
+
+    LOCAL_DEPLOY_KEY="$REMOTE_DEPLOY_KEY"
+    if [[ -n "$NODE_KEY" ]]; then
+        LOCAL_DEPLOY_KEY="$NODE_KEY"
+    fi
 
     echo "============ Update $NODE_USER@$NODE_HOST:$NODE_PORT ... " 
 
-    ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i $REMOTE_DEPLOY_KEY $NODE_USER@$NODE_HOST "mkdir -p /data/vbox-server" 
+    ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$LOCAL_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "mkdir -p /data/vbox-server" 
 
     scp -r -P $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i \
-      "$REMOTE_DEPLOY_KEY" /data/vbox-server/etc /data/vbox-server/*.sh "$NODE_USER@$NODE_HOST:/data/vbox-server/"
+      "$LOCAL_DEPLOY_KEY" /data/vbox-server/etc /data/vbox-server/*.sh "$NODE_USER@$NODE_HOST:/data/vbox-server/"
 
     if [[ "x$1" == "xupdate-v2ray" ]] || [[ "x$1" == "xupdate-vproxy" ]] || [[ "x$1" == "xupdate-vbox" ]]; then
-        ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$REMOTE_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "env VBOX_UPDATE=1 bash /data/vbox-server/setup-server.sh" 
+        ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$LOCAL_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "env VBOX_UPDATE=1 bash /data/vbox-server/setup-server.sh" 
     else
-    ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$REMOTE_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "bash /data/vbox-server/setup-server.sh"
+        ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$LOCAL_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "bash /data/vbox-server/setup-server.sh"
     fi
 done
