@@ -23,10 +23,27 @@ OPENCLAW_IMAGE_URL="${OPENCLAW_IMAGE_URL:-ghcr.io/openclaw/openclaw:latest}"
 # # podman exec -it openclaw node openclaw.mjs config set gateway.auth.mode "password"
 # # podman exec -it openclaw node openclaw.mjs config set gateway.auth.password "your-strong-password"
 
-if [[ "x$OPENCLAW_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+podman image inspect localhost/local_openclaw:latest > /dev/null 2>&1
+if [[ $? -ne 0 ]] || [[ "x$OPENCLAW_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman pull $OPENCLAW_IMAGE_URL
   if [[ $? -ne 0 ]]; then
     echo "Pull $OPENCLAW_IMAGE_URL failed"
+    exit 1
+  fi
+
+  echo "FROM $OPENCLAW_IMAGE_URL
+
+LABEL maintainer \"OWenT <admin@owent.net>\"
+
+USER root
+COPY ./image-install.sh /tmp/image-install.sh
+RUN /bin/bash /tmp/image-install.sh
+USER node
+  " > "$SCRIPT_DIR/openclaw.Dockerfile"
+  podman build -t localhost/local_openclaw:latest -v /etc/ssl/certs:/etc/ssl/certs,ro -f "$SCRIPT_DIR/openclaw.Dockerfile" "$SCRIPT_DIR"
+
+  if [[ $? -ne 0 ]]; then
+    echo "Build localhost/local_openclaw:latest failed"
     exit 1
   fi
 fi
@@ -34,6 +51,10 @@ fi
 # Default gateway port: https://docs.openclaw.ai/gateway/configuration-reference
 if [[ -z "$OPENCLAW_PORT" ]]; then
   OPENCLAW_PORT=18789
+fi
+
+if [[ -z "$OPENCLAW_SHARED_COMPONENT_DIR" ]]; then
+  OPENCLAW_SHARED_COMPONENT_DIR="$HOME/openclaw/shared"
 fi
 
 # State directory (config, credentials, sessions, .env)
@@ -48,6 +69,12 @@ if [[ -z "$OPENCLAW_EXTENSIONS_DIR" ]]; then
   OPENCLAW_EXTENSIONS_DIR="$OPENCLAW_ETC_DIR/extensions"
 fi
 
+# Shared skills directory
+# Maps to ~/.openclaw/skills inside container
+if [[ -z "$OPENCLAW_SKILLS_DIR" ]]; then
+  OPENCLAW_SKILLS_DIR="$OPENCLAW_SHARED_COMPONENT_DIR/skills"
+fi
+
 # Workspace (agent workspace data)
 # Maps to ~/.openclaw/workspace inside container
 if [[ -z "$OPENCLAW_DATA_DIR" ]]; then
@@ -59,6 +86,7 @@ mkdir -p "$OPENCLAW_ETC_DIR/canvas"
 mkdir -p "$OPENCLAW_ETC_DIR/cron"
 mkdir -p "$OPENCLAW_ETC_DIR/devices"
 mkdir -p "$OPENCLAW_EXTENSIONS_DIR"
+mkdir -p "$OPENCLAW_SKILLS_DIR"
 mkdir -p "$OPENCLAW_DATA_DIR/default"
 
 # Create minimal config if not present so gateway can start without the wizard
@@ -200,6 +228,17 @@ ${OPENCLAW_PROVIDER_ENTRIES}
     "mode": "local",
     "port": 18789,
     "bind": "${OPENCLAW_GATEWAY_BIND}"${OPENCLAW_GATEWAY_AUTH_BLOCK}${OPENCLAW_TRUSTED_PROXIES_BLOCK}${OPENCLAW_CONTROL_UI_BLOCK}
+  },
+  "skills": {
+    "load": {
+      "extraDirs": [
+        "/openclaw/skills"
+      ],
+      "watch": true 
+    },
+    "install": {
+      "nodeManager": "bun"
+    }
   },
   "canvasHost": {
     "root": "/openclaw/etc/canvas"
@@ -367,6 +406,7 @@ fi
 OPENCLAW_OPTIONS=(
   --mount type=bind,source=$OPENCLAW_ETC_DIR,target=/openclaw/etc
   --mount type=bind,source=$OPENCLAW_EXTENSIONS_DIR,target=/openclaw/etc/extensions
+  --mount type=bind,source=$OPENCLAW_SKILLS_DIR,target=/openclaw/skills
   --mount type=bind,source=$OPENCLAW_DATA_DIR,target=/openclaw/data
   --mount type=bind,source=/etc/ssl/certs/,target=/etc/ssl/certs/,ro
 )
@@ -391,7 +431,7 @@ fi
 #   inside the container avoids EACCES on /openclaw/etc subdirs (cron, devices, etc).
 podman run -d --name openclaw --security-opt label=disable --user root \
   "${OPENCLAW_ENV[@]}" "${OPENCLAW_OPTIONS[@]}" \
-  $OPENCLAW_IMAGE_URL \
+  localhost/local_openclaw:latest \
   node openclaw.mjs gateway --allow-unconfigured --bind lan --port $OPENCLAW_PORT
 
 if [[ $? -ne 0 ]]; then
@@ -510,6 +550,9 @@ echo "============================================="
 #
 # Remove a misconfigured auth profile:
 #   podman exec -it openclaw node openclaw.mjs config unset auth.profiles.openai:manual
+#
+# 添加 agent
+#   podman exec -it openclaw node openclaw.mjs agents add --agent-dir /openclaw/data/NAME/agent  --workspace /openclaw/data/NAME/workspace NAME
 #
 # ====================================== LiteLLM ======================================
 # LiteLLM is an open-source LLM gateway for unified model routing + cost tracking.

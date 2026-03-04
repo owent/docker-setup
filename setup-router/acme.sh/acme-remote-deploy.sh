@@ -17,6 +17,26 @@ REPLICATION_NODES=(
   "USER@HOST:PORT:SSL_KEY_PATH"
 );
 
+# # Squid certs
+# SQUID_CERT_UPDATE_WEEKNO=-100
+# set -x
+# cd /data/cfssl
+# if [[ -e squid-cert.datetime ]]; then
+#   SQUID_CERT_UPDATE_WEEKNO=$(cat squid-cert.datetime)
+# fi
+# NOW_WEEKNO=$(date +%W)
+# if [[ ${NOW_WEEKNO:0:1} == 0 ]]; then
+#   NOW_WEEKNO=${NOW_WEEKNO:1}
+# fi
+# if [[ $(($SQUID_CERT_UPDATE_WEEKNO-$NOW_WEEKNO)) -gt 2 ]] || [[ $(($NOW_WEEKNO-$SQUID_CERT_UPDATE_WEEKNO)) -gt 2 ]]; then
+#   ./gen_squid.sh
+#   scp -P 36000 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=tools -i \
+#       "$REMOTE_DEPLOY_KEY" squid-cert-key.pem squid-fullchain.pem \
+#       "tools@10.64.5.1:/data/squid/etc/ssl/"
+# fi
+# cd -
+# set +x
+
 for NODE_ADDR in ${REPLICATION_NODES[@]}; do
     NODE_USER="${NODE_ADDR%%@*}"
     NODE_REMAINDER="${NODE_ADDR#*@}"
