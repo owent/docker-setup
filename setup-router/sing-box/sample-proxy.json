@@ -257,8 +257,11 @@
       },
       {
         "port": [
+          67,
+          68,
           123,
-          546
+          546,
+          547
         ],
         "network": [
           "udp"
@@ -273,6 +276,15 @@
         "network": [
           "tcp"
         ],
+        "outbound": "direct"
+      },
+      {
+        "rule_set": [
+          "geoip-cn",
+          "geosite-geolocation-cn",
+          "geosite-codeberg"
+        ],
+        "action": "route",
         "outbound": "direct"
       },
       {
@@ -313,6 +325,108 @@
         "tag": "geoip-cn",
         "format": "binary",
         "path": "/usr/share/vbox/geoip/geoip-cn.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geoip-google",
+        "format": "binary",
+        "path": "/usr/share/vbox/geoip/geoip-google.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geoip-telegram",
+        "format": "binary",
+        "path": "/usr/share/vbox/geoip/geoip-telegram.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-telegram",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-telegram.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-github",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-github.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-codeberg",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-codeberg.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-gfw",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-gfw.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-google",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-google.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-microsoft",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-microsoft.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-microsoft-dev",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-microsoft-dev.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-microsoft-ads",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-microsoft@ads.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-microsoft-cn",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-microsoft@cn.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-azure-cn",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-azure@cn.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-azure",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-azure.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-slack",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-slack.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-docker",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-docker.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-category-ai-!cn",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-category-ai-!cn.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-ai",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-ai.srs"
       },
       {
         "type": "local",
