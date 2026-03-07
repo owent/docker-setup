@@ -29,5 +29,7 @@ echo "deb [signed-by=/usr/share/keyrings/perforce.gpg] https://package.perforce.
 apt update -y || apt update -y || apt update -y
 apt upgrade -y || apt upgrade -y || apt upgrade -y
 
-apt install -y vim curl wget git git-lfs sudo
-apt install -y helix-cli || apt install -y helix-cli || apt install -y helix-cli
+apt install -y vim curl wget git git-lfs sudo jq ripgrep yq ffmpeg ca-certificates
+apt install -y gh
+
+sudo update-ca-certificates

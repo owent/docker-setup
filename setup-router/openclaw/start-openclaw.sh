@@ -36,11 +36,18 @@ if [[ $? -ne 0 ]] || [[ "x$OPENCLAW_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDA
 LABEL maintainer \"OWenT <admin@owent.net>\"
 
 USER root
-COPY ./image-install.sh /tmp/image-install.sh
-RUN /bin/bash /tmp/image-install.sh
-USER node
+COPY ./image-base-install.sh /tmp/image-base-install.sh
+COPY ./image-extra-install.sh /tmp/image-extra-install.sh
+COPY ./bun-install.sh /tmp/bun-install.sh
+RUN /bin/bash /tmp/image-base-install.sh
+RUN /bin/bash /tmp/image-extra-install.sh
+RUN /bin/bash /tmp/bun-install.sh
+
   " > "$SCRIPT_DIR/openclaw.Dockerfile"
-  podman build -t localhost/local_openclaw:latest -v /etc/ssl/certs:/etc/ssl/certs,ro -f "$SCRIPT_DIR/openclaw.Dockerfile" "$SCRIPT_DIR"
+  podman build \
+    -t localhost/local_openclaw:latest \
+    -v /usr/local/share/ca-certificates:/usr/local/share/ca-certificates,ro \
+    -f "$SCRIPT_DIR/openclaw.Dockerfile" "$SCRIPT_DIR"
 
   if [[ $? -ne 0 ]]; then
     echo "Build localhost/local_openclaw:latest failed"
@@ -318,6 +325,7 @@ fi
 
 OPENCLAW_ENV=(
   -e TZ=Asia/Shanghai
+  # -e NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
 )
 
 # Authentication: OPENCLAW_GATEWAY_PASSWORD (optional)
