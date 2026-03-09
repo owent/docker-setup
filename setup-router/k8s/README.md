@@ -143,12 +143,12 @@ Unmanaged=yes
 # 全局
 HTTP_PROXY=http://your-proxy.example.com:8888
 HTTPS_PROXY=http://your-proxy.example.com:8888
-NO_PROXY=0.0.0.0/8,10.0.0.0/8,127.0.0.0/8,169.254.0.0/16,172.16.0.0/12,192.0.0.0/24,192.168.0.0/16,224.0.0.0/4,240.0.0.0/4
+NO_PROXY=localhost,127.0.0.1,::1,host.docker.internal,vbox-proxy,ollama,openwebui,.local,.internal,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7,fe80::/10,fd32:*
 
 # 仅对 containerd 生效
 CONTAINERD_HTTP_PROXY=http://your-proxy.example.com:8888
 CONTAINERD_HTTPS_PROXY=http://your-proxy.example.com:8888
-CONTAINERD_NO_PROXY=0.0.0.0/8,10.0.0.0/8,127.0.0.0/8,169.254.0.0/16,172.16.0.0/12,192.0.0.0/24,192.168.0.0/16,224.0.0.0/4,240.0.0.0/4
+CONTAINERD_NO_PROXY=localhost,127.0.0.1,::1,host.docker.internal,vbox-proxy,ollama,openwebui,.local,.internal,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7,fe80::/10,fd32:*0/4
 ```
 
 #### 服务器启动

@@ -69,7 +69,8 @@ services:
     image: appflowyinc/gotrue:${GOTRUE_VERSION:-latest}
     environment:
       # - HTTPS_PROXY=http://vbox-proxy:3128
-      # - NO_PROXY=localhost,127.0.0.1,vbox-proxy,appflowy-*,.x-ha.com,proxy-caddy,postgresql,redis,llm-*,.qq.com,.tencent.com
+      # - NO_PROXY=localhost,127.0.0.1,::1,host.docker.internal,vbox-proxy,ollama,openwebui,.local,.internal,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7,fe80::/10,fd32:*
+      # - NODE_USE_ENV_PROXY=1
       - GOPROXY=${GOPROXY}
       # There are a lot of options to configure GoTrue. You can reference the example config:
       # https://github.com/supabase/gotrue/blob/master/example.env

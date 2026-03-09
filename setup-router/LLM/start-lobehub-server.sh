@@ -110,6 +110,14 @@ fi
 LLM_LOBEHUB_ENV=(
   -e TZ=Asia/Shanghai
   -e PORT=$LLM_LOBEHUB_PORT
+  # 注意要把数据库、redis的DNS解析走本地
+  # -e PROXY_URL=http://10.0.16.12:3128
+  ## -e ENABLE_PROXY_DNS=1 # 这个会导致本地docker服务名字解析失败，可以走 ALL_PROXY 然后把不需要走代理的地址加入 NO_PROXY
+  # -e ALL_PROXY=http://10.0.16.12:3128
+  # -e HTTPS_PROXY=http://10.0.15.12:3218
+  # -e HTTP_PROXY=http://10.0.15.12:3218
+  # -e NO_PROXY=.imwe.chat,.shkits.com,.x-ha.com,redis,postgresql,postgres,localhost,127.0.0.1,::1,host.docker.internal,vbox-proxy,ollama,openwebui,.local,.internal,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7,fe80::/10,fd32:*
+  # -e NODE_USE_ENV_PROXY=1
 )
 
 LLM_LOBEHUB_TEST_ENV=(

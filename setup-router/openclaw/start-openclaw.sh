@@ -12,7 +12,7 @@
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
-OPENCLAW_IMAGE_URL="${OPENCLAW_IMAGE_URL:-ghcr.io/openclaw/openclaw:latest}"
+OPENCLAW_IMAGE_URL="${OPENCLAW_IMAGE_URL:-ghcr.io/openclaw/openclaw:slim}"
 
 # 注意: dangerouslyDisableDeviceAuth: true 会导致pairing认证被禁用，要同时支持WebChat和其他IM只能把dmPolicy设置成open或allowlist+allowFrom
 # OPENCLAW_NETWORK=(internal-frontend)
@@ -38,10 +38,12 @@ LABEL maintainer \"OWenT <admin@owent.net>\"
 USER root
 COPY ./image-base-install.sh /tmp/image-base-install.sh
 COPY ./image-extra-install.sh /tmp/image-extra-install.sh
-COPY ./bun-install.sh /tmp/bun-install.sh
+COPY ./nodejs-pkg-install.sh /tmp/nodejs-pkg-install.sh
 RUN /bin/bash /tmp/image-base-install.sh
 RUN /bin/bash /tmp/image-extra-install.sh
-RUN /bin/bash /tmp/bun-install.sh
+
+ENV PNPM_HOME=/app/pnpm PATH=/app/pnpm:\${PATH}
+RUN /bin/bash /tmp/nodejs-pkg-install.sh
 
   " > "$SCRIPT_DIR/openclaw.Dockerfile"
   podman build \
