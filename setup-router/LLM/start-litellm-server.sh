@@ -19,6 +19,7 @@ fi
 
 #LLM_LITELLM_NETWORK=(internal-frontend internal-backend)
 if [[ -z "$LLM_LITELLM_WORKER_COUNT" ]]; then
+  # 4个worker大概消耗2.2G内存，2个worker大概消耗1.3G内存，具体数值取决于模型和请求的复杂度
   LLM_LITELLM_WORKER_COUNT=4
 fi
 
@@ -101,6 +102,8 @@ fi
 LLM_LITELLM_ENV=(
   -e TZ=Asia/Shanghai
   -e LITELLM_MODE=PRODUCTION
+  # Litellm有已知的内存泄露问题，重启可以暂时缓解这个问题
+  -e MAX_REQUESTS_BEFORE_RESTART=500
   -e LITELLM_MASTER_KEY=$LLM_LITELLM_LITELLM_MASTER_KEY
   -e UI_USERNAME=owent
   -e UI_PASSWORD=$LLM_LITELLM_UI_PASSWORD

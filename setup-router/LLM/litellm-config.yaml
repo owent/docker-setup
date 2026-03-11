@@ -163,3 +163,7 @@ general_settings:
   proxy_batch_write_at: 60
   # proxy_budget_rescheduler_min_time: 60
   # proxy_budget_rescheduler_max_time: 64
+  # 限制最大并发请求(2G内存推荐值)
+  # max_parallel_requests: 50
+  global_max_parallel_requests: 50
+  database_connection_pool_limit: 5
