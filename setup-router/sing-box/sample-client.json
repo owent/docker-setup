@@ -270,12 +270,34 @@
       // ],
     },
     {
-      // DNS 监听，用于本地解析
       "type": "direct",
-      "tag": "in-dns",
+      "tag": "in-dns-auto",
+    
       "listen": "127.0.0.1",
-      "listen_port": 2053,
-      "network": "udp"
+      "listen_port": 1150,
+      "network": "udp",
+      "override_address": "8.8.8.8",
+      "override_port": 53
+    },
+    {
+      "type": "direct",
+      "tag": "in-dns-fast",
+    
+      "listen": "127.0.0.1",
+      "listen_port": 1151,
+      "network": "udp",
+      "override_address": "8.8.8.8",
+      "override_port": 53
+    },
+    {
+      "type": "direct",
+      "tag": "in-dns-ai",
+    
+      "listen": "127.0.0.1",
+      "listen_port": 1152,
+      "network": "udp",
+      "override_address": "8.8.8.8",
+      "override_port": 53
     }
   ],
   "outbounds": [
@@ -595,7 +617,17 @@
   "route": {
     "rules": [
       {
-        // "inbound": ["in-tun", "in-trojan", "in-dns", "in-http", "in-socks"],
+        "inbound": ["in-dns-fast"],
+        "action": "route",
+        "outbound": "out-fast"
+      },
+      {
+        "inbound": ["in-dns-ai"],
+        "action": "route",
+        "outbound": "out-ai"
+      },
+      {
+        // "inbound": ["in-tun", "in-trojan", "in-dns", "in-http", "in-socks", "in-dns-auto"],
         "action": "sniff",
         // 不sniff SSH协议，似乎会导致DNS解析不稳定
         "sniffer": ["http", "tls", "quic", "stun", "dns", "bittorrent", "dtls", "rdp", "ntp"],

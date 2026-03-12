@@ -55,8 +55,8 @@ function vbox_setup_patch_configures_without_auto_redirect() {
     mv -f "$VBOX_DATA_DIR/geoip-cn.json" "$VBOX_DATA_DIR/geoip-cn.json.bak"
   fi
 
-  $DOCKER_EXEC exec -it vbox-client vbox geoip export cn -f /usr/share/vbox/geoip.db -o /usr/share/vbox/geoip-cn.json
-  $DOCKER_EXEC cp vbox-client:/usr/share/vbox/geoip-cn.json "$VBOX_DATA_DIR/geoip-cn.json" || mv -f "$VBOX_DATA_DIR/geoip-cn.json.bak" "$VBOX_DATA_DIR/geoip-cn.json"
+  $DOCKER_EXEC exec -it vbox-client vbox rule-set decompile /usr/share/vbox/geoip/geoip-cn.srs -o /usr/share/vbox/geoip/geoip-cn.srs.json
+  $DOCKER_EXEC cp vbox-client:/usr/share/vbox/geoip/geoip-cn.srs.json "$VBOX_DATA_DIR/geoip-cn.json" || mv -f "$VBOX_DATA_DIR/geoip-cn.json.bak" "$VBOX_DATA_DIR/geoip-cn.json"
 
   # tun排除规则性能非常差，尽量还是走 ip-nft 模式自己来吧
   GEOIP_CN_ADDRESS=($(jq '.rules[].ip_cidr[]' -r "$VBOX_DATA_DIR/geoip-cn.json"))

@@ -118,8 +118,8 @@ function vbox_patch_configure() {
     mv -f "$VBOX_DATA_DIR/geoip-cn.json" "$VBOX_DATA_DIR/geoip-cn.json.bak"
   fi
 
-  $DOCKER_EXEC exec -it vbox-client vbox geoip export cn -f /usr/share/vbox/geoip.db -o /usr/share/vbox/geoip-cn.json
-  $DOCKER_EXEC cp vbox-client:/usr/share/vbox/geoip-cn.json "$VBOX_DATA_DIR/geoip-cn.json" || mv -f "$VBOX_DATA_DIR/geoip-cn.json.bak" "$VBOX_DATA_DIR/geoip-cn.json"
+  $DOCKER_EXEC exec -it vbox-client vbox rule-set decompile /usr/share/vbox/geoip/geoip-cn.srs -o /usr/share/vbox/geoip/geoip-cn.srs.json
+  $DOCKER_EXEC cp vbox-client:/usr/share/vbox/geoip/geoip-cn.srs.json "$VBOX_DATA_DIR/geoip-cn.json" || mv -f "$VBOX_DATA_DIR/geoip-cn.json.bak" "$VBOX_DATA_DIR/geoip-cn.json"
 
   # 这里为了保持和 setup-client-pod-ip-rules 同行为
   PATCH_CONF_FILES=($(find "$VBOX_ETC_DIR" -maxdepth 1 -name "*.json.template"))

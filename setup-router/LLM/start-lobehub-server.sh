@@ -70,7 +70,7 @@ if [[ -z "$LLM_LOBEHUB_PORT" ]]; then
 fi
 
 # https://github.com/lobehub/lobe-chat/discussions/913
-# LLM_LOBEHUB_DEFAULT_AGENT_CONFIG="model=gpt-3.5-turbo;params.max_tokens=16384;plugins=lobe-image-designer,lobe-artifacts,lobe-web-browsing,bilibili,realtime-weather,steam"
+# LLM_LOBEHUB_DEFAULT_AGENT_CONFIG="model=gpt-3.5-turbo;params.max_tokens=16384;plugins=lobe-artifacts,lobe-gtd"
 
 # ====================================== start deploy ======================================
 if [[ "root" == "$(id -un)" ]]; then
