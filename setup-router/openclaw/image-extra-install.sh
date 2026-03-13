@@ -3,6 +3,7 @@
 export DEBIAN_FRONTEND=noninteractive
 
 # apt install -y subversion
+# apt install -y ldap-utils libldap-common
 
 # p4
 mkdir -p /usr/share/keyrings
