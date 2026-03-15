@@ -1,5 +1,21 @@
 #!/bin/bash
 
+# 设置限制内存使用
+# (查看当前上限)
+cat /sys/module/zfs/parameters/zfs_arc_max
+# (查看当前状态)
+cat /proc/spl/kstat/zfs/arcstats | egrep '^(hits|misses|size|c_max|c_min)'
+
+# 设置为 4GB，建议值如下
+## 8GB 内存机器：2G ~ 4G
+## 16GB 内存机器：4G ~ 8G
+## 如果机器还跑数据库、虚拟机、容器：建议给 ZFS 留少一点
+## 随机读多：更依赖 ARC, 如果 arcstats 的 misses 过多，iostat -x 1 的 await 过高，可以考虑增加 ARC 大小
+# echo "options zfs zfs_arc_max=4294967296" | sudo tee /etc/modprobe.d/zfs-arc.conf
+echo "options zfs zfs_arc_min=1073741824 zfs_arc_max=4294967296" | sudo tee /etc/modprobe.d/zfs-arc.conf
+# 更新 initramfs
+sudo update-initramfs -u -k all && sudo reboot
+
 # 安装模块
 sudo apt install -y zfsutils-linux zfs-dkms zfs-zed
 
