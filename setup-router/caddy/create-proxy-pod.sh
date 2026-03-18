@@ -40,9 +40,13 @@ mkdir -p "$CADDY_DATA_DIR"
 
 if [[ "root" == "$(id -un)" ]]; then
   SYSTEMD_SERVICE_DIR=/lib/systemd/system
+  SYSTEMD_CONTAINER_DIR=/etc/containers/systemd/
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
 else
   SYSTEMD_SERVICE_DIR="$HOME/.config/systemd/user"
+  SYSTEMD_CONTAINER_DIR="$HOME/.config/containers/systemd"
   mkdir -p "$SYSTEMD_SERVICE_DIR"
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
 fi
 
 podman container inspect proxy-caddy >/dev/null 2>&1
@@ -116,7 +120,15 @@ podman run -d --name proxy-caddy --security-opt label=disable \
   ${PODMAN_COMMON_OPTIONS[@]} "${CADDY_OPTIONS[@]}" \
   $CADDY_IMAGE_URL
 
-podman generate systemd proxy-caddy | tee -p "$SYSTEMD_SERVICE_DIR/proxy-caddy.service"
+which podlet >/dev/null 2>&1
+FIND_PODLET_RESULT=$?
+
+if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
+  podlet --install --wanted-by default.target --wants network-online.target --after network-online.target \
+    generate container | tee -p "$SYSTEMD_CONTAINER_DIR/proxy-caddy.container"
+else
+  podman generate systemd proxy-caddy | tee -p "$SYSTEMD_SERVICE_DIR/proxy-caddy.service"
+fi
 podman container stop proxy-caddy
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
@@ -124,7 +136,7 @@ if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
   systemctl daemon-reload
   systemctl start proxy-caddy.service
 else
-  systemctl --user enable "$SYSTEMD_SERVICE_DIR/proxy-caddy.service"
+  systemctl --user enable proxy-caddy.service
   systemctl --user daemon-reload
   systemctl --user start proxy-caddy.service
 fi

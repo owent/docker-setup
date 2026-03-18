@@ -26,9 +26,13 @@ fi
 
 if [[ "root" == "$(id -un)" ]]; then
   SYSTEMD_SERVICE_DIR=/lib/systemd/system
+  SYSTEMD_CONTAINER_DIR=/etc/containers/systemd/
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
 else
   SYSTEMD_SERVICE_DIR="$HOME/.config/systemd/user"
+  SYSTEMD_CONTAINER_DIR="$HOME/.config/containers/systemd"
   mkdir -p "$SYSTEMD_SERVICE_DIR"
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
 fi
 
 if [[ $? -eq 0 ]]; then
@@ -120,7 +124,15 @@ podman run -d --name router-caddy --security-opt label=disable \
   ${CADDY_OPTIONS[@]} \
   $CADDY_IMAGE_URL
 
-podman generate systemd router-caddy | tee -p "$SYSTEMD_SERVICE_DIR/router-caddy.service"
+which podlet >/dev/null 2>&1
+FIND_PODLET_RESULT=$?
+
+if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
+  podlet --install --wanted-by default.target --wants network-online.target --after network-online.target \
+    generate container | tee -p "$SYSTEMD_CONTAINER_DIR/router-caddy.container"
+else
+  podman generate systemd router-caddy | tee -p "$SYSTEMD_SERVICE_DIR/router-caddy.service"
+fi
 podman container stop router-caddy
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
@@ -128,7 +140,7 @@ if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
   systemctl daemon-reload
   systemctl start router-caddy.service
 else
-  systemctl --user enable "$SYSTEMD_SERVICE_DIR/router-caddy.service"
+  systemctl --user enable router-caddy.service
   systemctl --user daemon-reload
   systemctl --user start router-caddy.service
 fi
