@@ -17,7 +17,11 @@ echo "options zfs zfs_arc_min=1073741824 zfs_arc_max=4294967296" | sudo tee /etc
 sudo update-initramfs -u -k all && sudo reboot
 
 # 安装模块
-sudo apt install -y zfsutils-linux zfs-dkms zfs-zed
+sudo apt install -y zfsutils-linux zfs-dkms zfs-zed nvme-cli smartmontools
+
+# 给内核加供电管理参数，关掉省电 Debian通常是 /etc/default/grub
+# GRUB_CMDLINE_LINUX_DEFAULT加 nvme_core.default_ps_max_latency_us=0 pcie_aspm=off pcie_port_pm=off
+# 然后 sudo update-grub && sudo reboot
 
 # 找到要用的硬盘（by-id）后
 sudo zpool create -f \
@@ -61,3 +65,42 @@ sudo systemctl enable --now zfs-scrub-monthly@zfs-d1.timer
 sudo zpool scrub zfs-d1
 ## 查看进度
 zpool status
+
+## 巡检发送邮件通知
+### 安装模块
+sudo apt install -y zfsutils-linux zfs-zed mailutils msmtp msmtp-mta
+### 启动服务
+sudo systemctl enable --now zfs-zed
+### 配置邮件发送 /etc/zfs/zed.d/zed.rc
+# ZED_EMAIL_ADDR="ops@example.com"
+# ZED_EMAIL_PROG="mail"
+# ZED_EMAIL_OPTS="-s '@SUBJECT@' @ADDRESS@"
+# ZED_NOTIFY_VERBOSE=1
+### 配置 SMTP 转发 （/etc/msmtprc），注意: account 得是 default ,mail/sendmail 调用 msmtp 时，默认找的是 default 账号
+echo "
+defaults
+auth           on
+tls            on
+tls_starttls   on
+tls_trust_file /etc/ssl/certs/ca-certificates.crt
+syslog LOG_MAIL
+
+account default
+host           smtp.exmail.qq.com
+port           465
+auth           on
+tls            on
+tls_starttls   off
+tls_trust_file /etc/ssl/certs/ca-certificates.crt
+
+user           admin@owent.net
+from           admin@owent.net
+password your_smtp_password
+" | sudo tee -a /etc/msmtprc
+sudo chmod 600 /etc/msmtprc
+### 测试发信
+echo "ZFS mail test" | sudo mail -s "test" ops@example.com
+### 检查服务状态
+sudo systemctl status zfs-zed
+### 执行一次巡检（ sudo zpool scrub zfs-d1 ） 可以触发邮件发送
+### 日志 sudo journalctl -xeu zfs-zed / sudo journalctl -xeu msmtp

@@ -80,6 +80,9 @@ p4 -p $P4CLIENT_PORT -u admin configure set auth.ldap.ssllevel=2
 p4 -p $P4CLIENT_PORT -u admin configure set auth.ldap.userautocreate=1
 # 设置认证顺序
 p4 -p $P4CLIENT_PORT -u admin configure set auth.default.method=ldap
+# 还原:
+# - p4 -p $P4CLIENT_PORT -u admin configure unset auth.default.method
+# - p4 -p $P4CLIENT_PORT -u admin configure set auth.default.method=perforce
 p4 -p $P4CLIENT_PORT -u admin configure set auth.ldap.order.1=LDAP_DEFAULT
 # 设置CA
 # p4 configure set auth.ldap.cafile=perforce
@@ -87,6 +90,9 @@ p4 -p $P4CLIENT_PORT -u admin configure set auth.ldap.order.1=LDAP_DEFAULT
 # 自动同步用户和组
 p4 -p $P4CLIENT_PORT -u admin configure set "startup.1=ldapsync -u -c -U -d -i 43200"
 p4 -p $P4CLIENT_PORT -u admin configure set "startup.2=ldapsync -g -i 43200"
+# 关闭(关闭后通过 p4 -p $P4CLIENT_PORT -u admin monitor show 确认进程是否已经退出):
+# - p4 -p $P4CLIENT_PORT -u admin configure unset startup.1
+# - p4 -p $P4CLIENT_PORT -u admin configure unset startup.2
 
 # 手动执行账户和组同步
 p4 -p $P4CLIENT_PORT -u admin ldapsync -u -c -U -d

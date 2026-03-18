@@ -84,6 +84,16 @@ if [[ -z "$OPENCLAW_SKILLS_DIR" ]]; then
   OPENCLAW_SKILLS_DIR="$OPENCLAW_SHARED_COMPONENT_DIR/skills"
 fi
 
+# user home directory
+# Maps to ~/.local/share inside container
+if [[ -z "$OPENCLAW_USER_HOME_LOCAL_SHARE_DIR" ]]; then
+  OPENCLAW_USER_HOME_LOCAL_SHARE_DIR="$OPENCLAW_SHARED_COMPONENT_DIR/home/.local/share"
+fi
+# Maps to ~/.openclaw inside container
+if [[ -z "$OPENCLAW_USER_HOME_OPENCLAW_DIR" ]]; then
+  OPENCLAW_USER_HOME_OPENCLAW_DIR="$OPENCLAW_SHARED_COMPONENT_DIR/home/.openclaw"
+fi
+
 # Workspace (agent workspace data)
 # Maps to ~/.openclaw/workspace inside container
 if [[ -z "$OPENCLAW_DATA_DIR" ]]; then
@@ -96,6 +106,8 @@ mkdir -p "$OPENCLAW_ETC_DIR/cron"
 mkdir -p "$OPENCLAW_ETC_DIR/devices"
 mkdir -p "$OPENCLAW_EXTENSIONS_DIR"
 mkdir -p "$OPENCLAW_SKILLS_DIR"
+mkdir -p "$OPENCLAW_USER_HOME_LOCAL_SHARE_DIR"
+mkdir -p "$OPENCLAW_USER_HOME_OPENCLAW_DIR"
 mkdir -p "$OPENCLAW_DATA_DIR/default"
 
 # Create minimal config if not present so gateway can start without the wizard
@@ -418,6 +430,8 @@ OPENCLAW_OPTIONS=(
   --mount type=bind,source=$OPENCLAW_EXTENSIONS_DIR,target=/openclaw/etc/extensions
   --mount type=bind,source=$OPENCLAW_SKILLS_DIR,target=/openclaw/skills
   --mount type=bind,source=$OPENCLAW_DATA_DIR,target=/openclaw/data
+  --mount type=bind,source=$OPENCLAW_USER_HOME_LOCAL_SHARE_DIR,target=/root/.local/share
+  --mount type=bind,source=$OPENCLAW_USER_HOME_OPENCLAW_DIR,target=/root/.openclaw
   --mount type=bind,source=/etc/ssl/certs/,target=/etc/ssl/certs/,ro
 )
 
