@@ -17,7 +17,11 @@ echo "options zfs zfs_arc_min=1073741824 zfs_arc_max=4294967296" | sudo tee /etc
 sudo update-initramfs -u -k all && sudo reboot
 
 # 安装模块
-sudo apt install -y zfsutils-linux zfs-dkms zfs-zed
+sudo apt install -y zfsutils-linux zfs-dkms zfs-zed nvme-cli smartmontools
+
+# 给内核加供电管理参数，关掉省电 Debian通常是 /etc/default/grub
+# GRUB_CMDLINE_LINUX_DEFAULT加 nvme_core.default_ps_max_latency_us=0 pcie_aspm=off pcie_port_pm=off
+# 然后 sudo update-grub && sudo reboot
 
 # 找到要用的硬盘（by-id）后
 sudo zpool create -f \
