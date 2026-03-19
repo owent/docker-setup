@@ -19,11 +19,11 @@ if [[ "x$RUN_HOME" == "x" ]]; then
 fi
 
 #POSTGRESQL_NETWORK=(internal-backend)
-if [[ "x$POSTGRESQL_UPGRADE_FROM" == "x" ]]; then
-  POSTGRESQL_UPGRADE_FROM="pg17"
+if [[ "x$POSTGRESQL_UPGRADE_IMAGE_FROM" == "x" ]]; then
+  POSTGRESQL_UPGRADE_IMAGE_FROM="paradedb/paradedb:latest-pg17"
 fi
-if [[ "x$POSTGRESQL_UPGRADE_TO" == "x" ]]; then
-  POSTGRESQL_UPGRADE_TO="pg18"
+if [[ "x$POSTGRESQL_UPGRADE_IMAGE_TO" == "x" ]]; then
+  POSTGRESQL_UPGRADE_IMAGE_TO="paradedb/paradedb:latest-pg18"
 fi
 
 if [[ "x$POSTGRESQL_ETC_DIR" == "x" ]]; then
@@ -147,7 +147,7 @@ fi
 
 podman run -d --name postgresql-upgrade-from --security-opt label=disable \
   "${POSTGRES_OPTIONS_OLD[@]}" \
-  docker.io/pgvector/pgvector:$POSTGRESQL_UPGRADE_FROM \
+  $POSTGRESQL_UPGRADE_IMAGE_FROM \
   -c shared_buffers=${POSTGRESQL_SHM_SIZE}MB \
   -c effective_cache_size=${POSTGRESQL_EFFECTIVE_CACHE_SIZE}MB \
   -c work_mem=${POSTGRESQL_WORK_MEM}MB \
@@ -166,7 +166,7 @@ podman run -d --name postgresql-upgrade-from --security-opt label=disable \
 
 podman run -d --name postgresql-upgrade-to --security-opt label=disable \
   "${POSTGRES_OPTIONS_NEW[@]}" \
-  docker.io/pgvector/pgvector:$POSTGRESQL_UPGRADE_TO \
+  $POSTGRESQL_UPGRADE_IMAGE_TO \
   -c shared_buffers=${POSTGRESQL_SHM_SIZE}MB \
   -c effective_cache_size=${POSTGRESQL_EFFECTIVE_CACHE_SIZE}MB \
   -c work_mem=${POSTGRESQL_WORK_MEM}MB \

@@ -8,7 +8,8 @@ podman exec -it postgresql psql -h localhost -d postgres -U postgres/或其他�
   CREATE USER <用户名> WITH PASSWORD '<密码>' CREATEDB;
   CREATE DATABASE <数据库名> TEMPLATE template0 ENCODING 'UTF8';
   # \c gitea;
-  # CREATE EXTENSION vector;
+  # CREATE EXTENSION IF NOT EXISTS vector;
+  # CREATE EXTENSION IF NOT EXISTS pg_search;
   ALTER DATABASE <数据库名> OWNER TO <用户名>;
   GRANT ALL PRIVILEGES ON DATABASE <数据库名> TO <用户名>;
   GRANT ALL PRIVILEGES ON SCHEMA public TO <用户名>;
