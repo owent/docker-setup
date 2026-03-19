@@ -44,7 +44,12 @@ else
   fi
 fi
 
-systemctl --user --all | grep -F container-$P4D_POD_NAME.service
+SYSTEMD_SERVICE_DIR="$HOME/.config/systemd/user"
+SYSTEMD_CONTAINER_DIR="$HOME/.config/containers/systemd"
+mkdir -p "$SYSTEMD_SERVICE_DIR"
+mkdir -p "$SYSTEMD_CONTAINER_DIR"
+
+systemctl --user --all | grep -F container-$P4D_POD_NAME
 
 if [[ $? -eq 0 ]]; then
   systemctl --user stop container-$P4D_POD_NAME
@@ -99,18 +104,31 @@ if [[ ! -z "$P4D_RUN_USER" ]]; then
   P4D_OPTIONS+=("--user=$P4D_RUN_USER")
 fi
 
-podman run -d --name $P4D_POD_NAME --security-opt label=disable \
-  "${P4D_OPTIONS[@]}" \
-  $P4D_IMAGE \
+which podlet >/dev/null 2>&1
+FIND_PODLET_RESULT=$?
 
-if [[ $? -ne 0 ]]; then
-  echo "Error: Unable to start $P4D_POD_NAME container"
-  exit 1
+if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
+  podlet --install --wanted-by default.target --wants network-online.target --after network-online.target \
+    podman run -d --name $P4D_POD_NAME --security-opt label=disable \
+    "${P4D_OPTIONS[@]}" $P4D_IMAGE \
+      | tee -p "$SYSTEMD_CONTAINER_DIR/container-$P4D_POD_NAME.container"
+  
+  systemctl --user daemon-reload
+
+else
+  podman run -d --name $P4D_POD_NAME --security-opt label=disable \
+    "${P4D_OPTIONS[@]}" \
+    $P4D_IMAGE \
+
+  if [[ $? -ne 0 ]]; then
+    echo "Error: Unable to start $P4D_POD_NAME container"
+    exit 1
+  fi
+  podman stop $P4D_POD_NAME
+  podman generate systemd --name $P4D_POD_NAME | tee $SYSTEMD_SERVICE_DIR/container-$P4D_POD_NAME.service
+
+  systemctl --user daemon-reload
+  systemctl --user enable container-$P4D_POD_NAME
 fi
 
-podman stop $P4D_POD_NAME
-
-podman generate systemd --name $P4D_POD_NAME | tee $SCRIPT_DIR/container-$P4D_POD_NAME.service
-
-systemctl --user enable $SCRIPT_DIR/container-$P4D_POD_NAME.service
 systemctl --user restart container-$P4D_POD_NAME

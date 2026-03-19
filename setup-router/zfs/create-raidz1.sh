@@ -11,34 +11,123 @@ cat /proc/spl/kstat/zfs/arcstats | egrep '^(hits|misses|size|c_max|c_min)'
 ## 16GB 内存机器：4G ~ 8G
 ## 如果机器还跑数据库、虚拟机、容器：建议给 ZFS 留少一点
 ## 随机读多：更依赖 ARC, 如果 arcstats 的 misses 过多，iostat -x 1 的 await 过高，可以考虑增加 ARC 大小
+## 如果内存富足，且硬盘是 NVMe SSD，可以适当增加 ARC 大小，提升性能
 # echo "options zfs zfs_arc_max=4294967296" | sudo tee /etc/modprobe.d/zfs-arc.conf
 echo "options zfs zfs_arc_min=1073741824 zfs_arc_max=4294967296" | sudo tee /etc/modprobe.d/zfs-arc.conf
+# echo "options zfs zfs_arc_min=1073741824 zfs_arc_max=8589934592" | sudo tee /etc/modprobe.d/zfs-arc.conf
+
+# 参数调优
+echo "
+options zfs zfs_vdev_async_read_max_active=16
+options zfs zfs_vdev_async_write_max_active=32
+options zfs zfs_vdev_sync_read_max_active=12
+options zfs zfs_vdev_sync_write_max_active=16
+" | sudo tee /etc/modprobe.d/zfs-nvme.conf
+
 # 更新 initramfs
 sudo update-initramfs -u -k all && sudo reboot
 
 # 安装模块
 sudo apt install -y zfsutils-linux zfs-dkms zfs-zed nvme-cli smartmontools
+# 安装优化软中断的服务
+sudo apt install -y irqbalance
+sudo systemctl enable --now irqbalance
 
 # 给内核加供电管理参数，关掉省电 Debian通常是 /etc/default/grub
 # GRUB_CMDLINE_LINUX_DEFAULT加 nvme_core.default_ps_max_latency_us=0 pcie_aspm=off pcie_port_pm=off
 # 然后 sudo update-grub && sudo reboot
 
 # 找到要用的硬盘（by-id）后
+ZFS_POOL_NAME=zfs-d1
+ZFS_MOUNT_POINT=/data/zfs/d1
 sudo zpool create -f \
   -o ashift=12 \
   -o autotrim=on \
   -O compression=lz4 \
+  -O recordsize=512K \
   -O atime=off \
   -O xattr=sa \
   -O acltype=posixacl \
   -O dnodesize=auto \
-  -O mountpoint=/data/zfs/d1 \
-  zfs-d1 raidz1 \
+  -O mountpoint=$ZFS_MOUNT_POINT \
+  $ZFS_POOL_NAME raidz1 \
 /dev/disk/by-id/nvme-ZHITAI_TiPlus7100_4TB_ZTA54T0AB2525235P9 \
 /dev/disk/by-id/nvme-ZHITAI_TiPlus7100_4TB_ZTA54T0AB252650AM2 \
 /dev/disk/by-id/nvme-ZHITAI_TiPlus7100_4TB_ZTA54T0AB25323010N \
 /dev/disk/by-id/nvme-ZHITAI_TiPlus7100_4TB_ZTA54T0AB2532307K0
 
+# 也可以后面用 zfs set OPTION PoolName 来设置
+# 测试速度 dd if=p4d.tar.zst of=p4d.tar.zst.dd bs=8M status=progress
+
+## recordsize 推荐基线
+##  | 场景	                             | 建议 recordsize             |
+##  |------------------------------------|-----------------------------|
+##  | 通用 NAS / 家用混合存储	           | 128K                        |
+##  | 大文件顺序（视频、备份、镜像仓库） | 256K / 1M                   |
+##  | 数据库（MySQL/InnoDB 常见）	       | 16K                         |
+##  | VM 镜像	                           | 16K / 64K                   |
+##  | 大量小文件	                       | 16K / 32K / 64K，视访问模式 |
+# 创建适合不同场景的数据集
+# 1. 大文件
+sudo zfs create \
+  -o mountpoint=$ZFS_MOUNT_POINT/large \
+  -o recordsize=1M \
+  -o compression=lz4 \
+  -o atime=off \
+  -o xattr=sa \
+  -o dnodesize=auto \
+  -o logbias=throughput \
+  -o sync=standard \
+  $ZFS_POOL_NAME/large
+
+# 2. 小文件 + 通用
+sudo zfs create \
+  -o mountpoint=$ZFS_MOUNT_POINT/general \
+  -o recordsize=128K \
+  -o compression=lz4 \
+  -o atime=off \
+  -o xattr=sa \
+  -o dnodesize=auto \
+  -o logbias=latency \
+  -o sync=standard \
+  $ZFS_POOL_NAME/general
+
+# 3. p4 / 游戏开发
+sudo zfs create \
+  -o mountpoint=$ZFS_MOUNT_POINT/p4 \
+  -o recordsize=64K \
+  -o compression=lz4 \
+  -o atime=off \
+  -o xattr=sa \
+  -o acltype=posixacl \
+  -o dnodesize=auto \
+  -o logbias=latency \
+  -o sync=standard \
+  $ZFS_POOL_NAME/p4
+
+# 4. git 仓库
+sudo zfs create \
+  -o mountpoint=$ZFS_MOUNT_POINT/git \
+  -o recordsize=32K \
+  -o compression=lz4 \
+  -o atime=off \
+  -o xattr=sa \
+  -o dnodesize=auto \
+  -o logbias=latency \
+  -o sync=standard \
+  $ZFS_POOL_NAME/git
+
+# 5. 数据库
+sudo zfs create \
+  -o mountpoint=$ZFS_MOUNT_POINT/db \
+  -o recordsize=16K \
+  -o compression=lz4 \
+  -o atime=off \
+  -o xattr=sa \
+  -o dnodesize=auto \
+  -o logbias=latency \
+  -o sync=standard \
+  $ZFS_POOL_NAME/db
 
 # 检查状态
 zpool status

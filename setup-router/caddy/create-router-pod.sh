@@ -120,27 +120,33 @@ fi
 unset http_proxy
 unset https_proxy
 
-podman run -d --name router-caddy --security-opt label=disable \
-  ${CADDY_OPTIONS[@]} \
-  $CADDY_IMAGE_URL
-
 which podlet >/dev/null 2>&1
 FIND_PODLET_RESULT=$?
 
 if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
   podlet --install --wanted-by default.target --wants network-online.target --after network-online.target \
-    generate container | tee -p "$SYSTEMD_CONTAINER_DIR/router-caddy.container"
+    podman run -d --name router-caddy --security-opt label=disable \
+    ${CADDY_OPTIONS[@]} \
+    $CADDY_IMAGE_URL | tee -p "$SYSTEMD_CONTAINER_DIR/router-caddy.container"
 else
   podman generate systemd router-caddy | tee -p "$SYSTEMD_SERVICE_DIR/router-caddy.service"
+  podman container stop router-caddy
 fi
-podman container stop router-caddy
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
-  systemctl enable router-caddy.service
   systemctl daemon-reload
+else
+  systemctl --user daemon-reload
+fi
+
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl enable router-caddy.service
+  fi
   systemctl start router-caddy.service
 else
-  systemctl --user enable router-caddy.service
-  systemctl --user daemon-reload
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl --user enable router-caddy.service
+  fi
   systemctl --user start router-caddy.service
 fi
