@@ -1,8 +1,8 @@
 #!/bin/bash
 #
 
-if  [[  ! -z "K8S_NO_UPDATE_SCRIPT" ]] && [[ "K8S_NO_UPDATE_SCRIPT" != "0" ]] &&
-  [[ "K8S_NO_UPDATE_SCRIPT" != "no" ]] && [[ "K8S_NO_UPDATE_SCRIPT" != "false" ]] &&
+if [[  ! -z "$K8S_NO_UPDATE_SCRIPT" ]] && [[ "$K8S_NO_UPDATE_SCRIPT" != "0" ]] &&
+  [[ "$K8S_NO_UPDATE_SCRIPT" != "no" ]] && [[ "$K8S_NO_UPDATE_SCRIPT" != "false" ]] &&
   [[ -e "install.sh" ]]; then
   curl -sfL https://get.rke2.io -o install.sh
 
@@ -22,8 +22,8 @@ sleep 3
 ps aux | grep rancher | grep -v grep | awk '{print $2}' | sudo xargs -r kill
 sleep 2
 
-if  [[  ! -z "K8S_FORCE_CLEANUP" ]] && [[ "K8S_FORCE_CLEANUP" != "0" ]] &&
-  [[ "K8S_FORCE_CLEANUP" != "no" ]] && [[ "K8S_FORCE_CLEANUP" != "false" ]]; then
+if  [[  ! -z "$K8S_FORCE_CLEANUP" ]] && [[ "$K8S_FORCE_CLEANUP" != "0" ]] &&
+  [[ "$K8S_FORCE_CLEANUP" != "no" ]] && [[ "$K8S_FORCE_CLEANUP" != "false" ]]; then
   rke2-uninstall.sh
 
   # Clear iptables
