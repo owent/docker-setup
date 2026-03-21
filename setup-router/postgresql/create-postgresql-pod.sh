@@ -75,8 +75,9 @@ if [[ -z "$POSTGRESQL_MAX_CONNECTIONS" ]]; then
 fi
 
 if [[ -z "$POSTGRESQL_IMAGE" ]]; then
-  POSTGRESQL_IMAGE="docker.io/postgres:latest"
-  # POSTGRESQL_IMAGE="docker.io/pgvector/pgvector:pg18"
+  # POSTGRESQL_IMAGE="postgres:latest"
+  # POSTGRESQL_IMAGE="pgvector/pgvector:pg18"
+  POSTGRESQL_IMAGE="paradedb/paradedb:latest-pg18"
 fi
 
 if [[ -z "$POSTGRESQL_DATA_DIR" ]]; then
