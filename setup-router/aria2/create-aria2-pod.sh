@@ -29,9 +29,13 @@ fi
 
 if [[ "root" == "$(id -un)" ]]; then
   SYSTEMD_SERVICE_DIR=/lib/systemd/system
+  SYSTEMD_CONTAINER_DIR=/etc/containers/systemd/
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
 else
   SYSTEMD_SERVICE_DIR="$HOME/.config/systemd/user"
+  SYSTEMD_CONTAINER_DIR="$HOME/.config/containers/systemd"
   mkdir -p "$SYSTEMD_SERVICE_DIR"
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
 fi
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
@@ -187,23 +191,45 @@ chown $RUN_USER aria2c_with_session.sh
 
 podman build --layers --force-rm --tag local-aria2 -f aria2.Dockerfile .
 
-podman run -d --name aria2 \
-  --security-opt label=disable \
-  --mount type=bind,source=$RUN_HOME/aria2/etc,target=/etc/aria2 \
-  --mount type=bind,source=$RUN_HOME/aria2/log,target=/var/log/aria2 \
-  --mount type=bind,source=$ARIA2_DATA_ROOT,target=$ARIA2_DATA_ROOT \
-  -p 6800:6800/tcp -p 6881-6883:6881-6883/tcp -p 6881-6883:6881-6883/udp \
-  local-aria2 bash /usr/bin/aria2c_with_session.sh --conf-path=/etc/aria2/aria2.conf
-
-podman generate systemd aria2 | tee "$SYSTEMD_SERVICE_DIR/aria2.service"
-podman container stop aria2
-
-if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
-  systemctl daemon-reload
-  systemctl enable aria2.service
-  systemctl start aria2.service
-else
-  systemctl --user daemon-reload
-  systemctl --user enable "$SYSTEMD_SERVICE_DIR/aria2.service"
-  systemctl --user start aria2.service
+if [[ $? -ne 0 ]]; then
+  echo "Error: Unable to build aria2 image"
+  exit 1
 fi
+
+which podlet >/dev/null 2>&1
+FIND_PODLET_RESULT=$?
+
+if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
+  podlet --install --wanted-by default.target --wants network-online.target --after network-online.target \
+    podman run -d --name aria2 \
+    --security-opt label=disable \
+    --mount type=bind,source=$RUN_HOME/aria2/etc,target=/etc/aria2 \
+    --mount type=bind,source=$RUN_HOME/aria2/log,target=/var/log/aria2 \
+    --mount type=bind,source=$ARIA2_DATA_ROOT,target=$ARIA2_DATA_ROOT \
+    -p 6800:6800/tcp -p 6881-6883:6881-6883/tcp -p 6881-6883:6881-6883/udp \
+    local-aria2 bash /usr/bin/aria2c_with_session.sh --conf-path=/etc/aria2/aria2.conf \
+      | tee -p "$SYSTEMD_CONTAINER_DIR/aria2.container"
+  
+  systemctl --user daemon-reload
+
+else
+  podman run -d --name aria2 \
+    --security-opt label=disable \
+    --mount type=bind,source=$RUN_HOME/aria2/etc,target=/etc/aria2 \
+    --mount type=bind,source=$RUN_HOME/aria2/log,target=/var/log/aria2 \
+    --mount type=bind,source=$ARIA2_DATA_ROOT,target=$ARIA2_DATA_ROOT \
+    -p 6800:6800/tcp -p 6881-6883:6881-6883/tcp -p 6881-6883:6881-6883/udp \
+    local-aria2 bash /usr/bin/aria2c_with_session.sh --conf-path=/etc/aria2/aria2.conf
+
+  if [[ $? -ne 0 ]]; then
+    echo "Error: Unable to start aria2 container"
+    exit 1
+  fi
+  podman stop aria2
+  podman generate systemd --name aria2 | tee $SYSTEMD_SERVICE_DIR/aria2.service
+
+  systemctl --user daemon-reload
+  systemctl --user enable aria2
+fi
+
+systemctl --user restart aria2

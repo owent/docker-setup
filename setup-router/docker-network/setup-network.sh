@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# 确保 /etc/cni/net.d/87-podman-bridge.conflist 包含以下插件：
+#     {
+#       "type": "dnsname"
+#     }
+
 INTERNAL_FRONTEND_IPV4_CIDR="10.91.0.0/16"
 INTERNAL_FRONTEND_IPV4_GATEWAY="10.91.0.1"
 INTERNAL_FRONTEND_IPV6_CIDR="fd02:0:0:1::/64"
