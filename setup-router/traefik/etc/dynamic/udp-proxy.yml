@@ -1,0 +1,94 @@
+# ============================================================================
+# Traefik 动态配置 — UDP 反向代理模板
+# ============================================================================
+# UDP 代理适用于:
+#   - DNS 转发
+#   - VPN (WireGuard, OpenVPN UDP模式)
+#   - 游戏服务器
+#   - 媒体流 (RTP/RTSP)
+#   - QUIC 协议
+#
+# Traefik UDP 限制:
+#   - 不支持路由规则 (每个 entryPoint 只能绑定一个服务)
+#   - 不支持中间件
+#   - 不支持 TLS
+#   - 支持多后端负载均衡 (WRR)
+# ============================================================================
+
+udp:
+  # ==========================================================================
+  # UDP 路由
+  # ==========================================================================
+  # UDP 路由不支持规则匹配，每个 entryPoint 只能绑定一个 service。
+  # 利用这个特性实现按网段分流: 不同 entryPoint 绑不同 IP，各自路由到
+  # 同网段后端，避免跨网段转发导致回包源 IP 不一致。
+  # ==========================================================================
+  routers:
+    # --- DNS 转发示例 ---
+    dns-forward:
+      entryPoints:
+        - udp-generic
+      service: dns-service
+
+    # --- 游戏 DS: 10.64.x.x 网段 ---
+    # ds-64:
+    #   entryPoints:
+    #     - udp-ds-64
+    #   service: ds-64-service
+
+    # --- 游戏 DS: 10.192.x.x 网段 ---
+    # ds-192:
+    #   entryPoints:
+    #     - udp-ds-192
+    #   service: ds-192-service
+
+    # --- 游戏 DS: 兜底 (其他 IP 来源) ---
+    # ds-generic:
+    #   entryPoints:
+    #     - udp-ds-generic
+    #   service: ds-generic-service
+
+    # --- WireGuard 示例 (需添加额外的 entryPoint) ---
+    # wireguard:
+    #   entryPoints:
+    #     - udp-wireguard    # 需在 traefik.yml 中添加: udp-wireguard: address: ":51820/udp"
+    #   service: wireguard-service
+
+  # ==========================================================================
+  # UDP 服务 — 支持负载均衡
+  # ==========================================================================
+  services:
+    # --- DNS 服务 (多上游负载均衡) ---
+    dns-service:
+      loadBalancer:
+        servers:
+          - address: "119.29.29.29:53"
+          - address: "223.5.5.5:53"
+
+    # --- 游戏 DS: 10.64.x.x 网段后端 ---
+    # 流量从 10.64.0.1:7777 进入, 转发到 10.64.x.x 网段的 DS
+    # 回包: DS -> traefik(10.64.0.1) -> client, 源 IP 保持 10.64.0.1
+    # ds-64-service:
+    #   loadBalancer:
+    #     servers:
+    #       - address: "10.64.8.101:7777"
+
+    # --- 游戏 DS: 10.192.x.x 网段后端 ---
+    # 流量从 10.192.0.1:7777 进入, 转发到 10.192.x.x 网段的 DS
+    # 回包: DS -> traefik(10.192.0.1) -> client, 源 IP 保持 10.192.0.1
+    # ds-192-service:
+    #   loadBalancer:
+    #     servers:
+    #       - address: "10.192.8.101:7777"
+
+    # --- 游戏 DS: 兜底服务 ---
+    # ds-generic-service:
+    #   loadBalancer:
+    #     servers:
+    #       - address: "10.64.8.101:7777"
+
+    # --- WireGuard 示例 ---
+    # wireguard-service:
+    #   loadBalancer:
+    #     servers:
+    #       - address: "wireguard.internal:51820"

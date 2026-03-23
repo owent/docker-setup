@@ -1,0 +1,49 @@
+# ============================================================================
+# Traefik 动态配置 — TLS 证书、选项和存储
+# ============================================================================
+# tls.options / tls.certificates / tls.stores 均为动态配置资源,
+# 必须在动态配置文件中定义 (不能放在 traefik.yml 静态配置中)。
+# ============================================================================
+
+tls:
+  # ==========================================================================
+  # TLS 选项
+  # ==========================================================================
+  options:
+    default:
+      minVersion: "VersionTLS12"
+      cipherSuites:
+        - "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"
+        - "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+        - "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"
+        - "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+        - "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256"
+        - "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256"
+      sniStrict: false
+      alpnProtocols:
+        - "h2"
+        - "http/1.1"
+
+  # ==========================================================================
+  # TLS 证书 (手动指定, 优先级高于 ACME 自动证书)
+  # ==========================================================================
+  certificates:
+    - certFile: "/etc/traefik/ssl/fullchain.cer"
+      keyFile: "/etc/traefik/ssl/example.org.key"
+      # 多域名证书可添加 stores:
+      # stores:
+      #   - default
+
+    # 更多证书:
+    # - certFile: "/etc/traefik/ssl/another-domain.cer"
+    #   keyFile: "/etc/traefik/ssl/another-domain.key"
+
+  # ==========================================================================
+  # TLS 存储
+  # ==========================================================================
+  stores:
+    default:
+      # 默认证书 (当 SNI 不匹配时使用)
+      defaultCertificate:
+        certFile: "/etc/traefik/ssl/fullchain.cer"
+        keyFile: "/etc/traefik/ssl/example.org.key"

@@ -1,0 +1,215 @@
+# ============================================================================
+# Traefik 动态配置 — 认证中间件模板
+# ============================================================================
+# Traefik v3 内置认证方式:
+#   - basicAuth:    HTTP Basic 认证 (用户名/密码)
+#   - digestAuth:   HTTP Digest 认证
+#   - forwardAuth:  转发认证 (委托给外部认证服务)
+#
+# Traefik 不内置 LDAP / OIDC 中间件，但通过 forwardAuth 可以对接:
+#   - Authentik     (OIDC/LDAP/SAML, 功能最全)
+#   - Authelia      (轻量级, 支持 LDAP + OIDC)
+#   - Keycloak      (企业级 IAM, 支持 OIDC/SAML/LDAP)
+#   - OAuth2 Proxy  (轻量 OIDC/OAuth2 代理)
+#
+# 原理: Traefik 在每次请求前先向 forwardAuth 指定的 URL 发送验证请求,
+#       认证服务返回 2xx 则放行，否则重定向到登录页面。
+# ============================================================================
+
+http:
+  # ==========================================================================
+  # 路由示例 — Dashboard 带认证
+  # ==========================================================================
+  routers:
+    # (可选) 根路径跳转到 Dashboard
+    traefik-root-redirect:
+      rule: "Path(`/`)"
+      entryPoints:
+        - traefik
+      service: noop@internal
+      middlewares:
+        - dashboard-redirect
+
+    # --- Dashboard 路由 (BasicAuth 保护) ---
+    # 调试时可先注释 middlewares 确认路由正常，再启用认证
+    traefik-dashboard-basic:
+      rule: "PathPrefix(`/api`) || PathPrefix(`/dashboard`)"
+      entryPoints:
+        - traefik
+      service: api@internal
+      middlewares:
+        - dashboard-basic-auth
+      # tls: {}
+
+    # --- Dashboard 路由 (OIDC/Authentik 保护) ---
+    # 使用此路由时请注释掉上方 basic auth 版本
+    # traefik-dashboard-oidc:
+    #   rule: "PathPrefix(`/api`) || PathPrefix(`/dashboard`)"
+    #   entryPoints:
+    #     - traefik
+    #   service: api@internal
+    #   middlewares:
+    #     - authentik-auth
+    #   # tls: {}
+
+    # --- Dashboard 路由 (LDAP/Authelia 保护) ---
+    # 使用此路由时请注释掉上方其他版本
+    # traefik-dashboard-ldap:
+    #   rule: "PathPrefix(`/api`) || PathPrefix(`/dashboard`)"
+    #   entryPoints:
+    #     - traefik
+    #   service: api@internal
+    #   middlewares:
+    #     - authelia-auth
+    #   # tls: {}
+
+  # ==========================================================================
+  # 认证中间件
+  # ==========================================================================
+  middlewares:
+    # 根路径跳转到 Dashboard
+    dashboard-redirect:
+      redirectRegex:
+        regex: "^/$"
+        replacement: "/dashboard/"
+        permanent: false
+    # ========================================================================
+    # 1. BasicAuth — HTTP 基本认证 (最简单，适合内部/调试)
+    # ========================================================================
+    # 生成密码: htpasswd -nB admin
+    # 或: docker run --rm httpd:alpine htpasswd -nB admin
+    # 注意: YAML 中 $ 符号需要写两次 $$ 转义 (仅 Docker label 模式需要,
+    #        文件模式中单个 $ 即可)
+    dashboard-basic-auth:
+      basicAuth:
+        realm: "Traefik Dashboard"
+        # 用户列表 (格式: user:password_hash)
+        users:
+          - "admin:$2y$05$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        # 或从文件读取 (每行一个 user:hash)
+        # usersFile: "/etc/traefik/auth/dashboard-users"
+        # 认证通过后在请求头中传递用户名给后端
+        headerField: "X-WebAuth-User"
+        # 去掉 Authorization 头 (不传给后端)
+        removeHeader: true
+
+    # ========================================================================
+    # 2. DigestAuth — HTTP Digest 认证
+    # ========================================================================
+    # 比 BasicAuth 安全（密码不明文传输），但现代浏览器支持不一
+    # dashboard-digest-auth:
+    #   digestAuth:
+    #     realm: "Traefik Dashboard"
+    #     users:
+    #       - "admin:traefik:xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    #     # 格式: user:realm:password_hash (使用 htdigest 生成)
+    #     headerField: "X-WebAuth-User"
+    #     removeHeader: true
+
+    # ========================================================================
+    # 3. ForwardAuth + Authentik — OIDC/OAuth2/SAML 认证
+    # ========================================================================
+    # Authentik 是功能全面的身份认证平台，支持:
+    #   - OIDC / OAuth2 (推荐)
+    #   - SAML 2.0
+    #   - LDAP (可作为 LDAP Provider)
+    #   - 内置用户目录 / 外部 LDAP 源
+    #
+    # 前置条件:
+    #   1. 在 Authentik 中创建一个 "Proxy Provider":
+    #      - 类型选 "Forward auth (single application)"
+    #      - External Host: https://traefik.example.org
+    #   2. 创建对应的 Application 并绑定上述 Provider
+    #   3. 记下 Authentik 的 outpost URL (通常为主域名)
+    #
+    # 参考: https://docs.goauthentik.io/docs/providers/proxy/forward_auth
+    # ========================================================================
+    # authentik-auth:
+    #   forwardAuth:
+    #     # Authentik outpost 的验证端点
+    #     address: "http://authentik-server:9000/outpost.goauthentik.io/auth/traefik"
+    #     # 信任转发头部
+    #     trustForwardHeader: true
+    #     # 将认证服务返回的头部传递给后端 (用户信息等)
+    #     authResponseHeaders:
+    #       - "X-authentik-username"
+    #       - "X-authentik-groups"
+    #       - "X-authentik-email"
+    #       - "X-authentik-name"
+    #       - "X-authentik-uid"
+    #       - "Authorization"
+
+    # ========================================================================
+    # 4. ForwardAuth + Authelia — LDAP + OIDC 认证
+    # ========================================================================
+    # Authelia 是轻量级认证网关，支持:
+    #   - LDAP 后端 (对接 OpenLDAP / FreeIPA / Active Directory)
+    #   - OIDC Provider (让 Authelia 作为 OIDC 身份提供者)
+    #   - 内置文件用户数据库
+    #   - 双因素认证 (TOTP / WebAuthn / Duo)
+    #   - 基于规则的访问控制策略 (one_factor / two_factor / deny)
+    #
+    # 前置条件:
+    #   1. 部署 Authelia 并配置 LDAP 后端 (configuration.yml)
+    #   2. Authelia 配置中设置 session.domain 和 access_control 规则
+    #   3. 确保 Authelia 可被 Traefik 容器网络访问
+    #
+    # Authelia LDAP 配置示例 (authelia configuration.yml):
+    #   authentication_backend:
+    #     ldap:
+    #       address: 'ldap://openldap:389'
+    #       base_dn: 'dc=example,dc=org'
+    #       users_filter: '(&({username_attribute}={input})(objectClass=person))'
+    #       groups_filter: '(&(member={dn})(objectClass=groupOfNames))'
+    #       user: 'cn=admin,dc=example,dc=org'
+    #       password: 'ldap-admin-password'
+    #
+    # 参考: https://www.authelia.com/integration/proxies/traefik/
+    # ========================================================================
+    # authelia-auth:
+    #   forwardAuth:
+    #     address: "http://authelia:9091/api/authz/forward-auth"
+    #     trustForwardHeader: true
+    #     authResponseHeaders:
+    #       - "Remote-User"
+    #       - "Remote-Name"
+    #       - "Remote-Email"
+    #       - "Remote-Groups"
+
+    # ========================================================================
+    # 5. ForwardAuth + Keycloak (通过 OAuth2 Proxy) — 企业级 OIDC
+    # ========================================================================
+    # Keycloak 是企业级 IAM，通常与 OAuth2 Proxy 配合:
+    #   Traefik -> ForwardAuth -> OAuth2 Proxy -> Keycloak OIDC
+    #
+    # 前置条件:
+    #   1. 部署 Keycloak，创建 Realm 和 Client (类型: confidential)
+    #   2. 部署 OAuth2 Proxy 并配置 OIDC Provider 指向 Keycloak
+    #   3. 设置 OAuth2 Proxy 的 --upstream 和 --cookie-domain
+    #
+    # 参考: https://oauth2-proxy.github.io/oauth2-proxy/
+    # ========================================================================
+    # keycloak-oidc-auth:
+    #   forwardAuth:
+    #     address: "http://oauth2-proxy:4180/oauth2/auth"
+    #     trustForwardHeader: true
+    #     authResponseHeaders:
+    #       - "X-Auth-Request-User"
+    #       - "X-Auth-Request-Email"
+    #       - "X-Auth-Request-Groups"
+    #       - "X-Auth-Request-Access-Token"
+    #       - "Authorization"
+
+    # ========================================================================
+    # 6. IP 白名单 + 认证组合 (生产推荐)
+    # ========================================================================
+    # 先检查 IP，再检查认证。内网 IP 可免认证。
+    # dashboard-ip-allowlist:
+    #   ipAllowList:
+    #     sourceRange:
+    #       - "127.0.0.1/32"
+    #       - "10.0.0.0/8"
+    #       - "172.16.0.0/12"
+    #       - "192.168.0.0/16"
+    #       - "::1/128"
+    #       - "fd00::/8"

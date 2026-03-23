@@ -104,11 +104,15 @@ if [[ ! -z "$P4D_RUN_USER" ]]; then
   P4D_OPTIONS+=("--user=$P4D_RUN_USER")
 fi
 
-which podlet >/dev/null 2>&1
+PODLET_IMAGE_URL="ghcr.io/containers/podlet:latest"
+PODLET_RUN=($(which podlet >/dev/null 2>&1))
 FIND_PODLET_RESULT=$?
+if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+  podman image inspect "$PODLET_IMAGE_URL" > /dev/null 2>&1 && FIND_PODLET_RESULT=0 && PODLET_RUN=(podman run --rm "$PODLET_IMAGE_URL")
+fi
 
 if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
-  podlet --install --wanted-by default.target --wants network-online.target --after network-online.target \
+  ${PODLET_RUN[@]} --install --wanted-by default.target --wants network-online.target --after network-online.target \
     podman run -d --name $P4D_POD_NAME --security-opt label=disable \
     "${P4D_OPTIONS[@]}" $P4D_IMAGE \
       | tee -p "$SYSTEMD_CONTAINER_DIR/container-$P4D_POD_NAME.container"

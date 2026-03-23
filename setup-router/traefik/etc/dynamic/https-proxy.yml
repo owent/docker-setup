@@ -1,0 +1,355 @@
+# ============================================================================
+# Traefik 动态配置 — HTTPS 反向代理模板
+# ============================================================================
+# 本文件提供 HTTP/HTTPS 反向代理的完整模板，包含:
+#   - X-Forwarded-* 头部设置示例
+#   - 后端负载均衡配置
+#   - 自定义 DNS 解析器
+#   - 大文件传输和 Git LFS 优化
+#   - 压缩、限流、重试等中间件
+#
+# Traefik 对 X-Forwarded-* 的默认行为:
+# -----------------------------------------------------------------------
+# | Header              | 默认行为                                       |
+# |---------------------|-----------------------------------------------|
+# | X-Forwarded-For     | 自动添加（追加客户端 IP）                         |
+# | X-Forwarded-Proto   | 自动设置 (http/https)                           |
+# | X-Forwarded-Host    | 自动设置为请求的 Host                            |
+# | X-Forwarded-Port    | 自动设置为入口端口                                |
+# | X-Forwarded-Server  | 自动设置为 Traefik 实例名                        |
+# | X-Real-Ip           | 自动设置为客户端真实 IP                           |
+# -----------------------------------------------------------------------
+# 因此大多数情况下，**不需要**手动设置这些头部。
+# 如果需要覆盖或自定义行为，可以使用下方 headers middleware。
+# ============================================================================
+
+http:
+  # ==========================================================================
+  # 路由 (Routers)
+  # ==========================================================================
+  routers:
+    # --- 通用 HTTPS 反向代理示例 ---
+    example-https:
+      rule: "Host(`example.internal.org`)"
+      entryPoints:
+        - websecure
+      service: example-service
+      tls: {}
+      middlewares:
+        - default-headers
+        - http-compress
+
+    # --- Git 服务代理 (含 LFS 大文件优化) ---
+    git-https:
+      rule: "Host(`git.example.org`)"
+      entryPoints:
+        - websecure
+      service: git-service
+      tls: {}
+      middlewares:
+        - default-headers
+        - git-lfs-buffering
+
+    # --- 动态服务代理 (API / WebSocket) ---
+    api-dynamic:
+      rule: "Host(`api.example.org`)"
+      entryPoints:
+        - websecure
+      service: api-service
+      tls: {}
+      middlewares:
+        - default-headers
+        - api-ratelimit
+        - api-retry
+
+    # --- 大文件下载代理 ---
+    downloads:
+      rule: "Host(`dl.example.org`)"
+      entryPoints:
+        - websecure
+      service: download-service
+      tls: {}
+      middlewares:
+        - default-headers
+        - large-file-buffering
+
+  # ==========================================================================
+  # 服务 (Services) — 支持后端负载均衡
+  # ==========================================================================
+  # Traefik 支持以下负载均衡策略:
+  #   - 默认: 加权轮询 (Weighted Round Robin, WRR)
+  #   - mirror: 镜像流量到多个后端 (用于灰度/测试)
+  #   - failover: 主备切换
+  # 每个 server 可设置 weight 权重实现不同分配比例。
+  # ==========================================================================
+  services:
+    # --- 通用服务 (多后端负载均衡) ---
+    example-service:
+      loadBalancer:
+        # 健康检查
+        healthCheck:
+          path: "/healthz"
+          interval: "15s"
+          timeout: "5s"
+        # 粘性会话 (按需启用)
+        # sticky:
+        #   cookie:
+        #     name: "traefik_sticky"
+        #     secure: true
+        #     httpOnly: true
+        servers:
+          - url: "https://backend1.example.org:8443"
+            weight: 1
+          - url: "https://backend2.example.org:8443"
+            weight: 1
+        passHostHeader: true
+        # 后端传输设置 (覆盖全局 serversTransport)
+        serversTransport: "customTransport"
+
+    # --- Git 服务 (LFS 大文件优化) ---
+    git-service:
+      loadBalancer:
+        healthCheck:
+          path: "/"
+          interval: "30s"
+          timeout: "10s"
+        servers:
+          - url: "https://git-backend.example.org:443"
+        passHostHeader: true
+
+    # --- 动态 API 服务 ---
+    api-service:
+      loadBalancer:
+        healthCheck:
+          path: "/health"
+          interval: "10s"
+          timeout: "3s"
+        servers:
+          - url: "http://api-backend1.internal:8080"
+            weight: 3
+          - url: "http://api-backend2.internal:8080"
+            weight: 1
+        passHostHeader: true
+
+    # --- 大文件下载服务 ---
+    download-service:
+      loadBalancer:
+        servers:
+          - url: "http://file-server.internal:9000"
+        passHostHeader: true
+
+  # ==========================================================================
+  # 中间件 (Middlewares)
+  # ==========================================================================
+  middlewares:
+    # --- 默认 Header 设置 ---
+    # 演示如何自定义 X-Forwarded-* 头部。
+    # 注意: Traefik 默认已自动设置以下头部，通常不需要手动添加。
+    # 仅在需要覆盖默认行为或添加额外头部时使用。
+    default-headers:
+      headers:
+        # 安全头部
+        frameDeny: true
+        browserXssFilter: true
+        contentTypeNosniff: true
+        # 自定义请求头 (发送到后端)
+        customRequestHeaders:
+          # 下面的头部 Traefik 默认已自动处理，此处仅作为示例
+          # 如果不需要覆盖，请删除或注释
+          # X-Forwarded-Proto: "https"     # 自动设置，无需手动
+          # X-Forwarded-Host: ""           # 自动设置为请求 Host
+          # X-Forwarded-Port: ""           # 自动设置为入口端口
+          X-Custom-Header: "traefik-proxy"
+        # 自定义响应头 (发送到客户端)
+        customResponseHeaders:
+          X-Powered-By: "" # 删除后端暴露的头部
+          Server: "" # 删除 Server 头
+
+    # --- 手动设置 X-Forwarded-* 的示例 (多数情况不需要) ---
+    # 当后端不信任 Traefik 自动设置的头部，需要强制覆盖时:
+    force-forwarded-headers:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-Proto: "https"
+          X-Forwarded-Host: "example.org"
+          X-Forwarded-Port: "443"
+          X-Real-Ip: "" # 空值 = 不覆盖
+
+    # --- HTTP 压缩 ---
+    # Traefik v3 compress 中间件支持三种算法，按客户端 Accept-Encoding 自动协商:
+    #   1. zstd  — 最高效, 压缩率和速度均优于 gzip/brotli (需客户端支持, curl 7.72+/现代浏览器)
+    #   2. br    — Brotli, 压缩率优于 gzip, 解压速度快 (主流浏览器均支持)
+    #   3. gzip  — 兼容性最好, 所有客户端都支持
+    # 默认三种算法全部启用, 优先级: zstd > br > gzip
+    # 可通过 defaultEncoding 设置无 Accept-Encoding 时的默认算法
+    http-compress:
+      compress:
+        # 无 Accept-Encoding 请求头时使用的默认算法 (可选: gzip, br, zstd)
+        # 不设置则不压缩无 Accept-Encoding 的请求
+        # defaultEncoding: gzip
+        #
+        # 按类型排除不需要压缩的内容 (已压缩/二进制格式)
+        excludedContentTypes:
+          # --- 通用二进制 ---
+          - "application/octet-stream"
+          # --- 压缩/归档格式 ---
+          - "application/zip"
+          - "application/gzip"
+          - "application/x-gzip"
+          - "application/x-xz"
+          - "application/x-bzip2"
+          - "application/zstd"
+          - "application/x-7z-compressed"
+          - "application/x-rar-compressed"
+          - "application/vnd.rar"
+          - "application/x-tar" # tar 本身未压缩，但常内含已压缩文件
+          - "application/x-lz4"
+          - "application/x-lzma"
+          - "application/x-compress"
+          # --- 图片 (已压缩) ---
+          - "image/png"
+          - "image/jpeg"
+          - "image/gif"
+          - "image/webp"
+          - "image/avif"
+          - "image/heic"
+          - "image/heif"
+          - "image/jxl" # JPEG XL
+          - "image/x-icon"
+          - "image/vnd.microsoft.icon"
+          # --- 视频 ---
+          - "video/mp4"
+          - "video/webm"
+          - "video/x-matroska" # MKV
+          - "video/x-msvideo" # AVI
+          - "video/quicktime" # MOV
+          - "video/x-flv"
+          - "video/mpeg"
+          - "video/ogg"
+          - "video/3gpp"
+          - "video/mp2t" # TS
+          # --- 音频 ---
+          - "audio/mpeg" # MP3
+          - "audio/mp4" # M4A/AAC
+          - "audio/aac"
+          - "audio/ogg"
+          - "audio/opus"
+          - "audio/webm"
+          - "audio/flac"
+          - "audio/x-wav"
+          - "audio/vnd.wave"
+          # --- 软件开发/包管理常见格式 ---
+          - "application/java-archive" # JAR/WAR/AAR
+          - "application/x-rpm"
+          - "application/x-deb"
+          - "application/vnd.debian.binary-package"
+          - "application/x-msi"
+          - "application/vnd.android.package-archive" # APK
+          - "application/x-apple-diskimage" # DMG
+          - "application/x-iso9660-image" # ISO
+          - "application/x-executable"
+          - "application/x-sharedlib" # .so
+          - "application/vnd.microsoft.portable-executable" # PE/DLL/EXE
+          - "application/x-mach-binary" # macOS Mach-O
+          # --- 游戏开发常见格式 ---
+          - "application/x-unity3d"
+          - "model/gltf-binary" # GLB (3D模型)
+          - "model/usd" # USD/USDZ (3D场景)
+          - "application/x-blender" # Blender
+          - "image/ktx" # KTX 纹理
+          - "image/ktx2" # KTX2 纹理 (GPU压缩)
+          - "image/vnd.ms-dds" # DDS 纹理
+          - "application/x-tex" # 纹理包
+          # --- 文档/办公 (已压缩) ---
+          - "application/pdf"
+          - "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" # XLSX
+          - "application/vnd.openxmlformats-officedocument.wordprocessingml.document" # DOCX
+          - "application/vnd.openxmlformats-officedocument.presentationml.presentation" # PPTX
+          - "application/epub+zip"
+          # --- 字体 (已压缩) ---
+          - "font/woff"
+          - "font/woff2"
+        # 按类型仅包含需要压缩的内容 (与 excludedContentTypes 互斥, 二选一)
+        # includedContentTypes:
+        #   - "text/html"
+        #   - "text/plain"
+        #   - "text/css"
+        #   - "text/javascript"
+        #   - "application/javascript"
+        #   - "application/json"
+        #   - "application/xml"
+        #   - "application/wasm"
+        #   - "image/svg+xml"
+        #
+        # 最小压缩大小 (字节), 小于此值不压缩
+        minResponseBodyBytes: 1024
+
+    # --- Git LFS / 大文件缓冲优化 ---
+    # 对应 HAProxy 的 tune.bufsize / tune.maxrewrite
+    # 允许更大的请求体 (Git LFS upload 可能非常大)
+    git-lfs-buffering:
+      buffering:
+        # 最大请求体缓冲 (字节), Git LFS 上传可能很大
+        maxRequestBodyBytes: 0 # 0 = 无限制
+        # 最大响应体缓冲
+        maxResponseBodyBytes: 0 # 0 = 无限制
+        # 内存中缓冲大小，超过则写入磁盘
+        memRequestBodyBytes: 10485760 # 10MB
+        memResponseBodyBytes: 10485760 # 10MB
+        # 重试表达式 (网络抖动时自动重试)
+        retryExpression: "IsNetworkError() && Attempts() < 3"
+
+    # --- 大文件下载缓冲 ---
+    large-file-buffering:
+      buffering:
+        maxRequestBodyBytes: 0
+        maxResponseBodyBytes: 0
+        memRequestBodyBytes: 2097152 # 2MB
+        memResponseBodyBytes: 2097152 # 2MB
+
+    # --- API 限流 ---
+    api-ratelimit:
+      rateLimit:
+        average: 200
+        burst: 400
+        period: "1s"
+
+    # --- API 重试 ---
+    api-retry:
+      retry:
+        attempts: 3
+        initialInterval: "100ms"
+
+    # --- BasicAuth 示例 ---
+    # basic-auth:
+    #   basicAuth:
+    #     users:
+    #       - "admin:$apr1$xxxxx$xxxxx"   # htpasswd 生成
+
+    # --- IP 白名单 ---
+    # ip-allowlist:
+    #   ipAllowList:
+    #     sourceRange:
+    #       - "10.0.0.0/8"
+    #       - "172.16.0.0/12"
+    #       - "192.168.0.0/16"
+    #       - "fd00::/8"
+
+  # ==========================================================================
+  # 自定义后端传输 (对应 HAProxy 的 resolvers / DNS 设置)
+  # ==========================================================================
+  # 注意: serversTransport 在 Traefik v3 中是动态资源，
+  #       用于覆盖全局 serversTransport 设置。
+  # ==========================================================================
+  serversTransports:
+    customTransport:
+      # 禁止验证后端 TLS 证书 (自签证书场景)
+      insecureSkipVerify: false
+      # 指定后端 CA 证书
+      # rootCAs:
+      #   - "/etc/traefik/ssl/ca.crt"
+      # 后端连接参数
+      dialTimeout: "30s"
+      responseHeaderTimeout: "0s" # 0 = 无限制 (大文件下载)
+      idleConnTimeout: "300s"
+      maxIdleConnsPerHost: 200

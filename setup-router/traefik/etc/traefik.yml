@@ -1,0 +1,227 @@
+# ============================================================================
+# Traefik v3 静态配置 (Static Configuration)
+# ============================================================================
+# 并发负载 vs CPU/内存 大致关系:
+# ---------------------------------------------------------------------------
+# | 并发连接数    | CPU 核心 | 内存     | 适用场景                          |
+# |-------------|---------|---------|---------------------------------------|
+# | 100-500     | 1 vCPU  | 128MB   | 小型服务/开发环境                     |
+# | 500-2000    | 2 vCPU  | 256MB   | 中小型生产环境                        |
+# | 2000-5000   | 2-4 vCPU| 512MB   | 中型生产环境/API网关                  |
+# | 5000-10000  | 4-8 vCPU| 1GB     | 大型生产环境                          |
+# | 10000-50000 | 8+ vCPU | 2-4GB   | 高并发场景(含大文件/长连接)           |
+# ---------------------------------------------------------------------------
+# maxIdleConnsPerHost 影响后端连接池大小和内存使用，一般设为 100-200 即可。
+# 启用 AccessLog 会增加 CPU 和 IO 开销。生产环境酌情关闭或减少字段。
+# ============================================================================
+
+# ============================================================================
+# 全局设置
+# ============================================================================
+global:
+  # 检查是否有新版本 (生产环境建议关闭)
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+# ============================================================================
+# API / Dashboard
+# ============================================================================
+api:
+  # 启用 Dashboard (通过 entryPoints.traefik.address 访问; 生产环境应限制访问权限)
+  dashboard: true
+  # 开启不安全模式可无需认证访问dashboard (仅调试用，生产请关闭并用 middleware 保护)
+  # 生产环境设为 false, 然后在动态配置 dynamic/auth.yml 中通过路由+中间件保护 dashboard
+  # 支持 BasicAuth / ForwardAuth (对接 Authentik OIDC / Authelia LDAP / Keycloak 等)
+  insecure: false
+
+# ============================================================================
+# 日志配置
+# ============================================================================
+log:
+  level: INFO
+  filePath: "/var/log/traefik/traefik.log"
+  format: json
+
+accessLog:
+  filePath: "/var/log/traefik/access.log"
+  format: json
+  # 缓冲写入，减少IO (单位: 条数)
+  bufferingSize: 100
+  filters:
+    # 只记录 >= 400 的错误状态码（减少日志量）
+    # statusCodes:
+    #   - "400-599"
+    retryAttempts: true
+    minDuration: "100ms"
+
+# ============================================================================
+# EntryPoints (入口点) — 同时监听 IPv4 和 IPv6
+# ============================================================================
+# Traefik 默认监听 0.0.0.0 (仅 IPv4)。
+# 使用 ":port" 或 "[::]:port" 写法可同时监听 IPv4 和 IPv6。
+# 在容器的 host 网络模式下，需确保系统内核 net.ipv6.bindv6only=0 (通常默认即可)。
+# ============================================================================
+entryPoints:
+  # HTTP 入口 (IPv4 + IPv6)
+  web:
+    address: ":80"
+    # 全局 HTTP -> HTTPS 重定向
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+    # 传输层优化
+    transport:
+      respondingTimeouts:
+        readTimeout: "60s" # 请求读取超时
+        writeTimeout: "0s" # 响应写入超时 (0=无限制，适合大文件)
+        idleTimeout: "180s" # 空闲连接超时
+      lifeCycle:
+        requestAcceptGraceTimeout: "0s"
+        graceTimeOut: "30s"
+
+  # HTTPS 入口 (IPv4 + IPv6)
+  websecure:
+    address: ":443"
+    http:
+      tls: {}
+      # 如果需要使用 ACME 自动证书，取消以下注释:
+      # tls:
+      #   certResolver: letsencrypt
+    # 启用 HTTP/3 (QUIC, 需要 UDP 443)
+    http3:
+      advertisedPort: 443
+    transport:
+      respondingTimeouts:
+        # 大文件传输场景建议设为 0 (无限制)
+        readTimeout: "0s"
+        writeTimeout: "0s"
+        idleTimeout: "300s"
+      lifeCycle:
+        graceTimeOut: "30s"
+
+  # TCP 通用入口示例 (如 SSH 转发)
+  tcp-generic:
+    address: ":6022"
+
+  # UDP 通用入口示例 (如 DNS 转发)
+  # -----------------------------------------------------------------------
+  # 多网卡/多IP 场景注意:
+  #   绑定 ":port" (即 0.0.0.0) 时，回包源 IP 由内核路由表选择，可能
+  #   选到其他网卡的 IP，导致客户端收到的源 IP 与发送目标 IP 不一致。
+  # 解决方法:
+  #   1. 静态 IP: 直接写 "10.64.0.1:5353/udp"
+  #   2. 动态 IP: 通过环境变量覆盖 (create-traefik-pod.sh 中设置
+  #      TRAEFIK_UDP_BIND_IP, 脚本会自动设置
+  #      TRAEFIK_ENTRYPOINTS_UDP__GENERIC_ADDRESS 环境变量)
+  #   3. 多 IP 监听: 为每个 IP 创建独立的 entryPoint
+  # -----------------------------------------------------------------------
+  udp-generic:
+    address: ":5353/udp"
+    udp:
+      # UDP session 超时 (默认 3s, 自上次收到包后无新包则关闭 session)
+      # DNS: 3s | 游戏DS: 120s | VPN: 60-180s
+      timeout: "120s"
+
+  # 游戏 DS UDP 入口 — 按网段绑定, 避免跨网段回包源 IP 不一致
+  # 每个 entryPoint 绑定到一个具体 IP, 各自对应同网段后端
+  # udp-ds-64:
+  #   address: "10.64.0.1:7777/udp"
+  #   udp:
+  #     timeout: "120s"
+  # udp-ds-192:
+  #   address: "10.192.0.1:7777/udp"
+  #   udp:
+  #     timeout: "120s"
+  # 兜底: 其他 IP 来源走通用入口
+  # udp-ds-generic:
+  #   address: ":7778/udp"
+  #   udp:
+  #     timeout: "120s"
+
+  # Dashboard 入口 (仅本地访问)
+  traefik:
+    address: ":6401"
+
+# ============================================================================
+# 服务传输层优化 (对应 HAProxy 的 tune.bufsize 等参数)
+# ============================================================================
+serversTransport:
+  # 禁止验证后端证书 (自签证书场景; 生产环境应使用 rootCAs)
+  insecureSkipVerify: false
+  # 每个后端主机最大空闲连接数 (影响内存, 对应 HAProxy 的连接池)
+  # 大文件/Git LFS 场景建议适当增大
+  maxIdleConnsPerHost: 200
+  # 转发超时设置
+  forwardingTimeouts:
+    # 后端连接超时
+    dialTimeout: "30s"
+    # 后端响应头超时 (0=无限制, 大文件下载场景)
+    responseHeaderTimeout: "0s"
+    # 后端空闲连接超时
+    idleConnTimeout: "300s"
+
+# TCP 传输层设置
+tcpServersTransport:
+  dialTimeout: "30s"
+  dialKeepAlive: "30s"
+
+# ============================================================================
+# 配置提供者 (动态配置来源)
+# ============================================================================
+providers:
+  # 文件提供者: 从本地 YAML 文件加载路由规则
+  file:
+    directory: "/etc/traefik/dynamic"
+    watch: true
+
+  # Docker 提供者 (如果需要自动发现容器服务, 取消注释)
+  # docker:
+  #   endpoint: "unix:///var/run/docker.sock"
+  #   exposedByDefault: false
+  #   network: "internal-frontend"
+
+# ============================================================================
+# TLS 全局选项
+# ============================================================================
+# 注意: tls.options / tls.certificates / tls.stores 属于 **动态配置**,
+# 不能放在此静态配置文件中。请在 dynamic/ 目录下的文件中配置。
+# 参见: etc/dynamic/tls-certs.yml
+
+# ============================================================================
+# ACME (Let's Encrypt) 自动证书管理 (按需启用)
+# ============================================================================
+# certificatesResolvers:
+#   letsencrypt:
+#     acme:
+#       email: "admin@example.org"
+#       storage: "/data/traefik/acme.json"
+#       # 使用 TLS-ALPN-01 验证
+#       tlsChallenge: {}
+#       # 或使用 HTTP-01 验证:
+#       # httpChallenge:
+#       #   entryPoint: web
+#       # 或使用 DNS-01 验证 (支持通配符证书):
+#       # dnsChallenge:
+#       #   provider: cloudflare
+#       #   resolvers:
+#       #     - "1.1.1.1:53"
+#       #     - "8.8.8.8:53"
+
+# ============================================================================
+# Ping 健康检查端点
+# ============================================================================
+ping:
+  entryPoint: traefik
+
+# ============================================================================
+# Metrics (Prometheus 格式)
+# ============================================================================
+# metrics:
+#   prometheus:
+#     entryPoint: traefik
+#     addEntryPointsLabels: true
+#     addRoutersLabels: true
+#     addServicesLabels: true

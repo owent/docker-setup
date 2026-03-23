@@ -1,0 +1,96 @@
+# ============================================================================
+# Traefik 动态配置 — TCP 反向代理模板
+# ============================================================================
+# TCP 代理适用于:
+#   - SSH 转发 (如 Git SSH)
+#   - 数据库代理 (如 PostgreSQL, MySQL)
+#   - 自定义 TCP 协议
+#   - TLS 透传 (passthrough)
+#
+# Traefik TCP 负载均衡:
+#   - 默认使用加权轮询 (WRR)
+#   - 支持 TLS passthrough (SNI 路由，不解密)
+#   - 支持 TLS 终止 (Traefik 解密后转发)
+#   - 支持 ProxyProtocol (传递真实客户端 IP)
+#
+# 注意: TCP 路由不支持 HTTP 中间件 (headers, rateLimit 等)
+# ============================================================================
+
+tcp:
+  # ==========================================================================
+  # TCP 路由
+  # ==========================================================================
+  routers:
+    # --- SSH 转发 (如 Git SSH) ---
+    git-ssh:
+      entryPoints:
+        - tcp-generic
+      rule: "HostSNI(`*`)"
+      service: git-ssh-service
+
+    # --- TLS SNI 路由 (不解密，直接透传) ---
+    # tls-passthrough-example:
+    #   entryPoints:
+    #     - websecure
+    #   rule: "HostSNI(`db.example.org`)"
+    #   service: db-service
+    #   tls:
+    #     passthrough: true
+
+    # --- TLS 终止 + TCP 转发 ---
+    # tls-terminate-example:
+    #   entryPoints:
+    #     - websecure
+    #   rule: "HostSNI(`service.example.org`)"
+    #   service: secure-tcp-service
+    #   tls: {}
+
+  # ==========================================================================
+  # TCP 服务 — 支持负载均衡
+  # ==========================================================================
+  # 支持多后端 + 权重 (WRR)
+  # 支持 ProxyProtocol 向后端传递客户端真实 IP
+  # ==========================================================================
+  services:
+    # --- Git SSH 服务 (多后端负载均衡) ---
+    git-ssh-service:
+      loadBalancer:
+        servers:
+          - address: "git-backend.example.org:22"
+            weight: 1
+          # 可添加多个后端:
+          # - address: "git-backend2.example.org:22"
+          #   weight: 1
+        # 启用 ProxyProtocol (后端需要支持)
+        # proxyProtocol:
+        #   version: 2
+        # 终止超时 (对应 HAProxy 的 timeout tunnel)
+        terminationDelay: 100
+
+    # --- 数据库代理示例 ---
+    # db-service:
+    #   loadBalancer:
+    #     servers:
+    #       - address: "db-primary.internal:5432"
+    #         weight: 3
+    #       - address: "db-replica.internal:5432"
+    #         weight: 1
+
+    # --- Perforce (P4D) 代理示例 ---
+    # p4d-service:
+    #   loadBalancer:
+    #     servers:
+    #       - address: "p4d.example.org:8666"
+
+  # ==========================================================================
+  # TCP 传输设置 (覆盖全局 tcpServersTransport)
+  # ==========================================================================
+  serversTransports:
+    tcpCustomTransport:
+      dialTimeout: "30s"
+      dialKeepAlive: "30s"
+      # TLS 设置 (Traefik -> 后端)
+      # tls:
+      #   insecureSkipVerify: false
+      #   rootCAs:
+      #     - "/etc/traefik/ssl/ca.crt"

@@ -196,11 +196,15 @@ if [[ $? -ne 0 ]]; then
   exit 1
 fi
 
-which podlet >/dev/null 2>&1
+PODLET_IMAGE_URL="ghcr.io/containers/podlet:latest"
+PODLET_RUN=($(which podlet >/dev/null 2>&1))
 FIND_PODLET_RESULT=$?
+if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+  podman image inspect "$PODLET_IMAGE_URL" > /dev/null 2>&1 && FIND_PODLET_RESULT=0 && PODLET_RUN=(podman run --rm "$PODLET_IMAGE_URL")
+fi
 
 if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
-  podlet --install --wanted-by default.target --wants network-online.target --after network-online.target \
+  ${PODLET_RUN[@]} --install --wanted-by default.target --wants network-online.target --after network-online.target \
     podman run -d --name aria2 \
     --security-opt label=disable \
     --mount type=bind,source=$RUN_HOME/aria2/etc,target=/etc/aria2 \
