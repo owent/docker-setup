@@ -416,6 +416,9 @@ kubectl -n kube-system exec ds/cilium -- cilium-dbg config --all | grep EnableL2
 kubectl -n kube-system exec ds/cilium -- cilium-dbg config --all | grep KubeProxyReplacement
 kubectl -n kube-system exec ds/cilium -- cilium-dbg config --all | grep EnableExternalIPs
 
+### L2通告错误或频繁失败时，可能 L2 Responder BPF map 和 实际 BPF map 不一致，导致协调循环反复尝试删除不存在的 key，同时阻止新条目的正确添加。
+### 可以尝试 flush BPF map → 重启 cilium-agent 容器（两步缺一不可）,参考 flush-cilium-bpf-map-for-l2-respo.sh
+
 ## 重启服务使配置生效
 kubectl rollout restart deployment/cilium-operator -n kube-system
 kubectl rollout status deployment/cilium-operator -n kube-system
