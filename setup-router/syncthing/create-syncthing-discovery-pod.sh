@@ -21,6 +21,17 @@ if [[ "x$RUN_USER" == "x" ]] || [[ "x$RUN_USER" == "xroot" ]]; then
   exit 1
 fi
 
+if [[ "root" == "$(id -un)" ]]; then
+  SYSTEMD_SERVICE_DIR=/lib/systemd/system
+  SYSTEMD_CONTAINER_DIR=/etc/containers/systemd/
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
+else
+  SYSTEMD_SERVICE_DIR="$HOME/.config/systemd/user"
+  SYSTEMD_CONTAINER_DIR="$HOME/.config/containers/systemd"
+  mkdir -p "$SYSTEMD_SERVICE_DIR"
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
+fi
+
 RUN_HOME=$(cat /etc/passwd | awk "BEGIN{FS=\":\"} \$1 == \"$RUN_USER\" { print \$6 }")
 
 if [[ "x$RUN_HOME" == "x" ]]; then
@@ -69,10 +80,10 @@ if [[ "x$SYNCTHING_UPDATE" != "x" ]] && [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; th
   fi
 fi
 
-systemctl --user --all | grep -F container-syncthing-discovery.service
+systemctl --user --all | grep -F syncthing-discovery.service
 if [[ $? -eq 0 ]]; then
-  systemctl --user stop container-syncthing-discovery
-  systemctl --user disable container-syncthing-discovery
+  systemctl --user stop syncthing-discovery
+  systemctl --user disable syncthing-discovery
 fi
 
 podman container exists syncthing-discovery
@@ -125,18 +136,46 @@ if [[ -e "$SYNCTHING_DISCOVERY_SSL_DIR/$SYNCTHING_DISCOVERY_SSL_CERT" ]] && [[ -
 else
   SYNCTHING_SSL_OPTIONS=(--http)
 fi
-podman run -d --name syncthing-discovery --security-opt label=disable \
-  "${SYNCTHING_OPTIONS[@]}" \
-  docker.io/syncthing/discosrv:latest \
-  ${SYNCTHING_SSL_OPTIONS[@]} \
-  --listen ":$SYNCTHING_DISCOVERY_LISTEN_PORT" \
-  --db-dir /syncthing/data
 
-podman exec syncthing-discovery ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+PODLET_IMAGE_URL="ghcr.io/containers/podlet:latest"
+PODLET_RUN=($(which podlet >/dev/null 2>&1))
+FIND_PODLET_RESULT=$?
+if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+  podman image inspect "$PODLET_IMAGE_URL" > /dev/null 2>&1 && FIND_PODLET_RESULT=0 && PODLET_RUN=(podman run --rm "$PODLET_IMAGE_URL")
+fi
 
-podman generate systemd --name syncthing-discovery | tee $SYNCTHING_ETC_DIR/container-syncthing-discovery.service
+if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
+  ${PODLET_RUN[@]} --install --wanted-by default.target --wants network-online.target --after network-online.target \
+    podman run -d --name syncthing-discovery --security-opt label=disable \
+      "${SYNCTHING_OPTIONS[@]}" \
+      docker.io/syncthing/discosrv:latest \
+      ${SYNCTHING_SSL_OPTIONS[@]} \
+      --listen ":$SYNCTHING_DISCOVERY_LISTEN_PORT" \
+      --db-dir /syncthing/data \
+      | tee -p "$SYSTEMD_CONTAINER_DIR/syncthing-discovery.container"
+  
+  systemctl --user daemon-reload
 
-podman stop syncthing-discovery
+else
+  podman run -d --name syncthing-discovery --security-opt label=disable \
+    "${SYNCTHING_OPTIONS[@]}" \
+    docker.io/syncthing/discosrv:latest \
+    ${SYNCTHING_SSL_OPTIONS[@]} \
+    --listen ":$SYNCTHING_DISCOVERY_LISTEN_PORT" \
+    --db-dir /syncthing/data
 
-systemctl --user enable $SYNCTHING_ETC_DIR/container-syncthing-discovery.service
-systemctl --user restart container-syncthing-discovery
+  podman exec syncthing-discovery ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+
+  podman generate systemd --name syncthing-discovery | tee $SYSTEMD_SERVICE_DIR/syncthing-discovery.service
+
+  podman stop syncthing-discovery
+
+  systemctl --user daemon-reload
+  systemctl --user enable syncthing-discovery
+fi
+
+systemctl --user restart syncthing-discovery
+
+if [[ "x$SYNCTHING_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman image prune -a -f --filter "until=240h"
+fi

@@ -25,9 +25,12 @@ RUN /bin/bash /opt/docker-setup/replace-source.sh ;                             
     systemctl enable systemd-timesyncd.service || true ;                                                                    \
     systemctl start systemd-timesyncd.service || true ;                                                                     \
     groupadd -g 29998 tools; useradd -u 29998 -g 29998 -m tools -s /bin/bash ;                                              \
-    # hwclock -w;                                                                                                           \
-    # ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                                                             \
-    /bin/bash /opt/docker-setup/debian.install-devtools.sh;                                                                 \
-    /bin/bash /opt/docker-setup/cleanup.devtools.sh
+    apt install -y node-corepack;                                                                                           \
+    corepack npm config set registry http://mirrors.tencent.com/npm/ ;                                                      \
+    corepack npm config set strict-ssl false;                                                                               \
+    apt clean -y; rm -rf /var/lib/apt/lists/* ;                                                                             \
+    hwclock -w;
+
+RUN corepack pnpm setup; source ~/.bashrc; corepack pnpm add -g @kilocode/cli
 
 # CMD /sbin/init

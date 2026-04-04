@@ -27,6 +27,17 @@ if [[ "x$RUN_HOME" == "x" ]]; then
   RUN_HOME="$HOME"
 fi
 
+if [[ "root" == "$(id -un)" ]]; then
+  SYSTEMD_SERVICE_DIR=/lib/systemd/system
+  SYSTEMD_CONTAINER_DIR=/etc/containers/systemd/
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
+else
+  SYSTEMD_SERVICE_DIR="$HOME/.config/systemd/user"
+  SYSTEMD_CONTAINER_DIR="$HOME/.config/containers/systemd"
+  mkdir -p "$SYSTEMD_SERVICE_DIR"
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
+fi
+
 if [[ "x$SYNCTHING_CLIENT_HOME_DIR" == "x" ]]; then
   SYNCTHING_CLIENT_HOME_DIR="$RUN_HOME/syncthing/home"
 fi
@@ -147,3 +158,7 @@ podman stop syncthing-client
 
 systemctl --user enable "$SCRIPT_DIR/etc/container-syncthing-client.service"
 systemctl --user restart container-syncthing-client
+
+if [[ "x$SYNCTHING_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman image prune -a -f --filter "until=240h"
+fi

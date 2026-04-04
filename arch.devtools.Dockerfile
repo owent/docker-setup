@@ -31,9 +31,14 @@ RUN sed -i -r '/Server\s*=\s*.*tencent.com/d' /etc/pacman.d/mirrorlist;         
     pacman -Syy --noconfirm dotnet-sdk dotnet-runtime jdk-openjdk chrpath;                                      \
     pacman -Syy --noconfirm yq jq;                                                                              \
     pacman -S -cc --noconfirm;                                                                                  \
+    pacman -Syy --noconfirm corepack;                                                                           \
+    corepack npm config set registry http://mirrors.tencent.com/npm/ ;                                          \
+    corepack npm config set strict-ssl false;                                                                   \
     rm -rf /var/lib/pacman/sync/* /var/cache/pacman/pkg/* ;                                                     \
     echo "" > /var/log/pacman.log ;                                                                             \
-    useradd -u 29998 -g 29998 -m tools -s /bin/bash ;
+    useradd -u 29998 -g 29998 -m tools -s /bin/bash ;                                                           
+
+RUN corepack pnpm setup; source ~/.bashrc; corepack pnpm add -g @kilocode/cli
 
 # Auto setup network
 # systemctl enable NetworkManager

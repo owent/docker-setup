@@ -17,3 +17,7 @@ source /etc/profile.d/pnpm.sh
 # npx components
 pnpm install -g clawhub@latest
 pnpm install -g mcporter@latest
+
+
+# pip packages
+python3 -m pip install --upgrade --user --break-system-packages nano-pdf

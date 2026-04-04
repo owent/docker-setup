@@ -28,6 +28,17 @@ if [[ "x$RUN_HOME" == "x" ]]; then
   RUN_HOME="$HOME"
 fi
 
+if [[ "root" == "$(id -un)" ]]; then
+  SYSTEMD_SERVICE_DIR=/lib/systemd/system
+  SYSTEMD_CONTAINER_DIR=/etc/containers/systemd/
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
+else
+  SYSTEMD_SERVICE_DIR="$HOME/.config/systemd/user"
+  SYSTEMD_CONTAINER_DIR="$HOME/.config/containers/systemd"
+  mkdir -p "$SYSTEMD_SERVICE_DIR"
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
+fi
+
 if [[ "x$SYNCTHING_RELAY_SERVER_LISTEN_PORT" == "x" ]]; then
   SYNCTHING_RELAY_SERVER_LISTEN_PORT=6349
 fi
@@ -71,14 +82,14 @@ if [[ "x$SYNCTHING_UPDATE" != "x" ]] && [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; th
   fi
 fi
 
-systemctl --user --all | grep -F container-syncthing-relay-node.service
+systemctl --user --all | grep -F syncthing-relay-node.service
 
 if [[ $? -eq 0 ]]; then
-  systemctl --user stop container-syncthing-relay-node
-  systemctl --user disable container-syncthing-relay-node
+  systemctl --user stop syncthing-relay-node
+  systemctl --user disable syncthing-relay-node
 fi
 
-podman container exists syncthing-relay-node
+podman inspect exists syncthing-relay-node >/dev/null 2>&1
 
 if [[ $? -eq 0 ]]; then
   podman stop syncthing-relay-node
@@ -136,25 +147,46 @@ else
   SYNCTHING_OPTIONS+=(--network=host)
 fi
 
-podman run -d --name syncthing-relay-node --security-opt label=disable \
-  "${SYNCTHING_OPTIONS[@]}" \
-  docker.io/syncthing/relaysrv:latest \
-  "${SYNCTHING_RELAYSVR_EXT_OPTIONS[@]}"
-
-if [[ $? -ne 0 ]]; then
-  echo "Failed to start syncthing relay server container."
-  exit 1
+PODLET_IMAGE_URL="ghcr.io/containers/podlet:latest"
+PODLET_RUN=($(which podlet >/dev/null 2>&1))
+FIND_PODLET_RESULT=$?
+if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+  podman image inspect "$PODLET_IMAGE_URL" > /dev/null 2>&1 && FIND_PODLET_RESULT=0 && PODLET_RUN=(podman run --rm "$PODLET_IMAGE_URL")
 fi
+
+if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
+  ${PODLET_RUN[@]} --install --wanted-by default.target --wants network-online.target --after network-online.target \
+    podman run -d --name syncthing-relay-node --security-opt label=disable \
+      "${SYNCTHING_OPTIONS[@]}" \
+      docker.io/syncthing/relaysrv:latest \
+      "${SYNCTHING_RELAYSVR_EXT_OPTIONS[@]}" \
+      | tee -p "$SYSTEMD_CONTAINER_DIR/syncthing-relay-node.container"
+  
+  systemctl --user daemon-reload
+
+else
+  podman run -d --name syncthing-relay-node --security-opt label=disable \
+    "${SYNCTHING_OPTIONS[@]}" \
+    docker.io/syncthing/relaysrv:latest \
+    "${SYNCTHING_RELAYSVR_EXT_OPTIONS[@]}"
+
+  if [[ $? -ne 0 ]]; then
+    echo "Failed to start syncthing relay server container."
+    exit 1
+  fi
+
+  podman exec syncthing-relay-node ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+
+  podman generate systemd --name syncthing-relay-node | tee $SYSTEMD_SERVICE_DIR/syncthing-relay-node.service
+
+  podman stop syncthing-relay-node
+
+  systemctl --user daemon-reload
+  systemctl --user enable syncthing-relay-node
+fi
+
+systemctl --user restart syncthing-relay-node
 
 if [[ "x$SYNCTHING_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman image prune -a -f --filter "until=240h"
 fi
-
-podman exec syncthing-relay-node ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
-
-podman generate systemd --name syncthing-relay-node | tee $SYNCTHING_ETC_DIR/container-syncthing-relay-node.service
-
-podman stop syncthing-relay-node
-
-systemctl --user enable $SYNCTHING_ETC_DIR/container-syncthing-relay-node.service
-systemctl --user restart container-syncthing-relay-node
