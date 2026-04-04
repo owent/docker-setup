@@ -118,10 +118,10 @@ fi
 
 
 PODLET_IMAGE_URL="ghcr.io/containers/podlet:latest"
-PODLET_RUN=($(which podlet >/dev/null 2>&1))
+PODLET_RUN=($(which podlet 2>/dev/null))
 FIND_PODLET_RESULT=$?
 if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
-  podman image inspect "$PODLET_IMAGE_URL" > /dev/null 2>&1 && FIND_PODLET_RESULT=0 && PODLET_RUN=(podman run --rm "$PODLET_IMAGE_URL")
+  (podman image inspect "$PODLET_IMAGE_URL" > /dev/null 2>&1 || podman pull "$PODLET_IMAGE_URL") && FIND_PODLET_RESULT=0 && PODLET_RUN=(podman run --rm "$PODLET_IMAGE_URL")
 fi
 
 if [[ $FIND_PODLET_RESULT -eq 0 ]]; then

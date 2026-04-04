@@ -60,7 +60,7 @@ if [[ $? -eq 0 ]]; then
   systemctl --user disable container-syncthing-client
 fi
 
-podman container exists syncthing-client
+podman inspect syncthing-client >/dev/null 2>&1
 
 if [[ $? -eq 0 ]]; then
   podman stop syncthing-client
@@ -112,7 +112,7 @@ for EXT_MOUNTS in ${SYNCTHING_CLIENT_EXT_DIRS[@]}; do
     mkdir -p "$SYNCTHING_CLIENT_HOME_DIR/data/$EXT_MOUNTS_TARGET"
     HAS_MAKE_EXT_DIR=1
   fi
-  SYNCTHING_OPTIONS=(${SYNCTHING_OPTIONS[@]} --mount "type=bind,source=$EXT_MOUNTS_SOURCE,target=/syncthing/home/data/$EXT_MOUNTS_TARGET")
+  SYNCTHING_OPTIONS+=(--mount "type=bind,source=$EXT_MOUNTS_SOURCE,target=/syncthing/home/data/$EXT_MOUNTS_TARGET")
 done
 
 if [[ $HAS_MAKE_EXT_DIR -ne 0 ]]; then
@@ -134,30 +134,40 @@ SYNCTHING_SERVER_OPTIONS+=(
   "--gui-apikey=$SYNCTHING_CLIENT_GUI_APIKEY"
 )
 
-podman run -d --name syncthing-client --security-opt label=disable \
-  ${SYNCTHING_OPTIONS[@]} \
-  docker.io/syncthing/syncthing:latest \
-  "${SYNCTHING_SERVER_OPTIONS[@]}"
-
-if [[ $? -ne 0 ]]; then
-  echo "Failed to start syncthing client container."
-  exit 1
+PODLET_IMAGE_URL="ghcr.io/containers/podlet:latest"
+PODLET_RUN=($(which podlet 2>/dev/null))
+FIND_PODLET_RESULT=$?
+if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+  (podman image inspect "$PODLET_IMAGE_URL" > /dev/null 2>&1 || podman pull "$PODLET_IMAGE_URL") && FIND_PODLET_RESULT=0 && PODLET_RUN=(podman run --rm "$PODLET_IMAGE_URL")
 fi
 
-if [[ "x$SYNCTHING_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman image prune -a -f --filter "until=240h"
+if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
+  ${PODLET_RUN[@]} --install --wanted-by default.target --wants network-online.target --after network-online.target \
+    podman run -d --name syncthing-client --security-opt label=disable \
+    ${SYNCTHING_OPTIONS[@]} \
+    docker.io/syncthing/syncthing:latest \
+    "${SYNCTHING_SERVER_OPTIONS[@]}" \
+      | tee -p "$SYSTEMD_CONTAINER_DIR/syncthing-client.container"
+  
+  systemctl --user daemon-reload
+
+else
+  podman run -d --name syncthing-client --security-opt label=disable \
+    ${SYNCTHING_OPTIONS[@]} \
+    docker.io/syncthing/syncthing:latest \
+    "${SYNCTHING_SERVER_OPTIONS[@]}"
+
+  podman exec syncthing-client ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+
+  podman generate systemd --name syncthing-client | tee $SYSTEMD_SERVICE_DIR/syncthing-client.service
+
+  podman stop syncthing-client
+
+  systemctl --user daemon-reload
+  systemctl --user enable syncthing-client
 fi
 
-podman exec syncthing-client ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
-
-mkdir -p "$SCRIPT_DIR/etc"
-
-podman generate systemd --name syncthing-client | tee "$SCRIPT_DIR/etc/container-syncthing-client.service"
-
-podman stop syncthing-client
-
-systemctl --user enable "$SCRIPT_DIR/etc/container-syncthing-client.service"
-systemctl --user restart container-syncthing-client
+systemctl --user restart syncthing-client
 
 if [[ "x$SYNCTHING_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman image prune -a -f --filter "until=240h"

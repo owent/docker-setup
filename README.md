@@ -710,3 +710,12 @@ chmod +x "$NETWORKMANAGER_DISPATCHER_DIR/connectivity-change.d/80-update-ipv6-ro
 
 - <https://cloud.tencent.com.cn/document/product/1207/104187>
 - <https://telex.app/2025/02/21/899.html>
+
+## 杂项
+
+```bash
+# 带进度的移动
+rsync -aHAX --info=progress2 --remove-source-files SOURCE_PATH DEST_PATH
+# 带进度的复制
+rsync -aHAX --info=progress2 SOURCE_PATH DEST_PATH
+```

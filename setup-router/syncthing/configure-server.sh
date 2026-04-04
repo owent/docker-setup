@@ -12,7 +12,7 @@ SYNCTHING_DISCOVERY_SSL_CERT= # file basename under $SYNCTHING_DISCOVERY_SSL_DIR
 SYNCTHING_DISCOVERY_SSL_KEY=  # file basename under $SYNCTHING_DISCOVERY_SSL_DIR
 SYNCTHING_RELAY_POOL_DOMAIN=syncthing-relays.shkits.com
 SYNCTHING_RELAY_POOL_LISTEN_PORT=6345
-SYNCTHING_RELAY_POOL_ADDRESS=https://$SYNCTHING_RELAY_POOL_DOMAIN
+# SYNCTHING_RELAY_POOL_ADDRESS=https://$SYNCTHING_RELAY_POOL_DOMAIN
 # Where ot find client's ip:port. Only meaningful when running behind a reverse proxy.
 #   This must be passed by reverse proxy
 SYNCTHING_RELAY_POOL_IP_HEADER=X-Client-Address

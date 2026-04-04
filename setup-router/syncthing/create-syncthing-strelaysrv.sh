@@ -89,7 +89,7 @@ if [[ $? -eq 0 ]]; then
   systemctl --user disable syncthing-relay-node
 fi
 
-podman inspect exists syncthing-relay-node >/dev/null 2>&1
+podman inspect syncthing-relay-node >/dev/null 2>&1
 
 if [[ $? -eq 0 ]]; then
   podman stop syncthing-relay-node
@@ -106,13 +106,13 @@ SYNCTHING_RELAYSVR_EXT_OPTIONS=(
 )
 
 if [[ ! -z "$SYNCTHING_RELAY_SERVER_EXT_ADDRSS" ]]; then
-  SYNCTHING_RELAYSVR_EXT_OPTIONS=(${SYNCTHING_RELAYSVR_EXT_OPTIONS[@]} -ext-address "$SYNCTHING_RELAY_SERVER_EXT_ADDRSS")
+  SYNCTHING_RELAYSVR_EXT_OPTIONS+=(-ext-address "$SYNCTHING_RELAY_SERVER_EXT_ADDRSS")
 fi
 
 if [[ ! -z "$SYNCTHING_RELAY_POOL_ADDRESS" ]]; then
-  SYNCTHING_RELAYSVR_EXT_OPTIONS=(${SYNCTHING_RELAYSVR_EXT_OPTIONS[@]} -pools "$SYNCTHING_RELAY_POOL_ADDRESS/endpoint")
+  SYNCTHING_RELAYSVR_EXT_OPTIONS+=(-pools "$SYNCTHING_RELAY_POOL_ADDRESS/endpoint")
 else
-  SYNCTHING_RELAYSVR_EXT_OPTIONS=(${SYNCTHING_RELAYSVR_EXT_OPTIONS[@]} -pools "")
+  SYNCTHING_RELAYSVR_EXT_OPTIONS+=(-pools " ")
 fi
 
 # --network=host \
@@ -148,10 +148,10 @@ else
 fi
 
 PODLET_IMAGE_URL="ghcr.io/containers/podlet:latest"
-PODLET_RUN=($(which podlet >/dev/null 2>&1))
+PODLET_RUN=($(which podlet 2>/dev/null))
 FIND_PODLET_RESULT=$?
 if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
-  podman image inspect "$PODLET_IMAGE_URL" > /dev/null 2>&1 && FIND_PODLET_RESULT=0 && PODLET_RUN=(podman run --rm "$PODLET_IMAGE_URL")
+  (podman image inspect "$PODLET_IMAGE_URL" > /dev/null 2>&1 || podman pull "$PODLET_IMAGE_URL") && FIND_PODLET_RESULT=0 && PODLET_RUN=(podman run --rm "$PODLET_IMAGE_URL")
 fi
 
 if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
