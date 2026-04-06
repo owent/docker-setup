@@ -28,10 +28,10 @@ fi
 apt update -y || apt update -y || apt update -y
 apt upgrade -y || apt upgrade -y || apt upgrade -y
 
-apt install -y vim curl wget git git-lfs sudo jq ripgrep yq ffmpeg bash ca-certificates
+apt install -y vim curl wget git git-lfs sudo jq ripgrep yq ffmpeg bash ca-certificates supervisor
 apt install -y tzdata less iproute2 gawk lsof openssh-client gpg dnsutils telnet knot-dnsutils
-apt install -y sysstat traceroute tcptraceroute tcpdump netcat-openbsd ncat nftables
-apt install -y python3 python3-pip python3-wheel python3-setuptools python3-virtualenv
+apt install -y sysstat traceroute tcptraceroute tcpdump netcat-openbsd ncat nftables socat
+apt install -y python3 python3-pip python3-wheel python3-setuptools python3-virtualenv logrotate
 apt install -y gh golang
 
 sudo update-ca-certificates

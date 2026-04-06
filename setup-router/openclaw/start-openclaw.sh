@@ -20,6 +20,7 @@ OPENCLAW_IMAGE_URL="${OPENCLAW_IMAGE_URL:-ghcr.io/openclaw/openclaw:slim}"
 # OPENCLAW_TRUSTED_PROXIES=127.0.0.1,10.0.0.0/8  # comma-separated, enables reverse proxy mode (loopback bind)
 # OPENCLAW_LITELLM_BASE_URL=http://litellm-host:4000  # LiteLLM proxy endpoint (see https://docs.openclaw.ai/providers/litellm)
 # OPENCLAW_GATEWAY_PASSWORD=
+# OPENCLAW_REDIR_PROXY="4000=litellm-host:4000,8080=proxy:8080"  # socat redirections: LOCAL_PORT=REMOTE_HOST:REMOTE_PORT
 # # podman exec -it openclaw node openclaw.mjs config set gateway.auth.mode "password"
 # # podman exec -it openclaw node openclaw.mjs config set gateway.auth.password "your-strong-password"
 
@@ -44,6 +45,9 @@ RUN /bin/bash /tmp/image-extra-install.sh
 
 ENV PNPM_HOME=/app/pnpm PATH=/app/pnpm:\${PATH}
 RUN /bin/bash /tmp/nodejs-pkg-install.sh
+
+COPY ./entrypoint-openclaw.sh /entrypoint-openclaw.sh
+RUN chmod +x /entrypoint-openclaw.sh
 
   " > "$SCRIPT_DIR/openclaw.Dockerfile"
   podman build \
@@ -432,6 +436,14 @@ if [[ ! -z "$OPENCLAW_LOG_LEVEL" ]]; then
   OPENCLAW_ENV+=(-e OPENCLAW_LOG_LEVEL="$OPENCLAW_LOG_LEVEL")
 fi
 
+# Socat proxy redirections: OPENCLAW_REDIR_PROXY
+# Format: LOCAL_PORT=REMOTE_HOST:REMOTE_PORT[,...]
+# Used when openclaw only allows loopback proxy connections and the actual
+# proxy service runs on a different host/container.
+if [[ -n "$OPENCLAW_REDIR_PROXY" ]]; then
+  OPENCLAW_ENV+=(-e OPENCLAW_REDIR_PROXY="$OPENCLAW_REDIR_PROXY")
+fi
+
 # Container volume mounts:
 #   etc dir          → /openclaw/etc             (state: config, credentials, sessions, .env)
 #   extensions dir   → /openclaw/etc/extensions  (plugins and extensions)
@@ -477,13 +489,13 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
     podman run -d --name openclaw --security-opt label=disable --user root \
     "${OPENCLAW_ENV[@]}" "${OPENCLAW_OPTIONS[@]}" \
     localhost/local_openclaw:latest \
-    node openclaw.mjs gateway --allow-unconfigured --bind lan --port $OPENCLAW_PORT \
+    /entrypoint-openclaw.sh node openclaw.mjs gateway --allow-unconfigured --bind lan --port $OPENCLAW_PORT \
     | tee -p "$SYSTEMD_CONTAINER_DIR/openclaw.container"
 else
   podman run -d --name openclaw --security-opt label=disable --user root \
     "${OPENCLAW_ENV[@]}" "${OPENCLAW_OPTIONS[@]}" \
     localhost/local_openclaw:latest \
-    node openclaw.mjs gateway --allow-unconfigured --bind lan --port $OPENCLAW_PORT
+    /entrypoint-openclaw.sh node openclaw.mjs gateway --allow-unconfigured --bind lan --port $OPENCLAW_PORT
 
   if [[ $? -ne 0 ]]; then
     echo "Run openclaw failed"
