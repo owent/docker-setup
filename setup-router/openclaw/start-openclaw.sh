@@ -489,13 +489,13 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
     podman run -d --name openclaw --security-opt label=disable --user root \
     "${OPENCLAW_ENV[@]}" "${OPENCLAW_OPTIONS[@]}" \
     localhost/local_openclaw:latest \
-    /entrypoint-openclaw.sh node openclaw.mjs gateway --allow-unconfigured --bind lan --port $OPENCLAW_PORT \
+    /bin/bash /entrypoint-openclaw.sh node openclaw.mjs gateway --allow-unconfigured --bind lan --port $OPENCLAW_PORT \
     | tee -p "$SYSTEMD_CONTAINER_DIR/openclaw.container"
 else
   podman run -d --name openclaw --security-opt label=disable --user root \
     "${OPENCLAW_ENV[@]}" "${OPENCLAW_OPTIONS[@]}" \
     localhost/local_openclaw:latest \
-    /entrypoint-openclaw.sh node openclaw.mjs gateway --allow-unconfigured --bind lan --port $OPENCLAW_PORT
+    /bin/bash /entrypoint-openclaw.sh node openclaw.mjs gateway --allow-unconfigured --bind lan --port $OPENCLAW_PORT
 
   if [[ $? -ne 0 ]]; then
     echo "Run openclaw failed"

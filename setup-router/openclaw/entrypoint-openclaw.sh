@@ -18,9 +18,7 @@ autorestart=true
 startsecs=5
 startretries=3
 stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
 stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
 EOFCFG
 
 # OPENCLAW_REDIR_PROXY: comma-separated socat redirections
