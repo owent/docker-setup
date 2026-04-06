@@ -526,6 +526,10 @@ fi
 # podman cp /usr/local/share/ca-certificates/* openclaw:/usr/local/share/ca-certificates/
 # podman exec openclaw update-ca-certificates
 
+if [[ "x$OPENCLAW_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman image prune -a -f --filter "until=240h"
+fi
+
 
 echo "============================================="
 echo "OpenClaw gateway started on port $OPENCLAW_PORT"

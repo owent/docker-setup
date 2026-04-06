@@ -163,3 +163,7 @@ else
   fi
   systemctl --user start router-caddy.service
 fi
+
+if [[ "x$CADDY_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman image prune -a -f --filter "until=240h"
+fi
