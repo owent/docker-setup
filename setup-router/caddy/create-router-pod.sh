@@ -133,6 +133,15 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
     ${CADDY_OPTIONS[@]} \
     $CADDY_IMAGE_URL | tee -p "$SYSTEMD_CONTAINER_DIR/router-caddy.container"
 else
+  podman run -d --name router-caddy --security-opt label=disable \
+      ${CADDY_OPTIONS[@]} \
+      $CADDY_IMAGE_URL
+
+  if [[ $? -ne 0 ]]; then
+    echo "Failed to run router-caddy"
+    exit 1
+  fi
+
   podman generate systemd router-caddy | tee -p "$SYSTEMD_SERVICE_DIR/router-caddy.service"
   podman container stop router-caddy
 fi

@@ -100,6 +100,17 @@ if [[ -z "$OPENCLAW_DATA_DIR" ]]; then
   OPENCLAW_DATA_DIR="$HOME/openclaw/data"
 fi
 
+if [[ "root" == "$(id -un)" ]]; then
+  SYSTEMD_SERVICE_DIR=/lib/systemd/system
+  SYSTEMD_CONTAINER_DIR=/etc/containers/systemd/
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
+else
+  SYSTEMD_SERVICE_DIR="$HOME/.config/systemd/user"
+  SYSTEMD_CONTAINER_DIR="$HOME/.config/containers/systemd"
+  mkdir -p "$SYSTEMD_SERVICE_DIR"
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
+fi
+
 mkdir -p "$OPENCLAW_ETC_DIR"
 mkdir -p "$OPENCLAW_ETC_DIR/canvas"
 mkdir -p "$OPENCLAW_ETC_DIR/cron"
@@ -453,37 +464,56 @@ fi
 # --user root: the default image runs as 'node' (uid 1000) which cannot write to
 #   host-mounted directories under podman rootless uid mapping. Running as root
 #   inside the container avoids EACCES on /openclaw/etc subdirs (cron, devices, etc).
-podman run -d --name openclaw --security-opt label=disable --user root \
-  "${OPENCLAW_ENV[@]}" "${OPENCLAW_OPTIONS[@]}" \
-  localhost/local_openclaw:latest \
-  node openclaw.mjs gateway --allow-unconfigured --bind lan --port $OPENCLAW_PORT
 
-if [[ $? -ne 0 ]]; then
-  echo "Run openclaw failed"
-  exit 1
+PODLET_IMAGE_URL="ghcr.io/containers/podlet:latest"
+PODLET_RUN=($(which podlet 2>/dev/null))
+FIND_PODLET_RESULT=$?
+if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+  (podman image inspect "$PODLET_IMAGE_URL" > /dev/null 2>&1 || podman pull "$PODLET_IMAGE_URL") && FIND_PODLET_RESULT=0 && PODLET_RUN=(podman run --rm "$PODLET_IMAGE_URL")
+fi
+
+if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
+  ${PODLET_RUN[@]} --install --wanted-by default.target --wants network-online.target --after network-online.target \
+    podman run -d --name openclaw --security-opt label=disable --user root \
+    "${OPENCLAW_ENV[@]}" "${OPENCLAW_OPTIONS[@]}" \
+    localhost/local_openclaw:latest \
+    node openclaw.mjs gateway --allow-unconfigured --bind lan --port $OPENCLAW_PORT \
+    | tee -p "$SYSTEMD_CONTAINER_DIR/openclaw.container"
+else
+  podman run -d --name openclaw --security-opt label=disable --user root \
+    "${OPENCLAW_ENV[@]}" "${OPENCLAW_OPTIONS[@]}" \
+    localhost/local_openclaw:latest \
+    node openclaw.mjs gateway --allow-unconfigured --bind lan --port $OPENCLAW_PORT
+
+  if [[ $? -ne 0 ]]; then
+    echo "Run openclaw failed"
+    exit 1
+  fi
+  podman generate systemd openclaw | tee -p "$SYSTEMD_SERVICE_DIR/openclaw.service"
+  podman container stop openclaw
+fi
+
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  systemctl daemon-reload
+else
+  systemctl --user daemon-reload
+fi
+
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl enable openclaw.service
+  fi
+  systemctl start openclaw.service
+else
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl --user enable openclaw.service
+  fi
+  systemctl --user start openclaw.service
 fi
 
 # podman cp /usr/local/share/ca-certificates/* openclaw:/usr/local/share/ca-certificates/
 # podman exec openclaw update-ca-certificates
 
-podman generate systemd openclaw | tee -p "$SYSTEMD_SERVICE_DIR/openclaw.service"
-# OpenClaw does "full process restart" on config changes (e.g. models auth paste-token),
-# which exits PID 1 and stops the container. Restart=always ensures systemd brings it back.
-sed -i 's/^Restart=.*$/Restart=always/' "$SYSTEMD_SERVICE_DIR/openclaw.service"
-if ! grep -q '^RestartSec=' "$SYSTEMD_SERVICE_DIR/openclaw.service"; then
-  sed -i '/^Restart=always$/a RestartSec=3' "$SYSTEMD_SERVICE_DIR/openclaw.service"
-fi
-podman container stop openclaw
-
-if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
-  systemctl enable openclaw.service
-  systemctl daemon-reload
-  systemctl start openclaw.service
-else
-  systemctl --user enable "$SYSTEMD_SERVICE_DIR/openclaw.service"
-  systemctl --user daemon-reload
-  systemctl --user start openclaw.service
-fi
 
 echo "============================================="
 echo "OpenClaw gateway started on port $OPENCLAW_PORT"
