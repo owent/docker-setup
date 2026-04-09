@@ -28,6 +28,9 @@ services:
       - 8880:8880 # Unifi guest portal HTTP redirect port
       - 6789:6789 # For mobile throughput test
       - 5514:5514/udp # Remote syslog port
+    depends_on:
+      unifi-db:
+        condition: service_healthy
     networks:
       - frontend
       - backend
@@ -35,6 +38,13 @@ services:
   unifi-db:
     image: docker.io/mongo:latest
     container_name: unifi-db
+    healthcheck:
+      test:
+        ["CMD-SHELL", "mongosh --quiet --eval 'db.adminCommand({ping:1}).ok'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     environment:
       - MONGO_INITDB_ROOT_USERNAME=root
       - MONGO_INITDB_ROOT_PASSWORD=
