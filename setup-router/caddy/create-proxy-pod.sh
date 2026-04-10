@@ -94,7 +94,7 @@ CADDY_OPTIONS=(
   --cap-add=NET_ADMIN --cap-add=NET_BIND_SERVICE
   --mount type=bind,source=$CADDY_LOG_DIR,target=/var/log/caddy
   --mount type=bind,source=$CADDY_DATA_DIR,target=/data/caddy
-  -v ./Caddyfile:/etc/caddy/Caddyfile
+  -v $PWD/Caddyfile:/etc/caddy/Caddyfile
   -e "DNSPOD_TOKEN=$PROXY_CADDY_DNSPOD_TOKEN"
   -e "CF_API_TOKEN=$PROXY_CADDY_CLOUDFLARE_API_TOKEN"
 )
@@ -125,7 +125,13 @@ if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
 fi
 
 if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
-  ${PODLET_RUN[@]} --install --wanted-by default.target --wants network-online.target --after network-online.target \
+  PODLET_OPTIONS=(--install --wanted-by default.target --wants network-online.target --after network-online.target)
+  for network in ${CADDY_NETWORK[@]}; do
+    if [[ -e "$HOME/.config/containers/systemd/$network.network" ]]; then
+      PODLET_OPTIONS+=(--after "$network-network.service" --wants "$network-network.service")
+    fi
+  done
+  ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
     podman run -d --name proxy-caddy --security-opt label=disable \
     ${PODMAN_COMMON_OPTIONS[@]} "${CADDY_OPTIONS[@]}" \
     $CADDY_IMAGE_URL | tee -p "$SYSTEMD_CONTAINER_DIR/proxy-caddy.container"

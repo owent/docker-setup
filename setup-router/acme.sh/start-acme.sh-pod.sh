@@ -20,9 +20,13 @@ mkdir -p "$ACMESH_SSL_DIR"
 
 if [[ "root" == "$(id -un)" ]]; then
   SYSTEMD_SERVICE_DIR=/lib/systemd/system
+  SYSTEMD_CONTAINER_DIR=/etc/containers/systemd/
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
 else
   SYSTEMD_SERVICE_DIR="$HOME/.config/systemd/user"
+  SYSTEMD_CONTAINER_DIR="$HOME/.config/containers/systemd"
   mkdir -p "$SYSTEMD_SERVICE_DIR"
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
 fi
 
 if [[ "x$ACMESH_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
@@ -58,30 +62,53 @@ if [[ $? -eq 0 ]]; then
   podman rm -f acme.sh
 fi
 
-if [[ "x$RCLONE_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+PODLET_IMAGE_URL="ghcr.io/containers/podlet:latest"
+PODLET_RUN=($(which podlet 2>/dev/null))
+FIND_PODLET_RESULT=$?
+if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+  (podman image inspect "$PODLET_IMAGE_URL" > /dev/null 2>&1 || podman pull "$PODLET_IMAGE_URL") && FIND_PODLET_RESULT=0 && PODLET_RUN=(podman run --rm "$PODLET_IMAGE_URL")
+fi
+
+if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
+  PODLET_OPTIONS=(--install --wanted-by default.target --wants network-online.target --after network-online.target)
+  for network in ${ACMESH_NETWORK[@]}; do
+    if [[ -e "$HOME/.config/containers/systemd/$network.network" ]]; then
+      PODLET_OPTIONS+=(--after "$network-network.service" --wants "$network-network.service")
+    fi
+  done
+  ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
+    podman run -d --name acme.sh --security-opt label=disable \
+      --mount type=bind,source=$ACMESH_SSL_DIR,target=/acme.sh \
+      --network=host \
+      docker.io/neilpang/acme.sh:latest daemon | tee -p "$SYSTEMD_CONTAINER_DIR/acme.sh.container"
+else
+  podman run -d --name acme.sh --security-opt label=disable \
+    --mount type=bind,source=$ACMESH_SSL_DIR,target=/acme.sh \
+    --network=host \
+    docker.io/neilpang/acme.sh:latest daemon
+  podman generate systemd acme.sh | tee -p "$SYSTEMD_SERVICE_DIR/acme.sh.service"
+  podman container stop acme.sh
+fi
+
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  systemctl daemon-reload
+else
+  systemctl --user daemon-reload
+fi
+
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl enable acme.sh.service
+  fi
+  systemctl start acme.sh.service
+else
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl --user enable acme.sh.service
+  fi
+  systemctl --user start acme.sh.service
+fi
+
+if [[ "x$ACMESH_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman image prune -a -f --filter "until=240h"
 fi
 
-podman run -d --name acme.sh --security-opt label=disable \
-  --mount type=bind,source=$ACMESH_SSL_DIR,target=/acme.sh \
-  --network=host \
-  docker.io/neilpang/acme.sh:latest daemon
-
-# Some system with old slirp4netns do not work, debian 10 for example, so we use --network=host here
-# -p 80:80/tcp -p 80:80/udp -p 443:443/tcp -p 443:443/udp                                    \
-if [[ $? -ne 0 ]]; then
-  exit $?
-fi
-
-podman generate systemd acme.sh | tee -p "$SYSTEMD_SERVICE_DIR/acme.sh.service"
-podman container stop acme.sh
-
-if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
-  systemctl enable acme.sh.service
-  systemctl daemon-reload
-  systemctl start acme.sh.service
-else
-  systemctl --user enable "$SYSTEMD_SERVICE_DIR/acme.sh.service"
-  systemctl --user daemon-reload
-  systemctl --user start acme.sh.service
-fi

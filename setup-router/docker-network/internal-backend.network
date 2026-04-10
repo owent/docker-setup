@@ -1,0 +1,19 @@
+# ~/.config/containers/systemd/internal-backend.network
+
+[Unit]
+Description=Internal Backend Network
+
+[Network]
+NetworkName=internal-backend
+Driver=bridge
+IPAMDriver=host-local
+
+IPv6=true
+Subnet=fd02:0:0:2::/64
+Gateway=fd02:0:0:2::1
+Subnet=10.92.0.0/16
+Gateway=10.92.0.1
+
+
+[Install]
+WantedBy=default.target

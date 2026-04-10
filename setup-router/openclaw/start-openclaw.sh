@@ -485,7 +485,13 @@ if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
 fi
 
 if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
-  ${PODLET_RUN[@]} --install --wanted-by default.target --wants network-online.target --after network-online.target \
+  PODLET_OPTIONS=(--install --wanted-by default.target --wants network-online.target --after network-online.target)
+  for network in ${OPENCLAW_NETWORK[@]}; do
+    if [[ -e "$HOME/.config/containers/systemd/$network.network" ]]; then
+      PODLET_OPTIONS+=(--after "$network-network.service" --wants "$network-network.service")
+    fi
+  done
+  ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
     podman run -d --name openclaw --security-opt label=disable --user root \
     "${OPENCLAW_ENV[@]}" "${OPENCLAW_OPTIONS[@]}" \
     localhost/local_openclaw:latest \

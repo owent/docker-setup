@@ -58,11 +58,22 @@ if [[ -z "$ADGUARD_HOME_RESOLV_CONF" ]]; then
   fi
 fi
 
-systemctl --user --all | grep -F container-adguard-home.service
+if [[ "root" == "$(id -un)" ]]; then
+  SYSTEMD_SERVICE_DIR=/lib/systemd/system
+  SYSTEMD_CONTAINER_DIR=/etc/containers/systemd/
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
+else
+  SYSTEMD_SERVICE_DIR="$HOME/.config/systemd/user"
+  SYSTEMD_CONTAINER_DIR="$HOME/.config/containers/systemd"
+  mkdir -p "$SYSTEMD_SERVICE_DIR"
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
+fi
+
+systemctl --user --all | grep -F adguard-home.service
 
 if [[ $? -eq 0 ]]; then
-  systemctl --user stop container-adguard-home
-  systemctl --user disable container-adguard-home
+  systemctl --user stop adguard-home
+  systemctl --user disable adguard-home
 fi
 
 $DOCKER_EXEC container exists adguardhome >/dev/null 2>&1
@@ -104,18 +115,50 @@ if [[ ! -z "$ADGUARD_HOME_RUN_USER" ]]; then
   ADGUARD_HOME_OPTIONS+=("--user=$ADGUARD_HOME_RUN_USER")
 fi
 
-$DOCKER_EXEC run -d --name adguardhome --security-opt label=disable \
-  "${ADGUARD_HOME_OPTIONS[@]}" \
-  $ADGUARD_HOME_IMAGE
-
-if [[ $? -ne 0 ]]; then
-  echo "Error: Unable to start adguardhome container"
-  exit 1
+PODLET_IMAGE_URL="ghcr.io/containers/podlet:latest"
+PODLET_RUN=($(which podlet 2>/dev/null))
+FIND_PODLET_RESULT=$?
+if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+  (podman image inspect "$PODLET_IMAGE_URL" > /dev/null 2>&1 || podman pull "$PODLET_IMAGE_URL") && FIND_PODLET_RESULT=0 && PODLET_RUN=(podman run --rm "$PODLET_IMAGE_URL")
 fi
 
-$DOCKER_EXEC stop adguardhome
+if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
+  PODLET_OPTIONS=(--install --wanted-by default.target --wants network-online.target --after network-online.target)
+  for network in ${ADGUARD_HOME_NETWORK[@]}; do
+    if [[ -e "$HOME/.config/containers/systemd/$network.network" ]]; then
+      PODLET_OPTIONS+=(--after "$network-network.service" --wants "$network-network.service")
+    fi
+  done
+  ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
+    $DOCKER_EXEC run -d --name adguardhome --security-opt label=disable \
+      "${ADGUARD_HOME_OPTIONS[@]}" \
+      $ADGUARD_HOME_IMAGE | tee -p "$SYSTEMD_CONTAINER_DIR/adguard-home.container"
+else
+  $DOCKER_EXEC run -d --name adguardhome --security-opt label=disable \
+    "${ADGUARD_HOME_OPTIONS[@]}" \
+    $ADGUARD_HOME_IMAGE
+  podman generate systemd adguard-home | tee -p "$SYSTEMD_SERVICE_DIR/adguard-home.service"
+  podman container stop adguard-home
+fi
 
-$DOCKER_EXEC generate systemd --name adguardhome | tee $ADGUARD_HOME_ETC_DIR/container-adguard-home.service
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  systemctl daemon-reload
+else
+  systemctl --user daemon-reload
+fi
 
-systemctl --user enable $ADGUARD_HOME_ETC_DIR/container-adguard-home.service
-systemctl --user restart container-adguard-home
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl enable adguard-home.service
+  fi
+  systemctl start adguard-home.service
+else
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl --user enable adguard-home.service
+  fi
+  systemctl --user start adguard-home.service
+fi
+
+if [[ "x$ADGUARD_HOME_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman image prune -a -f --filter "until=240h"
+fi

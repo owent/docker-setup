@@ -58,11 +58,22 @@ if [[ -z "$UNBOUND_RESOLV_CONF" ]]; then
   fi
 fi
 
-systemctl --user --all | grep -F container-unbound.service
+if [[ "root" == "$(id -un)" ]]; then
+  SYSTEMD_SERVICE_DIR=/lib/systemd/system
+  SYSTEMD_CONTAINER_DIR=/etc/containers/systemd/
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
+else
+  SYSTEMD_SERVICE_DIR="$HOME/.config/systemd/user"
+  SYSTEMD_CONTAINER_DIR="$HOME/.config/containers/systemd"
+  mkdir -p "$SYSTEMD_SERVICE_DIR"
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
+fi
+
+systemctl --user --all | grep -F unbound.service
 
 if [[ $? -eq 0 ]]; then
-  systemctl --user stop container-unbound
-  systemctl --user disable container-unbound
+  systemctl --user stop unbound
+  systemctl --user disable unbound
 fi
 
 $DOCKER_EXEC container exists unbound >/dev/null 2>&1
@@ -104,18 +115,50 @@ if [[ ! -z "$UNBOUND_RUN_USER" ]]; then
   UNBOUND_OPTIONS+=("--user=$UNBOUND_RUN_USER")
 fi
 
-$DOCKER_EXEC run -d --name unbound --security-opt label=disable \
-  "${UNBOUND_OPTIONS[@]}" \
-  $UNBOUND_IMAGE
-
-if [[ $? -ne 0 ]]; then
-  echo "Error: Unable to start unbound container"
-  exit 1
+PODLET_IMAGE_URL="ghcr.io/containers/podlet:latest"
+PODLET_RUN=($(which podlet 2>/dev/null))
+FIND_PODLET_RESULT=$?
+if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+  (podman image inspect "$PODLET_IMAGE_URL" > /dev/null 2>&1 || podman pull "$PODLET_IMAGE_URL") && FIND_PODLET_RESULT=0 && PODLET_RUN=(podman run --rm "$PODLET_IMAGE_URL")
 fi
 
-$DOCKER_EXEC stop unbound
+if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
+  PODLET_OPTIONS=(--install --wanted-by default.target --wants network-online.target --after network-online.target)
+  for network in ${UNBOUND_NETWORK[@]}; do
+    if [[ -e "$HOME/.config/containers/systemd/$network.network" ]]; then
+      PODLET_OPTIONS+=(--after "$network-network.service" --wants "$network-network.service")
+    fi
+  done
+  ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
+    $DOCKER_EXEC run -d --name unbound --security-opt label=disable \
+      "${UNBOUND_OPTIONS[@]}" \
+      $UNBOUND_IMAGE | tee -p "$SYSTEMD_CONTAINER_DIR/unbound.container"
+else
+  $DOCKER_EXEC run -d --name unbound --security-opt label=disable \
+    "${UNBOUND_OPTIONS[@]}" \
+    $UNBOUND_IMAGE
+  podman generate systemd unbound | tee -p "$SYSTEMD_SERVICE_DIR/unbound.service"
+  podman container stop unbound
+fi
 
-$DOCKER_EXEC generate systemd --name unbound | tee $UNBOUND_ETC_DIR/container-unbound.service
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  systemctl daemon-reload
+else
+  systemctl --user daemon-reload
+fi
 
-systemctl --user enable $UNBOUND_ETC_DIR/container-unbound.service
-systemctl --user restart container-unbound
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl enable unbound.service
+  fi
+  systemctl start unbound.service
+else
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl --user enable unbound.service
+  fi
+  systemctl --user start unbound.service
+fi
+
+if [[ "x$UNBOUND_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman image prune -a -f --filter "until=240h"
+fi

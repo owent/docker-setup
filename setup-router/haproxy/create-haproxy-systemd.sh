@@ -38,11 +38,22 @@ if [[ "x$HAPROXY_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman pull $HAPROXY_IMAGE
 fi
 
-systemctl --user --all | grep -F container-haproxy.service
+if [[ "root" == "$(id -un)" ]]; then
+  SYSTEMD_SERVICE_DIR=/lib/systemd/system
+  SYSTEMD_CONTAINER_DIR=/etc/containers/systemd/
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
+else
+  SYSTEMD_SERVICE_DIR="$HOME/.config/systemd/user"
+  SYSTEMD_CONTAINER_DIR="$HOME/.config/containers/systemd"
+  mkdir -p "$SYSTEMD_SERVICE_DIR"
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
+fi
+
+systemctl --user --all | grep -F haproxy.service
 
 if [[ $? -eq 0 ]]; then
-  systemctl --user stop container-haproxy
-  systemctl --user disable container-haproxy
+  systemctl --user stop haproxy
+  systemctl --user disable haproxy
 fi
 
 podman container exists haproxy >/dev/null 2>&1
@@ -85,20 +96,55 @@ if [[ ! -z "$HAPROXY_RUN_USER" ]]; then
   HAPROXY_OPTIONS+=("--user=$HAPROXY_RUN_USER")
 fi
 
-podman run -d --name haproxy --security-opt label=disable \
-  "${HAPROXY_OPTIONS[@]}" \
-  $HAPROXY_IMAGE \
-  haproxy -f /etc/haproxy/haproxy.cfg
+PODLET_IMAGE_URL="ghcr.io/containers/podlet:latest"
+PODLET_RUN=($(which podlet 2>/dev/null))
+FIND_PODLET_RESULT=$?
+if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+  (podman image inspect "$PODLET_IMAGE_URL" > /dev/null 2>&1 || podman pull "$PODLET_IMAGE_URL") && FIND_PODLET_RESULT=0 && PODLET_RUN=(podman run --rm "$PODLET_IMAGE_URL")
+fi
 
-if [[ $? -ne 0 ]]; then
-  echo "Error: Unable to start haproxy container"
-  exit 1
+if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
+  PODLET_OPTIONS=(--install --wanted-by default.target --wants network-online.target --after network-online.target)
+  for network in ${HAPROXY_NETWORK[@]}; do
+    if [[ -e "$HOME/.config/containers/systemd/$network.network" ]]; then
+      PODLET_OPTIONS+=(--after "$network-network.service" --wants "$network-network.service")
+    fi
+  done
+  ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
+    podman run -d --name haproxy --security-opt label=disable \
+      "${HAPROXY_OPTIONS[@]}" \
+      $HAPROXY_IMAGE \
+      haproxy -f /etc/haproxy/haproxy.cfg | tee -p "$SYSTEMD_CONTAINER_DIR/haproxy.container"
+else
+  podman run -d --name haproxy --security-opt label=disable \
+        "${HAPROXY_OPTIONS[@]}" \
+        $HAPROXY_IMAGE \
+        haproxy -f /etc/haproxy/haproxy.cfg
+  podman generate systemd haproxy | tee -p "$SYSTEMD_SERVICE_DIR/haproxy.service"
+  podman container stop haproxy
+fi
+
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  systemctl daemon-reload
+else
+  systemctl --user daemon-reload
+fi
+
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl enable haproxy.service
+  fi
+  systemctl start haproxy.service
+else
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl --user enable haproxy.service
+  fi
+  systemctl --user start haproxy.service
 fi
 
 podman exec --user root haproxy /bin/sh -c 'chmod 777 -R /var/run/haproxy /var/lib/haproxy'
-podman stop haproxy
 
-podman generate systemd --name haproxy | tee $HAPROXY_ETC_DIR/container-haproxy.service
+if [[ "x$HAPROXY_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman image prune -a -f --filter "until=240h"
+fi
 
-systemctl --user enable $HAPROXY_ETC_DIR/container-haproxy.service
-systemctl --user restart container-haproxy

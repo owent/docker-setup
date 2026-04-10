@@ -101,6 +101,17 @@ if [[ -e "/dev/video12" ]]; then
   EMBY_DOCKER_OPTIONS=(${EMBY_DOCKER_OPTIONS[@]} "--device=/dev/video12:/dev/video12")
 fi
 
+if [[ "root" == "$(id -un)" ]]; then
+  SYSTEMD_SERVICE_DIR=/lib/systemd/system
+  SYSTEMD_CONTAINER_DIR=/etc/containers/systemd/
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
+else
+  SYSTEMD_SERVICE_DIR="$HOME/.config/systemd/user"
+  SYSTEMD_CONTAINER_DIR="$HOME/.config/containers/systemd"
+  mkdir -p "$SYSTEMD_SERVICE_DIR"
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
+fi
+
 if [[ "x$EMBY_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman image pull $EMBY_DOCKER_IMAGE
 fi
@@ -131,29 +142,53 @@ if [[ $? -eq 0 ]]; then
   podman rm -f emby-server
 fi
 
-if [[ "x$EMBY_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-  podman image prune -a -f --filter "until=240h"
-fi
-
 # --network=host is required for DLNA and Wake-on-Lan
-podman run --network=host --name emby-server -d \
-  --security-opt label=disable \
-  ${EMBY_DOCKER_OPTIONS[@]} \
-  $EMBY_DOCKER_IMAGE
-
-if [[ 0 -ne $? ]]; then
-  exit $?
+PODLET_IMAGE_URL="ghcr.io/containers/podlet:latest"
+PODLET_RUN=($(which podlet 2>/dev/null))
+FIND_PODLET_RESULT=$?
+if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+  (podman image inspect "$PODLET_IMAGE_URL" > /dev/null 2>&1 || podman pull "$PODLET_IMAGE_URL") && FIND_PODLET_RESULT=0 && PODLET_RUN=(podman run --rm "$PODLET_IMAGE_URL")
 fi
 
-podman generate systemd emby-server | tee "$SYSTEMD_SERVICE_DIR/emby-server.service"
-podman stop emby-server
+if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
+  PODLET_OPTIONS=(--install --wanted-by default.target --wants network-online.target --after network-online.target)
+  for network in ${EMBY_NETWORK[@]}; do
+    if [[ -e "$HOME/.config/containers/systemd/$network.network" ]]; then
+      PODLET_OPTIONS+=(--after "$network-network.service" --wants "$network-network.service")
+    fi
+  done
+  ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
+    podman run --network=host --name emby-server -d \
+      --security-opt label=disable \
+      ${EMBY_DOCKER_OPTIONS[@]} \
+      $EMBY_DOCKER_IMAGE | tee -p "$SYSTEMD_CONTAINER_DIR/emby-server.container"
+else
+  podman run --network=host --name emby-server -d \
+    --security-opt label=disable \
+    ${EMBY_DOCKER_OPTIONS[@]} \
+    $EMBY_DOCKER_IMAGE
+  podman generate systemd emby-server | tee -p "$SYSTEMD_SERVICE_DIR/emby-server.service"
+  podman container stop emby-server
+fi
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
   systemctl daemon-reload
-  systemctl enable emby-server.service
-  systemctl start emby-server.service
 else
   systemctl --user daemon-reload
-  systemctl --user enable "$SYSTEMD_SERVICE_DIR/emby-server.service"
+fi
+
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl enable emby-server.service
+  fi
+  systemctl start emby-server.service
+else
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl --user enable emby-server.service
+  fi
   systemctl --user start emby-server.service
+fi
+
+if [[ "x$EMBY_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman image prune -a -f --filter "until=240h"
 fi

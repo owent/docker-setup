@@ -1,0 +1,19 @@
+# ~/.config/containers/systemd/internal-frontend.network
+
+[Unit]
+Description=Internal Frontend Network
+
+[Network]
+NetworkName=internal-frontend
+Driver=bridge
+IPAMDriver=host-local
+
+IPv6=true
+Subnet=fd02:0:0:1::/64
+Gateway=fd02:0:0:1::1
+Subnet=10.91.0.0/16
+Gateway=10.91.0.1
+
+
+[Install]
+WantedBy=default.target

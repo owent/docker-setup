@@ -112,7 +112,13 @@ if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
 fi
 
 if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
-  ${PODLET_RUN[@]} --install --wanted-by default.target --wants network-online.target --after network-online.target \
+  PODLET_OPTIONS=(--install --wanted-by default.target --wants network-online.target --after network-online.target)
+  for network in ${P4D_NETWORK[@]}; do
+    if [[ -e "$HOME/.config/containers/systemd/$network.network" ]]; then
+      PODLET_OPTIONS+=(--after "$network-network.service" --wants "$network-network.service")
+    fi
+  done
+  ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
     podman run -d --name $P4D_POD_NAME --security-opt label=disable \
     "${P4D_OPTIONS[@]}" $P4D_IMAGE \
       | tee -p "$SYSTEMD_CONTAINER_DIR/container-$P4D_POD_NAME.container"

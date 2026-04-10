@@ -89,7 +89,7 @@ mkdir -p "$ARIA2_DATA_ROOT"
 CADDY_OPTIONS=(
   --mount type=bind,source=$ACMESH_SSL_DIR,target=/data/ssl,ro=true
   --mount type=bind,source=$ROUTER_LOG_ROOT_DIR/caddy,target=/var/log/caddy
-  -v ./Caddyfile:/etc/caddy/Caddyfile
+  -v $PWD/Caddyfile:/etc/caddy/Caddyfile
   "--mount" "type=bind,source=$ARIA2_DATA_ROOT,target=/data/website/html/downloads"
 )
 
@@ -128,7 +128,13 @@ if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
 fi
 
 if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
-  ${PODLET_RUN[@]} --install --wanted-by default.target --wants network-online.target --after network-online.target \
+  PODLET_OPTIONS=(--install --wanted-by default.target --wants network-online.target --after network-online.target)
+  for network in ${CADDY_NETWORK[@]}; do
+    if [[ -e "$HOME/.config/containers/systemd/$network.network" ]]; then
+      PODLET_OPTIONS+=(--after "$network-network.service" --wants "$network-network.service")
+    fi
+  done
+  ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
     podman run -d --name router-caddy --security-opt label=disable \
     ${CADDY_OPTIONS[@]} \
     $CADDY_IMAGE_URL | tee -p "$SYSTEMD_CONTAINER_DIR/router-caddy.container"
