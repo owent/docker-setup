@@ -1,0 +1,18 @@
+[Unit]
+Description=SD Wan - hk1
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+ExecStart=/data/sdwan/linux_sdwand_x86 -f /data/sdwan/etc/iwan.conf -l /data/sdwan/log/iwan.log
+ExecStartPost=/bin/bash /data/sdwan/setup-sdwan-route.sh
+ExecStopPost=/bin/bash /data/sdwan/cleanup-sdwan-route.sh clear
+PIDFile=/data/sdwan/sdwan.pid
+Type=forking
+Restart=on-failure
+RestartSec=10
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target

@@ -158,8 +158,13 @@ function update_geo_services() {
     systemctl restart dnsmasq
   fi
 
-  if [ -e "$ROUTER_HOME/smartdns/merge-configure.sh" ] && [ $TPROXY_SETUP_SMARTDNS -ne 0 ]; then
-    bash "$ROUTER_HOME/smartdns/merge-configure.sh"
+  if [ $TPROXY_SETUP_SMARTDNS -ne 0 ]; then
+    mkdir -p "$SMARTDNS_ETC_DIR/generated.d"
+    if [ -e "smartdns-blacklist.conf" ]; then
+      cp -f smartdns-blacklist.conf "$SMARTDNS_ETC_DIR/generated.d/50-smartdns-blacklist.conf"
+    else
+      rm -f "$SMARTDNS_ETC_DIR/generated.d/50-smartdns-blacklist.conf"
+    fi
     IPSET_FLUSH_GFW_LIST=1
     systemctl restart smartdns
   fi

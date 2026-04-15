@@ -34,6 +34,13 @@ if [ $ROUTER_NET_LOCAL_ENABLE_VBOX -ne 0 ]; then
     ROUTER_NET_LOCAL_NFTABLE_NAME="$ROUTER_NET_LOCAL_NFTABLE_NAME,vbox:inet:bridge"
   fi
 fi
+if [ $ROUTER_NET_LOCAL_ENABLE_SDWAN -ne 0 ]; then
+  if [[ -z "$ROUTER_NET_LOCAL_NFTABLE_NAME" ]]; then
+    ROUTER_NET_LOCAL_NFTABLE_NAME="sdwan:inet:bridge"
+  else
+    ROUTER_NET_LOCAL_NFTABLE_NAME="$ROUTER_NET_LOCAL_NFTABLE_NAME,sdwan:inet:bridge"
+  fi
+fi
 if [ $ROUTER_NET_LOCAL_ENABLE_NAT -ne 0 ]; then
   if [[ -z "$ROUTER_NET_LOCAL_NFTABLE_NAME" ]]; then
     ROUTER_NET_LOCAL_NFTABLE_NAME="nat:ip:ip6"

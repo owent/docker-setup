@@ -1,0 +1,12 @@
+# Rename this file to *.conf after adjusting the table/set names below.
+#
+# Before enabling this example:
+#   1. Create timeout-capable nft sets in advance (one IPv4 set and one IPv6 set).
+#   2. Put one domain per line into:
+#        /etc/smartdns/domain-set.d/proxy-domain.list
+#   3. Update the table/set names in the rule below to match your nftables layout.
+#
+# domain-set -name proxy_domain -file /etc/smartdns/domain-set.d/proxy-domain.list
+# nftset-timeout yes
+# domain-rules /domain-set:proxy_domain/ -speed-check-mode none \
+#   -nftset #4:inet#sdwan#PROXY_FAST_IPV4,#6:inet#sdwan#PROXY_FAST_IPV6

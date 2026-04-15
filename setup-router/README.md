@@ -685,11 +685,34 @@ location = "mirror.ccs.tencentyun.com"
 
 ### 公共镜像站
 
++ <docker.xuanyuan.me>
 + <mirror.ccs.tencentyun.com> (仅腾讯云内网)
 + <docker.m.daocloud.io> (部分)
 + <docker.1ms.run>
-+ <docker.xuanyuan.me>
 + <docker.hlmirror.com>
+
+## 容器网络
+
+### 自动创建 inet netavark 或 NETAVARK_FORWARD 策略和自定义策略冲突
+
+Podman 4.0+ 的默认会给 `sudo podman run` 且使用 Netavark 作为网络后端时增加 nftable/iptable netavark 策略。
+可能导致和自定义策略冲突，可用过修改 `/etc/containers/containers.conf`, 以下配置关闭（不影响端口转发，只是关掉防火墙）:
+
+```toml
+[network]
+firewall_driver = "none"
+```
+
+附清理脚本
+
+```bash
+# 清理 nftables 规则
+sudo nft flush table inet netavark
+sudo nft delete table inet netavark
+# 清理 iptables 规则
+sudo iptables -F NETAVARK_FORWARD
+sudo iptables -X NETAVARK_FORWARD
+```
 
 ## Podman/docker 存储设置
 

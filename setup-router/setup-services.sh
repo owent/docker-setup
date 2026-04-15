@@ -59,7 +59,7 @@ fi
 
 # Smartdns
 if [ $SMARTDNS_ENABLE -ne 0 ]; then
-  su "$SCRIPT_DIR/smartdns/create-smartdns-pod.sh" - tools
+  /bin/bash "$SCRIPT_DIR/dns/create-smartdns-systemd.sh"
 fi
 
 if [[ "x$ROUTER_CONFIG_ON_FINISH_RUN" != "x" ]]; then

@@ -1,0 +1,4 @@
+# One domain per line.
+# *.example.com
+# api.example.net
+# -.example.org

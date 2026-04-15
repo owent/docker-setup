@@ -44,6 +44,7 @@ fi
 ## - 224.0.0.0/4 - 多播地址（224.0.0.0-239.255.255.255）
 ## - 240.0.0.0/4 - 保留地址
 ##   - 255.255.255.255/32 - 广播地址
+## - (额外备注): 运营商内网（CGNAT）地址: 100.64.0.0/10 (100.64.0.0 - 100.127.255.255)
 IPV4_TUN_ADDRESS_SET=(
   1.0.0.0/8 2.0.0.0/7 4.0.0.0/6 8.0.0.0/7 11.0.0.0/8 12.0.0.0/6 16.0.0.0/4 32.0.0.0/3
   64.0.0.0/3 96.0.0.0/4 112.0.0.0/5 120.0.0.0/6 124.0.0.0/7 126.0.0.0/8 128.0.0.0/3
@@ -105,9 +106,9 @@ if [[ -z "$VBOX_TUN_PROXY_BLACKLIST_IFNAME" ]]; then
 fi
 
 if [[ $ROUTER_NET_LOCAL_ENABLE_VBOX -ne 0 ]] && [[ "x$1" != "xclear" ]]; then
-  VBOX_SETUP_IP_RULE_CLEAR=1
-else
   VBOX_SETUP_IP_RULE_CLEAR=0
+else
+  VBOX_SETUP_IP_RULE_CLEAR=1
 fi
 
 function vbox_patch_configure() {
@@ -624,10 +625,6 @@ table $FAMILY $TABLE {
     meta mark and 0xf != 0x0 ct mark and 0xf == 0x0 ct mark set meta mark accept
     meta mark and 0xf != 0x0 accept
     ct mark and 0xf != 0x0 meta mark set ct mark accept
-    # 只要有 0xc 标记的包都直接走默认路由,vbox出口设置 0xf, 包含 0xc
-    meta mark and 0xc == 0xc jump POLICY_PACKET_GOTO_DEFAULT
-    # 只要有 0x3 标记的包都走 tun, vbox出口设置 0xf, 包含 0x3, 但不能走PROXY链，防止循环重定向
-    meta mark and 0xf == 0x3 jump POLICY_PACKET_GOTO_PROXY
 
     ### skip internal services
     meta l4proto != { tcp, udp } jump POLICY_MARK_GOTO_DEFAULT
@@ -714,7 +711,7 @@ table bridge vbox {
 EOF
 }
 
-if [ $VBOX_SETUP_IP_RULE_CLEAR -ne 0 ]; then
+if [ $VBOX_SETUP_IP_RULE_CLEAR -eq 0 ]; then
   vbox_patch_configure
   vbox_clear_ip_rules "-4" "-6"
   vbox_initialize_rule_table inet vbox

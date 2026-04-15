@@ -2,7 +2,7 @@
 
 #### ========== debug ==========
 #### Use nft monitor trace to see the packet trace
-DEBUG_WATCH_IPV4_DADDR=()
+DEBUG_WATCH_IPV4_DADDR=(199.59.149.203)
 DEBUG_WATCH_IPV4_SADDR=(${DEBUG_WATCH_IPV4_DADDR[@]})
 
 DEBUG_WATCH_IPV6_DADDR=() #(2402:4e00:: 2400:3200:baba::1)
@@ -212,6 +212,14 @@ setup_debug_trace_rule_with_ports nft add rule ip debug OUTPUT ip daddr @WATCH_T
 nft add rule ip debug OUTPUT mark and 0x70 == 0x70 return
 nft add rule ip debug OUTPUT ip daddr @WATCH_TPROXY_IPV4_ADDR mark and 0x1f != 0x1e meta l4proto {tcp, udp} mark set mark and 0xffffffe0 xor 0x1e return
 
+nft list chain ip debug POSTROUTING_AFTER_SNAT >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add chain ip debug POSTROUTING_AFTER_SNAT { type filter hook postrouting priority srcnat + 10 \; }
+fi
+nft flush chain ip debug POSTROUTING_AFTER_SNAT
+setup_debug_trace_rule_with_ports nft add rule ip debug POSTROUTING_AFTER_SNAT ip saddr @WATCH_IPV4_SADDR
+setup_debug_trace_rule_with_ports nft add rule ip debug POSTROUTING_AFTER_SNAT ip daddr @WATCH_IPV4_DADDR
+
 nft list chain ip6 debug OUTPUT >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   nft add chain ip6 debug OUTPUT { type route hook output priority filter + 1 \; }
@@ -221,6 +229,14 @@ nft flush chain ip6 debug OUTPUT
 setup_debug_trace_rule_with_ports nft add rule ip6 debug OUTPUT ip6 daddr @WATCH_TPROXY_IPV6_ADDR
 nft add rule ip6 debug OUTPUT mark and 0x70 == 0x70 return
 nft add rule ip6 debug OUTPUT ip6 daddr @WATCH_TPROXY_IPV6_ADDR mark and 0x1f != 0x1e meta l4proto {tcp, udp} mark set mark and 0xffffffe0 xor 0x1e return
+
+nft list chain ip6 debug POSTROUTING_AFTER_SNAT >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+  nft add chain ip6 debug POSTROUTING_AFTER_SNAT { type filter hook postrouting priority srcnat + 10 \; }
+fi
+nft flush chain ip6 debug POSTROUTING_AFTER_SNAT
+setup_debug_trace_rule_with_ports nft add rule ip6 debug POSTROUTING_AFTER_SNAT ip6 saddr @WATCH_IPV6_SADDR
+setup_debug_trace_rule_with_ports nft add rule ip6 debug POSTROUTING_AFTER_SNAT ip6 daddr @WATCH_IPV6_DADDR
 
 nft list chain inet debug INPUT >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
