@@ -363,8 +363,10 @@ function sdwan_setup_ip_rules() {
       # Add ip to DEFAULT_ROUTE_IPV4/DEFAULT_ROUTE_IPV6
       if [[ "$IP_FAMILY" == "-6" ]]; then
         nft add element $FAMILY $TABLE DEFAULT_ROUTE_IPV6 { "$SDWAN_TUN_IP_ADDR" } >/dev/null 2>&1 || true
+        nft add element bridge $TABLE DEFAULT_ROUTE_IPV6 { "$SDWAN_TUN_IP_ADDR" } >/dev/null 2>&1 || true
       else
         nft add element $FAMILY $TABLE DEFAULT_ROUTE_IPV4 { "$SDWAN_TUN_IP_ADDR" } >/dev/null 2>&1 || true
+        nft add element bridge $TABLE DEFAULT_ROUTE_IPV4 { "$SDWAN_TUN_IP_ADDR" } >/dev/null 2>&1 || true
       fi
 
       sdwan_flush_route_table_if_exists "$IP_FAMILY" "$SDWAN_TUN_PROXY_CHANNEL_TABLE_ID"
@@ -408,6 +410,33 @@ function sdwan_setup_rule_marks() {
   FAMILY="$1"
   TABLE="$2"
 
+  if [[ "$FAMILY" == "bridge" ]]; then
+    POLICY_PACKET_GOTO_RULES=$(cat <<'EOF'
+    meta broute set 1
+    accept
+EOF
+)
+
+    nft flush chain $FAMILY $TABLE POLICY_PACKET_GOTO_DEFAULT >/dev/null 2>&1
+
+    TABLE_CONTENT=$(cat <<EOF
+table $FAMILY $TABLE {
+  chain POLICY_PACKET_GOTO_DEFAULT {
+$POLICY_PACKET_GOTO_RULES
+  }
+}
+EOF
+)
+
+    printf '%s\n' "$TABLE_CONTENT" | nft -f -
+    return 0
+  else
+    POLICY_PACKET_GOTO_RULES=$(cat <<'EOF'
+    accept
+EOF
+)
+  fi
+
   # 如果以后要支持TPROXY，可以改POLICY_PACKET_GOTO_PROXY链即可
   nft flush chain $FAMILY $TABLE POLICY_PACKET_GOTO_DEFAULT >/dev/null 2>&1
   nft flush chain $FAMILY $TABLE POLICY_MARK_GOTO_DEFAULT >/dev/null 2>&1
@@ -419,7 +448,7 @@ function sdwan_setup_rule_marks() {
   TABLE_CONTENT=$(cat <<EOF
 table $FAMILY $TABLE {
   chain POLICY_PACKET_GOTO_DEFAULT {
-    accept
+$POLICY_PACKET_GOTO_RULES
   }
 
   chain POLICY_MARK_GOTO_DEFAULT {
@@ -429,7 +458,7 @@ table $FAMILY $TABLE {
   }
 
   chain POLICY_PACKET_GOTO_PROXY {
-    accept
+$POLICY_PACKET_GOTO_RULES
   }
 EOF
 )
@@ -499,6 +528,52 @@ function sdwan_initialize_rule_table_ipv4() {
   FAMILY="$1"
   TABLE="$2"
 
+  if [[ "$FAMILY" == "bridge" ]]; then
+    LOCAL_IPV4_EXISTS=0
+    DEFAULT_ROUTE_IPV4_EXISTS=0
+    nft list set $FAMILY $TABLE LOCAL_IPV4 >/dev/null 2>&1 && LOCAL_IPV4_EXISTS=1
+    nft list set $FAMILY $TABLE DEFAULT_ROUTE_IPV4 >/dev/null 2>&1 && DEFAULT_ROUTE_IPV4_EXISTS=1
+
+    nft flush chain $FAMILY $TABLE POLICY_SDWAN_IPV4 >/dev/null 2>&1
+
+    nft -f - <<EOF
+table $FAMILY $TABLE {
+$(if [[ $LOCAL_IPV4_EXISTS -eq 0 ]]; then
+cat <<INNER_EOF
+  set LOCAL_IPV4 {
+    type ipv4_addr
+    flags interval
+    auto-merge
+    elements = { 0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16, 172.16.0.0/12, 192.0.0.0/24, 192.168.0.0/16, 224.0.0.0/4, 240.0.0.0/4 }
+  }
+INNER_EOF
+fi)
+$(if [[ $DEFAULT_ROUTE_IPV4_EXISTS -eq 0 ]]; then
+cat <<INNER_EOF
+  set DEFAULT_ROUTE_IPV4 {
+    type ipv4_addr
+    flags interval
+    auto-merge
+  }
+INNER_EOF
+fi)
+
+  chain POLICY_SDWAN_IPV4 {
+    # bridge path - keep local/private IPv4 traffic on the bridge.
+    ip daddr @LOCAL_IPV4 return
+
+    # bridge path - services bound to SD-WAN interface addresses do not need broute.
+    ip daddr @DEFAULT_ROUTE_IPV4 tcp dport @LOCAL_SERVICE_PORT_TCP return
+    ip daddr @DEFAULT_ROUTE_IPV4 udp dport @LOCAL_SERVICE_PORT_UDP return
+
+    # bridge path - route remaining public IPv4 traffic through inet/ip rules.
+    meta broute set 1 accept
+  }
+}
+EOF
+    return 0
+  fi
+
   # Check if sets already exist
   BLACKLIST_IPV4_EXISTS=0
   GEOIP_CN_IPV4_EXISTS=0
@@ -507,8 +582,6 @@ function sdwan_initialize_rule_table_ipv4() {
   SDWAN_TUN_PROXY_CHANNEL_NFT_SET=""
   SDWAN_TUN_PROXY_CHANNEL_NFT_JUMP=""
   for SDWAN_TUN_CHANNEL in "${SDWAN_TUN_CHANNELS[@]}"; do
-    SDWAN_TUN_PROXY_CHANNEL_TABLE_ID_VAR="SDWAN_TUN_PROXY_WHITELIST_TABLE_ID_${SDWAN_TUN_CHANNEL}"
-    SDWAN_TUN_PROXY_CHANNEL_TABLE_ID="${!SDWAN_TUN_PROXY_CHANNEL_TABLE_ID_VAR}"
     SDWAN_TUN_PROXY_CHANNEL_IPV4_EXISTS=0
     nft list set $FAMILY $TABLE PROXY_${SDWAN_TUN_CHANNEL}_IPV4 >/dev/null 2>&1 && SDWAN_TUN_PROXY_CHANNEL_IPV4_EXISTS=1
     if [[ $SDWAN_TUN_PROXY_CHANNEL_IPV4_EXISTS -eq 0 ]]; then
@@ -621,6 +694,52 @@ EOF
 function sdwan_initialize_rule_table_ipv6() {
   FAMILY="$1"
   TABLE="$2"
+
+  if [[ "$FAMILY" == "bridge" ]]; then
+    LOCAL_IPV6_EXISTS=0
+    DEFAULT_ROUTE_IPV6_EXISTS=0
+    nft list set $FAMILY $TABLE LOCAL_IPV6 >/dev/null 2>&1 && LOCAL_IPV6_EXISTS=1
+    nft list set $FAMILY $TABLE DEFAULT_ROUTE_IPV6 >/dev/null 2>&1 && DEFAULT_ROUTE_IPV6_EXISTS=1
+
+    nft flush chain $FAMILY $TABLE POLICY_SDWAN_IPV6 >/dev/null 2>&1
+
+    nft -f - <<EOF
+table $FAMILY $TABLE {
+$(if [[ $LOCAL_IPV6_EXISTS -eq 0 ]]; then
+cat <<INNER_EOF
+  set LOCAL_IPV6 {
+    type ipv6_addr
+    flags interval
+    auto-merge
+    elements = { ::1/128, ::/128, ::ffff:0:0/96, 64:ff9b::/96, 100::/64, fc00::/7, fe80::/10, ff00::/8 }
+  }
+INNER_EOF
+fi)
+$(if [[ $DEFAULT_ROUTE_IPV6_EXISTS -eq 0 ]]; then
+cat <<INNER_EOF
+  set DEFAULT_ROUTE_IPV6 {
+    type ipv6_addr
+    flags interval
+    auto-merge
+  }
+INNER_EOF
+fi)
+
+  chain POLICY_SDWAN_IPV6 {
+    # bridge path - keep local/private IPv6 traffic on the bridge.
+    ip6 daddr @LOCAL_IPV6 return
+
+    # bridge path - services bound to SD-WAN interface addresses do not need broute.
+    ip6 daddr @DEFAULT_ROUTE_IPV6 tcp dport @LOCAL_SERVICE_PORT_TCP return
+    ip6 daddr @DEFAULT_ROUTE_IPV6 udp dport @LOCAL_SERVICE_PORT_UDP return
+
+    # bridge path - route remaining public IPv6 traffic through inet/ip rules.
+    meta broute set 1 accept
+  }
+}
+EOF
+    return 0
+  fi
 
   # Check if sets already exist
   BLACKLIST_IPV6_EXISTS=0
@@ -752,14 +871,28 @@ function sdwan_initialize_rule_table() {
   sdwan_initialize_rule_table_ipv4 "$FAMILY" "$TABLE"
   sdwan_initialize_rule_table_ipv6 "$FAMILY" "$TABLE"
 
+  if [[ "$FAMILY" == "bridge" ]]; then
+    SDWAN_BOOTSTRAP_MARKED_RULES=$(cat <<'EOF'
+    meta mark and 0xf0 != 0x0 ct mark and 0xf0 == 0x0 ct mark set meta mark goto POLICY_PACKET_GOTO_DEFAULT
+    meta mark and 0xf0 != 0x0 goto POLICY_PACKET_GOTO_DEFAULT
+    ct mark and 0xf0 != 0x0 meta mark set ct mark goto POLICY_PACKET_GOTO_DEFAULT
+EOF
+)
+  else
+    SDWAN_BOOTSTRAP_MARKED_RULES=$(cat <<'EOF'
+    meta mark and 0xf0 != 0x0 ct mark and 0xf0 == 0x0 ct mark set meta mark accept
+    meta mark and 0xf0 != 0x0 accept
+    ct mark and 0xf0 != 0x0 meta mark set ct mark accept
+EOF
+)
+  fi
+
   nft flush chain $FAMILY $TABLE POLICY_SDWAN_BOOTSTRAP >/dev/null 2>&1
 
   nft -f - <<EOF
 table $FAMILY $TABLE {
   chain POLICY_SDWAN_BOOTSTRAP {
-    meta mark and 0xf0 != 0x0 ct mark and 0xf0 == 0x0 ct mark set meta mark accept
-    meta mark and 0xf0 != 0x0 accept
-    ct mark and 0xf0 != 0x0 meta mark set ct mark accept
+$SDWAN_BOOTSTRAP_MARKED_RULES
 
     ip version 4 jump POLICY_SDWAN_IPV4
     ip6 version 6 jump POLICY_SDWAN_IPV6
@@ -792,14 +925,18 @@ function sdwan_remove_rule_marks() {
   nft delete chain $FAMILY $TABLE POLICY_SDWAN_BOOTSTRAP >/dev/null 2>&1
   nft delete chain $FAMILY $TABLE POLICY_SDWAN_IPV4 >/dev/null 2>&1
   nft delete chain $FAMILY $TABLE POLICY_SDWAN_IPV6 >/dev/null 2>&1
-  nft delete chain $FAMILY $TABLE POLICY_MARK_GOTO_DEFAULT >/dev/null 2>&1
-  nft delete chain $FAMILY $TABLE POLICY_PACKET_GOTO_DEFAULT >/dev/null 2>&1
-  nft delete chain $FAMILY $TABLE POLICY_PACKET_GOTO_PROXY >/dev/null 2>&1
+
+  if [[ "$FAMILY" == "bridge" ]]; then
+    nft delete chain $FAMILY $TABLE POLICY_PACKET_GOTO_DEFAULT >/dev/null 2>&1
+    return 0
+  fi
+
   for SDWAN_TUN_CHANNEL in "${SDWAN_TUN_CHANNELS[@]}"; do
-    SDWAN_TUN_PROXY_CHANNEL_TABLE_ID_VAR="SDWAN_TUN_PROXY_WHITELIST_TABLE_ID_${SDWAN_TUN_CHANNEL}"
-    SDWAN_TUN_PROXY_CHANNEL_TABLE_ID="${!SDWAN_TUN_PROXY_CHANNEL_TABLE_ID_VAR}"
     nft delete chain $FAMILY $TABLE POLICY_MARK_GOTO_PROXY_$SDWAN_TUN_CHANNEL >/dev/null 2>&1
   done
+  nft delete chain $FAMILY $TABLE POLICY_MARK_GOTO_DEFAULT >/dev/null 2>&1
+  nft delete chain $FAMILY $TABLE POLICY_PACKET_GOTO_PROXY >/dev/null 2>&1
+  nft delete chain $FAMILY $TABLE POLICY_PACKET_GOTO_DEFAULT >/dev/null 2>&1
 }
 
 function sdwan_update_geoip() {
@@ -829,20 +966,6 @@ table inet sdwan {
     elements = { $GEOIP_CN_IPV6_LIST }
   }
 }
-table bridge sdwan {
-  set GEOIP_CN_IPV4 {
-    type ipv4_addr
-    flags interval
-    auto-merge
-    elements = { $GEOIP_CN_IPV4_LIST }
-  }
-  set GEOIP_CN_IPV6 {
-    type ipv6_addr
-    flags interval
-    auto-merge
-    elements = { $GEOIP_CN_IPV6_LIST }
-  }
-}
 EOF
 }
 
@@ -855,6 +978,7 @@ if [[ $SDWAN_SETUP_IP_RULE_CLEAR -eq 0 ]]; then
   # 必须在高优先级（mangle）打标记，否则无法影响重路由
   sdwan_setup_rule_chain inet sdwan OUTPUT '{ type route hook output priority mangle - 1 ; }'
 
+  # bridge 入口只负责把公网流量抬到 L3，实际分流和动态地址集统一复用 inet#sdwan#PROXY_*。
   sdwan_setup_rule_chain bridge sdwan PREROUTING '{ type filter hook prerouting priority -280; }'
 
   # setup ip rules ourself
@@ -878,9 +1002,7 @@ else
   sdwan_remove_rule_marks inet sdwan
   sdwan_remove_rule_marks bridge sdwan
 
-  nft flush set inet sdwan GEOIP_CN_IPV4
-  nft flush set inet sdwan GEOIP_CN_IPV6
-  nft flush set bridge sdwan GEOIP_CN_IPV4
-  nft flush set bridge sdwan GEOIP_CN_IPV6
+  nft flush set inet sdwan GEOIP_CN_IPV4 >/dev/null 2>&1 || true
+  nft flush set inet sdwan GEOIP_CN_IPV6 >/dev/null 2>&1 || true
 fi
 

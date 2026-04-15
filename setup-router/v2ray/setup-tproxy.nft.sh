@@ -220,7 +220,7 @@ if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
 fi
 
 # fwmark here must match: ip rule list lookup 100
-# nft add rule ip v2ray PREROUTING meta pkttype set unicast ether daddr set 00:00:00:00:00:00
+# `meta pkttype set unicast` is a historical bridge->route trick; newer nftables can also use `meta broute set 1` in bridge prerouting.
 nft add rule ip v2ray PREROUTING meta l4proto "{udp, tcp}" tproxy to :$V2RAY_PORT meta mark set mark and 0xffffff80 xor 0x7e accept
 
 # Setup - ipv4 local
@@ -524,7 +524,7 @@ else
   nft add rule bridge v2ray PREROUTING ip daddr != @TEMPORARY_WHITELIST_IPV4 ip daddr != @PERMANENT_WHITELIST_IPV4 return
 fi
 
-### bridge - meta pkttype set unicast
+### bridge - historical compatibility path with meta pkttype set unicast
 if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
   nft add rule bridge v2ray PREROUTING ip daddr != @LOCAL_IPV4 ip daddr != @DEFAULT_ROUTE_IPV4 meta nftrace set 1
   nft add rule bridge v2ray PREROUTING ip daddr != @LOCAL_IPV4 ip daddr != @DEFAULT_ROUTE_IPV4 log prefix '">>>BR TCP>pkttype:"' level debug flags all
@@ -535,6 +535,7 @@ fi
 # https://www.mankier.com/8/ebtables-legacy#Description-Tables
 # https://www.mankier.com/8/ebtables-nft
 # Mac Address Assignments: https://www.iana.org/assignments/ethernet-numbers/ethernet-numbers.xml
-# ebtables -t broute -A V2RAY_BRIDGE -j redirect --redirect-target DROP
+# Older equivalent: ebtables -t broute -A V2RAY_BRIDGE -j redirect --redirect-target DROP
+# Newer nftables can use: meta broute set 1
 
 nft add rule bridge v2ray PREROUTING meta pkttype set unicast # ether daddr set ff:ff:ff:ff:ff:ff
