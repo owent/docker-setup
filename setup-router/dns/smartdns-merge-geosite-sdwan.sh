@@ -2,7 +2,41 @@
 
 cd "$(dirname "$(readlink -f "$0")")"
 
-./smartdns-generate-geosite.sh \
+PYTHON_BIN="$(command -v python3 2>/dev/null || command -v python 2>/dev/null || true)"
+if [[ -z "$PYTHON_BIN" ]]; then
+   echo "Error: python3 or python is required." >&2
+   exit 1
+fi
+
+EXCLUDE_RULE_OPTIONS=(
+   --exclude-domain-regex 'steam\.cdn\..*'
+   --exclude-domain steamcdn-a.akamaihd.net
+   --exclude-domain steamcontent.com
+   --exclude-domain steamusercontent.com
+   --exclude-domain steamstatic.com
+   --exclude-domain steam.tv
+   --exclude-domain-suffix qtlglb.com
+   --exclude-domain edge.steam-dns.top.comcast.net
+
+   --exclude-domain-suffix epicgamescdn.com
+   --exclude-domain fastly-download.epicgames.com
+
+   --exclude-domain packagespc.xboxlive.com
+   --exclude-domain-suffix riotcdn.net
+   --exclude-domain-suffix riotcdn.com
+
+   --exclude-domain-suffix nexoncdn.co.kr
+
+   --exclude-domain-suffix nintendo.net
+
+   --exclude-domain-suffix microsoft.com
+)
+
+#    --source "geosite-microsoft" \
+#    --source "geosite-bing" \
+#    --source "geosite-category-games-!cn" \
+
+"$PYTHON_BIN" ./smartdns-generate-geosite.py \
    --name geosite-proxy-fast \
    --geosite-dir ../vbox/geosite \
    --source geosite-github \
@@ -11,13 +45,10 @@ cd "$(dirname "$(readlink -f "$0")")"
    --source geosite-telegram \
    --source geosite-gfw \
    --source "geosite-geolocation-!cn" \
-   --source "geosite-microsoft" \
    --source "geosite-category-dev" \
    --source "geosite-azure" \
    --source "geosite-unity" \
    --source "geosite-pinterest" \
-   --source "geosite-bing" \
-   --source "geosite-category-games-!cn" \
    --source "geosite-intercom" \
    --source "geosite-slack" \
    --domain-suffix "nextcloud.com" \
@@ -42,9 +73,9 @@ cd "$(dirname "$(readlink -f "$0")")"
    --disable-ipv6 \
    --nftset4 inet#sdwan#PROXY_FAST_IPV4 \
    --nftset6 inet#sdwan#PROXY_FAST_IPV6 \
+   "${EXCLUDE_RULE_OPTIONS[@]}"
 
-
-./smartdns-generate-geosite.sh \
+"$PYTHON_BIN" ./smartdns-generate-geosite.py \
    --name geosite-proxy-ai \
    --geosite-dir ../vbox/geosite \
    --source "geosite-ai" \
@@ -52,3 +83,4 @@ cd "$(dirname "$(readlink -f "$0")")"
    --disable-ipv6 \
    --nftset4 inet#sdwan#PROXY_AI_IPV4 \
    --nftset6 inet#sdwan#PROXY_AI_IPV6 \
+   "${EXCLUDE_RULE_OPTIONS[@]}"
