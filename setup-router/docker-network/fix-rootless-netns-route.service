@@ -1,0 +1,13 @@
+[Unit]
+Description=Fix rootless netns default route for DNS forwarding
+After=podman-user-wait-network-online.service internal-backend-network.service internal-frontend-network.service internal-p4-network.service router-caddy.service gitea.service scm-manager.service container-p4d.service haproxy.service adguard-home.service emby-server.service syncthing-client.service syncthing-relay-node.service aria2.service acme.sh.service
+Wants=internal-backend-network.service internal-frontend-network.service internal-p4-network.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=$HOME/.config/containers/fix-rootless-netns-route.sh
+TimeoutStartSec=1260
+
+[Install]
+WantedBy=default.target
