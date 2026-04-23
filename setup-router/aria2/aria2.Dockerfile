@@ -11,7 +11,7 @@ COPY aria2c_with_session.sh /usr/bin/aria2c_with_session.sh
 
 # sed -i -r 's#dl-cdn.alpinelinux.org#mirrors.aliyun.com#g' /etc/apk/repositories ;  \
 RUN set -ex ;                                                                         \
-    sed -i -r 's#dl-cdn.alpinelinux.org#mirrors.cloud.tencent.com#g' /etc/apk/repositories ; \
+    sed -i.bak -r 's#dl-cdn.alpinelinux.org#mirrors.ustc.edu.cn#g' /etc/apk/repositories ; \
     apk --no-cache add ca-certificates tzdata aria2 bash;                             \
     ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime ;                         \
     chmod +x /usr/bin/aria2c_with_session.sh ;                                        \

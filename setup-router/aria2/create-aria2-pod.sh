@@ -5,7 +5,10 @@
 #     DenyGroups tools
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
+
+if [[ -e "$(dirname "$SCRIPT_DIR")/configure-router.sh" ]]; then
+  source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
+fi
 
 if [[ "x$ARIA2_DATA_ROOT" == "x" ]]; then
   if [[ ! -z "$SAMBA_DATA_DIR" ]]; then

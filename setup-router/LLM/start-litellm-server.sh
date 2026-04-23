@@ -5,9 +5,7 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 # Require net.ipv4.ip_unprivileged_port_start=80 in /etc/sysctl.d/*.conf
 # See https://github.com/containers/podman/blob/master/rootless.md
 
-LLM_LITELLM_IMAGE_URL=ghcr.io/berriai/litellm:v1.81.3-stable
-# LLM_LITELLM_IMAGE_URL=ghcr.io/berriai/litellm-database:main-v1.81.3-stable
-# LLM_LITELLM_IMAGE_URL=litellm/litellm:v1.81.0-stable.1
+LLM_LITELLM_IMAGE_URL=ghcr.io/berriai/litellm:v1.83.7-stable.patch.1
 
 if [[ "x$LLM_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman pull $LLM_LITELLM_IMAGE_URL

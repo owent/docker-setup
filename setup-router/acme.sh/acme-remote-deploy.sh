@@ -17,22 +17,25 @@ REPLICATION_NODES=(
   "USER@HOST:PORT:SSL_KEY_PATH"
 );
 
-# # Squid certs
-# SQUID_CERT_UPDATE_WEEKNO=-100
+# # HTTP Cache service certs
+# HTTP_CACHE_SERVICE_CERT_UPDATE_WEEKNO=-100
 # set -x
 # cd /data/cfssl
-# if [[ -e squid-cert.datetime ]]; then
-#   SQUID_CERT_UPDATE_WEEKNO=$(cat squid-cert.datetime)
+# if [[ -e http-cache-service-cert.datetime ]]; then
+#   HTTP_CACHE_SERVICE_CERT_UPDATE_WEEKNO=$(cat http-cache-service-cert.datetime)
+# fi
+# if [[ ${HTTP_CACHE_SERVICE_CERT_UPDATE_WEEKNO:0:1} == 0 ]]; then
+#   HTTP_CACHE_SERVICE_CERT_UPDATE_WEEKNO=${HTTP_CACHE_SERVICE_CERT_UPDATE_WEEKNO:1}
 # fi
 # NOW_WEEKNO=$(date +%W)
 # if [[ ${NOW_WEEKNO:0:1} == 0 ]]; then
 #   NOW_WEEKNO=${NOW_WEEKNO:1}
 # fi
-# if [[ $(($SQUID_CERT_UPDATE_WEEKNO-$NOW_WEEKNO)) -gt 2 ]] || [[ $(($NOW_WEEKNO-$SQUID_CERT_UPDATE_WEEKNO)) -gt 2 ]]; then
-#   ./gen_squid.sh
+# if [[ $(($HTTP_CACHE_SERVICE_CERT_UPDATE_WEEKNO-$NOW_WEEKNO)) -gt 2 ]] || [[ $(($NOW_WEEKNO-$HTTP_CACHE_SERVICE_CERT_UPDATE_WEEKNO)) -gt 2 ]]; then
+#   ./gen-http-cache-service-cert.sh && echo "$NOW_WEEKNO" > http-cache-service-cert.datetime
 #   scp -P 36000 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=tools -i \
-#       "$REMOTE_DEPLOY_KEY" squid-cert-key.pem squid-fullchain.pem \
-#       "tools@10.64.5.1:/data/squid/etc/ssl/"
+#       "$REMOTE_DEPLOY_KEY" http-cache-service-cert-key.pem http-cache-service-fullchain.pem \
+#       "tools@10.64.5.1:/data/http-cache-service/ssl/"
 # fi
 # cd -
 # set +x
