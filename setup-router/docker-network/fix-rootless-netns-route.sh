@@ -7,13 +7,14 @@ NETNS_DIR="/run/user/$(id -u)/containers/networks/rootless-netns"
 INTERNAL_NETWORKS_REGEX='^(internal-frontend|internal-backend|internal-p4)$'
 
 has_rootless_default_route() {
-    local netns_pid_file="$NETNS_DIR/rootless-netns-conn.pid"
-    if [ -f "$netns_pid_file" ]; then
-        local pid
-        pid=$(cat "$netns_pid_file")
-        if [ -d "/proc/$pid" ]; then
-            grep -qP "^\S+\t00000000" /proc/$pid/net/route 2>/dev/null && return 0
-        fi
+    local aardvark_pid_file="/run/user/$(id -u)/containers/networks/aardvark-dns/aardvark.pid"
+    if [ ! -f "$aardvark_pid_file" ]; then
+        return 1
+    fi
+    local pid
+    pid=$(cat "$aardvark_pid_file")
+    if [ -d "/proc/$pid" ]; then
+        grep -qP "^\S+\t00000000" /proc/$pid/net/route 2>/dev/null && return 0
     fi
     return 1
 }
