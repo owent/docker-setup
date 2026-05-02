@@ -92,36 +92,11 @@ sudo zfs create \
   -o sync=standard \
   $ZFS_POOL_NAME/general
 
-# 3. p4 / 游戏开发
-sudo zfs create \
-  -o mountpoint=$ZFS_MOUNT_POINT/p4 \
-  -o recordsize=64K \
-  -o compression=lz4 \
-  -o atime=off \
-  -o xattr=sa \
-  -o acltype=posixacl \
-  -o dnodesize=auto \
-  -o logbias=latency \
-  -o sync=standard \
-  $ZFS_POOL_NAME/p4
-
-# 4. git 仓库
-sudo zfs create \
-  -o mountpoint=$ZFS_MOUNT_POINT/git \
-  -o recordsize=32K \
-  -o compression=lz4 \
-  -o atime=off \
-  -o xattr=sa \
-  -o dnodesize=auto \
-  -o logbias=latency \
-  -o sync=standard \
-  $ZFS_POOL_NAME/git
-
-# 5. 数据库
+# 3. 数据库(数据库一般自带压缩，所以不用磁盘再设置一次压缩)
 sudo zfs create \
   -o mountpoint=$ZFS_MOUNT_POINT/db \
   -o recordsize=16K \
-  -o compression=lz4 \
+  -o compression=off \
   -o atime=off \
   -o xattr=sa \
   -o dnodesize=auto \
