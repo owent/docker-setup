@@ -9,11 +9,6 @@ sudo locale-gen
 sudo update-locale LANG=en_US.UTF-8
 ```
 
-- **注意缩短 /etc/logrotate.d/rsyslog 和下面容器的日志大小限制**
-  - `rotate 4` -> `rotate 7`
-  - `weekly` -> `daily`
-  - `maxsize 200M`
-
 ## 虚拟机
 
 ### Clone后操作
@@ -114,18 +109,59 @@ cat system-etc/kernel-modules/sysctl.d/90-nf_conntrack-router.conf | sudo tee /e
 # Check and enable bbr
 find "/lib/modules/$(uname -r)" -type f -name '*.ko*' | awk '{if (match($0, /^\/lib\/modules\/([^\/]+).*\/([^\/]+)\.ko(\.[^\/\.]+)?$/, m)) {print m[1] " : " m[2];}}' | sort | uniq | grep tcp_bbr ;
 if [ $? -eq 0 ]; then
-    modprobe tcp_bbr ;
+    sudo modprobe tcp_bbr ;
     if [ $? -eq 0 ]; then
-        sed -i "/tcp_bbr/d" /etc/modules-load.d/*.conf ;
-        sed -i "/net.core.default_qdisc/d" /etc/sysctl.d/*.conf;
-        sed -i "/net.ipv4.tcp_congestion_control/d" /etc/sysctl.d/*.conf;
-        echo "tcp_bbr" >> /etc/modules-load.d/network-bbr.conf ;
+        sudo sed -i "/tcp_bbr/d" /etc/modules-load.d/*.conf ;
+        sudo sed -i "/net.core.default_qdisc/d" /etc/sysctl.d/*.conf;
+        sudo sed -i "/net.ipv4.tcp_congestion_control/d" /etc/sysctl.d/*.conf;
+        echo "tcp_bbr" | sudo tee -a /etc/modules-load.d/network-bbr.conf ;
         echo "net.core.default_qdisc = fq
-net.ipv4.tcp_congestion_control = bbr" >> /etc/sysctl.d/91-forwarding.conf ;
+net.ipv4.tcp_congestion_control = bbr" | sudo tee -a /etc/sysctl.d/91-forwarding.conf ;
     fi
 fi
 
 sudo sysctl -p
+
+# log size limit
+# Edit /etc/systemd/journald.conf
+sudo sed -E -i 's;#[[:space:]]*SystemMaxUse=.*;SystemMaxUse=5G;g' /etc/systemd/journald.conf
+sudo sed -E -i 's;#[[:space:]]*SystemMaxFileSize=.*;SystemMaxFileSize=100M;g' /etc/systemd/journald.conf
+sudo sed -E -i 's;#[[:space:]]*MaxRetentionSec=.*;MaxRetentionSec=30day;g' /etc/systemd/journald.conf
+sudo sed -E -i 's;#[[:space:]]*MaxFileSec=.*;MaxFileSec=1week;g' /etc/systemd/journald.conf
+sudo systemctl restart systemd-journald
+sudo journalctl --disk-usage
+
+- **注意缩短 /etc/logrotate.d/rsyslog 和下面容器的日志大小限制**
+  - `rotate 4` -> `rotate 7`
+  - `weekly` -> `daily`
+  - `maxsize 200M`
+  - `maxage 30`
+- /etc/logrotate.conf 文件参考
+
+```conf
+# 每周轮转一次（可根据需要调整）
+daily
+
+# 保留最近 14 次轮转
+rotate 14
+
+# 创建新日志文件
+create
+
+# 使用日期作为后缀
+dateext
+
+# 超过 200M 立即轮转，不受周期限制
+maxsize 200M
+
+# 超过 30 天的旧日志强制删除
+maxage 30
+
+# 压缩旧日志
+compress
+delaycompress
+```
+
 
 # rlimit
 echo "
@@ -157,14 +193,14 @@ root          soft    nofile     4194304
 
 # nftables: nft add rule inet nat FORWARD tcp flags syn counter tcp option maxseg size set rt mtu
 # 这个选项也可以合入其他规则,没必要单独起一个
-mkdir -p "/etc/nftables.conf.d"
+sudo mkdir -p "/etc/nftables.conf.d"
 echo "table inet network_basic {
   chain FORWARD {
     type filter hook forward priority filter; policy accept;
     tcp flags syn counter tcp option maxseg size set rt mtu
   }
 }
-" > /etc/nftables.conf.d/network-basic.conf
+" | sudo tee /etc/nftables.conf.d/network-basic.conf
 echo '[Unit]
 Description=PMTU clamping for pppoe
 Requires=network-online.target
@@ -178,15 +214,9 @@ ExecStart=/usr/sbin/nft -f /etc/nftables.conf.d/network-basic.conf
 
 [Install]
 WantedBy=multi-user.target
-' > /lib/systemd/system/pmtu-clamping.service
-systemctl enable pmtu-clamping
-systemctl start pmtu-clamping
-
-nft list chain inet nat FORWARD >/dev/null 2>&1
-if [[ $? -ne 0 ]]; then
-  nft add chain inet nat FORWARD '{ type filter hook forward priority filter ; }'
-fi
-nft add rule inet nat FORWARD tcp flags syn counter tcp option maxseg size set rt mtu
+' | sudo tee /lib/systemd/system/pmtu-clamping.service
+sudo systemctl enable pmtu-clamping
+sudo systemctl start pmtu-clamping
 
 # iptables: iptables -I FORWARD -o ppp0 -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
 echo '[Unit]
@@ -200,9 +230,9 @@ ExecStart=/usr/sbin/iptables -I FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS
 
 [Install]
 WantedBy=multi-user.target
-' > /lib/systemd/system/pmtu-clamping.service
-systemctl enable pmtu-clamping
-systemctl start pmtu-clamping
+' | sudo tee /lib/systemd/system/pmtu-clamping.service
+sudo systemctl enable pmtu-clamping
+sudo systemctl start pmtu-clamping
 
 # 设置NetworkManager关闭ipv6的隐私模式（允许DHCPv6）
 ## ipv6.addr-gen-mode = default/stable-privacy/eui64
@@ -728,19 +758,28 @@ sudo iptables -X NETAVARK_FORWARD
 
 文件: `/etc/containers/storage.conf` 或 `$HOME/.config/containers/storage.conf`
 
+```bash
+sudo mkdir -p /data/containers/container /data/containers/image data/containers/storage /data/containers/container-tmp
+sudo chmod 777 -R /data/containers
+```
+
 ```toml
 [storage]
 driver = "overlay"
-runroot = "/data/disk1/docker-container"
-graphroot = "/data/disk1/docker-image"
-rootless_storage_path = "/data/disk1/docker-storage/$USER"
+runroot = "/data/containers/container"
+graphroot = "/data/containers/image"
+rootless_storage_path = "/data/containers/storage/$USER"
+
+[storage.options.overlay]
+# 如需加速构建，可开启 mountopt
+mountopt = "nodev,metacopy=on"
 ```
 
 临时目录 - 文件: `/etc/containers/containers.conf` 或 `$HOME/.config/containers/containers.conf`
 
 ```toml
 [engine]
-env = ["TMPDIR=/data/disk1/docker-tmp"]
+env = ["TMPDIR=/data/containers/container-tmp"]
 ```
 
 ### podman 限制日志大小
@@ -758,7 +797,7 @@ max_log_size = 134217728 # 128MB
 
 ```json
 {
-    "graph": "/data/docker-data",
+    "graph": "/data/containers/docker-data",
     "storage-driver": "overlay",
     "insecure-registries" : [ "docker.io" ]
 }
