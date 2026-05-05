@@ -721,6 +721,15 @@ location = "mirror.ccs.tencentyun.com"
 + <docker.1ms.run>
 + <docker.hlmirror.com>
 
+## 扩充容器subgid/subuid
+
+扩充 `/etc/subgid` 和 `/etc/subuid` 范围
+
+```text
+root:100000:1900000
+owent:2000000:1000000
+```
+
 ## 容器网络
 
 ### 自动创建 inet netavark 或 NETAVARK_FORWARD 策略和自定义策略冲突

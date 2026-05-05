@@ -4,7 +4,7 @@ services:
     command: server
     env_file:
       - .env
-    image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2025.8.4}
+    image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2026.2}
     ports:
       - ${COMPOSE_PORT_HTTP:-9000}:${COMPOSE_PORT_HTTP:-9000}
       - ${COMPOSE_PORT_HTTPS:-9443}:${COMPOSE_PORT_HTTPS:-9443}
@@ -23,7 +23,7 @@ services:
     command: worker
     env_file:
       - .env
-    image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2025.8.4}
+    image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2026.2}
     restart: unless-stopped
     networks:
       - frontend
@@ -36,7 +36,7 @@ services:
       - ./data/custom-templates:/templates
   # authentik_proxy:
   #   container_name: "authentik-proxy"
-  #   image: ${AUTHENTIK_IMAGE_BASE:-ghcr.io/goauthentik}/proxy:${AUTHENTIK_TAG:-2025.8.4}
+  #   image: ${AUTHENTIK_IMAGE_BASE:-ghcr.io/goauthentik}/proxy:${AUTHENTIK_TAG:-2026.2}
   #   env_file:
   #     - .env
   #   # Optionally specify the container's network, which must be able to reach the core authentik server.
@@ -60,7 +60,7 @@ services:
   #   user: root
   authentik_ldap:
     container_name: "authentik-ldap"
-    image: ${AUTHENTIK_IMAGE_BASE:-ghcr.io/goauthentik}/ldap:${AUTHENTIK_TAG:-2025.8.4}
+    image: ${AUTHENTIK_IMAGE_BASE:-ghcr.io/goauthentik}/ldap:${AUTHENTIK_TAG:-2026.2}
     depends_on:
       authentik_server:
         condition: service_started
@@ -72,13 +72,13 @@ services:
     environment:
       AUTHENTIK_HOST: http://authentik-server:${COMPOSE_PORT_HTTP:-9000}
       AUTHENTIK_INSECURE: "true"
-      AUTHENTIK_TOKEN: <OUTPOSTS_TOKEN> #${AUTHENTIK_BOOTSTRAP_TOKEN}
+      AUTHENTIK_TOKEN: <OUTPOSTS_TOKEN> # Copy after outpost is created
     networks:
       - frontend
       - backend
   authentik_rac:
     container_name: "authentik-rac"
-    image: ${AUTHENTIK_IMAGE_BASE:-ghcr.io/goauthentik}/rac:${AUTHENTIK_TAG:-2025.8.4}
+    image: ${AUTHENTIK_IMAGE_BASE:-ghcr.io/goauthentik}/rac:${AUTHENTIK_TAG:-2026.2}
     depends_on:
       authentik_server:
         condition: service_started
@@ -87,13 +87,13 @@ services:
     environment:
       AUTHENTIK_HOST: http://authentik-server:${COMPOSE_PORT_HTTP:-9000}
       AUTHENTIK_INSECURE: "true"
-      AUTHENTIK_TOKEN: <OUTPOSTS_TOKEN> #${AUTHENTIK_BOOTSTRAP_TOKEN}
+      AUTHENTIK_TOKEN: <OUTPOSTS_TOKEN> # Copy after outpost is created
     networks:
       - frontend
       - backend
   # authentik_radius:
   #   container_name: "authentik-radius"
-  #   image: ${AUTHENTIK_IMAGE_BASE:-ghcr.io/goauthentik}/radius:${AUTHENTIK_TAG:-2025.8.4}
+  #   image: ${AUTHENTIK_IMAGE_BASE:-ghcr.io/goauthentik}/radius:${AUTHENTIK_TAG:-2026.2}
   #   depends_on:
   #     authentik_server:
   #       condition: service_started
@@ -104,7 +104,7 @@ services:
   #   environment:
   #     AUTHENTIK_HOST: http://authentik-server:${COMPOSE_PORT_HTTP:-9000}
   #     AUTHENTIK_INSECURE: "true"
-  #     AUTHENTIK_TOKEN: <OUTPOSTS_TOKEN> # ${AUTHENTIK_BOOTSTRAP_TOKEN}
+  #     AUTHENTIK_TOKEN: <OUTPOSTS_TOKEN> # Copy after outpost is created
   #   networks:
   #     - frontend
   #     - backend

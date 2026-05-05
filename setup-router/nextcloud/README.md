@@ -76,13 +76,15 @@ LDAP集成见 <https://github.com/lldap/lldap/blob/main/example_configs/nextclou
 php occ ldap:set-config s01 ldapHost ldaps://ldap.example.org:6636
 php occ ldap:set-config s01 ldapPort 6636
 php occ ldap:set-config s01 ldapTLS 1
+# 忽略TLS认证
+php occ ldap:set-config s01 turnOffCertCheck 1
 php occ ldap:set-config s01 ldapAgentName "cn=ldap-bind,ou=users,dc=example,dc=org"
 php occ ldap:set-config s01 ldapAgentPassword "<密码>"
 php occ ldap:set-config s01 ldapBase "dc=example,dc=org"
 php occ ldap:set-config s01 ldapBaseGroups "ou=groups,dc=example,dc=org"
 php occ ldap:set-config s01 ldapBaseUsers "ou=users,dc=example,dc=org"
 php occ ldap:set-config s01 ldapGidNumber gidNumber
-# ldap_uniq 是authentik特有字段，其他平台的可能是其他字段，可以fallback成cn,name等
+# 用户名字段，其他平台的可能是其他字段，可以fallback成cn,name等
 php occ ldap:set-config s01 ldapExpertUsernameAttr cn
 php occ ldap:set-config s01 ldapExpertUUIDUserAttr uid
 php occ ldap:set-config s01 ldapExpertUUIDGroupAttr uid
