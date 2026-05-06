@@ -103,7 +103,6 @@
           "geosite-google"
         ],
         "action": "route",
-        // "strategy": "ipv4_only",
         // 代理DNS延长TTL，不然可能下游设备未过期这里就缓存失效了
         "rewrite_ttl": 600,
         "server": "dns-ai"
@@ -129,6 +128,27 @@
     // "cache_capacity": 65536,
     "reverse_mapping": true
   },
+  "certificate_providers": [
+    {
+      "type": "acme",
+      "tag": "example.com-cert",
+      "domain": ["example.com"],
+      "email": "admin@example.com",
+      "data_directory": "/var/lib/vbox/certs",
+      "provider": "zerossl", // letsencrypt, zerossl, https://...
+      // ZeroSSL need external_account:
+      //   + https://zerossl.com/documentation/api/generate-eab-credentials/
+      //   + https://app.zerossl.com/developer
+      "external_account": {
+          "key_id": "<KEY ID>",
+          "mac_key": "<MAC KEY>"
+      },
+      "dns01_challenge": {
+        "provider": "cloudflare",
+        "api_token": "my_token"
+      }
+    }
+  ],
   "inbounds": [
     {
       "type": "socks",
@@ -157,23 +177,7 @@
         "insecure": false,
         "alpn": ["h2", "http/1.1"],
         "min_version": "1.3",
-        "acme": {
-          "domain": "example.org",
-          "email": "admin@example.org",
-          "data_directory": "/var/lib/vbox/certs",
-          "provider": "zerossl", // letsencrypt, zerossl, https://...
-          // ZeroSSL need external_account:
-          //   + https://zerossl.com/documentation/api/generate-eab-credentials/
-          //   + https://app.zerossl.com/developer
-          "external_account": {
-              "key_id": "<KEY ID>",
-              "mac_key": "<MAC KEY>"
-          },
-          "dns01_challenge": {
-            "provider": "cloudflare",
-            "api_token": "my_token"
-          }
-        }
+        "certificate_provider": "example.com-cert"
       },
       "fallback": {
         "server": "127.0.0.1",
@@ -650,7 +654,7 @@
     "cache_file": {
       "enabled": true // ,
       // Available from 1.9.0
-      // "store_rdrc": true
+      // "store_dns": true
     }
   }
 }

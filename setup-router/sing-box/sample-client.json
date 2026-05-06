@@ -75,6 +75,13 @@
     // 默认使用第一个服务器
     // "final": "",
     "rules": [
+      // If using ip_cidr/ip_is_private/rule_set_ip_cidr_accept_empty in dns.rules, evaluate is required.
+      // And these rules must have "match_response": true, and the last rule can be "action": "respond", so
+      // we do not need to resolve domain with the same server again.
+      // {
+      //   "action": "evaluate",
+      //   "server": "dns-fast"
+      // },
       // 自定义服务器
       {
         "domain_suffix": [
@@ -89,7 +96,42 @@
           "ip.threep.top",
           "ip.sb",
           "test-ipv6.com",
-          "ipv6-test.com"
+          "ipv6-test.com",
+
+          // Not necessary
+          "discovery.steamserver.net",
+          "epicgamescdn.com.cdn.cloudflare.net",
+          "windowsupdate.com",
+          "download.windowsupdate.com",
+          "cdn.office.net",
+          "level3.blizzard.com",
+          "cdn.blizzard.com",
+          "dl.playstation.net",
+          "update.playstation.net",
+          "cdn.update.playstation.net",
+          "dlassets-ssl.xboxlive.com",
+          "download.dm.origin.com",
+          "origin-a.akamaihd.net",
+          "cdn.gog.com",
+          "cdn.ubi.com",
+          "download.minecraft.net",
+          "cdn.nintendo.net",
+          "ssl-lvlt.cdn.ea.com",
+          "uplaypc-s-ubisoft.cdn.ubionline.com.cn",
+          "gog-cdn-lumen.secure2.footprint.net",
+          "blizzard.gcdn.cloudn.co.kr",
+          "blzddist1-a.akamaihd.net",
+          "blzddistkr1-a.akamaihd.net"
+        ],
+        "action": "route",
+        "server": "dns-local"
+      },
+      {
+        // Not necessary
+        "domain_regex": [
+          "(xvcf|assets).*\\.xboxlive\\.com",
+          "epicgames-download.*\\.akamaized\\.net",
+          "(cdn|download).*\\.epicgames\\.com"
         ],
         "action": "route",
         "server": "dns-local"
@@ -110,7 +152,6 @@
           "geosite-google"
         ],
         "action": "route",
-        // "strategy": "ipv4_only",
         // 代理DNS延长TTL，不然可能下游设备未过期这里就缓存失效了
         "rewrite_ttl": 600,
         "server": "dns-ai"
@@ -733,7 +774,42 @@
           "ip.threep.top",
           "ip.sb",
           "test-ipv6.com",
-          "ipv6-test.com"
+          "ipv6-test.com",
+
+          // Not necessary
+          "discovery.steamserver.net",
+          "epicgamescdn.com.cdn.cloudflare.net",
+          "windowsupdate.com",
+          "download.windowsupdate.com",
+          "cdn.office.net",
+          "level3.blizzard.com",
+          "cdn.blizzard.com",
+          "dl.playstation.net",
+          "update.playstation.net",
+          "cdn.update.playstation.net",
+          "dlassets-ssl.xboxlive.com",
+          "download.dm.origin.com",
+          "origin-a.akamaihd.net",
+          "cdn.gog.com",
+          "cdn.ubi.com",
+          "download.minecraft.net",
+          "cdn.nintendo.net",
+          "ssl-lvlt.cdn.ea.com",
+          "uplaypc-s-ubisoft.cdn.ubionline.com.cn",
+          "gog-cdn-lumen.secure2.footprint.net",
+          "blizzard.gcdn.cloudn.co.kr",
+          "blzddist1-a.akamaihd.net",
+          "blzddistkr1-a.akamaihd.net"
+        ],
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        // Not necessary
+        "domain_regex": [
+          "(xvcf|assets).*\\.xboxlive\\.com",
+          "epicgames-download.*\\.akamaized\\.net",
+          "(cdn|download).*\\.epicgames\\.com"
         ],
         "action": "route",
         "outbound": "direct"
@@ -908,7 +984,7 @@
     "cache_file": {
       "enabled": true // ,
       // Available from 1.9.0
-      // "store_rdrc": true
+      // "store_dns": true
     },
     "clash_api": {
       "default_mode": "Enhanced"
