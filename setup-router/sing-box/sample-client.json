@@ -101,6 +101,7 @@
           // Not necessary
           "discovery.steamserver.net",
           "epicgamescdn.com.cdn.cloudflare.net",
+          "epicgamescdn.com",
           "windowsupdate.com",
           "download.windowsupdate.com",
           "cdn.office.net",
@@ -779,6 +780,7 @@
           // Not necessary
           "discovery.steamserver.net",
           "epicgamescdn.com.cdn.cloudflare.net",
+          "epicgamescdn.com",
           "windowsupdate.com",
           "download.windowsupdate.com",
           "cdn.office.net",
