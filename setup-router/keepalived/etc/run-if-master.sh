@@ -3,10 +3,7 @@
 # Run commands only when Keepalived state is MASTER.
 #
 # Examples:
-#   /bin/bash /etc/keepalived/run-if-master.sh -- /bin/bash /home/router/update-ddns/update-ddns.sh
-#   KEEPALIVED_MASTER_DDNS_CMD='/bin/bash /home/router/update-ddns/update-ddns.sh' \
-#   KEEPALIVED_MASTER_SSL_SYNC_CMD='/bin/bash /home/router/acme.sh/acme-remote-deploy.sh' \
-#     /bin/bash /etc/keepalived/run-if-master.sh
+#   /bin/bash /etc/keepalived/run-if-master.sh -- /bin/bash /data/update-ddns/update-ddns.sh
 
 set -u
 
@@ -22,9 +19,6 @@ function usage() {
 Usage: run-if-master.sh [--quiet] [--state-file FILE] [--max-age SECONDS] [-- COMMAND...]
 
 If COMMAND is provided, it is executed only on MASTER.
-If COMMAND is omitted, these optional environment commands are run when set:
-  KEEPALIVED_MASTER_DDNS_CMD
-  KEEPALIVED_MASTER_SSL_SYNC_CMD
 
 When the node is not MASTER, this script exits 0 after skipping work so timers do not fail.
 EOF
@@ -75,27 +69,4 @@ if [[ ${#COMMAND[@]} -gt 0 ]]; then
   exec "${COMMAND[@]}"
 fi
 
-EXIT_CODE=0
-RAN_TASK=0
-
-function run_env_command() {
-  local label="$1"
-  local command="$2"
-
-  if [[ -z "$command" ]]; then
-    return 0
-  fi
-
-  RAN_TASK=1
-  [[ "$QUIET" -eq 1 ]] || echo "Keepalived is MASTER, run $label: $command"
-  bash -lc "$command" || EXIT_CODE=$?
-}
-
-run_env_command "DDNS update" "${KEEPALIVED_MASTER_DDNS_CMD:-}"
-run_env_command "SSL sync" "${KEEPALIVED_MASTER_SSL_SYNC_CMD:-}"
-
-if [[ "$RAN_TASK" -eq 0 ]]; then
-  [[ "$QUIET" -eq 1 ]] || echo "MASTER"
-fi
-
-exit "$EXIT_CODE"
+exit 0

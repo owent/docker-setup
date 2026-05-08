@@ -9,7 +9,11 @@ VOLUME ["/etc/kea", "/var/lib/kea/"]
 
 RUN set -ex ; \
   sed -i.bak -r 's#dl-cdn.alpinelinux.org#mirrors.tencent.com#g' /etc/apk/repositories; \
-  apk add --no-cache bash kea kea-dhcp4 kea-ctrl-agent supervisor
+  apk add --no-cache bash kea kea-dhcp4 kea-dhcp6 kea-ctrl-agent kea-hooks kea-hook-lease-query; \
+  apk add --no-cache kea-hook-limits kea-hook-ha kea-hook-host-cmds kea-hook-host-cache kea-hook-lease-cmds; \
+  apk add --no-cache kea-hook-host-cmds kea-hook-lease-query kea-hook-stat-cmds kea-hook-subnet-cmds ; \
+  apk add --no-cache kea-hook-class-cmds kea-hook-flex-id kea-hook-flex-option kea-hook-host-cache ; \
+  apk add --no-cache kea-hook-perfmon kea-hook-run-script supervisor
 
 RUN set -ex ; \
   mkdir -p /run/kea /var/kea /var/run/kea /run/lock/kea /var/log/supervisor /etc/supervisor/conf.d ; \

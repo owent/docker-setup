@@ -89,16 +89,6 @@ KEEPALIVED_OPTIONS=(-e "TZ=Asia/Shanghai"
     --mount "type=bind,source=$KEEPALIVED_ETC_DIR,target=/etc/keepalived"
 )
 
-# notify-state.sh can start/stop host services such as kea-dhcp4/kea-dhcp6.
-# In container mode, mount the host root read-only so the script can call:
-#   chroot /host /usr/bin/systemctl --no-block <start|stop> <service>
-# Set KEEPALIVED_ENABLE_HOST_SYSTEMCTL=0 to disable this bridge.
-if [[ "${KEEPALIVED_ENABLE_HOST_SYSTEMCTL:-1}" != "0" ]]; then
-  KEEPALIVED_OPTIONS+=(-e "KEEPALIVED_SYSTEMCTL_CMD=chroot /host /usr/bin/systemctl --no-block"
-    --mount "type=bind,source=/,target=/host,ro=true"
-  )
-fi
-
 PODLET_IMAGE_URL="ghcr.io/containers/podlet:latest"
 PODLET_RUN=($(which podlet 2>/dev/null))
 FIND_PODLET_RESULT=$?

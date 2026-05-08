@@ -97,84 +97,6 @@ function write_state_file() {
   } > "$tmp_file" && mv -f "$tmp_file" "$STATE_FILE" && chmod 0644 "$STATE_FILE"
 }
 
-function run_configured_systemctl() {
-  local action="$1"
-  local service="$2"
-
-  if [[ -z "${KEEPALIVED_SYSTEMCTL_CMD:-}" ]]; then
-    return 127
-  fi
-
-  KEEPALIVED_SYSTEMCTL_ACTION="$action" KEEPALIVED_SYSTEMCTL_SERVICE="$service" \
-    bash -lc "${KEEPALIVED_SYSTEMCTL_CMD} \"\${KEEPALIVED_SYSTEMCTL_ACTION}\" \"\${KEEPALIVED_SYSTEMCTL_SERVICE}\""
-}
-
-function run_local_systemctl() {
-  local action="$1"
-  local service="$2"
-
-  command -v systemctl >/dev/null 2>&1 || return 127
-  systemctl --no-block "$action" "$service"
-}
-
-function run_host_chroot_systemctl() {
-  local action="$1"
-  local service="$2"
-  local systemctl_path
-
-  command -v chroot >/dev/null 2>&1 || return 127
-
-  for systemctl_path in /usr/bin/systemctl /bin/systemctl; do
-    if [[ -x "/host$systemctl_path" ]]; then
-      chroot /host "$systemctl_path" --no-block "$action" "$service"
-      return $?
-    fi
-  done
-
-  return 127
-}
-
-function service_ctl() {
-  local action="$1"
-  local service="$2"
-
-  if [[ -n "${KEEPALIVED_SYSTEMCTL_CMD:-}" ]]; then
-    if run_configured_systemctl "$action" "$service"; then
-      return 0
-    fi
-    log_message warning "Configured systemctl command failed for: $action $service"
-  fi
-
-  if run_local_systemctl "$action" "$service"; then
-    return 0
-  fi
-
-  if run_host_chroot_systemctl "$action" "$service"; then
-    return 0
-  fi
-
-  log_message warning "Unable to run systemctl for: $action $service; set KEEPALIVED_SYSTEMCTL_CMD or mount host root at /host"
-  return 127
-}
-
-function manage_kea_services() {
-  local action="$1"
-  local service
-
-  if [[ "$MANAGE_KEA" == "0" ]]; then
-    log_message info "Skip Kea service management because KEEPALIVED_MANAGE_KEA=0"
-    return 0
-  fi
-
-  for service in $KEA_SERVICES; do
-    if service_ctl "$action" "$service"; then
-      log_message info "Kea service $service: $action requested"
-    else
-      log_message warning "Kea service $service: failed to request $action"
-    fi
-  done
-}
-
 function send_state_email() {
   local recipients_raw
   local recipients
@@ -221,24 +143,15 @@ function send_state_email() {
   fi
 }
 
+ORIGIN_STATE="$(cat "$STATE_FILE" 2>/dev/null | grep '^STATE=' | cut -d= -f2- || echo "UNKNOWN")"
 if write_state_file; then
-  log_message info "Keepalived state changed to $STATE, state file: $STATE_FILE"
+  log_message info "Keepalived state changed from $ORIGIN_STATE to $STATE, state file: $STATE_FILE"
 else
-  log_message warning "Keepalived state changed to $STATE, but state file update failed"
+  log_message warning "Keepalived state changed from $ORIGIN_STATE to $STATE, but state file update failed"
 fi
 
-case "$STATE" in
-  MASTER)
-    manage_kea_services start
-    ;;
-  BACKUP|FAULT|STOP)
-    manage_kea_services stop
-    ;;
-  *)
-    log_message warning "Unknown keepalived state: ${1:-} ${2:-} ${3:-}"
-    ;;
-esac
-
-send_state_email
+if [[ "$ORIGIN_STATE" != "$STATE" ]] && [[ "$STATE" != "UNKNOWN" ]]; then
+  send_state_email
+fi
 
 exit 0
