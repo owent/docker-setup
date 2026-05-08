@@ -76,10 +76,8 @@ fi
 
 mkdir -p "$ROUTER_LOG_ROOT_DIR/caddy"
 if [[ "x$ARIA2_DATA_ROOT" == "x" ]]; then
-  if [[ ! -z "$SAMBA_DATA_DIR" ]]; then
-    ARIA2_DATA_ROOT="$SAMBA_DATA_DIR/download"
-  elif [[ ! -z "$ROUTER_DATA_ROOT_DIR" ]]; then
-    ARIA2_DATA_ROOT="$ROUTER_DATA_ROOT_DIR/aria2/download"
+  if [[ ! -z "$ROUTER_DATA_ROOT_DIR" ]]; then
+    ARIA2_DATA_ROOT="$ROUTER_DATA_ROOT_DIR/website/download"
   else
     ARIA2_DATA_ROOT="$HOME/aria2/download"
   fi

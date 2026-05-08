@@ -24,15 +24,15 @@ if [[ "x$SYNCTHING_CLIENT_LISTEN_PORT" == "x" ]]; then
   SYNCTHING_CLIENT_LISTEN_PORT=6348
 fi
 SYNCTHING_CLIENT_GUI_ADDRESS=:$SYNCTHING_CLIENT_LISTEN_PORT
-if [[ -z "$SYNCTHING_CLIENT_HOME_DIR" ]] && [[ ! -z "$SAMBA_DATA_DIR" ]]; then
-  SYNCTHING_CLIENT_HOME_DIR="$SAMBA_DATA_DIR/syncthing"
+if [[ -z "$SYNCTHING_CLIENT_HOME_DIR" ]] && [[ ! -z "$ROUTER_DATA_ROOT_DIR" ]]; then
+  SYNCTHING_CLIENT_HOME_DIR="$ROUTER_DATA_ROOT_DIR/syncthing"
 fi
 
 # SOURCE:TARGET
 SYNCTHING_CLIENT_REPLICATE_MODE=0
 if [[ $SYNCTHING_CLIENT_REPLICATE_MODE -eq 0 ]]; then
   SYNCTHING_CLIENT_EXT_DIRS=(
-    "$SAMBA_DATA_DIR/rclone/onedrive:archive/onedrive"
+    "$ROUTER_DATA_ROOT_DIR/rclone/data/onedrive:archive/onedrive"
     "$NEXTCLOUD_DATA_DIR:archive/nextcloud/data"
     "$NEXTCLOUD_APPS_DIR:archive/nextcloud/apps"
     "$NEXTCLOUD_ETC_DIR:archive/nextcloud/etc"

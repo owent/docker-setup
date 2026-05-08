@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# $ROUTER_HOME/ppp-nat/setup-ppp-route-ipv6.sh
+# $ROUTER_DATA_ROOT_DIR/ppp-nat/setup-ppp-route-ipv6.sh
 # @see https://linux.die.net/man/8/pppd
 #
 # When the ppp link comes up, this script is called with the following

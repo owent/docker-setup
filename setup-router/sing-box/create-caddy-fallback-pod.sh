@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# $ROUTER_HOME/sing-box/create-client-pod.sh
+# $ROUTER_DATA_ROOT_DIR/vbox/create-client-pod.sh
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
@@ -33,13 +33,6 @@ if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
     systemctl stop vbox-caddy-fallback.service
     systemctl disable vbox-caddy-fallback.service
   fi
-
-  # Remove old systemd service
-  if [[ -e "$SYSTEMD_SERVICE_DIR/vproxy-caddy-fallback.service" ]]; then
-    systemctl stop vproxy-caddy-fallback.service
-    systemctl disable vproxy-caddy-fallback.service
-    rm "$SYSTEMD_SERVICE_DIR/vproxy-caddy-fallback.service"
-  fi
 else
   export XDG_RUNTIME_DIR="/run/user/$UID"
   export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
@@ -52,26 +45,12 @@ else
     systemctl --user stop vbox-caddy-fallback.service
     systemctl --user disable vbox-caddy-fallback.service
   fi
-
-  # Remove old systemd service
-  if [[ -e "$SYSTEMD_SERVICE_DIR/vproxy-caddy-fallback.service" ]]; then
-    systemctl --user stop vproxy-caddy-fallback.service
-    systemctl --user disable vproxy-caddy-fallback.service
-    rm "$SYSTEMD_SERVICE_DIR/vproxy-caddy-fallback.service"
-  fi
 fi
 
 podman container inspect vbox-caddy-fallback >/dev/null 2>&1
 if [[ $? -eq 0 ]]; then
   podman stop vbox-caddy-fallback
   podman rm -f vbox-caddy-fallback
-fi
-
-# Remove old pods
-podman container inspect vproxy-caddy-fallback >/dev/null 2>&1
-if [[ $? -eq 0 ]]; then
-  podman stop vproxy-caddy-fallback
-  podman rm -f vproxy-caddy-fallback
 fi
 
 if [[ "x$VBOX_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then

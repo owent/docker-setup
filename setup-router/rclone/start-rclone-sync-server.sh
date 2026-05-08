@@ -30,8 +30,8 @@ fi
 mkdir -p "$RCLONE_ETC_DIR"
 
 if [[ "x$RCLONE_DATA_DIR" == "x" ]]; then
-  if [[ ! -z "$SAMBA_DATA_DIR" ]]; then
-    RCLONE_DATA_DIR="$SAMBA_DATA_DIR/rclone-data"
+  if [[ ! -z "$ROUTER_DATA_ROOT_DIR" ]]; then
+    RCLONE_DATA_DIR="$ROUTER_DATA_ROOT_DIR/rclone/data"
   else
     RCLONE_DATA_DIR="$RUN_HOME/rclone/data"
   fi

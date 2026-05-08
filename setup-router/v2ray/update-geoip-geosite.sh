@@ -38,8 +38,8 @@ if [[ $? -eq 0 ]]; then
   systemctl enable v2ray
   systemctl start v2ray
 else
-  chmod +x $ROUTER_HOME/v2ray/create-v2ray-pod-with-tproxy.sh
-  $ROUTER_HOME/v2ray/create-v2ray-pod-with-tproxy.sh
+  chmod +x $ROUTER_DATA_ROOT_DIR/v2ray/create-v2ray-pod-with-tproxy.sh
+  $ROUTER_DATA_ROOT_DIR/v2ray/create-v2ray-pod-with-tproxy.sh
 fi
 
 bash "$SCRIPT_DIR/setup-geoip-geosite.sh"

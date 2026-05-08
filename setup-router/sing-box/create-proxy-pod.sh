@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# $ROUTER_HOME/sing-box/create-client-pod.sh
+# $ROUTER_DATA_ROOT_DIR/vbox/create-client-pod.sh
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 

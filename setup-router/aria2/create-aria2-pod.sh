@@ -10,11 +10,9 @@ if [[ -e "$(dirname "$SCRIPT_DIR")/configure-router.sh" ]]; then
   source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 fi
 
-if [[ "x$ARIA2_DATA_ROOT" == "x" ]]; then
-  if [[ ! -z "$SAMBA_DATA_DIR" ]]; then
-    ARIA2_DATA_ROOT="$SAMBA_DATA_DIR/download"
-  elif [[ ! -z "$ROUTER_DATA_ROOT_DIR" ]]; then
-    ARIA2_DATA_ROOT="$ROUTER_DATA_ROOT_DIR/aria2/download"
+if [[ -z "$ARIA2_DATA_ROOT" ]]; then
+  if [[ ! -z "$ROUTER_DATA_ROOT_DIR" ]]; then
+    ARIA2_DATA_ROOT="$ROUTER_DATA_ROOT_DIR/website/download"
   else
     ARIA2_DATA_ROOT="$HOME/aria2/download"
   fi
@@ -222,8 +220,6 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
     -p 6800:6800/tcp -p 6881-6883:6881-6883/tcp -p 6881-6883:6881-6883/udp \
     local-aria2 bash /usr/bin/aria2c_with_session.sh --conf-path=/etc/aria2/aria2.conf \
       | tee -p "$SYSTEMD_CONTAINER_DIR/aria2.container"
-  
-  systemctl --user daemon-reload
 
 else
   podman run -d --name aria2 \
@@ -240,9 +236,26 @@ else
   fi
   podman stop aria2
   podman generate systemd --name aria2 | tee $SYSTEMD_SERVICE_DIR/aria2.service
-
-  systemctl --user daemon-reload
-  systemctl --user enable aria2
 fi
 
-systemctl --user restart aria2
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  systemctl daemon-reload
+else
+  systemctl --user daemon-reload
+fi
+
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl enable aria2.service
+  fi
+  systemctl start aria2.service
+else
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl --user enable aria2.service
+  fi
+  systemctl --user start aria2.service
+fi
+
+if [[ "x$CADDY_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman image prune -a -f --filter "until=240h"
+fi

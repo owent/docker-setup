@@ -26,10 +26,10 @@ fi
 
 podman run --network=host --name jellyfin -d \
   --security-opt label=disable \
-  -v $ROUTER_HOME/etc/jellyfin:/config \
-  -v $ROUTER_HOME/jellyfin/cache:/cache \
-  -v $SAMBA_DATA_DIR/jellyfin:/media/samba \
-  -v $SAMBA_DATA_DIR/download:/media/download \
+  -v $ROUTER_DATA_ROOT_DIR/jellyfin/etc/jellyfin:/config \
+  -v $ROUTER_DATA_ROOT_DIR/jellyfin/cache:/cache \
+  -v $ROUTER_DATA_ROOT_DIR/jellyfin:/media/samba \
+  -v $ROUTER_DATA_ROOT_DIR/website/download:/media/download \
   --device /dev/dri/renderD128:/dev/dri/renderD128 \
   --device /dev/dri/card0:/dev/dri/card0 \
   --publish 8096:8096 \

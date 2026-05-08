@@ -23,7 +23,9 @@ if [[ "x" == "x$SETUP_WITH_DEBUG_LOG" ]]; then
 fi
 
 # Recommand to use NDP instead of NAT6
-# NAT_SETUP_SKIP_IPV6=1
+if [[ -z "$ROUTER_NAT_SETUP_WITH_NATT6" ]]; then
+  ROUTER_NAT_SETUP_WITH_NATT6=0
+fi
 
 ## NAT
 # just like iptables -t nat
@@ -44,16 +46,16 @@ fi
 
 nft list table ip6 nat >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
-  if [[ $NAT_SETUP_SKIP_IPV6 -eq 0 ]]; then
+  if [[ $ROUTER_NAT_SETUP_WITH_NATT6 -ne 0 ]]; then
     nft add table ip6 nat
   fi
 else
-  if [[ $NAT_SETUP_SKIP_IPV6 -ne 0 ]]; then
+  if [[ $ROUTER_NAT_SETUP_WITH_NATT6 -eq 0 ]]; then
     nft delete table ip6 nat
   fi
 fi
 
-if [[ $NAT_SETUP_SKIP_IPV6 -eq 0 ]]; then
+if [[ $ROUTER_NAT_SETUP_WITH_NATT6 -ne 0 ]]; then
   nft list set ip6 nat LOCAL_IPV6 >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
     nft add set ip6 nat LOCAL_IPV6 '{ type ipv6_addr; flags interval; auto-merge ; }'
@@ -174,7 +176,7 @@ nft add rule ip nat POSTROUTING ip saddr @LOCAL_IPV4 ip daddr != @LOCAL_IPV4 ip 
 # nft add rule ip nat PREROUTING ip saddr != @LOCAL_IPV4 tcp dport 22 drop
 # nft add rule ip nat PREROUTING ip saddr != @LOCAL_IPV4 tcp dport 36000 dnat to 172.23.1.1 :22
 
-if [[ $NAT_SETUP_SKIP_IPV6 -eq 0 ]]; then
+if [[ $ROUTER_NAT_SETUP_WITH_NATT6 -ne 0 ]]; then
   ### Setup NAT - ipv6
   nft list chain ip6 nat PREROUTING >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then

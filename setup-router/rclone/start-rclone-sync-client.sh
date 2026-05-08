@@ -29,10 +29,10 @@ RCLONE_REPLICATE_LOCAL_REPLICATE_MODE=0
 # RCLONE_REPLICATE_LOCAL_REPLICATE_MODE=1
 if [[ $RCLONE_REPLICATE_LOCAL_REPLICATE_MODE -eq 0 ]]; then
   if [[ "x$RCLONE_DATA_DIR" == "x" ]]; then
-    if [[ ! -z "$SAMBA_DATA_DIR" ]]; then
-      RCLONE_DATA_DIR="$SAMBA_DATA_DIR/rclone/onedrive"
+    if [[ ! -z "$ROUTER_DATA_ROOT_DIR" ]]; then
+      RCLONE_DATA_DIR="$ROUTER_DATA_ROOT_DIR/rclone/data"
     else
-      RCLONE_DATA_DIR="$RUN_HOME/rclone/onedrive"
+      RCLONE_DATA_DIR="$RUN_HOME/rclone/data"
     fi
   fi
 else
@@ -41,7 +41,7 @@ else
   NEXTCLOUD_DATA_DIR=$SYNCTHING_CLIENT_HOME_DIR/data/archive/nextcloud/data
   NEXTCLOUD_EXTERNAL_DIR=$SYNCTHING_CLIENT_HOME_DIR/data/archive/nextcloud/external
   NEXTCLOUD_ETC_DIR=$SYNCTHING_CLIENT_HOME_DIR/data/archive/nextcloud/etc
-  RCLONE_DATA_DIR=$SYNCTHING_CLIENT_HOME_DIR/data/archive/onedrive
+  RCLONE_DATA_DIR=$SYNCTHING_CLIENT_HOME_DIR/data/archive/data
 fi
 mkdir -p "$RCLONE_DATA_DIR"
 
@@ -52,7 +52,7 @@ echo "NEXTCLOUD_ETC_DIR=$NEXTCLOUD_ETC_DIR"
 echo "RCLONE_DATA_DIR=$RCLONE_DATA_DIR"
 
 RCLONE_REMOTE_SOURCE=onedrive-live_com
-RCLONE_REMOTE_DIR_NAMES=(Apps Documents)
+RCLONE_REMOTE_DIR_NAMES=(onedrive/Apps onedrive/Documents)
 RCLONE_REPLICATE_TARGET=(onedrive-live_com onedrive-x-ha_com onedrive-r-ci_com)
 
 if [[ "x$RCLONE_IMAGE" == "x" ]]; then

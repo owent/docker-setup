@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# $ROUTER_HOME/vlan/vlan-setup-bridge.sh
+# $ROUTER_DATA_ROOT_DIR/vlan/vlan-setup-bridge.sh
 # @see https://www.man7.org/linux/man-pages/man8/bridge.8.html
 # @see https://man.archlinux.org/man/NetworkManager-dispatcher.8.en
 #

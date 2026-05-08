@@ -169,12 +169,12 @@ function update_geo_services() {
     systemctl restart smartdns
   fi
 
-  if [ -e "$ROUTER_HOME/coredns/merge-configure.sh" ] && [ $TPROXY_SETUP_COREDNS -ne 0 ]; then
+  if [ -e "$ROUTER_DATA_ROOT_DIR/coredns/merge-configure.sh" ] && [ $TPROXY_SETUP_COREDNS -ne 0 ]; then
     if [ $TPROXY_SETUP_COREDNS_WITH_NFTABLES -ne 0 ]; then
-      sudo bash "$ROUTER_HOME/coredns/merge-configure.sh"
+      sudo bash "$ROUTER_DATA_ROOT_DIR/coredns/merge-configure.sh"
       sudo systemctl restart coredns
     else
-      sudo -u $RUN_USER bash "$ROUTER_HOME/coredns/merge-configure.sh"
+      sudo -u $RUN_USER bash "$ROUTER_DATA_ROOT_DIR/coredns/merge-configure.sh"
       su -c 'env DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$UID/bus systemctl restart --user coredns' - $RUN_USER
     fi
   fi

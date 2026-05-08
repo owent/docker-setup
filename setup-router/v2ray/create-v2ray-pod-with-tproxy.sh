@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# $ROUTER_HOME/v2ray/create-v2ray-pod.sh
+# $ROUTER_DATA_ROOT_DIR/v2ray/create-v2ray-pod.sh
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
@@ -44,15 +44,15 @@ if [[ $? -eq 0 ]]; then
   fi
 fi
 
-if [ $TPROXY_SETUP_NFTABLES -eq 0 ]; then
+if [ -z "$TPROXY_SETUP_NFTABLES" ] || [ $TPROXY_SETUP_NFTABLES -eq 0 ]; then
   podman generate systemd v2ray \
-    | sed "/ExecStart=/a ExecStartPost=$ROUTER_HOME/v2ray/setup-tproxy.sh" \
-    | sed "/ExecStop=/a ExecStopPost=$ROUTER_HOME/v2ray/cleanup-tproxy.sh" \
+    | sed "/ExecStart=/a ExecStartPost=$ROUTER_DATA_ROOT_DIR/v2ray/setup-tproxy.sh" \
+    | sed "/ExecStop=/a ExecStopPost=$ROUTER_DATA_ROOT_DIR/v2ray/cleanup-tproxy.sh" \
     | tee /lib/systemd/system/v2ray.service
 else
   podman generate systemd v2ray \
-    | sed "/ExecStart=/a ExecStartPost=$ROUTER_HOME/v2ray/setup-tproxy.nft.sh" \
-    | sed "/ExecStop=/a ExecStopPost=$ROUTER_HOME/v2ray/cleanup-tproxy.nft.sh" \
+    | sed "/ExecStart=/a ExecStartPost=$ROUTER_DATA_ROOT_DIR/v2ray/setup-tproxy.nft.sh" \
+    | sed "/ExecStop=/a ExecStopPost=$ROUTER_DATA_ROOT_DIR/v2ray/cleanup-tproxy.nft.sh" \
     | tee /lib/systemd/system/v2ray.service
 fi
 

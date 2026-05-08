@@ -19,7 +19,7 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 
 ### ==================================== v2ray nftables rules begin ====================================
-### ----------------------------------- $ROUTER_HOME/v2ray/setup-tproxy.sh -----------------------------------
+### ----------------------------------- $ROUTER_DATA_ROOT_DIR/v2ray/setup-tproxy.sh -----------------------------------
 
 ### Setup v2ray xtable rule and policy routing
 ### ip rule { add | del } SELECTOR ACTION

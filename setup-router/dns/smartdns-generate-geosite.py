@@ -333,7 +333,7 @@ def load_default_smartdns_etc_dir() -> Path:
                 continue
 
             variable_name, raw_value = match.groups()
-            if variable_name not in {"ROUTER_HOME", "SMARTDNS_ETC_DIR"}:
+            if variable_name not in {"ROUTER_DATA_ROOT_DIR", "SMARTDNS_ETC_DIR"}:
                 continue
 
             parsed_value = parse_shell_assignment_value(raw_value, known_values)

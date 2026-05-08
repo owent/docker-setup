@@ -330,7 +330,7 @@ while [[ $? -ne 0 ]] && [[ $SETUP_FWMARK_RULE_RETRY_TIMES -lt 1000 ]]; do
   ip -4 rule add fwmark 0x1e/0x1f priority $DEBUG_FWMARK_RULE_PRIORITY lookup $DEBUG_TPROXY_TABLE_ID
 done
 
-if [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
+if [[ -n "$TPROXY_SETUP_WITHOUT_IPV6" ]] && [[ $TPROXY_SETUP_WITHOUT_IPV6 -eq 0 ]]; then
   if [[ $(ip -6 route list ::/0 dev lo table $DEBUG_TPROXY_TABLE_ID | wc -l) -eq 0 ]]; then
     ip -6 route add local ::/0 dev lo table $DEBUG_TPROXY_TABLE_ID
   fi

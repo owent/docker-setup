@@ -61,7 +61,7 @@ Wants=network-online.target
 Type=forking
 PIDFile=/var/run/ppp-$ROUTER_CONFIG_PPP_LINK_INTERFACE.pid
 ExecStart=/usr/sbin/pppd file /opt/ppp/etc/$ROUTER_CONFIG_PPP_LINK_INTERFACE
-ExecStartPre=/bin/bash $ROUTER_HOME/ppp-nat/setup-ppp-up-down-rule.sh
+ExecStartPre=/bin/bash $ROUTER_DATA_ROOT_DIR/ppp-nat/setup-ppp-up-down-rule.sh
 Restart=on-failure
 # Don't restart in the case of configuration error
 RestartPreventExitStatus=23

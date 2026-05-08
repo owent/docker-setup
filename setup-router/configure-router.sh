@@ -1,11 +1,11 @@
 #!/bin/bash
 
 RUN_USER=tools
-export ROUTER_HOME=/home/router
+export ROUTER_HOME=/data
 export ROUTER_DOMAIN=home.shkits.com
 ROUTER_INTERNAL_IPV4=172.23.1.10
 ROUTER_DATA_ROOT_DIR=/data
-ROUTER_LOG_ROOT_DIR=$ROUTER_DATA_ROOT_DIR/logs
+ROUTER_LOG_ROOT_DIR=$ROUTER_DATA_ROOT_DIR/router-logs
 
 ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY=9091
 
@@ -53,8 +53,8 @@ DNSMASQ_ENABLE_DHCP=1
 DNSMASQ_ENABLE_IPV6_NDP=0
 DNSMASQ_ENABLE_DHCP_EXCEPT_INTERFACE=(ppp0 ppp1)
 
-VBOX_ETC_DIR=$ROUTER_HOME/etc/vbox
-VBOX_DATA_DIR=$ROUTER_DATA_ROOT_DIR/vbox
+VBOX_ETC_DIR=$ROUTER_DATA_ROOT_DIR/vbox/etc
+VBOX_DATA_DIR=$ROUTER_DATA_ROOT_DIR/vbox/data
 VBOX_SKIP_IP_RULE_PRIORITY=8123
 # 暂不支持移除自动路由功能，因为需要读取它生成的 via 172.19.0.2 dev tun-vbox src 172.19.0.1 
 # VBOX_TUN_ENABLE_AUTO_ROUTE=1
@@ -69,12 +69,11 @@ VBOX_TUN_PROXY_BLACKLIST_IPV4=( )
 VBOX_TUN_PROXY_BLACKLIST_IPV6=( )
 VBOX_TUN_PROXY_BLACKLIST_IFNAME=(enp2s0.5)
 VBOX_IP_RULE_WITH_AUTO_REDIRECT=0
-GEOIP_GEOSITE_ETC_DIR=$ROUTER_HOME/etc/v2ray
+
+GEOIP_GEOSITE_ETC_DIR=$ROUTER_DATA_ROOT_DIR/v2ray/etc
 
 SMARTDNS_ENABLE=0
 SMARTDNS_DNS_PORT=1153
-SMARTDNS_ETC_DIR=$ROUTER_HOME/dns/smartdns-etc
-SMARTDNS_DATA_DIR=$ROUTER_HOME/dns/smartdns-data
 SMARTDNS_IMAGE=docker.io/pymumu/smartdns:latest
 SMARTDNS_RESOLV_CONF=
 SMARTDNS_WEBUI_ENABLE=1
@@ -89,31 +88,37 @@ NEXTDNS_PRIVATE_TLS_DOMAIN=steering.nextdns.io
 
 CLOUDFLARE_ZERO_TRUST_TUNNEL_TOKEN=""
 
-# Use radvd and ndp and disable NAT6
-NAT_SETUP_SKIP_IPV6=1
+# If we use radvd and ndp we should disable NAT6
+# If we use DHCPv6 and NATT6 we can keep NAT6
+ROUTER_NAT_SETUP_WITH_NATT6=0
 
-ACMESH_SSL_DIR=$ROUTER_HOME/acme.sh/ssl
-ACMESH_SSL_MAIN_DOMAIN=shkits.com
+ROUTER_SDWAN_WITH_IPV6=1
+
+ACMESH_SSL_DIR=$ROUTER_DATA_ROOT_DIR/acme.sh/ssl
+
 SAMBA_DATA_DIR=$ROUTER_DATA_ROOT_DIR/samba
+
 REDIS_PRIVATE_NETWORK_NAME=local-redis
-REDIS_PRIVATE_NETWORK_IP=10.85.0.251
+REDIS_PRIVATE_NETWORK_IP=redis
 REDIS_HOST=$ROUTER_INTERNAL_IPV4
 REDIS_PORT=6379
 REDIS_DATA_DIR=$ROUTER_DATA_ROOT_DIR/redis/data
 POSTGRES_ADMIN_USER=owent
-POSTGRES_DATA_DIR=$SAMBA_DATA_DIR/postgresql/data
+POSTGRES_DATA_DIR=$ROUTER_DATA_ROOT_DIR/postgresql/data
 POSTGRES_LOG_DIR=$ROUTER_LOG_ROOT_DIR/postgresql
 POSTGRES_SHM_SIZE=1024 # MB
 POSTGRES_MAX_CONNECTIONS=200
 POSTGRES_PORT=5432
-NEXTCLOUD_DATA_DIR=$SAMBA_DATA_DIR/nextcloud/data
-NEXTCLOUD_APPS_DIR=$SAMBA_DATA_DIR/nextcloud/apps
-NEXTCLOUD_ETC_DIR=$SAMBA_DATA_DIR/nextcloud/etc
-NEXTCLOUD_EXTERNAL_DIR=$SAMBA_DATA_DIR/nextcloud/external
-NEXTCLOUD_TEMPORARY_DIR=$SAMBA_DATA_DIR/nextcloud/temporary
+
+NEXTCLOUD_DATA_DIR=$ROUTER_DATA_ROOT_DIR/nextcloud/data
+NEXTCLOUD_APPS_DIR=$ROUTER_DATA_ROOT_DIR/nextcloud/apps
+NEXTCLOUD_ETC_DIR=$ROUTER_DATA_ROOT_DIR/nextcloud/etc
+NEXTCLOUD_EXTERNAL_DIR=$ROUTER_DATA_ROOT_DIR/nextcloud/external
+NEXTCLOUD_TEMPORARY_DIR=$ROUTER_DATA_ROOT_DIR/nextcloud/temporary
 NEXTCLOUD_REVERSE_ROOT_DIR=""                             # Set non empty and use fpm docker image when success
 NEXTCLOUD_TRUSTED_DOMAINS=""                              # nextcloud domains and IPs
 NEXTCLOUD_CACHE_OPTIONS=()                                # --network=$REDIS_PRIVATE_NETWORK_NAME -e REDIS_HOST=$REDIS_PRIVATE_NETWORK_IP -e REDIS_HOST_PORT=$REDIS_PORT -e REDIS_HOST_PASSWORD=
+
 ONLYOFFICE_DATA_DIR=$ROUTER_DATA_ROOT_DIR/onlyoffice/data # /var/www/onlyoffice/Data
 ONLYOFFICE_CACHE_DIR=$ROUTER_DATA_ROOT_DIR/onlyoffice/lib # /var/lib/onlyoffice
 ONLYOFFICE_DB_DIR=$ROUTER_DATA_ROOT_DIR/onlyoffice/db     # /var/lib/postgresql
@@ -141,8 +146,8 @@ TPROXY_WHITELIST_IPV6=("2001:4860:4860::8888" "2001:4860:4860::8844")
 TPROXY_BLACKLIST_VLAN_TAGS=(5 6)
 
 # Syncthing
-if [[ -e "$ROUTER_HOME/syncthing/configure-server.sh" ]]; then
-  source "$ROUTER_HOME/syncthing/configure-server.sh"
+if [[ -e "$ROUTER_DATA_ROOT_DIR/syncthing/configure-server.sh" ]]; then
+  source "$ROUTER_DATA_ROOT_DIR/syncthing/configure-server.sh"
 elif [[ -e "$(dirname "$0")/syncthing/configure-server.sh" ]]; then
   source "$(dirname "$0")/syncthing/configure-server.sh"
 fi
@@ -156,7 +161,6 @@ if [[ ! -z "$ARIA2_DATA_ROOT" ]] && [[ -e "$ARIA2_DATA_ROOT/download" ]]; then
   EMBY_DATA_EXTERNAL_DIRS=(${EMBY_DATA_EXTERNAL_DIRS[@]} "$ARIA2_DATA_ROOT/download:download")
 fi
 
-[ -e "/opt/podman" ] && export PATH="/opt/podman/bin:/opt/podman/libexec:$PATH"
 export PATH="$PATH:/usr/local/sbin:/usr/local/bin:/usr/sbin:/sbin"
 
 "$@"

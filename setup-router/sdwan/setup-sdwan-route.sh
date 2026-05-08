@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# $ROUTER_HOME/sdwan/setup-sdwan-route.sh
+# $ROUTER_DATA_ROOT_DIR/sdwan/setup-sdwan-route.sh
 # nftables
 # Quick: https://wiki.nftables.org/wiki-nftables/index.php/Performing_Network_Address_Translation_(NAT)
 # Quick(CN): https://wiki.archlinux.org/index.php/Nftables_(%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87)#Masquerading
@@ -131,8 +131,8 @@ if [[ -z "$SDWAN_WAIT_READY_RETRY" ]]; then
 fi
 
 # 如果接口不支持转发，尝试走NAT
-if [[ -z "$SDWAN_SNAT_TO_INTERFACE_IP" ]]; then
-  SDWAN_SNAT_TO_INTERFACE_IP=0
+if [[ -z "$ROUTER_SDWAN_SNAT_TO_INTERFACE_IP" ]]; then
+  ROUTER_SDWAN_SNAT_TO_INTERFACE_IP=0
 fi
 
 if [[ $ROUTER_NET_LOCAL_ENABLE_SDWAN -ne 0 ]] && [[ "x$1" != "xclear" ]]; then
@@ -236,13 +236,26 @@ function sdwan_setup_snat_table() {
   TABLE="$2"
   shift 2
 
-  if [[ $SDWAN_SNAT_TO_INTERFACE_IP -eq 0 ]]; then
+  if [[ $ROUTER_SDWAN_SNAT_TO_INTERFACE_IP -eq 0 ]]; then
     sdwan_remove_snat_table "$FAMILY" "$TABLE" "$@"
     return 0
   fi
 
+  if [[ -z "$ROUTER_SDWAN_WITH_IPV6" ]]; then
+    for SDWAN_TUN_CHANNEL in "${SDWAN_TUN_CHANNELS[@]}"; do
+      SDWAN_TUN_CHANNEL_INTERFACE=$(sdwan_get_channel_configured_interface "$SDWAN_TUN_CHANNEL")
+      if [[ -z "$SDWAN_TUN_CHANNEL_INTERFACE" ]]; then
+        continue
+      fi
+      ROUTER_SDWAN_WITH_IPV6=$(ip -o -6 addr show dev $SDWAN_TUN_CHANNEL_INTERFACE scope global | wc -l)
+      if [[ $ROUTER_SDWAN_WITH_IPV6 -ne 0 ]]; then
+        break
+      fi
+    done
+  fi
+
   for IP_FAMILY in "$@"; do
-    if [[ "$IP_FAMILY" == "-6" ]] && [[ $NAT_SETUP_SKIP_IPV6 -ne 0 ]]; then
+    if [[ "$IP_FAMILY" == "-6" ]] && [[ $ROUTER_SDWAN_WITH_IPV6 -eq 0 ]]; then
       continue
     fi
 

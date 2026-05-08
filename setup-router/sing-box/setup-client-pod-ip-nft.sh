@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# $ROUTER_HOME/sing-box/create-client-pod.sh
+# $ROUTER_DATA_ROOT_DIR/vbox/create-client-pod.sh
 # nftables
 # Quick: https://wiki.nftables.org/wiki-nftables/index.php/Performing_Network_Address_Translation_(NAT)
 # Quick(CN): https://wiki.archlinux.org/index.php/Nftables_(%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87)#Masquerading

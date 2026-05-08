@@ -302,7 +302,7 @@ WantedBy=default.target
   fi
 fi
 
-if [ $TPROXY_SETUP_IPSET -ne 0 ]; then
+if [ -n "$TPROXY_SETUP_IPSET" ] && [ $TPROXY_SETUP_IPSET -ne 0 ]; then
   which ipset >/dev/null 2>&1
   if [ $? -eq 0 ]; then
     ipset list DNSMASQ_GFW_IPV4 >/dev/null 2>&1

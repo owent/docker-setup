@@ -7,8 +7,8 @@ if [[ -e "$(dirname "$SCRIPT_DIR")/configure-router.sh" ]]; then
 fi
 
 if [[ "x$ACMESH_SSL_DIR" == "x" ]]; then
-  if [[ "x$ROUTER_HOME" != "x" ]]; then
-    ACMESH_SSL_DIR=$ROUTER_HOME/acme.sh/ssl
+  if [[ "x$ROUTER_DATA_ROOT_DIR" != "x" ]]; then
+    ACMESH_SSL_DIR=$ROUTER_DATA_ROOT_DIR/acme.sh/ssl
   else
     ACMESH_SSL_DIR="$HOME/acme.sh/ssl"
   fi

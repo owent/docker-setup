@@ -53,9 +53,9 @@ if [[ "x$NGINX_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
 fi
 
 mkdir -p "$ROUTER_LOG_ROOT_DIR/nginx"
-mkdir -p "$SAMBA_DATA_DIR/download"
+mkdir -p "$ROUTER_DATA_ROOT_DIR/website/download"
 
-NGINX_MOUNT_DIRS=("--mount" "type=bind,source=$SAMBA_DATA_DIR/download,target=/usr/share/nginx/html/downloads")
+NGINX_MOUNT_DIRS=("--mount" "type=bind,source=$ROUTER_DATA_ROOT_DIR/website/download,target=/usr/share/nginx/html/downloads")
 
 if [[ "x$NEXTCLOUD_REVERSE_ROOT_DIR" != "x" ]]; then
   NGINX_MOUNT_DIRS=(${NGINX_MOUNT_DIRS[@]}
@@ -64,9 +64,9 @@ if [[ "x$NEXTCLOUD_REVERSE_ROOT_DIR" != "x" ]]; then
 fi
 
 podman run -d --name router-nginx --security-opt label=disable \
-  --mount type=bind,source=$ROUTER_HOME/etc/nginx/nginx.conf,target=/etc/nginx/nginx.conf,ro=true \
-  --mount type=bind,source=$ROUTER_HOME/etc/nginx/conf.d,target=/etc/nginx/conf.d,ro=true \
-  --mount type=bind,source=$ROUTER_HOME/etc/nginx/dhparam.pem,target=/etc/nginx/dhparam.pem,ro=true \
+  --mount type=bind,source=$ROUTER_DATA_ROOT_DIR/nginx/etc/nginx.conf,target=/etc/nginx/nginx.conf,ro=true \
+  --mount type=bind,source=$ROUTER_DATA_ROOT_DIR/nginx/etc/conf.d,target=/etc/nginx/conf.d,ro=true \
+  --mount type=bind,source=$ROUTER_DATA_ROOT_DIR/nginx/etc/dhparam.pem,target=/etc/nginx/dhparam.pem,ro=true \
   --mount type=bind,source=$ACMESH_SSL_DIR,target=/etc/nginx/ssl,ro=true \
   --mount type=bind,source=$ROUTER_LOG_ROOT_DIR/nginx,target=/var/log/nginx \
   ${NGINX_MOUNT_DIRS[@]} \
