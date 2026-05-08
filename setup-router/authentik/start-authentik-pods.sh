@@ -18,19 +18,13 @@ if [[ -z "$RUN_USER" ]] || [[ "$RUN_USER" == "root" ]]; then
   exit 1
 fi
 
-RUN_HOME=$(awk -F: -v user="$RUN_USER" '$1 == user { print $6 }' /etc/passwd)
-
-if [[ -z "$RUN_HOME" ]]; then
-  RUN_HOME="$HOME"
-fi
-
 if [[ "x$AUTHENTIK_ETC_DIR" == "x" ]]; then
-  AUTHENTIK_ETC_DIR="$RUN_HOME/authentik/etc"
+  AUTHENTIK_ETC_DIR="$SCRIPT_DIR/etc"
 fi
 mkdir -p "$AUTHENTIK_ETC_DIR"
 
 if [[ "x$AUTHENTIK_DATA_DIR" == "x" ]]; then
-  AUTHENTIK_DATA_DIR="$RUN_HOME/authentik/data"
+  AUTHENTIK_DATA_DIR="$SCRIPT_DIR/data"
 fi
 mkdir -p "$AUTHENTIK_DATA_DIR/media"
 mkdir -p "$AUTHENTIK_DATA_DIR/certs"
@@ -69,6 +63,17 @@ if [[ ! -z "$AUTHENTIK_UPDATE" ]] || [[ ! -z "$ROUTER_IMAGE_UPDATE" ]]; then
   fi
 fi
 
+if [[ "root" == "$(id -un)" ]]; then
+  SYSTEMD_SERVICE_DIR=/lib/systemd/system
+  SYSTEMD_CONTAINER_DIR=/etc/containers/systemd/
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
+else
+  SYSTEMD_SERVICE_DIR="$HOME/.config/systemd/user"
+  SYSTEMD_CONTAINER_DIR="$HOME/.config/containers/systemd"
+  mkdir -p "$SYSTEMD_SERVICE_DIR"
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
+fi
+
 DOCKER_SOCK_PATH="$XDG_RUNTIME_DIR/$DOCKER_EXEC/$DOCKER_EXEC.sock"
 if [[ ! -e "$DOCKER_SOCK_PATH" ]]; then
   if [[ -e "/var/run/docker.sock" ]]; then
@@ -77,11 +82,11 @@ if [[ ! -e "$DOCKER_SOCK_PATH" ]]; then
 fi
 sed -E -i "s;DOCKER_SOCK_PATH=.*;DOCKER_SOCK_PATH=$DOCKER_SOCK_PATH;" "$SCRIPT_DIR/.env"
 
-systemctl --user --all | grep -F container-authentik-server.service
+systemctl --user --all | grep -F container-authentik.service
 
 if [[ $? -eq 0 ]]; then
-  systemctl --user stop container-authentik-server
-  systemctl --user disable container-authentik-server
+  systemctl --user stop container-authentik
+  systemctl --user disable container-authentik
 fi
 
 systemctl --user enable --now $DOCKER_EXEC.socket
@@ -94,8 +99,9 @@ if [[ ! -z "$AUTHENTIK_UPDATE" ]] || [[ ! -z "$ROUTER_IMAGE_UPDATE" ]]; then
 fi
 
 echo "[Unit]
-Description=container-authentik-server
-After=network.target
+Description=container-authentik
+Wants=network-online.target
+After=network-online.target internal-backend-network.service internal-frontend-network.service
 
 [Service]
 Type=simple
@@ -104,8 +110,8 @@ ExecStop=$DOCKER_EXEC-compose -f $SCRIPT_DIR/$COMPOSE_CONFIGURE down
 
 [Install]
 WantedBy=default.target
-" | tee $AUTHENTIK_ETC_DIR/container-authentik-server.service
+" | tee $SYSTEMD_SERVICE_DIR/container-authentik.service
 
-systemctl --user enable $AUTHENTIK_ETC_DIR/container-authentik-server.service
+systemctl --user enable container-authentik.service
 systemctl --user daemon-reload
-systemctl --user restart container-authentik-server.service
+systemctl --user restart container-authentik.service

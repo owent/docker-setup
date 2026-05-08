@@ -18,16 +18,23 @@ if [[ "x$RUN_HOME" == "x" ]]; then
   RUN_HOME="$HOME"
 fi
 
+if [[ -z "$UNBOUND_IMAGE" ]]; then
+  UNBOUND_IMAGE="alpinelinux/unbound:latest"
+fi
+if [[ -z "$UNBOUND_POD_NAME" ]]; then
+  UNBOUND_POD_NAME="unbound"
+fi
+
 # 非 --network=host 下会导致丢失DNS请求来源信息
 # UNBOUND_NETWORK=(host)
 UNBOUND_RUN_USER=(root)
 if [[ -z "$UNBOUND_ETC_DIR" ]]; then
-  UNBOUND_ETC_DIR="$SCRIPT_DIR/unbound-etc"
+  UNBOUND_ETC_DIR="$SCRIPT_DIR/$UNBOUND_POD_NAME-etc"
 fi
 mkdir -p "$UNBOUND_ETC_DIR"
 
 if [[ -z "$UNBOUND_DATA_DIR" ]]; then
-  UNBOUND_DATA_DIR="$SCRIPT_DIR/unbound-data"
+  UNBOUND_DATA_DIR="$SCRIPT_DIR/$UNBOUND_POD_NAME-data"
 fi
 mkdir -p "$UNBOUND_DATA_DIR"
 
@@ -36,9 +43,6 @@ if [[ -z "$UNBOUND_SSL_DIR" ]]; then
 fi
 mkdir -p "$UNBOUND_SSL_DIR"
 
-if [[ -z "$UNBOUND_IMAGE" ]]; then
-  UNBOUND_IMAGE="alpinelinux/unbound:latest"
-fi
 $DOCKER_EXEC image inspect $UNBOUND_IMAGE > /dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   UNBOUND_UPDATE=1
@@ -69,21 +73,21 @@ else
   mkdir -p "$SYSTEMD_CONTAINER_DIR"
 fi
 
-systemctl --user --all | grep -F unbound.service
+systemctl --user --all | grep -F $UNBOUND_POD_NAME.service
 
 if [[ $? -eq 0 ]]; then
-  systemctl --user stop unbound
-  systemctl --user disable unbound
+  systemctl --user stop $UNBOUND_POD_NAME
+  systemctl --user disable $UNBOUND_POD_NAME
 fi
 
-$DOCKER_EXEC container exists unbound >/dev/null 2>&1
+$DOCKER_EXEC container inspect $UNBOUND_POD_NAME >/dev/null 2>&1
 
 if [[ $? -eq 0 ]]; then
-  $DOCKER_EXEC stop unbound
-  $DOCKER_EXEC rm -f unbound
+  $DOCKER_EXEC stop $UNBOUND_POD_NAME
+  $DOCKER_EXEC rm -f $UNBOUND_POD_NAME
 fi
 
-if [[ "x$REDIS_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+if [[ "x$UNBOUND_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   $DOCKER_EXEC image prune -a -f --filter "until=240h"
 fi
 
@@ -130,15 +134,15 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
     fi
   done
   ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
-    $DOCKER_EXEC run -d --name unbound --security-opt label=disable \
+    $DOCKER_EXEC run -d --name $UNBOUND_POD_NAME --security-opt label=disable \
       "${UNBOUND_OPTIONS[@]}" \
-      $UNBOUND_IMAGE | tee -p "$SYSTEMD_CONTAINER_DIR/unbound.container"
+      $UNBOUND_IMAGE | tee -p "$SYSTEMD_CONTAINER_DIR/$UNBOUND_POD_NAME.container"
 else
-  $DOCKER_EXEC run -d --name unbound --security-opt label=disable \
+  $DOCKER_EXEC run -d --name $UNBOUND_POD_NAME --security-opt label=disable \
     "${UNBOUND_OPTIONS[@]}" \
     $UNBOUND_IMAGE
-  podman generate systemd unbound | tee -p "$SYSTEMD_SERVICE_DIR/unbound.service"
-  podman container stop unbound
+  podman generate systemd $UNBOUND_POD_NAME | tee -p "$SYSTEMD_SERVICE_DIR/$UNBOUND_POD_NAME.service"
+  podman container stop $UNBOUND_POD_NAME
 fi
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
@@ -149,14 +153,14 @@ fi
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
   if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
-    systemctl enable unbound.service
+    systemctl enable $UNBOUND_POD_NAME.service
   fi
-  systemctl start unbound.service
+  systemctl start $UNBOUND_POD_NAME.service
 else
   if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
-    systemctl --user enable unbound.service
+    systemctl --user enable $UNBOUND_POD_NAME.service
   fi
-  systemctl --user start unbound.service
+  systemctl --user start $UNBOUND_POD_NAME.service
 fi
 
 if [[ "x$UNBOUND_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then

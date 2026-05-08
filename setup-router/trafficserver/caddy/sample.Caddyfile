@@ -120,7 +120,33 @@ esm.sh, esm.run, cdn.skypack.dev, ga.jspm.io {
     import hide_proxy_headers
 }
 
+# ==============================================================================
+# Akamai 静态 CDN 域名配置
+# ==============================================================================
+# *.deploy.static.akamaitechnologies.com: 大型软件分发，大文件下载
+*.deploy.static.akamaitechnologies.com {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
 app.diagrams.net, viewer.diagrams.net {
+    import proxy_to_ats
+    import hide_proxy_headers
+}
+
+# ==============================================================================
+# ArtStation 域名配置
+# ==============================================================================
+# 所有 CDN 子域名 - 图片/视频/资产分发 (大文件)
+# *.artstation.com 匹配 cdna/cdnb/cdn 等所有 CDN 子域名
+# Caddy 中具体域名优先于通配符，www/ws 的独立规则会覆盖此通配符
+*.artstation.com {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+# 主站和 WebSocket - 普通代理 (覆盖通配符)
+www.artstation.com, ws.artstation.com {
     import proxy_to_ats
     import hide_proxy_headers
 }
@@ -150,6 +176,15 @@ marketplace.visualstudio.com, update.code.visualstudio.com {
 
 cdn.vsassets.io {
     import proxy_to_ats
+    import hide_proxy_headers
+}
+
+# ==============================================================================
+# Cursor 下载域名配置
+# ==============================================================================
+# downloads.cursor.com: Cursor IDE 安装包下载，大文件
+downloads.cursor.com {
+    import proxy_to_ats_large
     import hide_proxy_headers
 }
 

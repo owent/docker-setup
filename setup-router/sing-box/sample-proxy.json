@@ -640,7 +640,7 @@
     "auto_detect_interface": true,
     // For Android
     // "override_android_vpn": true,
-    "default_mark": 511,
+    "default_mark": 15,
     "default_domain_resolver": {
       // 大陆白名单模式使用dns-fast，否则默认用dns-local
       "server": "dns-fast"

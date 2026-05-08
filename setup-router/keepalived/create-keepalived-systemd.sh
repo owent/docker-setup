@@ -28,7 +28,6 @@ DOCKER_EXEC=podman
 which podman >/dev/null 2>&1 || DOCKER_EXEC=docker
 
 if [[ "x$KEA_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
-    # $DOCKER_EXEC pull docker.cloudsmith.io/isc/docker/kea-dhcp4:latest
     $DOCKER_EXEC pull alpine:latest
     if [[ $? -ne 0 ]]; then
         exit 1
@@ -48,11 +47,28 @@ else
     fi
 fi
 
-systemctl --all | grep -F container-keepalived.service
+if [[ "root" == "$(id -un)" ]]; then
+  if [[ -e "/lib/systemd/system" ]]; then
+    SYSTEMD_SERVICE_DIR=/lib/systemd/system
+  elif [[ -e "/usr/lib/systemd/system" ]]; then
+    SYSTEMD_SERVICE_DIR=/usr/lib/systemd/system
+  else
+    SYSTEMD_SERVICE_DIR=/etc/systemd/system
+  fi
+  SYSTEMD_CONTAINER_DIR=/etc/containers/systemd
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
+else
+  SYSTEMD_SERVICE_DIR="$HOME/.config/systemd/user"
+  SYSTEMD_CONTAINER_DIR="$HOME/.config/containers/systemd"
+  mkdir -p "$SYSTEMD_SERVICE_DIR"
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
+fi
+
+systemctl --all | grep -F keepalived
 
 if [[ $? -eq 0 ]]; then
-    systemctl stop container-keepalived
-    systemctl disable container-keepalived
+    systemctl stop keepalived
+    systemctl disable keepalived
 fi
 
 $DOCKER_EXEC container inspect keepalived >/dev/null 2>&1
@@ -73,21 +89,65 @@ KEEPALIVED_OPTIONS=(-e "TZ=Asia/Shanghai"
     --mount "type=bind,source=$KEEPALIVED_ETC_DIR,target=/etc/keepalived"
 )
 
-$DOCKER_EXEC run -d --name keepalived --security-opt label=disable \
+# notify-state.sh can start/stop host services such as kea-dhcp4/kea-dhcp6.
+# In container mode, mount the host root read-only so the script can call:
+#   chroot /host /usr/bin/systemctl --no-block <start|stop> <service>
+# Set KEEPALIVED_ENABLE_HOST_SYSTEMCTL=0 to disable this bridge.
+if [[ "${KEEPALIVED_ENABLE_HOST_SYSTEMCTL:-1}" != "0" ]]; then
+  KEEPALIVED_OPTIONS+=(-e "KEEPALIVED_SYSTEMCTL_CMD=chroot /host /usr/bin/systemctl --no-block"
+    --mount "type=bind,source=/,target=/host,ro=true"
+  )
+fi
+
+PODLET_IMAGE_URL="ghcr.io/containers/podlet:latest"
+PODLET_RUN=($(which podlet 2>/dev/null))
+FIND_PODLET_RESULT=$?
+if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+  (podman image inspect "$PODLET_IMAGE_URL" > /dev/null 2>&1 || podman pull "$PODLET_IMAGE_URL") && FIND_PODLET_RESULT=0 && PODLET_RUN=(podman run --rm "$PODLET_IMAGE_URL")
+fi
+
+if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
+  PODLET_OPTIONS=(--install --wanted-by default.target --wants network-online.target --after network-online.target)
+
+  ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
+    $DOCKER_EXEC run -d --name keepalived --security-opt label=disable \
+        --restart=unless-stopped "${KEEPALIVED_OPTIONS[@]}" \
+        local-keepalived -- \
+        keepalived --dont-fork --log-console -f /etc/keepalived/keepalived.conf \
+    | tee -p "$SYSTEMD_CONTAINER_DIR/keepalived.container"
+else
+  $DOCKER_EXEC run -d --name keepalived --security-opt label=disable \
     --restart=unless-stopped "${KEEPALIVED_OPTIONS[@]}" \
     local-keepalived \
     keepalived --dont-fork --log-console -f /etc/keepalived/keepalived.conf
 
-if [[ $? -ne 0 ]]; then
-    echo "Error: Unable to start keepalived container"
+  if [[ $? -ne 0 ]]; then
+    echo "Failed to run keepalived"
     exit 1
+  fi
+
+  podman generate systemd keepalived | tee -p "$SYSTEMD_SERVICE_DIR/keepalived.service"
+  podman container stop keepalived
 fi
 
-if [[ "$DOCKER_EXEC" == "podman" ]]; then
-    podman stop keepalived
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  systemctl daemon-reload
+else
+  systemctl --user daemon-reload
+fi
 
-    podman generate systemd --name keepalived | tee /lib/systemd/system/container-keepalived.service
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl enable keepalived.service
+  fi
+  systemctl start keepalived.service
+else
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl --user enable keepalived.service
+  fi
+  systemctl --user start keepalived.service
+fi
 
-    systemctl enable /lib/systemd/system/container-keepalived.service
-    systemctl restart container-keepalived
+if [[ "x$KEA_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman image prune -a -f --filter "until=240h"
 fi

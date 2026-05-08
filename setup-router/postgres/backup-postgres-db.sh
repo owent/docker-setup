@@ -13,31 +13,27 @@ if [[ "x$RUN_USER" == "x" ]]; then
   RUN_USER=$(id -un)
 fi
 
-if [[ "x$RUN_HOME" == "x" ]]; then
-  RUN_HOME=$(cat /etc/passwd | awk "BEGIN{FS=\":\"} \$1 == \"$RUN_USER\" { print \$6 }")
-fi
-
-if [[ "x$RUN_HOME" == "x" ]]; then
-  RUN_HOME="$HOME"
-fi
-
 DB_BACKUP_DIR_NAME="sql-backup"
-DB_NAMES=(affine_data)
+DB_NAMES=()
 DB_USER=owent
-DB_BACKUP_COPY_TO_DIR="$HOME/rclone/data/sql-backup"
+
+if [[ -z "$DB_BACKUP_COPY_TO_DIR" ]]; then
+  DB_BACKUP_COPY_TO_DIR="$SCRIPT_DIR/backup"
+fi
 
 if [[ -z "$POSTGRESQL_DATA_DIR" ]]; then
-  POSTGRESQL_DATA_DIR="$HOME/postgresql/data"
+  POSTGRESQL_DATA_DIR="$SCRIPT_DIR/data"
 fi
 
 DB_BACKUP_SUFFIX="sqlbkp_$(date +"%U")"
 
+WORK_DIR="$(pwd)"
 for DB_NAME in "${DB_NAMES[@]}"; do
   BACKUP_FILE_NAME="$DB_NAME-$DB_BACKUP_SUFFIX.sql"
   find "$POSTGRESQL_DATA_DIR/$DB_BACKUP_DIR_NAME" -name "$DB_NAME-sqlbkp_*.sql*" | xargs -r rm
 
-  podman exec postgresql bash -c \
-    "if [[ -e /data/postgresql ]]; then DB_DATA_DIR=/data/postgresql; else DB_DATA_DIR=/var/lib/postgresql/data; fi;
+  podman exec postgres-db bash -c \
+    "if [[ -e /data/postgres-db ]]; then DB_DATA_DIR=/data/postgres-db; else DB_DATA_DIR=/var/lib/postgres-db/data; fi;
     mkdir -p \$DB_DATA_DIR/$DB_BACKUP_DIR_NAME;
     chmod 755 \$DB_DATA_DIR/$DB_BACKUP_DIR_NAME;
     pg_dump $DB_NAME -h localhost -p 5432 -U $DB_USER -f \$DB_DATA_DIR/$DB_BACKUP_DIR_NAME/$BACKUP_FILE_NAME"
@@ -50,7 +46,9 @@ for DB_NAME in "${DB_NAMES[@]}"; do
     echo "Backup $DB_NAME to $POSTGRESQL_DATA_DIR/$DB_BACKUP_DIR_NAME failed."
     exit 1
   fi
-  tar -cvf- $BACKUP_FILE_PATH | zstd -T0 -B0 -15 --format=zstd -r -f -o $BACKUP_FILE_PATH.tar.zst -
+  cd "$(dirname "$BACKUP_FILE_PATH")"
+  tar -cvf- "$(basename "$BACKUP_FILE_PATH")" | zstd -T0 -B0 -15 --format=zstd -r -f -o $BACKUP_FILE_PATH.tar.zst -
+  cd "$WORK_DIR"
   # zstd -d --stdout $BACKUP_FILE_PATH.tar.zst | tar -xf-
 
   if [[ $? -ne 0 ]]; then

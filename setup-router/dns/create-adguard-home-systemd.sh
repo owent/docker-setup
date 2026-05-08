@@ -18,11 +18,18 @@ if [[ "x$RUN_HOME" == "x" ]]; then
   RUN_HOME="$HOME"
 fi
 
+if [[ -z "$ADGUARD_HOME_IMAGE" ]]; then
+  ADGUARD_HOME_IMAGE="adguard/adguardhome:latest"
+fi
+if [[ -z "$ADGUARD_HOME_PODNAME" ]]; then
+  ADGUARD_HOME_PODNAME="adguardhome"
+fi
+
 # 非 --network=host 下会导致丢失DNS请求来源信息
 # ADGUARD_HOME_NETWORK=(host)
 # ADGUARD_HOME_RUN_USER=(root)
 if [[ -z "$ADGUARD_HOME_ETC_DIR" ]]; then
-  ADGUARD_HOME_ETC_DIR="$SCRIPT_DIR/adguard-home-etc"
+  ADGUARD_HOME_ETC_DIR="$SCRIPT_DIR/$ADGUARD_HOME_PODNAME-etc"
 fi
 mkdir -p "$ADGUARD_HOME_ETC_DIR"
 
@@ -32,13 +39,10 @@ fi
 mkdir -p "$ADGUARD_HOME_SSL_DIR"
 
 if [[ -z "$ADGUARD_HOME_DATA_DIR" ]]; then
-  ADGUARD_HOME_DATA_DIR="$SCRIPT_DIR/adguard-home-data"
+  ADGUARD_HOME_DATA_DIR="$SCRIPT_DIR/$ADGUARD_HOME_PODNAME-data"
 fi
 mkdir -p "$ADGUARD_HOME_DATA_DIR"
 
-if [[ -z "$ADGUARD_HOME_IMAGE" ]]; then
-  ADGUARD_HOME_IMAGE="adguard/adguardhome:latest"
-fi
 $DOCKER_EXEC image inspect $ADGUARD_HOME_IMAGE > /dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   ADGUARD_HOME_UPDATE=1
@@ -69,21 +73,21 @@ else
   mkdir -p "$SYSTEMD_CONTAINER_DIR"
 fi
 
-systemctl --user --all | grep -F adguard-home.service
+systemctl --user --all | grep -F $ADGUARD_HOME_PODNAME.service
 
 if [[ $? -eq 0 ]]; then
-  systemctl --user stop adguard-home
-  systemctl --user disable adguard-home
+  systemctl --user stop $ADGUARD_HOME_PODNAME
+  systemctl --user disable $ADGUARD_HOME_PODNAME
 fi
 
-$DOCKER_EXEC container exists adguardhome >/dev/null 2>&1
+$DOCKER_EXEC container exists $ADGUARD_HOME_PODNAME >/dev/null 2>&1
 
 if [[ $? -eq 0 ]]; then
-  $DOCKER_EXEC stop adguardhome
-  $DOCKER_EXEC rm -f adguardhome
+  $DOCKER_EXEC stop $ADGUARD_HOME_PODNAME
+  $DOCKER_EXEC rm -f $ADGUARD_HOME_PODNAME
 fi
 
-if [[ "x$REDIS_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+if [[ "x$ADGUARD_HOME_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   $DOCKER_EXEC image prune -a -f --filter "until=240h"
 fi
 
@@ -130,15 +134,15 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
     fi
   done
   ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
-    $DOCKER_EXEC run -d --name adguardhome --security-opt label=disable \
+    $DOCKER_EXEC run -d --name $ADGUARD_HOME_PODNAME --security-opt label=disable \
       "${ADGUARD_HOME_OPTIONS[@]}" \
-      $ADGUARD_HOME_IMAGE | tee -p "$SYSTEMD_CONTAINER_DIR/adguard-home.container"
+      $ADGUARD_HOME_IMAGE | tee -p "$SYSTEMD_CONTAINER_DIR/$ADGUARD_HOME_PODNAME.container"
 else
-  $DOCKER_EXEC run -d --name adguardhome --security-opt label=disable \
+  $DOCKER_EXEC run -d --name $ADGUARD_HOME_PODNAME --security-opt label=disable \
     "${ADGUARD_HOME_OPTIONS[@]}" \
     $ADGUARD_HOME_IMAGE
-  podman generate systemd adguard-home | tee -p "$SYSTEMD_SERVICE_DIR/adguard-home.service"
-  podman container stop adguard-home
+  podman generate systemd $ADGUARD_HOME_PODNAME | tee -p "$SYSTEMD_SERVICE_DIR/$ADGUARD_HOME_PODNAME.service"
+  podman container stop $ADGUARD_HOME_PODNAME
 fi
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
@@ -149,14 +153,14 @@ fi
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
   if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
-    systemctl enable adguard-home.service
+    systemctl enable $ADGUARD_HOME_PODNAME.service
   fi
-  systemctl start adguard-home.service
+  systemctl start $ADGUARD_HOME_PODNAME.service
 else
   if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
-    systemctl --user enable adguard-home.service
+    systemctl --user enable $ADGUARD_HOME_PODNAME.service
   fi
-  systemctl --user start adguard-home.service
+  systemctl --user start $ADGUARD_HOME_PODNAME.service
 fi
 
 if [[ "x$ADGUARD_HOME_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then

@@ -12,11 +12,6 @@ export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
 if [[ "x$RUN_USER" == "x" ]]; then
   RUN_USER=$(id -un)
 fi
-RUN_HOME=$(cat /etc/passwd | awk "BEGIN{FS=\":\"} \$1 == \"$RUN_USER\" { print \$6 }")
-
-if [[ "x$RUN_HOME" == "x" ]]; then
-  RUN_HOME="$HOME"
-fi
 
 #POSTGRESQL_NETWORK=(internal-backend)
 if [[ "x$POSTGRESQL_UPGRADE_IMAGE_FROM" == "x" ]]; then
@@ -27,7 +22,7 @@ if [[ "x$POSTGRESQL_UPGRADE_IMAGE_TO" == "x" ]]; then
 fi
 
 if [[ "x$POSTGRESQL_ETC_DIR" == "x" ]]; then
-  POSTGRESQL_ETC_DIR="$RUN_HOME/postgresql/etc"
+  POSTGRESQL_ETC_DIR="$SCRIPT_DIR/etc"
 fi
 mkdir -p "$POSTGRESQL_ETC_DIR"
 
@@ -82,22 +77,22 @@ if [[ "x$POSTGRESQL_PORT" == "x" ]]; then
 fi
 
 if [[ "x$POSTGRESQL_DATA_DIR" == "x" ]]; then
-  POSTGRESQL_DATA_DIR="$HOME/postgresql/data"
+  POSTGRESQL_DATA_DIR="$SCRIPT_DIR/data"
 fi
 mkdir -p "$POSTGRESQL_DATA_DIR"
 
-podman container exists postgresql-upgrade-from
+podman container exists postgres-db-upgrade-from
 
 if [[ $? -eq 0 ]]; then
-  podman stop postgresql-upgrade-from
-  podman rm -f postgresql-upgrade-from
+  podman stop postgres-db-upgrade-from
+  podman rm -f postgres-db-upgrade-from
 fi
 
-podman container exists postgresql-upgrade-to
+podman container exists postgres-db-upgrade-to
 
 if [[ $? -eq 0 ]]; then
-  podman stop postgresql-upgrade-to
-  podman rm -f postgresql-upgrade-to
+  podman stop postgres-db-upgrade-to
+  podman rm -f postgres-db-upgrade-to
 fi
 
 if [[ "x$NEXTCLOUD_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
@@ -115,10 +110,10 @@ fi
 
 for OLD_UPGRADE_DIR in "$POSTGRESQL_DATA_DIR/pgdata.upgrade.old" "$POSTGRESQL_DATA_DIR/pgdata.upgrade.new" \
   "$POSTGRESQL_DATA_DIR/wal.upgrade.old" "$POSTGRESQL_DATA_DIR/wal.upgrade.new" \
-  "$POSTGRESQL_DATA_DIR/postgresql.bin.old" "$POSTGRESQL_DATA_DIR/postgresql.share.old" \
+  "$POSTGRESQL_DATA_DIR/postgres-db.bin.old" "$POSTGRESQL_DATA_DIR/postgres-db.share.old" \
   "$POSTGRESQL_DATA_DIR/data/pgdata.upgrade.old" "$POSTGRESQL_DATA_DIR/data/pgdata.upgrade.new" \
   "$POSTGRESQL_DATA_DIR/data/wal.upgrade.old" "$POSTGRESQL_DATA_DIR/data/wal.upgrade.new" \
-  "$POSTGRESQL_DATA_DIR/data/postgresql.bin.old" "$POSTGRESQL_DATA_DIR/data/postgresql.share.old"; do
+  "$POSTGRESQL_DATA_DIR/data/postgres-db.bin.old" "$POSTGRESQL_DATA_DIR/data/postgres-db.share.old"; do
   if [[ -e "$OLD_UPGRADE_DIR" ]]; then
     rm -rf "$OLD_UPGRADE_DIR"
   fi
@@ -126,16 +121,16 @@ done
 
 POSTGRES_OPTIONS_OLD=(
   -e POSTGRES_PASSWORD=$ADMIN_TOKEN -e POSTGRES_USER=$POSTGRESQL_ADMIN_USER
-  -e PGDATA=/data/postgresql/pgdata.upgrade.old
+  -e PGDATA=/data/postgres-db/pgdata.upgrade.old
   --shm-size ${POSTGRESQL_SHM_SIZE}m
-  --mount type=bind,source=$POSTGRESQL_DATA_DIR,target=/data/postgresql
+  --mount type=bind,source=$POSTGRESQL_DATA_DIR,target=/data/postgres-db
 )
 
 POSTGRES_OPTIONS_NEW=(
   -e POSTGRES_PASSWORD=$ADMIN_TOKEN -e POSTGRES_USER=$POSTGRESQL_ADMIN_USER
-  -e PGDATA=/data/postgresql/pgdata.upgrade.new
+  -e PGDATA=/data/postgres-db/pgdata.upgrade.new
   --shm-size ${POSTGRESQL_SHM_SIZE}m
-  --mount type=bind,source=$POSTGRESQL_DATA_DIR,target=/data/postgresql
+  --mount type=bind,source=$POSTGRESQL_DATA_DIR,target=/data/postgres-db
 )
 
 if [[ ! -z "$POSTGRESQL_NETWORK" ]]; then
@@ -145,7 +140,7 @@ if [[ ! -z "$POSTGRESQL_NETWORK" ]]; then
   done
 fi
 
-podman run -d --name postgresql-upgrade-from --security-opt label=disable \
+podman run -d --name postgres-db-upgrade-from --security-opt label=disable \
   "${POSTGRES_OPTIONS_OLD[@]}" \
   $POSTGRESQL_UPGRADE_IMAGE_FROM \
   -c shared_buffers=${POSTGRESQL_SHM_SIZE}MB \
@@ -164,7 +159,7 @@ podman run -d --name postgresql-upgrade-from --security-opt label=disable \
   -c track_counts=on \
   -c default_statistics_target=100
 
-podman run -d --name postgresql-upgrade-to --security-opt label=disable \
+podman run -d --name postgres-db-upgrade-to --security-opt label=disable \
   "${POSTGRES_OPTIONS_NEW[@]}" \
   $POSTGRESQL_UPGRADE_IMAGE_TO \
   -c shared_buffers=${POSTGRESQL_SHM_SIZE}MB \
@@ -183,28 +178,28 @@ podman run -d --name postgresql-upgrade-to --security-opt label=disable \
   -c track_counts=on \
   -c default_statistics_target=100
 
-podman exec postgresql-upgrade-from ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
-podman exec postgresql-upgrade-to ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+podman exec postgres-db-upgrade-from ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+podman exec postgres-db-upgrade-to ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
 set -x
-podman exec postgresql-upgrade-from bash -c "mkdir -p /data/postgresql/postgresql.bin.old && cp -rfp /usr/lib/postgresql/* /data/postgresql/postgresql.bin.old && chmod +x -R /data/postgresql/postgresql.bin.old"
-podman exec postgresql-upgrade-from bash -c 'mkdir -p /data/postgresql/postgresql.share.old && cp -rfp /usr/share/postgresql/* /data/postgresql/postgresql.share.old'
-podman exec postgresql-upgrade-to bash -c "cp -rfp /data/postgresql/postgresql.share.old/* /usr/share/postgresql/"
+podman exec postgres-db-upgrade-from bash -c "mkdir -p /data/postgres-db/postgres-db.bin.old && cp -rfp /usr/lib/postgres-db/* /data/postgres-db/postgres-db.bin.old && chmod +x -R /data/postgresql/postgresql.bin.old"
+podman exec postgres-db-upgrade-from bash -c 'mkdir -p /data/postgres-db/postgres-db.share.old && cp -rfp /usr/share/postgres-db/* /data/postgres-db/postgres-db.share.old'
+podman exec postgres-db-upgrade-to bash -c "cp -rfp /data/postgres-db/postgres-db.share.old/* /usr/share/postgres-db/"
 
-podman exec postgresql-upgrade-to bash -c "mkdir -p /tmp/upgrade_data /tmp/upgrade_run && chown postgres:postgres /tmp/upgrade_run /tmp/upgrade_data && su postgres -c \"initdb -U $POSTGRESQL_ADMIN_USER -D /tmp/upgrade_data\""
-UPGRADE_SCRIPT='cd /tmp/upgrade_run; env PGDATAOLD=/data/postgresql/pgdata/ PGBINOLD=$(dirname "$(find /data/postgresql/postgresql.bin.old -name pg_upgrade)") PGDATANEW=/tmp/upgrade_data PGBINNEW=$(dirname "$(which pg_upgrade)")'
+podman exec postgres-db-upgrade-to bash -c "mkdir -p /tmp/upgrade_data /tmp/upgrade_run && chown postgres:postgres /tmp/upgrade_run /tmp/upgrade_data && su postgres -c \"initdb -U $POSTGRESQL_ADMIN_USER -D /tmp/upgrade_data\""
+UPGRADE_SCRIPT='cd /tmp/upgrade_run; env PGDATAOLD=/data/postgres-db/pgdata/ PGBINOLD=$(dirname "$(find /data/postgres-db/postgres-db.bin.old -name pg_upgrade)") PGDATANEW=/tmp/upgrade_data PGBINNEW=$(dirname "$(which pg_upgrade)")'
 UPGRADE_SCRIPT="$UPGRADE_SCRIPT su postgres -c \"pg_upgrade -U $POSTGRESQL_ADMIN_USER\""
-podman exec postgresql-upgrade-to bash -c "$UPGRADE_SCRIPT"
+podman exec postgres-db-upgrade-to bash -c "$UPGRADE_SCRIPT"
 
-echo "Please mv data from /tmp/upgrade_data/* into /data/postgresql/pgdata/ with user postgres"
-podman exec -it postgresql-upgrade-to bash -c "if [[ -e /data/postgresql/pgdata ]]; then mv -f /data/postgresql/pgdata /data/postgresql/pgdata.bak.$(date +%Y%m%d%H) ; fi"
-podman exec -it postgresql-upgrade-to bash -c "if [[ -e /data/postgresql/pgdata ]]; then rm -rf /data/postgresql/pgdata ; fi"
-podman exec -it postgresql-upgrade-to bash -c "mkdir -p /data/postgresql/pgdata; chown postgres:root /data/postgresql/pgdata"
-podman exec -it postgresql-upgrade-to bash -c "su postgres -c 'cp -rfp /tmp/upgrade_data/* /data/postgresql/pgdata/'"
+echo "Please mv data from /tmp/upgrade_data/* into /data/postgres-db/pgdata/ with user postgres"
+podman exec -it postgres-db-upgrade-to bash -c "if [[ -e /data/postgres-db/pgdata ]]; then mv -f /data/postgres-db/pgdata /data/postgres-db/pgdata.bak.$(date +%Y%m%d%H) ; fi"
+podman exec -it postgres-db-upgrade-to bash -c "if [[ -e /data/postgres-db/pgdata ]]; then rm -rf /data/postgres-db/pgdata ; fi"
+podman exec -it postgres-db-upgrade-to bash -c "mkdir -p /data/postgres-db/pgdata; chown postgres:root /data/postgres-db/pgdata"
+podman exec -it postgres-db-upgrade-to bash -c "su postgres -c 'cp -rfp /tmp/upgrade_data/* /data/postgres-db/pgdata/'"
 
-podman stop postgresql-upgrade-from
-podman rm postgresql-upgrade-from
-podman stop postgresql-upgrade-to
+podman stop postgres-db-upgrade-from
+podman rm postgres-db-upgrade-from
+podman stop postgres-db-upgrade-to
 
 # Modify pgdata/pg_hba.conf to allow remote access if needed
 # host    all             all             10.0.0.0/8              trust

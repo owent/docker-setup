@@ -81,9 +81,9 @@ IPV6_TUN_ADDRESS_THROW=(
 
 ### 策略路由(占用mark的后4位,RPDB变化均会触发重路由, meta mark and 0xf != 0x0 都跳过重路由):
 ###   不需要重路由设置: meta mark and 0xf != 0x0
-###   走 tun: 设置 fwmark = 0x3/0x3 (0011)
-###   直接跳转到默认路由: 跳过 fwmark = 0xc/0xc (1100)
-###     (vbox会设置511,0x1ff), 避开 meta mark and 0xf != 0x0 规则 (防止循环重定向)
+###   走 tun: 设置 fwmark = 0x4/0x4 (0100), 后两位预留4条子通道
+###   直接跳转到默认路由: 跳过 fwmark = 0x8/0x8 (1000)
+###     (vbox会设置15,0xf), 避开 meta mark and 0xf != 0x0 规则 (防止循环重定向)
 
 if [[ -z "$ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY" ]]; then
   ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY=9091
@@ -286,7 +286,7 @@ function vbox_setup_ip_rules() {
     fi
 
     # Exclude marks
-    ip $IP_FAMILY rule add fwmark 0xc/0xc goto $NOP_LOOKUP_PRIORITY priority $VBOX_IP_RULE_EXCLUDE_MARK_PRIORITY
+    ip $IP_FAMILY rule add fwmark 0x8/0x8 goto $NOP_LOOKUP_PRIORITY priority $VBOX_IP_RULE_EXCLUDE_MARK_PRIORITY
     
     # Include marks, 指定 src ip。否则无法触发重路由
     # 对比测试指令: ip route get 74.125.195.113 from $PPP_IP mark 3 和 ip route get 74.125.195.113 mark 3
@@ -323,7 +323,7 @@ function vbox_setup_ip_rules() {
         ip $IP_FAMILY route add throw "$ROUTE_CIDR" table $VBOX_TUN_PROXY_WHITELIST_TABLE_ID
       done
     fi
-    ip $IP_FAMILY rule add fwmark 0x3/0x3 lookup $VBOX_TUN_PROXY_WHITELIST_TABLE_ID priority $VBOX_IP_RULE_INCLUDE_MARK_PRIORITY
+    ip $IP_FAMILY rule add fwmark 0x4/0x4 lookup $VBOX_TUN_PROXY_WHITELIST_TABLE_ID priority $VBOX_IP_RULE_INCLUDE_MARK_PRIORITY
 
     # NO mark to default route, 自动生成的ppp0没有指定src，触发重路由会导致ip不正确。所以默认路由还是指向原本的默认路由
     ip $IP_FAMILY rule add fwmark 0x0/0xf goto $NOP_LOOKUP_PRIORITY priority $VBOX_IP_RULE_NO_MARK_DEFAULT_ROUTE_PRIORITY
@@ -333,6 +333,20 @@ function vbox_setup_ip_rules() {
 function vbox_setup_rule_marks() {
   FAMILY="$1"
   TABLE="$2"
+
+  if [[ "$FAMILY" == "bridge" ]]; then
+    nft flush chain $FAMILY $TABLE POLICY_PACKET_GOTO_DEFAULT >/dev/null 2>&1
+
+    nft -f - <<EOF
+table $FAMILY $TABLE {
+  chain POLICY_PACKET_GOTO_DEFAULT {
+    meta broute set 1
+    accept
+  }
+}
+EOF
+    return 0
+  fi
 
   # 如果以后要支持TPROXY，可以改POLICY_PACKET_GOTO_PROXY链即可
   nft flush chain $FAMILY $TABLE POLICY_PACKET_GOTO_DEFAULT >/dev/null 2>&1
@@ -347,7 +361,7 @@ table $FAMILY $TABLE {
   }
 
   chain POLICY_MARK_GOTO_DEFAULT {
-    meta mark set meta mark and 0xfffffff0 xor 0xc
+    meta mark set meta mark and 0xfffffff7 xor 0x8
     ct mark set meta mark
     goto POLICY_PACKET_GOTO_DEFAULT
   }
@@ -357,7 +371,7 @@ table $FAMILY $TABLE {
   }
 
   chain POLICY_MARK_GOTO_PROXY {
-    meta mark set meta mark and 0xfffffff0 xor 0x3
+    meta mark set meta mark and 0xfffffffb xor 0x4
     ct mark set meta mark
     goto POLICY_PACKET_GOTO_PROXY
   }
@@ -412,6 +426,52 @@ EOF
 function vbox_initialize_rule_table_ipv4() {
   FAMILY="$1"
   TABLE="$2"
+
+  if [[ "$FAMILY" == "bridge" ]]; then
+    LOCAL_IPV4_EXISTS=0
+    DEFAULT_ROUTE_IPV4_EXISTS=0
+    nft list set $FAMILY $TABLE LOCAL_IPV4 >/dev/null 2>&1 && LOCAL_IPV4_EXISTS=1
+    nft list set $FAMILY $TABLE DEFAULT_ROUTE_IPV4 >/dev/null 2>&1 && DEFAULT_ROUTE_IPV4_EXISTS=1
+
+    nft flush chain $FAMILY $TABLE POLICY_VBOX_IPV4 >/dev/null 2>&1
+
+    nft -f - <<EOF
+table $FAMILY $TABLE {
+$(if [[ $LOCAL_IPV4_EXISTS -eq 0 ]]; then
+cat <<INNER_EOF
+  set LOCAL_IPV4 {
+    type ipv4_addr
+    flags interval
+    auto-merge
+    elements = { 0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16, 172.16.0.0/12, 192.0.0.0/24, 192.168.0.0/16, 224.0.0.0/4, 240.0.0.0/4 }
+  }
+INNER_EOF
+fi)
+$(if [[ $DEFAULT_ROUTE_IPV4_EXISTS -eq 0 ]]; then
+cat <<INNER_EOF
+  set DEFAULT_ROUTE_IPV4 {
+    type ipv4_addr
+    flags interval
+    auto-merge
+  }
+INNER_EOF
+fi)
+
+  chain POLICY_VBOX_IPV4 {
+    # bridge path - keep local/private IPv4 traffic on the bridge.
+    ip daddr @LOCAL_IPV4 return
+
+    # bridge path - services bound to router/default-route addresses do not need broute.
+    ip daddr @DEFAULT_ROUTE_IPV4 tcp dport @LOCAL_SERVICE_PORT_TCP return
+    ip daddr @DEFAULT_ROUTE_IPV4 udp dport @LOCAL_SERVICE_PORT_UDP return
+
+    # bridge path - route remaining non-local-service IPv4 traffic through inet/ip rules.
+    meta broute set 1 accept
+  }
+}
+EOF
+    return 0
+  fi
 
   # Check if sets already exist
   BLACKLIST_IPV4_EXISTS=0
@@ -509,6 +569,52 @@ EOF
 function vbox_initialize_rule_table_ipv6() {
   FAMILY="$1"
   TABLE="$2"
+
+  if [[ "$FAMILY" == "bridge" ]]; then
+    LOCAL_IPV6_EXISTS=0
+    DEFAULT_ROUTE_IPV6_EXISTS=0
+    nft list set $FAMILY $TABLE LOCAL_IPV6 >/dev/null 2>&1 && LOCAL_IPV6_EXISTS=1
+    nft list set $FAMILY $TABLE DEFAULT_ROUTE_IPV6 >/dev/null 2>&1 && DEFAULT_ROUTE_IPV6_EXISTS=1
+
+    nft flush chain $FAMILY $TABLE POLICY_VBOX_IPV6 >/dev/null 2>&1
+
+    nft -f - <<EOF
+table $FAMILY $TABLE {
+$(if [[ $LOCAL_IPV6_EXISTS -eq 0 ]]; then
+cat <<INNER_EOF
+  set LOCAL_IPV6 {
+    type ipv6_addr
+    flags interval
+    auto-merge
+    elements = { ::1/128, ::/128, ::ffff:0:0/96, 64:ff9b::/96, 100::/64, fc00::/7, fe80::/10, ff00::/8 }
+  }
+INNER_EOF
+fi)
+$(if [[ $DEFAULT_ROUTE_IPV6_EXISTS -eq 0 ]]; then
+cat <<INNER_EOF
+  set DEFAULT_ROUTE_IPV6 {
+    type ipv6_addr
+    flags interval
+    auto-merge
+  }
+INNER_EOF
+fi)
+
+  chain POLICY_VBOX_IPV6 {
+    # bridge path - keep local/private IPv6 traffic on the bridge.
+    ip6 daddr @LOCAL_IPV6 return
+
+    # bridge path - services bound to router/default-route addresses do not need broute.
+    ip6 daddr @DEFAULT_ROUTE_IPV6 tcp dport @LOCAL_SERVICE_PORT_TCP return
+    ip6 daddr @DEFAULT_ROUTE_IPV6 udp dport @LOCAL_SERVICE_PORT_UDP return
+
+    # bridge path - route remaining non-local-service IPv6 traffic through inet/ip rules.
+    meta broute set 1 accept
+  }
+}
+EOF
+    return 0
+  fi
 
   # Check if sets already exist
   BLACKLIST_IPV6_EXISTS=0
@@ -617,17 +723,35 @@ function vbox_initialize_rule_table() {
   vbox_initialize_rule_table_ipv4 "$FAMILY" "$TABLE"
   vbox_initialize_rule_table_ipv6 "$FAMILY" "$TABLE"
 
+  if [[ "$FAMILY" == "bridge" ]]; then
+    VBOX_BOOTSTRAP_MARKED_RULES=$(cat <<'EOF'
+    meta mark and 0xf != 0x0 ct mark and 0xf == 0x0 ct mark set meta mark goto POLICY_PACKET_GOTO_DEFAULT
+    meta mark and 0xf != 0x0 goto POLICY_PACKET_GOTO_DEFAULT
+    ct mark and 0xf != 0x0 meta mark set ct mark goto POLICY_PACKET_GOTO_DEFAULT
+EOF
+)
+    VBOX_BOOTSTRAP_INTERNAL_SERVICE_RULES=""
+  else
+    VBOX_BOOTSTRAP_MARKED_RULES=$(cat <<'EOF'
+    meta mark and 0xf != 0x0 ct mark and 0xf == 0x0 ct mark set meta mark accept
+    meta mark and 0xf != 0x0 accept
+    ct mark and 0xf != 0x0 meta mark set ct mark accept
+EOF
+)
+    VBOX_BOOTSTRAP_INTERNAL_SERVICE_RULES=$(cat <<'EOF'
+
+    ### skip internal services
+    meta l4proto != { tcp, udp } jump POLICY_MARK_GOTO_DEFAULT
+EOF
+)
+  fi
+
   nft flush chain $FAMILY $TABLE POLICY_VBOX_BOOTSTRAP >/dev/null 2>&1
 
   nft -f - <<EOF
 table $FAMILY $TABLE {
   chain POLICY_VBOX_BOOTSTRAP {
-    meta mark and 0xf != 0x0 ct mark and 0xf == 0x0 ct mark set meta mark accept
-    meta mark and 0xf != 0x0 accept
-    ct mark and 0xf != 0x0 meta mark set ct mark accept
-
-    ### skip internal services
-    meta l4proto != { tcp, udp } jump POLICY_MARK_GOTO_DEFAULT
+$VBOX_BOOTSTRAP_MARKED_RULES$VBOX_BOOTSTRAP_INTERNAL_SERVICE_RULES
 
     ip version 4 jump POLICY_VBOX_IPV4
     ip6 version 6 jump POLICY_VBOX_IPV6
@@ -675,26 +799,12 @@ function vbox_update_geoip() {
   fi
 
   # 使用 jq 直接生成逗号分隔的 IP 列表，避免 bash 数组的性能问题
-  GEOIP_CN_IPV4_LIST=$(jq -r '.rules[].ip_cidr[]' "$VBOX_DATA_DIR/geoip-cn.json" | grep -v ':' | tr '\n' ',' | sed 's/,$//')
-  GEOIP_CN_IPV6_LIST=$(jq -r '.rules[].ip_cidr[]' "$VBOX_DATA_DIR/geoip-cn.json" | grep ':' | tr '\n' ',' | sed 's/,$//')
+  GEOIP_CN_IPV4_LIST="$(jq -r '.rules[].ip_cidr[]' "$VBOX_DATA_DIR/geoip-cn.json" | grep -v ':' | tr '\n' ',' | sed 's/,$//')"
+  GEOIP_CN_IPV6_LIST="$(jq -r '.rules[].ip_cidr[]' "$VBOX_DATA_DIR/geoip-cn.json" | grep ':' | tr '\n' ',' | sed 's/,$//')"
 
   # 一次性刷入所有 GEOIP 数据
   nft -f - <<EOF
 table inet vbox {
-  set GEOIP_CN_IPV4 {
-    type ipv4_addr
-    flags interval
-    auto-merge
-    elements = { $GEOIP_CN_IPV4_LIST }
-  }
-  set GEOIP_CN_IPV6 {
-    type ipv6_addr
-    flags interval
-    auto-merge
-    elements = { $GEOIP_CN_IPV6_LIST }
-  }
-}
-table bridge vbox {
   set GEOIP_CN_IPV4 {
     type ipv4_addr
     flags interval
@@ -721,6 +831,7 @@ if [ $VBOX_SETUP_IP_RULE_CLEAR -eq 0 ]; then
   # 必须在高优先级（mangle）打标记，否则无法影响重路由
   vbox_setup_rule_chain inet vbox OUTPUT '{ type route hook output priority mangle - 1 ; }'
 
+  # bridge 入口只负责把非本地/非内网服务流量抬到 L3，实际分流统一复用 inet#vbox。
   vbox_setup_rule_chain bridge vbox PREROUTING '{ type filter hook prerouting priority -280; }'
 
   # Sing-box has poor performance, we setup ip rules ourself
@@ -742,9 +853,7 @@ else
   vbox_remove_rule_marks inet vbox
   vbox_remove_rule_marks bridge vbox
 
-  nft flush set inet vbox GEOIP_CN_IPV4
-  nft flush set inet vbox GEOIP_CN_IPV6
-  nft flush set bridge vbox GEOIP_CN_IPV4
-  nft flush set bridge vbox GEOIP_CN_IPV6
+  nft flush set inet vbox GEOIP_CN_IPV4 >/dev/null 2>&1 || true
+  nft flush set inet vbox GEOIP_CN_IPV6 >/dev/null 2>&1 || true
 fi
 

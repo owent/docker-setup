@@ -80,6 +80,7 @@
       // we do not need to resolve domain with the same server again.
       // {
       //   "action": "evaluate",
+      //   "rewrite_ttl": 600,
       //   "server": "dns-fast"
       // },
       // 自定义服务器
@@ -153,7 +154,6 @@
           "geosite-google"
         ],
         "action": "route",
-        // 代理DNS延长TTL，不然可能下游设备未过期这里就缓存失效了
         "rewrite_ttl": 600,
         "server": "dns-ai"
       },
@@ -210,7 +210,7 @@
       "iproute2_rule_index": 9000,
       "auto_redirect": false,
       // Default: 0x2023
-      "auto_redirect_input_mark": "3",
+      "auto_redirect_input_mark": "7",
       // Default: 0x2024
       "auto_redirect_output_mark": "15",
       "strict_route": true,
@@ -680,7 +680,16 @@
         "action": "hijack-dns"
       },
       {
-        "source_ip_cidr": "172.22.0.0/16",
+        "source_ip_cidr": [
+          "172.21.0.0/16",
+          "172.22.0.0/16",
+          "172.25.0.0/16",
+          "172.26.0.0/16",
+          "fd02:0:0:21::/64",
+          "fd02:0:0:22::/64",
+          "fd08:0:0:ac19::/64",
+          "fd08:0:0:ac1a::/64"
+        ],
         "action": "route",
         "outbound": "direct"
       },

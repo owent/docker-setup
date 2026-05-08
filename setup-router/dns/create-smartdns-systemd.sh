@@ -45,6 +45,9 @@ fi
 if [[ "x$SMARTDNS_IMAGE" == "x" ]]; then
   SMARTDNS_IMAGE="docker.io/pymumu/smartdns:latest"
 fi
+if [[ "x$SMARTDNS_POD_NAME" == "x" ]]; then
+  SMARTDNS_POD_NAME="smartdns"
+fi
 
 if [[ "x$SMARTDNS_BIND_ADDRESS" == "x" ]]; then
   if [[ $SMARTDNS_IPV6_SERVER -ne 0 ]]; then
@@ -63,12 +66,12 @@ if [[ "x$SMARTDNS_WEBUI_LISTEN" == "x" ]]; then
 fi
 
 if [[ "x$SMARTDNS_ETC_DIR" == "x" ]]; then
-  export SMARTDNS_ETC_DIR="$SCRIPT_DIR/smartdns-etc"
+  export SMARTDNS_ETC_DIR="$SCRIPT_DIR/$SMARTDNS_POD_NAME-etc"
 fi
 mkdir -p "$SMARTDNS_ETC_DIR"
 
 if [[ "x$SMARTDNS_DATA_DIR" == "x" ]]; then
-  export SMARTDNS_DATA_DIR="$SCRIPT_DIR/smartdns-data"
+  export SMARTDNS_DATA_DIR="$SCRIPT_DIR/$SMARTDNS_POD_NAME-data"
 fi
 mkdir -p "$SMARTDNS_DATA_DIR"
 mkdir -p "$SMARTDNS_DATA_DIR/cache"
@@ -161,27 +164,27 @@ else
 fi
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]] || [[ "$SYSTEMD_SERVICE_DIR" == "/usr/lib/systemd/system" ]] || [[ "$SYSTEMD_SERVICE_DIR" == "/etc/systemd/system" ]]; then
-  systemctl --all | grep -F smartdns.service >/dev/null 2>&1
+  systemctl --all | grep -F $SMARTDNS_POD_NAME.service >/dev/null 2>&1
   if [[ $? -eq 0 ]]; then
-    systemctl stop smartdns.service
-    systemctl disable smartdns.service
+    systemctl stop $SMARTDNS_POD_NAME.service
+    systemctl disable $SMARTDNS_POD_NAME.service
   fi
 else
-  systemctl --user --all | grep -F smartdns.service >/dev/null 2>&1
+  systemctl --user --all | grep -F $SMARTDNS_POD_NAME.service >/dev/null 2>&1
   if [[ $? -eq 0 ]]; then
-    systemctl --user stop smartdns.service
-    systemctl --user disable smartdns.service
+    systemctl --user stop $SMARTDNS_POD_NAME.service
+    systemctl --user disable $SMARTDNS_POD_NAME.service
   fi
 fi
 
-podman container exists smartdns >/dev/null 2>&1
+podman container exists $SMARTDNS_POD_NAME >/dev/null 2>&1
 if [[ $? -eq 0 ]]; then
-  podman stop smartdns
-  podman rm -f smartdns
+  podman stop $SMARTDNS_POD_NAME
+  podman rm -f $SMARTDNS_POD_NAME
 fi
 
-rm -f "$SYSTEMD_CONTAINER_DIR/smartdns.container"
-rm -f "$SYSTEMD_SERVICE_DIR/smartdns.service"
+rm -f "$SYSTEMD_CONTAINER_DIR/$SMARTDNS_POD_NAME.container"
+rm -f "$SYSTEMD_SERVICE_DIR/$SMARTDNS_POD_NAME.service"
 
 if [[ "x$SMARTDNS_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman image prune -a -f --filter "until=240h"
@@ -240,15 +243,15 @@ fi
 if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
   PODLET_OPTIONS=(--install --wanted-by default.target --wants network-online.target --after network-online.target)
   ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
-    podman run -d --name smartdns \
+    podman run -d --name $SMARTDNS_POD_NAME \
       "${SMARTDNS_OPTIONS[@]}" \
-      "$SMARTDNS_IMAGE" | tee "$SYSTEMD_CONTAINER_DIR/smartdns.container"
+      "$SMARTDNS_IMAGE" | tee "$SYSTEMD_CONTAINER_DIR/$SMARTDNS_POD_NAME.container"
 else
-  podman run -d --name smartdns \
+  podman run -d --name $SMARTDNS_POD_NAME \
     "${SMARTDNS_OPTIONS[@]}" \
     "$SMARTDNS_IMAGE"
-  podman generate systemd smartdns | tee "$SYSTEMD_SERVICE_DIR/smartdns.service"
-  podman container stop smartdns
+  podman generate systemd $SMARTDNS_POD_NAME | tee "$SYSTEMD_SERVICE_DIR/$SMARTDNS_POD_NAME.service"
+  podman container stop $SMARTDNS_POD_NAME
 fi
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]] || [[ "$SYSTEMD_SERVICE_DIR" == "/usr/lib/systemd/system" ]] || [[ "$SYSTEMD_SERVICE_DIR" == "/etc/systemd/system" ]]; then
@@ -259,14 +262,14 @@ fi
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]] || [[ "$SYSTEMD_SERVICE_DIR" == "/usr/lib/systemd/system" ]] || [[ "$SYSTEMD_SERVICE_DIR" == "/etc/systemd/system" ]]; then
   if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
-    systemctl enable smartdns.service
+    systemctl enable $SMARTDNS_POD_NAME.service
   fi
-  systemctl start smartdns.service
+  systemctl start $SMARTDNS_POD_NAME.service
 else
   if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
-    systemctl --user enable smartdns.service
+    systemctl --user enable $SMARTDNS_POD_NAME.service
   fi
-  systemctl --user start smartdns.service
+  systemctl --user start $SMARTDNS_POD_NAME.service
 fi
 
 if [[ "x$SMARTDNS_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
