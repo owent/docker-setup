@@ -33,8 +33,36 @@ if [[ "x$VBOX_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   fi
 fi
 
-systemctl disable vbox-client || true
-systemctl stop vbox-client || true
+if [[ "root" == "$(id -un)" ]]; then
+  SYSTEMD_SERVICE_DIR=/lib/systemd/system
+  SYSTEMD_CONTAINER_DIR=/etc/containers/systemd/
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
+else
+  SYSTEMD_SERVICE_DIR="$HOME/.config/systemd/user"
+  SYSTEMD_CONTAINER_DIR="$HOME/.config/containers/systemd"
+  mkdir -p "$SYSTEMD_SERVICE_DIR"
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
+fi
+
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  systemctl --all | grep -F vbox-client.service >/dev/null 2>&1
+  if [ $? -eq 0 ]; then
+    systemctl stop vbox-client.service || true
+    systemctl disable vbox-client.service || true
+  fi
+else
+  export XDG_RUNTIME_DIR="/run/user/$UID"
+  export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
+
+  # Maybe need run from host: loginctl enable-linger tools
+  # see https://wiki.archlinux.org/index.php/Systemd/User
+  # sudo loginctl enable-linger $RUN_USER
+  systemctl --user --all | grep -F vbox-client.service >/dev/null 2>&1
+  if [ $? -eq 0 ]; then
+    systemctl --user stop vbox-client.service || true
+    systemctl --user disable vbox-client.service || true
+  fi
+fi
 
 $DOCKER_EXEC container inspect vbox-client >/dev/null 2>&1
 if [[ $? -eq 0 ]]; then
@@ -56,52 +84,87 @@ VBOX_DOCKER_OPRIONS=(
   --mount type=bind,source=$ACMESH_SSL_DIR,target=/data/ssl,ro=true
 )
 
-$DOCKER_EXEC run -d --name vbox-client "${VBOX_DOCKER_OPRIONS[@]}" \
-  "$VBOX_IMAGE_URL" -D /var/lib/vbox -C /etc/vbox/ run
-
-if [[ $? -ne 0 ]]; then
-  exit 1
-fi
-
-$DOCKER_EXEC exec vbox-client ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/timezone
-
 if [[ -z "$ROUTER_NET_LOCAL_ENABLE_VBOX" ]] || [[ $ROUTER_NET_LOCAL_ENABLE_VBOX -eq 0 ]]; then
   bash "$SCRIPT_DIR/setup-client-pod-ip-nft.sh" clear
-  bash "$SCRIPT_DIR/setup-client-pod-ip-rules.sh"
+  bash "$SCRIPT_DIR/setup-client-pod-ip-rules.sh" configure
 else
   bash "$SCRIPT_DIR/setup-client-pod-ip-rules.sh" clear
-  bash "$SCRIPT_DIR/setup-client-pod-ip-nft.sh"
+  bash "$SCRIPT_DIR/setup-client-pod-ip-nft.sh" configure
 fi
 
-if [[ $? -ne 0 ]]; then
-  exit 1
+PODLET_IMAGE_URL="ghcr.io/containers/podlet:latest"
+PODLET_RUN=($(which podlet 2>/dev/null))
+FIND_PODLET_RESULT=$?
+if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+  (podman image inspect "$PODLET_IMAGE_URL" > /dev/null 2>&1 || podman pull "$PODLET_IMAGE_URL") && FIND_PODLET_RESULT=0 && PODLET_RUN=(podman run --rm "$PODLET_IMAGE_URL")
 fi
-
-# Start systemd service
 
 if [[ -z "$ROUTER_NET_LOCAL_ENABLE_VBOX" ]] || [[ $ROUTER_NET_LOCAL_ENABLE_VBOX -eq 0 ]]; then
-  $DOCKER_EXEC generate systemd vbox-client |
-    sed "/PIDFile=/a ExecStopPost=/bin/bash $SCRIPT_DIR/setup-client-pod-whitelist-rules.sh clear" |
-    sed "/PIDFile=/a ExecStartPost=/bin/bash $SCRIPT_DIR/setup-client-pod-whitelist-rules.sh" |
-    sed "/ExecReload=/d" |
-    sed "/PIDFile=/a ExecReload=/bin/bash -c '$(which $DOCKER_EXEC) kill --signal HUP vbox-client && /bin/bash $SCRIPT_DIR/setup-client-pod-whitelist-rules.sh'" |
-    tee /lib/systemd/system/vbox-client.service
+  VBOX_CLIENT_EXEC_STOP_POST="ExecStopPost=/bin/bash $SCRIPT_DIR/setup-client-pod-whitelist-rules.sh clear"
+  VBOX_CLIENT_EXEC_START_POST="ExecStartPost=/bin/bash $SCRIPT_DIR/setup-client-pod-whitelist-rules.sh"
+  VBOX_CLIENT_EXEC_RELOAD="ExecReload=/bin/bash -c '$(which $DOCKER_EXEC) kill --signal HUP vbox-client && /bin/bash $SCRIPT_DIR/setup-client-pod-whitelist-rules.sh'"
 else
-  $DOCKER_EXEC generate systemd vbox-client |
-    sed "/PIDFile=/a ExecStopPost=/bin/bash $SCRIPT_DIR/setup-client-pod-ip-nft.sh clear" |
-    sed "/PIDFile=/a ExecStartPost=/bin/bash $SCRIPT_DIR/setup-client-pod-ip-nft.sh" |
-    sed "/ExecReload=/d" |
-    sed "/PIDFile=/a ExecReload=/bin/bash -c '$(which $DOCKER_EXEC) kill --signal HUP vbox-client && /bin/bash $SCRIPT_DIR/setup-client-pod-ip-nft.sh'" |
-    tee /lib/systemd/system/vbox-client.service
+  VBOX_CLIENT_EXEC_STOP_POST="ExecStopPost=/bin/bash $SCRIPT_DIR/setup-client-pod-ip-nft.sh clear"
+  VBOX_CLIENT_EXEC_START_POST="ExecStartPost=/bin/bash $SCRIPT_DIR/setup-client-pod-ip-nft.sh"
+  VBOX_CLIENT_EXEC_RELOAD="ExecReload=/bin/bash -c '$(which $DOCKER_EXEC) kill --signal HUP vbox-client && /bin/bash $SCRIPT_DIR/setup-client-pod-ip-nft.sh'"
 fi
 
-$DOCKER_EXEC container stop vbox-client
+if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
+  PODLET_OPTIONS=(--install --wanted-by default.target --wants network-online.target --after network-online.target)
+  for network in ${CADDY_NETWORK[@]}; do
+    if [[ -e "$HOME/.config/containers/systemd/$network.network" ]]; then
+      PODLET_OPTIONS+=(--after "$network-network.service" --wants "$network-network.service")
+    fi
+  done
+  ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
+    $DOCKER_EXEC run -d --name vbox-client "${VBOX_DOCKER_OPRIONS[@]}" \
+      "$VBOX_IMAGE_URL" -D /var/lib/vbox -C /etc/vbox/ run | \
+      sed "/Image=/a ExecStartPost=$(which $DOCKER_EXEC) exec vbox-client ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/timezone" | \
+      sed "/Image=/a $VBOX_CLIENT_EXEC_STOP_POST" | \
+      sed "/Image=/a $VBOX_CLIENT_EXEC_START_POST" | \
+      sed "/ExecReload=/d" | \
+      sed "/Image=/a $VBOX_CLIENT_EXEC_RELOAD" | \
+      tee -p "$SYSTEMD_CONTAINER_DIR/vbox-client.container"
+else
+  $DOCKER_EXEC run -d --name vbox-client "${VBOX_DOCKER_OPRIONS[@]}" \
+    "$VBOX_IMAGE_URL" -D /var/lib/vbox -C /etc/vbox/ run
 
-systemctl daemon-reload
+  if [[ $? -ne 0 ]]; then
+    echo "Failed to run vbox-client"
+    exit 1
+  fi
 
-# patch end
-systemctl enable vbox-client
-systemctl start vbox-client
+  $DOCKER_EXEC generate systemd vbox-client | \
+    sed "/ExecStart=/a ExecStartPost=$(which $DOCKER_EXEC) exec vbox-client ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/timezone" | \
+    sed "/ExecStart=/a $VBOX_CLIENT_EXEC_STOP_POST" | \
+    sed "/ExecStart=/a $VBOX_CLIENT_EXEC_START_POST" | \
+    sed "/ExecReload=/d" | \
+    sed "/ExecStart=/a $VBOX_CLIENT_EXEC_RELOAD" | \
+  tee -p "$SYSTEMD_SERVICE_DIR/vbox-client.service"
+  $DOCKER_EXEC container stop vbox-client
+fi
+
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  systemctl daemon-reload
+else
+  systemctl --user daemon-reload
+fi
+
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl enable vbox-client.service
+  fi
+  systemctl start vbox-client.service
+else
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl --user enable vbox-client.service
+  fi
+  systemctl --user start vbox-client.service
+fi
+
+if [[ "x$VBOX_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  $DOCKER_EXEC image prune -a -f --filter "until=240h"
+fi
 
 # set -x
 # CHECK_RUNNING=$($DOCKER_EXEC inspect --format="{{.State.Running}}" vbox-client)

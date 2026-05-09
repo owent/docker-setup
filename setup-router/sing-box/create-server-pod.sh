@@ -32,9 +32,13 @@ fi
 
 if [[ "root" == "$(id -un)" ]]; then
   SYSTEMD_SERVICE_DIR=/lib/systemd/system
+  SYSTEMD_CONTAINER_DIR=/etc/containers/systemd/
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
 else
   SYSTEMD_SERVICE_DIR="$HOME/.config/systemd/user"
+  SYSTEMD_CONTAINER_DIR="$HOME/.config/containers/systemd"
   mkdir -p "$SYSTEMD_SERVICE_DIR"
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
 fi
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
@@ -79,35 +83,60 @@ if [[ ! -z "$VBOX_SSL_DIR" ]]; then
   VBOX_DOCKER_OPRIONS=("${VBOX_DOCKER_OPRIONS[@]}" --mount type=bind,source=$VBOX_SSL_DIR,target=$VBOX_SSL_DIR,ro=true)
 fi
 
-$DOCKER_EXEC run -d --name vbox-server "${VBOX_DOCKER_OPRIONS[@]}" \
-  "$VBOX_IMAGE_URL" -D /var/lib/vbox -C /etc/vbox/ run
-
-if [[ $? -ne 0 ]]; then
-  exit 1
+PODLET_IMAGE_URL="ghcr.io/containers/podlet:latest"
+PODLET_RUN=($(which podlet 2>/dev/null))
+FIND_PODLET_RESULT=$?
+if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+  (podman image inspect "$PODLET_IMAGE_URL" > /dev/null 2>&1 || podman pull "$PODLET_IMAGE_URL") && FIND_PODLET_RESULT=0 && PODLET_RUN=(podman run --rm "$PODLET_IMAGE_URL")
 fi
 
-# $DOCKER_EXEC cp vbox-server:/usr/local/vbox-server/share/geo-all.tar.gz geo-all.tar.gz
-# if [[ $? -eq 0 ]]; then
-#   tar -axvf geo-all.tar.gz
-#   if [ $? -eq 0 ]; then
-#     bash "$SCRIPT_DIR/setup-geoip-geosite.sh"
-#   fi
-# fi
+if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
+  PODLET_OPTIONS=(--install --wanted-by default.target --wants network-online.target --after network-online.target)
+  for network in ${CADDY_NETWORK[@]}; do
+    if [[ -e "$HOME/.config/containers/systemd/$network.network" ]]; then
+      PODLET_OPTIONS+=(--after "$network-network.service" --wants "$network-network.service")
+    fi
+  done
+  ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
+    $DOCKER_EXEC run -d --name vbox-server "${VBOX_DOCKER_OPRIONS[@]}" \
+      "$VBOX_IMAGE_URL" -D /var/lib/vbox -C /etc/vbox/ run | \
+      sed "/Image=/a ExecStartPost=$(which $DOCKER_EXEC) exec vbox-server ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/timezone" | \
+      tee -p "$SYSTEMD_CONTAINER_DIR/vbox-server.container"
+else
+  $DOCKER_EXEC run -d --name vbox-server "${VBOX_DOCKER_OPRIONS[@]}" \
+    "$VBOX_IMAGE_URL" -D /var/lib/vbox -C /etc/vbox/ run
 
-$DOCKER_EXEC exec vbox-proxy ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/timezone
+  if [[ $? -ne 0 ]]; then
+    echo "Failed to run vbox-server"
+    exit 1
+  fi
 
-$DOCKER_EXEC generate systemd vbox-server | tee $SYSTEMD_SERVICE_DIR/vbox-server.service
-
-$DOCKER_EXEC container stop vbox-server
+  $DOCKER_EXEC generate systemd vbox-server | \
+    sed "/ExecStart=/a ExecStartPost=$(which $DOCKER_EXEC) exec vbox-server ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/timezone" | \
+  tee -p "$SYSTEMD_SERVICE_DIR/vbox-server.service"
+  $DOCKER_EXEC container stop vbox-server
+fi
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
-  systemctl enable vbox-server.service
   systemctl daemon-reload
+else
+  systemctl --user daemon-reload
+fi
+
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl enable vbox-server.service
+  fi
   systemctl start vbox-server.service
 else
-  systemctl --user enable "$SYSTEMD_SERVICE_DIR/vbox-server.service"
-  systemctl --user daemon-reload
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl --user enable vbox-server.service
+  fi
   systemctl --user start vbox-server.service
+fi
+
+if [[ "x$VBOX_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  $DOCKER_EXEC image prune -a -f --filter "until=240h"
 fi
 
 if [[ -e "$SCRIPT_DIR/create-caddy-fallback-pod.sh" ]]; then

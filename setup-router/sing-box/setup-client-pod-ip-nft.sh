@@ -22,11 +22,11 @@ source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 DOCKER_EXEC=$((which podman > /dev/null 2>&1 && echo podman) || (which docker > /dev/null 2>&1 && echo docker))
 
 if [[ -z "$VBOX_DATA_DIR" ]]; then
-  VBOX_DATA_DIR="$HOME/vbox/data"
+  VBOX_DATA_DIR="$SCRIPT_DIR/vbox/data"
 fi
 
 if [[ -z "$VBOX_ETC_DIR" ]]; then
-  VBOX_ETC_DIR="$HOME/vbox/etc"
+  VBOX_ETC_DIR="$SCRIPT_DIR/vbox/etc"
 fi
 
 ## ipv4绕过本地和私有网络地址:
@@ -109,6 +109,12 @@ if [[ $ROUTER_NET_LOCAL_ENABLE_VBOX -ne 0 ]] && [[ "x$1" != "xclear" ]]; then
   VBOX_SETUP_IP_RULE_CLEAR=0
 else
   VBOX_SETUP_IP_RULE_CLEAR=1
+fi
+
+if [[ "x$1" != "xconfigure" ]]; then
+  VBOX_SETUP_IP_RULE_CONFIGURE=0
+else
+  VBOX_SETUP_IP_RULE_CONFIGURE=1
 fi
 
 function vbox_patch_configure() {
@@ -821,8 +827,9 @@ table inet vbox {
 EOF
 }
 
-if [ $VBOX_SETUP_IP_RULE_CLEAR -eq 0 ]; then
+if [ $VBOX_SETUP_IP_RULE_CONFIGURE -ne 0 ]; then
   vbox_patch_configure
+elif [ $VBOX_SETUP_IP_RULE_CLEAR -eq 0 ]; then
   vbox_clear_ip_rules "-4" "-6"
   vbox_initialize_rule_table inet vbox
   vbox_initialize_rule_table bridge vbox

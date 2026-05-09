@@ -6,11 +6,11 @@ source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 DOCKER_EXEC=$((which podman > /dev/null 2>&1 && echo podman) || (which docker > /dev/null 2>&1 && echo docker))
 
 if [[ -z "$VBOX_ETC_DIR" ]]; then
-  VBOX_ETC_DIR="$HOME/vbox/etc"
+  VBOX_ETC_DIR="$SCRIPT_DIR/vbox/etc"
 fi
 
 if [[ -z "$VBOX_DATA_DIR" ]]; then
-  VBOX_DATA_DIR="$HOME/vbox/data"
+  VBOX_DATA_DIR="$SCRIPT_DIR/vbox/data"
 fi
 
 if [[ -z "$VBOX_IP_RULE_WITH_AUTO_REDIRECT" ]]; then

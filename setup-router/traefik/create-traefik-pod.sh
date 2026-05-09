@@ -172,6 +172,10 @@ if [[ ! -z "$TRAEFIK_SSL_DIR" ]]; then
   TRAEFIK_OPTIONS+=(--mount "type=bind,source=$TRAEFIK_SSL_DIR,target=/etc/traefik/ssl,readonly")
 fi
 
+if [[ -n "$ACMESH_SSL_DIR" ]] && [[ -d "$ACMESH_SSL_DIR/account.conf" ]]; then
+  TRAEFIK_OPTIONS+=(--mount "type=bind,source=$ACMESH_SSL_DIR,target=$ACMESH_SSL_DIR,readonly")
+fi
+
 # 自定义 DNS (覆盖容器内 /etc/resolv.conf)
 if [[ ! -z "$TRAEFIK_DNS" ]]; then
   for dns_server in ${TRAEFIK_DNS[@]}; do

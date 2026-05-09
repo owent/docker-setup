@@ -4,11 +4,11 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 
 if [[ -z "$VBOX_ETC_DIR" ]]; then
-  VBOX_ETC_DIR="$HOME/vbox/etc"
+  VBOX_ETC_DIR="$SCRIPT_DIR/vbox/etc"
 fi
 
 if [[ -z "$VBOX_DATA_DIR" ]]; then
-  VBOX_DATA_DIR="$HOME/vbox/data"
+  VBOX_DATA_DIR="$SCRIPT_DIR/vbox/data"
 fi
 
 if [[ -z "$ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY" ]]; then

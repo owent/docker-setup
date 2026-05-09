@@ -34,7 +34,11 @@ fi
 mkdir -p "$ADGUARD_HOME_ETC_DIR"
 
 if [[ -z "$ADGUARD_HOME_SSL_DIR" ]]; then
-  ADGUARD_HOME_SSL_DIR="$SCRIPT_DIR/ssl"
+  if [[ -n "$ACMESH_SSL_DIR" ]]; then
+    ADGUARD_HOME_SSL_DIR="$ACMESH_SSL_DIR"
+  else
+    ADGUARD_HOME_SSL_DIR="$SCRIPT_DIR/ssl"
+  fi
 fi
 mkdir -p "$ADGUARD_HOME_SSL_DIR"
 
