@@ -29,12 +29,12 @@ if [[ ! -e "Caddyfile" ]]; then
 fi
 
 if [[ -z "$CADDY_LOG_DIR" ]]; then
-  CADDY_LOG_DIR="$HOME/caddy/log"
+  CADDY_LOG_DIR="$SCRIPT_DIR/log"
 fi
 mkdir -p "$CADDY_LOG_DIR"
 
 if [[ -z "$CADDY_DATA_DIR" ]]; then
-  CADDY_DATA_DIR="$HOME/caddy/data"
+  CADDY_DATA_DIR="$SCRIPT_DIR/data"
 fi
 mkdir -p "$CADDY_DATA_DIR"
 
@@ -49,14 +49,36 @@ else
   mkdir -p "$SYSTEMD_CONTAINER_DIR"
 fi
 
-podman container inspect proxy-caddy >/dev/null 2>&1
+CADDY_OPTIONS=(
+  --cap-add=NET_ADMIN --cap-add=NET_BIND_SERVICE
+  --mount type=bind,source=$CADDY_LOG_DIR,target=/var/log/caddy
+  --mount type=bind,source=$CADDY_DATA_DIR,target=/data/caddy
+  -v $PWD/Caddyfile:/etc/caddy/Caddyfile
+  -e "DNSPOD_TOKEN=$PROXY_CADDY_DNSPOD_TOKEN"
+  -e "CF_API_TOKEN=$PROXY_CADDY_CLOUDFLARE_API_TOKEN"
+)
 
-if [[ $? -eq 0 ]]; then
-  podman exec proxy-caddy caddy validate --config /etc/caddy/Caddyfile 2>/dev/null
-  if [[ $? -ne 0 ]]; then
-    echo "Caddyfile validation failed"
-    exit 1
+if [[ ! -z "$CADDY_NETWORK" ]]; then
+  CADDY_NETWORK_HAS_HOST=0
+  for network in ${CADDY_NETWORK[@]}; do
+    CADDY_OPTIONS+=("--network=$network")
+    if [[ "$network" == "host" ]]; then
+      CADDY_NETWORK_HAS_HOST=1
+    fi
+  done
+  if [[ ! -z "$CADDY_PUBLISH" ]] && [[ $CADDY_NETWORK_HAS_HOST -eq 0 ]]; then
+    for publish in ${CADDY_PUBLISH[@]}; do
+      CADDY_OPTIONS+=(-p "$publish")
+    done
   fi
+else
+  CADDY_OPTIONS+=(--network=host)
+fi
+
+podman run --rm "${CADDY_OPTIONS[@]}" $CADDY_IMAGE_URL caddy validate --config /etc/caddy/Caddyfile
+if [[ $? -ne 0 ]]; then
+  echo "Caddyfile validation failed"
+  exit 1
 fi
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
@@ -89,33 +111,6 @@ fi
 if [[ "x$CADDY_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman image prune -a -f --filter "until=240h"
 fi
-
-CADDY_OPTIONS=(
-  --cap-add=NET_ADMIN --cap-add=NET_BIND_SERVICE
-  --mount type=bind,source=$CADDY_LOG_DIR,target=/var/log/caddy
-  --mount type=bind,source=$CADDY_DATA_DIR,target=/data/caddy
-  -v $PWD/Caddyfile:/etc/caddy/Caddyfile
-  -e "DNSPOD_TOKEN=$PROXY_CADDY_DNSPOD_TOKEN"
-  -e "CF_API_TOKEN=$PROXY_CADDY_CLOUDFLARE_API_TOKEN"
-)
-
-if [[ ! -z "$CADDY_NETWORK" ]]; then
-  CADDY_NETWORK_HAS_HOST=0
-  for network in ${CADDY_NETWORK[@]}; do
-    CADDY_OPTIONS+=("--network=$network")
-    if [[ "$network" == "host" ]]; then
-      CADDY_NETWORK_HAS_HOST=1
-    fi
-  done
-  if [[ ! -z "$CADDY_PUBLISH" ]] && [[ $CADDY_NETWORK_HAS_HOST -eq 0 ]]; then
-    for publish in ${CADDY_PUBLISH[@]}; do
-      CADDY_OPTIONS+=(-p "$publish")
-    done
-  fi
-else
-  CADDY_OPTIONS+=(--network=host)
-fi
-
 
 PODLET_IMAGE_URL="ghcr.io/containers/podlet:latest"
 PODLET_RUN=($(which podlet 2>/dev/null))

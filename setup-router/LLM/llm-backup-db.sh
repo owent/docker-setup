@@ -47,7 +47,7 @@ for DB_NAME in "${LLM_DB_NAME[@]}"; do
     --network=host \
     --mount type=bind,source=$PWD,target=/data/$DB_NAME \
     -e "PGPASSWORD=$LLM_DB_PASSWORD" docker.io/postgres:latest \
-    pg_dump $DB_NAME -h $LLM_DB_HOST -U $LLM_DB_USER -p $LLM_DB_PORT -f /data/$DB_NAME/$BACKUP_FILE_NAME
+    pg_dump -c $DB_NAME -h $LLM_DB_HOST -U $LLM_DB_USER -p $LLM_DB_PORT -f /data/$DB_NAME/$BACKUP_FILE_NAME
 
   tar -cvf- $BACKUP_FILE_NAME | zstd -T0 -B0 -15 --format=zstd -r -f -o $BACKUP_FILE_NAME.tar.zst -
   # zstd -d --stdout $BACKUP_FILE_NAME.tar.zst | tar -xf-

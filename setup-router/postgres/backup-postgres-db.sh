@@ -36,7 +36,7 @@ for DB_NAME in "${DB_NAMES[@]}"; do
     "if [[ -e /data/postgres-db ]]; then DB_DATA_DIR=/data/postgres-db; else DB_DATA_DIR=/var/lib/postgres-db/data; fi;
     mkdir -p \$DB_DATA_DIR/$DB_BACKUP_DIR_NAME;
     chmod 755 \$DB_DATA_DIR/$DB_BACKUP_DIR_NAME;
-    pg_dump $DB_NAME -h localhost -p 5432 -U $DB_USER -f \$DB_DATA_DIR/$DB_BACKUP_DIR_NAME/$BACKUP_FILE_NAME"
+    pg_dump -c $DB_NAME -h localhost -p 5432 -U $DB_USER -f \$DB_DATA_DIR/$DB_BACKUP_DIR_NAME/$BACKUP_FILE_NAME"
 
   if [[ -e "$POSTGRESQL_DATA_DIR/$DB_BACKUP_DIR_NAME/$BACKUP_FILE_NAME" ]]; then
     BACKUP_FILE_PATH="$POSTGRESQL_DATA_DIR/$DB_BACKUP_DIR_NAME/$BACKUP_FILE_NAME"

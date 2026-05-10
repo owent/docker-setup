@@ -23,8 +23,8 @@ if [[ "x" == "x$SETUP_WITH_DEBUG_LOG" ]]; then
 fi
 
 # Recommand to use NDP instead of NAT6
-if [[ -z "$ROUTER_NAT_SETUP_WITH_NATT6" ]]; then
-  ROUTER_NAT_SETUP_WITH_NATT6=0
+if [[ -z "$ROUTER_NAT_SETUP_WITH_NAT66" ]]; then
+  ROUTER_NAT_SETUP_WITH_NAT66=0
 fi
 
 ## NAT
@@ -46,16 +46,16 @@ fi
 
 nft list table ip6 nat >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
-  if [[ $ROUTER_NAT_SETUP_WITH_NATT6 -ne 0 ]]; then
+  if [[ $ROUTER_NAT_SETUP_WITH_NAT66 -ne 0 ]]; then
     nft add table ip6 nat
   fi
 else
-  if [[ $ROUTER_NAT_SETUP_WITH_NATT6 -eq 0 ]]; then
+  if [[ $ROUTER_NAT_SETUP_WITH_NAT66 -eq 0 ]]; then
     nft delete table ip6 nat
   fi
 fi
 
-if [[ $ROUTER_NAT_SETUP_WITH_NATT6 -ne 0 ]]; then
+if [[ $ROUTER_NAT_SETUP_WITH_NAT66 -ne 0 ]]; then
   nft list set ip6 nat LOCAL_IPV6 >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
     nft add set ip6 nat LOCAL_IPV6 '{ type ipv6_addr; flags interval; auto-merge ; }'
@@ -70,64 +70,6 @@ fi
 nft list table inet nat >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   nft add table inet nat
-fi
-
-#### ========== debug ==========
-if [[ $SETUP_WITH_DEBUG_LOG -ne 0 ]]; then
-  nft list table inet debug >/dev/null 2>&1
-  if [[ $? -ne 0 ]]; then
-    nft add table inet debug
-  fi
-  nft list chain inet debug FORWARD >/dev/null 2>&1
-  if [[ $? -ne 0 ]]; then
-    nft add chain inet debug FORWARD { type filter hook forward priority filter - 1 \; }
-  fi
-  nft list set inet debug WATCH >/dev/null 2>&1
-  if [[ $? -ne 0 ]]; then
-    nft add set inet debug WATCH { type ipv4_addr\; }
-  fi
-  nft flush set inet debug WATCH
-  nft add element inet debug WATCH { 103.235.46.39, 180.101.49.11, 180.101.49.12 }
-  nft flush chain inet debug FORWARD
-  nft add rule inet debug FORWARD mark and 0xf == 0xe meta l4proto tcp meta nftrace set 1
-  nft add rule inet debug FORWARD tcp dport 3371 meta nftrace set 1
-  nft add rule inet debug FORWARD ip saddr @WATCH meta nftrace set 1
-  nft add rule inet debug FORWARD ip saddr @WATCH log prefix '">>>TCP>>FORWARD:"' level debug flags all
-  nft add rule inet debug FORWARD ip daddr @WATCH meta nftrace set 1
-  nft add rule inet debug FORWARD ip daddr @WATCH log prefix '"<<<TCP<<FORWARD:"' level debug flags all
-  nft add rule inet debug FORWARD ip daddr 172.23.111.179 meta l4proto icmp meta nftrace set 1
-  nft add rule inet debug FORWARD ip daddr 172.23.111.179 meta l4proto icmp log prefix '"<<<ICMP:"' level debug flags all
-  nft list chain inet debug PREROUTING >/dev/null 2>&1
-  if [[ $? -ne 0 ]]; then
-    nft add chain inet debug PREROUTING { type filter hook prerouting priority filter - 1 \; }
-  fi
-  nft flush chain inet debug PREROUTING
-  nft add rule inet debug PREROUTING mark and 0xf == 0xe meta l4proto tcp meta nftrace set 1
-  nft add rule inet debug PREROUTING tcp dport 3371 meta nftrace set 1
-  nft add rule inet debug PREROUTING ip saddr @WATCH meta nftrace set 1
-  nft add rule inet debug PREROUTING ip saddr @WATCH log prefix '">>>TCP>>PRERO:"' level debug flags all
-  nft add rule inet debug PREROUTING ip daddr @WATCH meta nftrace set 1
-  nft add rule inet debug PREROUTING ip daddr @WATCH log prefix '"<<<TCP<<PRERO:"' level debug flags all
-  nft add rule inet debug PREROUTING ip daddr 172.23.111.179 meta l4proto icmp meta nftrace set 1
-  nft add rule inet debug PREROUTING ip daddr 172.23.111.179 meta l4proto icmp log prefix '"<<<ICMP:"' level debug flags all
-  nft list chain inet debug OUTPUT >/dev/null 2>&1
-  if [[ $? -ne 0 ]]; then
-    nft add chain inet debug OUTPUT { type filter hook output priority filter - 1 \; }
-  fi
-  nft flush chain inet debug OUTPUT
-  nft add rule inet debug OUTPUT mark and 0xf == 0xe meta l4proto tcp meta nftrace set 1
-  nft add rule inet debug OUTPUT tcp dport 3371 meta nftrace set 1
-  nft add rule inet debug OUTPUT ip saddr @WATCH meta nftrace set 1
-  nft add rule inet debug OUTPUT ip saddr @WATCH log prefix '">>>TCP>>OUTPUT:"' level debug flags all
-  nft add rule inet debug OUTPUT ip daddr @WATCH meta nftrace set 1
-  nft add rule inet debug OUTPUT ip daddr @WATCH log prefix '"<<<TCP<<OUTPUT:"' level debug flags all
-  nft add rule inet debug OUTPUT ip daddr 172.23.111.179 meta l4proto icmp meta nftrace set 1
-  nft add rule inet debug OUTPUT ip daddr 172.23.111.179 meta l4proto icmp log prefix '"<<<ICMP:"' level debug flags all
-else
-  nft list table inet debug >/dev/null 2>&1
-  if [[ $? -eq 0 ]]; then
-    nft delete table inet debug
-  fi
 fi
 
 ### Setup - ipv4&ipv6
@@ -176,7 +118,7 @@ nft add rule ip nat POSTROUTING ip saddr @LOCAL_IPV4 ip daddr != @LOCAL_IPV4 ip 
 # nft add rule ip nat PREROUTING ip saddr != @LOCAL_IPV4 tcp dport 22 drop
 # nft add rule ip nat PREROUTING ip saddr != @LOCAL_IPV4 tcp dport 36000 dnat to 172.23.1.1 :22
 
-if [[ $ROUTER_NAT_SETUP_WITH_NATT6 -ne 0 ]]; then
+if [[ $ROUTER_NAT_SETUP_WITH_NAT66 -ne 0 ]]; then
   ### Setup NAT - ipv6
   nft list chain ip6 nat PREROUTING >/dev/null 2>&1
   if [[ $? -ne 0 ]]; then
@@ -191,7 +133,7 @@ if [[ $ROUTER_NAT_SETUP_WITH_NATT6 -ne 0 ]]; then
 
   ### Source NAT - ipv6
   # Skip local address when DSL interface get a local address
-  nft add rule ip6 nat POSTROUTING ip saddr @DEFAULT_ROUTE_IPV6 return
+  nft add rule ip6 nat POSTROUTING ip6 saddr @DEFAULT_ROUTE_IPV6 return
   nft add rule ip6 nat POSTROUTING meta l4proto tcp ip6 saddr @LOCAL_IPV6 ip6 daddr != @LOCAL_IPV6 counter packets 0 bytes 0 masquerade to :16000-65535
   nft add rule ip6 nat POSTROUTING meta l4proto udp ip6 saddr @LOCAL_IPV6 ip6 daddr != @LOCAL_IPV6 counter packets 0 bytes 0 masquerade to :16000-65535
   nft add rule ip6 nat POSTROUTING ip6 saddr @LOCAL_IPV6 ip6 daddr != @LOCAL_IPV6 counter packets 0 bytes 0 masquerade

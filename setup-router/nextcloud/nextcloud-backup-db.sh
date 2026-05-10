@@ -47,7 +47,7 @@ podman run --rm \
   --network=host \
   --mount type=bind,source=$PWD,target=/data/$NEXTCLOUD_DB_NAME \
   -e "PGPASSWORD=$NEXTCLOUD_DB_PASSWORD" docker.io/postgres:latest \
-  pg_dump $NEXTCLOUD_DB_NAME -h $NEXTCLOUD_DB_HOST -U $NEXTCLOUD_DB_USER -p $NEXTCLOUD_DB_PORT -f /data/$NEXTCLOUD_DB_NAME/$BACKUP_FILE_NAME
+  pg_dump -c $NEXTCLOUD_DB_NAME -h $NEXTCLOUD_DB_HOST -U $NEXTCLOUD_DB_USER -p $NEXTCLOUD_DB_PORT -f /data/$NEXTCLOUD_DB_NAME/$BACKUP_FILE_NAME
 
 tar -cvf- $BACKUP_FILE_NAME | zstd -T0 -B0 -15 --format=zstd -r -f -o $BACKUP_FILE_NAME.tar.zst -
 # zstd -d --stdout $BACKUP_FILE_NAME.tar.zst | tar -xf-

@@ -35,12 +35,48 @@ else
   mkdir -p "$SYSTEMD_CONTAINER_DIR"
 fi
 
-if [[ $? -eq 0 ]]; then
-  podman exec router-caddy caddy validate --config /etc/caddy/Caddyfile 2>/dev/null
-  if [[ $? -ne 0 ]]; then
-    echo "Caddyfile validation failed"
-    exit 1
+mkdir -p "$ROUTER_LOG_ROOT_DIR/caddy"
+CADDY_OPTIONS=(
+  --mount type=bind,source=$ROUTER_LOG_ROOT_DIR/caddy,target=/var/log/caddy
+  -v $PWD/Caddyfile:/etc/caddy/Caddyfile
+)
+
+if [[ -n "$ACMESH_SSL_DIR" ]] && [[ -e "$ACMESH_SSL_DIR" ]]; then
+  CADDY_OPTIONS+=("--mount" "type=bind,source=$ACMESH_SSL_DIR,target=/data/ssl,ro=true")
+fi
+
+if [[ -n "$HOME_CERTS_SSL_DIR" ]] && [[ -e "$HOME_CERTS_SSL_DIR" ]]; then
+  CADDY_OPTIONS+=("--mount" "type=bind,source=$HOME_CERTS_SSL_DIR,target=/data/home-certs,ro=true")
+fi
+
+if [[ "x$NEXTCLOUD_REVERSE_ROOT_DIR" != "x" ]]; then
+  CADDY_OPTIONS+=(
+    "--mount" "type=bind,source=$NEXTCLOUD_REVERSE_ROOT_DIR/nextcloud,target=/data/website/html/nextcloud"
+    "--mount" "type=bind,source=$NEXTCLOUD_APPS_DIR,target=/data/website/html/nextcloud/custom_apps"
+  )
+fi
+
+if [[ ! -z "$CADDY_NETWORK" ]]; then
+  CADDY_NETWORK_HAS_HOST=0
+  for network in ${CADDY_NETWORK[@]}; do
+    CADDY_OPTIONS+=("--network=$network")
+    if [[ "$network" == "host" ]]; then
+      CADDY_NETWORK_HAS_HOST=1
+    fi
+  done
+  if [[ ! -z "$CADDY_PUBLISH" ]] && [[ $CADDY_NETWORK_HAS_HOST -eq 0 ]]; then
+    for publish in ${CADDY_PUBLISH[@]}; do
+      CADDY_OPTIONS+=(-p "$publish")
+    done
   fi
+else
+  CADDY_OPTIONS+=(--network=host)
+fi
+
+podman run --rm "${CADDY_OPTIONS[@]}" $CADDY_IMAGE_URL caddy validate --config /etc/caddy/Caddyfile
+if [[ $? -ne 0 ]]; then
+  echo "Caddyfile validation failed"
+  exit 1
 fi
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
@@ -72,47 +108,6 @@ fi
 
 if [[ "x$CADDY_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman image prune -a -f --filter "until=240h"
-fi
-
-mkdir -p "$ROUTER_LOG_ROOT_DIR/caddy"
-if [[ "x$ARIA2_DATA_ROOT" == "x" ]]; then
-  if [[ ! -z "$ROUTER_DATA_ROOT_DIR" ]]; then
-    ARIA2_DATA_ROOT="$ROUTER_DATA_ROOT_DIR/website/download"
-  else
-    ARIA2_DATA_ROOT="$HOME/aria2/download"
-  fi
-fi
-mkdir -p "$ARIA2_DATA_ROOT"
-
-CADDY_OPTIONS=(
-  --mount type=bind,source=$ACMESH_SSL_DIR,target=/data/ssl,ro=true
-  --mount type=bind,source=$ROUTER_LOG_ROOT_DIR/caddy,target=/var/log/caddy
-  -v $PWD/Caddyfile:/etc/caddy/Caddyfile
-  "--mount" "type=bind,source=$ARIA2_DATA_ROOT,target=/data/website/html/downloads"
-)
-
-if [[ "x$NEXTCLOUD_REVERSE_ROOT_DIR" != "x" ]]; then
-  CADDY_OPTIONS+=(
-    "--mount" "type=bind,source=$NEXTCLOUD_REVERSE_ROOT_DIR/nextcloud,target=/data/website/html/nextcloud"
-    "--mount" "type=bind,source=$NEXTCLOUD_APPS_DIR,target=/data/website/html/nextcloud/custom_apps"
-  )
-fi
-
-if [[ ! -z "$CADDY_NETWORK" ]]; then
-  CADDY_NETWORK_HAS_HOST=0
-  for network in ${CADDY_NETWORK[@]}; do
-    CADDY_OPTIONS+=("--network=$network")
-    if [[ "$network" == "host" ]]; then
-      CADDY_NETWORK_HAS_HOST=1
-    fi
-  done
-  if [[ ! -z "$CADDY_PUBLISH" ]] && [[ $CADDY_NETWORK_HAS_HOST -eq 0 ]]; then
-    for publish in ${CADDY_PUBLISH[@]}; do
-      CADDY_OPTIONS+=(-p "$publish")
-    done
-  fi
-else
-  CADDY_OPTIONS+=(--network=host)
 fi
 
 unset http_proxy

@@ -31,21 +31,23 @@ su postgres -- pg_ctl reload
 
 ## 备份数据库
 
+注意: `--clean` 选项是增加 `DROP TABLE IF EXISTS` 。这样全量备份时，可以覆盖导入。
+
 ```bash
 podman run --rm -e "PGPASSWORD=password" --network=host postgres:latest
-  pg_dump [db_name] -h [server] -U [username] -p $POSTGRESQL_PORT -f sqlbkp_`date +"%Y%m%d"`.bak
+  pg_dump --clean [db_name] -h [server] -U [username] -p $POSTGRESQL_PORT -f sqlbkp_`date +"%Y%m%d"`.bak
 
 podman run --rm -e "PGPASSWORD=password" --network=host postgres:latest
-  pg_dump nextcloud -h 127.0.0.1 -U nextcloud -p $POSTGRESQL_PORT -f nextcloud-sqlbkp_`date +"%Y%m%d"`.bak
+  pg_dump --clean nextcloud -h 127.0.0.1 -U nextcloud -p $POSTGRESQL_PORT -f nextcloud-sqlbkp_`date +"%Y%m%d"`.bak
 
 podman run --rm -e "PGPASSWORD=password" --network=host --mount type=bind,source=$PWD,target=/data/postgres_backup postgres:latest
-  pg_dump [db_name] -h [server] -U [username] -p $POSTGRESQL_PORT -f /data/postgres_backup/sqlbkp_`date +"%Y%m%d"`.bak
+  pg_dump --clean [db_name] -h [server] -U [username] -p $POSTGRESQL_PORT -f /data/postgres_backup/sqlbkp_`date +"%Y%m%d"`.bak
 
 # Remote mode(mount)
-podman run --rm -e "PGPASSWORD=password" --network=host pg_dump [db_name] -h [server] -U [username] -p $POSTGRESQL_PORT -f /data/postgres_backup/sqlbkp_`date +"%Y%m%d"`.bak
+podman run --rm -e "PGPASSWORD=password" --network=host pg_dump --clean [db_name] -h [server] -U [username] -p $POSTGRESQL_PORT -f /data/postgres_backup/sqlbkp_`date +"%Y%m%d"`.bak
 
 # Remote mode(stdout)
-podman run --rm -e "PGPASSWORD=password" --network=host pg_dump [db_name] -h [server] -U [username] -p $POSTGRESQL_PORT > sqlbkp_`date +"%Y%m%d"`.bak
+podman run --rm -e "PGPASSWORD=password" --network=host pg_dump --clean [db_name] -h [server] -U [username] -p $POSTGRESQL_PORT > sqlbkp_`date +"%Y%m%d"`.bak
 
 # Remote mode(mount, data-only)
 podman run --rm -e "PGPASSWORD=password" --network=host pg_dump --data-only [db_name] -h [server] -U [username] -p $POSTGRESQL_PORT -f /data/postgres_backup/sqlbkp_`date +"%Y%m%d"`.bak
@@ -54,7 +56,7 @@ podman run --rm -e "PGPASSWORD=password" --network=host pg_dump --data-only [db_
 podman run --rm -e "PGPASSWORD=password" --network=host pg_dump --data-only [db_name] -h [server] -U [username] -p $POSTGRESQL_PORT > sqlbkp_`date +"%Y%m%d"`.bak
 
 # Local mode(stdout)
-podman exec -it postgres-db pg_dump -U [username] -d [db_name] > sqlbkp_`date +"%Y%m%d"`.bak
+podman exec -it postgres-db pg_dump --clean -U [username] -d [db_name] > sqlbkp_`date +"%Y%m%d"`.bak
 
 # Local mode(stdout, data-only)
 podman exec -it postgres-db pg_dump --data-only -U [username] -d [db_name] > sqlbkp_`date +"%Y%m%d"`.bak

@@ -1,17 +1,19 @@
 {
     "signing": {
         "default": {
-            // 对于自签CA证书，Windows会要求一定要能够获取revoke状态，下面 OCSP 和 CRL 地址二选一即可。其中 CRL 是静态文件，更容易部署一些。
-            // OSCP服务: cfssl ocspserve -port=8889 -responses=ocsp-responses.txt -loglevel=0
-            // "ocsp_url": "http://ocsp.example.org",
-            // CRL文件:
-            // - 创建吊销列表文件: echo '[]' > revoked_certs.txt 
-            // - 生成CRL文件: cfssl gencrl revoked_certs.txt sub-ca.pem sub-ca-key.pem | base64 -d > $CRL_DIR/sub-ca.crl
-            "crl_url": "http://crl.example.org/sub-ca.crl",
-            "crl_expiry": "168h",
+            // 对于自签CA证书，Windows会要求一定要能够获取revoke状态。
+            // 吊销验证方式二选一即可:
+            //   - OCSP 方式: 需要配置 ocsp_url + issuer_urls。OCSP服务: cfssl ocspserve -port=8889 -responses=ocsp-responses.txt -loglevel=0
+            //   - CRL  方式: 仅需配置 crl_url + crl_expiry。CRL是静态文件，更容易部署一些。
+            //     - 创建吊销列表文件: echo '[]' > revoked_certs.txt
+            //     - 生成CRL文件: cfssl gencrl revoked_certs.txt sub-ca.pem sub-ca-key.pem | base64 -d > $CRL_DIR/sub-ca.crl
+            // 当前使用 CRL 方式（ocsp_url 和 issuer_urls 可移除）:
+            "ocsp_url": "http://ocsp.example.org",
             "issuer_urls": [
                 "http://pki.example.org/sub-ca.crt"
             ],
+            "crl_url": "http://crl.example.org/sub-ca.crl",
+            "crl_expiry": "168h",
             "expiry": "1128h"
         },
         "profiles": {
@@ -33,6 +35,10 @@
             },
             "sub-ca-3y": {
                 "expiry": "26280h",
+                "ocsp_url": "http://ocsp.example.org",
+                "issuer_urls": [
+                    "http://pki.example.org/root-ca.crt"
+                ],
                 "crl_url": "http://ca-crl.example.org/root-ca.crl",
                 "crl_expiry": "168h",
                 "usages": [
@@ -51,11 +57,12 @@
             },
             "sub-ca-5y": {
                 "expiry": "43800h",
-                "crl_url": "http://ca-crl.example.org/root-ca.crl",
-                "crl_expiry": "168h",
+                "ocsp_url": "http://ocsp.example.org",
                 "issuer_urls": [
                     "http://pki.example.org/root-ca.crt"
                 ],
+                "crl_url": "http://ca-crl.example.org/root-ca.crl",
+                "crl_expiry": "168h",
                 "usages": [
                     "signing",
                     "digital signature",
@@ -72,11 +79,12 @@
             },
             "sub-ca-10y": {
                 "expiry": "87600h",
-                "crl_url": "http://ca-crl.example.org/root-ca.crl",
-                "crl_expiry": "168h",
+                "ocsp_url": "http://ocsp.example.org",
                 "issuer_urls": [
                     "http://pki.example.org/root-ca.crt"
                 ],
+                "crl_url": "http://ca-crl.example.org/root-ca.crl",
+                "crl_expiry": "168h",
                 "usages": [
                     "signing",
                     "digital signature",
@@ -93,11 +101,12 @@
             },
             "server-20y": {
                 "expiry": "175200h",
-                "crl_url": "http://ca-crl.example.org/sub-ca.crl",
-                "crl_expiry": "168h",
+                "ocsp_url": "http://ocsp.example.org",
                 "issuer_urls": [
                     "http://pki.example.org/sub-ca.crt"
                 ],
+                "crl_url": "http://ca-crl.example.org/sub-ca.crl",
+                "crl_expiry": "168h",
                 "usages": [
                     "signing",
                     "key encipherment",
@@ -106,11 +115,12 @@
             },
             "client-20y": {
                 "expiry": "175200h",
-                "crl_url": "http://ca-crl.example.org/sub-ca.crl",
-                "crl_expiry": "168h",
+                "ocsp_url": "http://ocsp.example.org",
                 "issuer_urls": [
                     "http://pki.example.org/sub-ca.crt"
                 ],
+                "crl_url": "http://ca-crl.example.org/sub-ca.crl",
+                "crl_expiry": "168h",
                 "usages": [
                     "signing",
                     "key encipherment",
@@ -119,11 +129,12 @@
             },
             "peer-20y": {
                 "expiry": "175200h",
-                "crl_url": "http://ca-crl.example.org/sub-ca.crl",
-                "crl_expiry": "168h",
+                "ocsp_url": "http://ocsp.example.org",
                 "issuer_urls": [
                     "http://pki.example.org/sub-ca.crt"
                 ],
+                "crl_url": "http://ca-crl.example.org/sub-ca.crl",
+                "crl_expiry": "168h",
                 "usages": [
                     "signing",
                     "key encipherment",
@@ -133,11 +144,12 @@
             },
             "server": {
                 "expiry": "9552h",
-                "crl_url": "http://ca-crl.example.org/sub-ca.crl",
-                "crl_expiry": "168h",
+                "ocsp_url": "http://ocsp.example.org",
                 "issuer_urls": [
                     "http://pki.example.org/sub-ca.crt"
                 ],
+                "crl_url": "http://ca-crl.example.org/sub-ca.crl",
+                "crl_expiry": "168h",
                 "usages": [
                     "signing",
                     "key encipherment",
@@ -146,11 +158,12 @@
             },
             "client": {
                 "expiry": "9552h",
-                "crl_url": "http://ca-crl.example.org/sub-ca.crl",
-                "crl_expiry": "168h",
+                "ocsp_url": "http://ocsp.example.org",
                 "issuer_urls": [
                     "http://pki.example.org/sub-ca.crt"
                 ],
+                "crl_url": "http://ca-crl.example.org/sub-ca.crl",
+                "crl_expiry": "168h",
                 "usages": [
                     "signing",
                     "key encipherment",
@@ -159,11 +172,12 @@
             },
             "peer": {
                 "expiry": "9552h",
-                "crl_url": "http://ca-crl.example.org/sub-ca.crl",
-                "crl_expiry": "168h",
+                "ocsp_url": "http://ocsp.example.org",
                 "issuer_urls": [
                     "http://pki.example.org/sub-ca.crt"
                 ],
+                "crl_url": "http://ca-crl.example.org/sub-ca.crl",
+                "crl_expiry": "168h",
                 "usages": [
                     "signing",
                     "key encipherment",
@@ -173,11 +187,12 @@
             },
             "server-100d": {
                 "expiry": "2400h",
-                "crl_url": "http://ca-crl.example.org/sub-ca.crl",
-                "crl_expiry": "168h",
+                "ocsp_url": "http://ocsp.example.org",
                 "issuer_urls": [
                     "http://pki.example.org/sub-ca.crt"
                 ],
+                "crl_url": "http://ca-crl.example.org/sub-ca.crl",
+                "crl_expiry": "168h",
                 "usages": [
                     "signing",
                     "key encipherment",
@@ -186,11 +201,12 @@
             },
             "client-100d": {
                 "expiry": "2400h",
-                "crl_url": "http://ca-crl.example.org/sub-ca.crl",
-                "crl_expiry": "168h",
+                "ocsp_url": "http://ocsp.example.org",
                 "issuer_urls": [
                     "http://pki.example.org/sub-ca.crt"
                 ],
+                "crl_url": "http://ca-crl.example.org/sub-ca.crl",
+                "crl_expiry": "168h",
                 "usages": [
                     "signing",
                     "key encipherment",
@@ -199,11 +215,12 @@
             },
             "peer-100d": {
                 "expiry": "2400h",
-                "crl_url": "http://ca-crl.example.org/sub-ca.crl",
-                "crl_expiry": "168h",
+                "ocsp_url": "http://ocsp.example.org",
                 "issuer_urls": [
                     "http://pki.example.org/sub-ca.crt"
                 ],
+                "crl_url": "http://ca-crl.example.org/sub-ca.crl",
+                "crl_expiry": "168h",
                 "usages": [
                     "signing",
                     "key encipherment",
@@ -213,11 +230,12 @@
             },
             "server-47d": {
                 "expiry": "1128h",
-                "crl_url": "http://ca-crl.example.org/sub-ca.crl",
-                "crl_expiry": "168h",
+                "ocsp_url": "http://ocsp.example.org",
                 "issuer_urls": [
                     "http://pki.example.org/sub-ca.crt"
                 ],
+                "crl_url": "http://ca-crl.example.org/sub-ca.crl",
+                "crl_expiry": "168h",
                 "usages": [
                     "signing",
                     "key encipherment",
@@ -226,11 +244,12 @@
             },
             "client-47d": {
                 "expiry": "1128h",
-                "crl_url": "http://ca-crl.example.org/sub-ca.crl",
-                "crl_expiry": "168h",
+                "ocsp_url": "http://ocsp.example.org",
                 "issuer_urls": [
                     "http://pki.example.org/sub-ca.crt"
                 ],
+                "crl_url": "http://ca-crl.example.org/sub-ca.crl",
+                "crl_expiry": "168h",
                 "usages": [
                     "signing",
                     "key encipherment",
@@ -239,11 +258,12 @@
             },
             "peer-47d": {
                 "expiry": "1128h",
-                "crl_url": "http://ca-crl.example.org/sub-ca.crl",
-                "crl_expiry": "168h",
+                "ocsp_url": "http://ocsp.example.org",
                 "issuer_urls": [
                     "http://pki.example.org/sub-ca.crt"
                 ],
+                "crl_url": "http://ca-crl.example.org/sub-ca.crl",
+                "crl_expiry": "168h",
                 "usages": [
                     "signing",
                     "key encipherment",

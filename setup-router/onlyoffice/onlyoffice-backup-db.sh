@@ -47,7 +47,7 @@ podman run --rm \
   --network=host \
   --mount type=bind,source=$PWD,target=/data/$ONLYOFFICE_DB_NAME \
   -e "PGPASSWORD=$ONLYOFFICE_DB_PASSWORD" docker.io/postgres:latest \
-  pg_dump $ONLYOFFICE_DB_NAME -h $ONLYOFFICE_DB_HOST -U $ONLYOFFICE_DB_USER -p $ONLYOFFICE_DB_PORT -f /data/$ONLYOFFICE_DB_NAME/$BACKUP_FILE_NAME
+  pg_dump -c $ONLYOFFICE_DB_NAME -h $ONLYOFFICE_DB_HOST -U $ONLYOFFICE_DB_USER -p $ONLYOFFICE_DB_PORT -f /data/$ONLYOFFICE_DB_NAME/$BACKUP_FILE_NAME
 
 tar -cvf- $BACKUP_FILE_NAME | zstd -T0 -B0 -15 --format=zstd -r -f -o $BACKUP_FILE_NAME.tar.zst -
 # zstd -d --stdout $BACKUP_FILE_NAME.tar.zst | tar -xf-

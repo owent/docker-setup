@@ -89,6 +89,10 @@ KEEPALIVED_OPTIONS=(-e "TZ=Asia/Shanghai"
     --mount "type=bind,source=$KEEPALIVED_ETC_DIR,target=/etc/keepalived"
 )
 
+if [[ -e "/etc/msmtprc" ]]; then
+  KEEPALIVED_OPTIONS+=("--mount" "type=bind,source=/etc/msmtprc,target=/etc/msmtprc,ro=true")
+fi
+
 PODLET_IMAGE_URL="ghcr.io/containers/podlet:latest"
 PODLET_RUN=($(which podlet 2>/dev/null))
 FIND_PODLET_RESULT=$?
