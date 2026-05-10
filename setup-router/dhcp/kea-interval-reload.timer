@@ -1,0 +1,17 @@
+[Unit]
+Description=Kea service interval reload
+Requires=kea-interval-reload.service
+After=network.target network-online.target
+Wants=network-online.target
+
+[Timer]
+OnCalendar=Mon *-*-* 05:21:13/2
+AccuracySec=60m
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target
+
+# sudo systemctl enable --now kea-interval-reload.timer
+# sudo systemctl stop kea-interval-reload.timer
+# sudo systemctl status kea-interval-reload.timer

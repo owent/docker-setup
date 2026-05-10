@@ -152,6 +152,10 @@ fi
 
 if [[ "$ORIGIN_STATE" != "$STATE" ]] && [[ "$STATE" != "UNKNOWN" ]]; then
   send_state_email
+
+  if [[ "$STATE" == "MASTER" ]] && [[ -e "$SCRIPT_DIR/../../dhcp/kea-interval-reload.sh" ]]; then
+    /bin/bash "$SCRIPT_DIR/../../dhcp/kea-interval-reload.sh"
+  fi
 fi
 
 exit 0

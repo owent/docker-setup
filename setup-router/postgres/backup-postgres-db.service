@@ -5,11 +5,11 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/bin/bash /home/router/postgres-db/backup-postgres-db.sh
+ExecStart=/bin/bash /data/postgres-db/backup-postgres-db.sh
 # RemainAfterExit=yes
 
 [Install]
 WantedBy=default.target
 
-# ln /home/router/nextcloud/backup-postgres-db-db.service ~/.config/systemd/user/backup-postgres-db-db.service
+# ln /data/nextcloud/backup-postgres-db-db.service ~/.config/systemd/user/backup-postgres-db-db.service
 # systemctl status --user backup-postgres-db-db.service

@@ -2,7 +2,7 @@
 
 # Return success only when this node is currently recorded as Keepalived MASTER.
 # This is intended for external cron/systemd timers:
-#   /bin/bash /path/to/keepalived/etc/is-master.sh && /bin/bash /home/router/update-ddns/update-ddns.sh
+#   /bin/bash /path/to/keepalived/etc/is-master.sh && /bin/bash /data/update-ddns/update-ddns.sh
 
 set -u
 

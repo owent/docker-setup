@@ -1,0 +1,12 @@
+[Unit]
+Description=Kea service interval reload
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /data/dhcp/kea-interval-reload.sh
+# RemainAfterExit=yes
+
+[Install]
+WantedBy=default.target

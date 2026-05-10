@@ -5,12 +5,20 @@ source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 
 DOCKER_EXEC=$((which podman > /dev/null 2>&1 && echo podman) || (which docker > /dev/null 2>&1 && echo docker))
 
+if [[ -z "$VBOX_IMAGE_URL" ]]; then
+  VBOX_IMAGE_URL="ghcr.io/owent/vbox:latest"
+fi
+
 if [[ -z "$VBOX_ETC_DIR" ]]; then
-  VBOX_ETC_DIR="$HOME/vbox/etc"
+  VBOX_ETC_DIR="$SCRIPT_DIR/etc"
 fi
 
 if [[ -z "$VBOX_DATA_DIR" ]]; then
-  VBOX_DATA_DIR="$HOME/vbox/data"
+  VBOX_DATA_DIR="$SCRIPT_DIR/data"
+fi
+
+if [[ -z "$VBOX_PATCH_DIR" ]]; then
+  VBOX_PATCH_DIR="$SCRIPT_DIR/patch"
 fi
 
 if [[ -z "$VBOX_IP_RULE_WITH_AUTO_REDIRECT" ]]; then
@@ -47,19 +55,23 @@ function vbox_setup_patch_configures_without_auto_redirect() {
     return 0
   fi
 
-  if [[ -e "$VBOX_DATA_DIR/geoip-cn.json" ]] && [[ -e "$VBOX_DATA_DIR/geoip-cn.json.bak" ]]; then
-    rm -f "$VBOX_DATA_DIR/geoip-cn.json.bak"
+  if [[ -e "$VBOX_PATCH_DIR/geoip-cn.json" ]] && [[ -e "$VBOX_PATCH_DIR/geoip-cn.json.bak" ]]; then
+    rm -f "$VBOX_PATCH_DIR/geoip-cn.json.bak"
   fi
 
-  if [[ -e "$VBOX_DATA_DIR/geoip-cn.json" ]]; then
-    mv -f "$VBOX_DATA_DIR/geoip-cn.json" "$VBOX_DATA_DIR/geoip-cn.json.bak"
+  if [[ -e "$VBOX_PATCH_DIR/geoip-cn.json" ]]; then
+    mv -f "$VBOX_PATCH_DIR/geoip-cn.json" "$VBOX_PATCH_DIR/geoip-cn.json.bak"
   fi
 
-  $DOCKER_EXEC exec -it vbox-client vbox rule-set decompile /usr/share/vbox/geoip/geoip-cn.srs -o /usr/share/vbox/geoip/geoip-cn.srs.json
-  $DOCKER_EXEC cp vbox-client:/usr/share/vbox/geoip/geoip-cn.srs.json "$VBOX_DATA_DIR/geoip-cn.json" || mv -f "$VBOX_DATA_DIR/geoip-cn.json.bak" "$VBOX_DATA_DIR/geoip-cn.json"
+  $DOCKER_EXEC inspect vbox-client-prepare > /dev/null 2>&1 && $DOCKER_EXEC rm -f vbox-client-prepare
+  $DOCKER_EXEC run -d --name vbox-client-prepare -v "$SCRIPT_DIR/simple-server.json:/etc/vbox/simple-server.json" "$VBOX_IMAGE_URL" -D /var/lib/vbox -C /etc/vbox/ run
+  $DOCKER_EXEC exec -it vbox-client-prepare vbox rule-set decompile /usr/share/vbox/geoip/geoip-cn.srs -o /usr/share/vbox/geoip/geoip-cn.srs.json
+  $DOCKER_EXEC cp vbox-client-prepare:/usr/share/vbox/geoip/geoip-cn.srs.json "$VBOX_PATCH_DIR/geoip-cn.json" || mv -f "$VBOX_PATCH_DIR/geoip-cn.json.bak" "$VBOX_PATCH_DIR/geoip-cn.json"
+  $DOCKER_EXEC stop vbox-client-prepare
+  $DOCKER_EXEC rm -f vbox-client-prepare
 
   # tun排除规则性能非常差，尽量还是走 ip-nft 模式自己来吧
-  GEOIP_CN_ADDRESS=($(jq '.rules[].ip_cidr[]' -r "$VBOX_DATA_DIR/geoip-cn.json"))
+  GEOIP_CN_ADDRESS=($(jq '.rules[].ip_cidr[]' -r "$VBOX_PATCH_DIR/geoip-cn.json"))
 
   if [[ -e "$SCRIPT_DIR/patch" ]]; then
     rm -rf "$SCRIPT_DIR/patch"

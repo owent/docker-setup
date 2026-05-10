@@ -21,12 +21,20 @@ source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
 
 DOCKER_EXEC=$((which podman > /dev/null 2>&1 && echo podman) || (which docker > /dev/null 2>&1 && echo docker))
 
+if [[ -z "$VBOX_IMAGE_URL" ]]; then
+  VBOX_IMAGE_URL="ghcr.io/owent/vbox:latest"
+fi
+
 if [[ -z "$VBOX_DATA_DIR" ]]; then
-  VBOX_DATA_DIR="$HOME/vbox/data"
+  VBOX_DATA_DIR="$SCRIPT_DIR/data"
+fi
+
+if [[ -z "$VBOX_PATCH_DIR" ]]; then
+  VBOX_PATCH_DIR="$SCRIPT_DIR/patch"
 fi
 
 if [[ -z "$VBOX_ETC_DIR" ]]; then
-  VBOX_ETC_DIR="$HOME/vbox/etc"
+  VBOX_ETC_DIR="$SCRIPT_DIR/etc"
 fi
 
 ## ipv4绕过本地和私有网络地址:
@@ -111,16 +119,26 @@ else
   VBOX_SETUP_IP_RULE_CLEAR=1
 fi
 
+if [[ "x$1" != "xconfigure" ]]; then
+  VBOX_SETUP_IP_RULE_CONFIGURE=0
+else
+  VBOX_SETUP_IP_RULE_CONFIGURE=1
+fi
+
 function vbox_patch_configure() {
-  if [[ -e "$VBOX_DATA_DIR/geoip-cn.json" ]] && [[ -e "$VBOX_DATA_DIR/geoip-cn.json.bak" ]]; then
-    rm -f "$VBOX_DATA_DIR/geoip-cn.json.bak"
+  if [[ -e "$VBOX_PATCH_DIR/geoip-cn.json" ]] && [[ -e "$VBOX_PATCH_DIR/geoip-cn.json.bak" ]]; then
+    rm -f "$VBOX_PATCH_DIR/geoip-cn.json.bak"
   fi
-  if [[ -e "$VBOX_DATA_DIR/geoip-cn.json" ]]; then
-    mv -f "$VBOX_DATA_DIR/geoip-cn.json" "$VBOX_DATA_DIR/geoip-cn.json.bak"
+  if [[ -e "$VBOX_PATCH_DIR/geoip-cn.json" ]]; then
+    mv -f "$VBOX_PATCH_DIR/geoip-cn.json" "$VBOX_PATCH_DIR/geoip-cn.json.bak"
   fi
 
-  $DOCKER_EXEC exec -it vbox-client vbox rule-set decompile /usr/share/vbox/geoip/geoip-cn.srs -o /usr/share/vbox/geoip/geoip-cn.srs.json
-  $DOCKER_EXEC cp vbox-client:/usr/share/vbox/geoip/geoip-cn.srs.json "$VBOX_DATA_DIR/geoip-cn.json" || mv -f "$VBOX_DATA_DIR/geoip-cn.json.bak" "$VBOX_DATA_DIR/geoip-cn.json"
+  $DOCKER_EXEC inspect vbox-client-prepare > /dev/null 2>&1 && $DOCKER_EXEC rm -f vbox-client-prepare
+  $DOCKER_EXEC run -d --name vbox-client-prepare -v "$SCRIPT_DIR/simple-server.json:/etc/vbox/simple-server.json" "$VBOX_IMAGE_URL" -D /var/lib/vbox -C /etc/vbox/ run
+  $DOCKER_EXEC exec -it vbox-client-prepare vbox rule-set decompile /usr/share/vbox/geoip/geoip-cn.srs -o /usr/share/vbox/geoip/geoip-cn.srs.json
+  $DOCKER_EXEC cp vbox-client-prepare:/usr/share/vbox/geoip/geoip-cn.srs.json "$VBOX_PATCH_DIR/geoip-cn.json" || mv -f "$VBOX_PATCH_DIR/geoip-cn.json.bak" "$VBOX_PATCH_DIR/geoip-cn.json"
+  $DOCKER_EXEC stop vbox-client-prepare
+  $DOCKER_EXEC rm -f vbox-client-prepare
 
   # 这里为了保持和 setup-client-pod-ip-rules 同行为
   PATCH_CONF_FILES=($(find "$VBOX_ETC_DIR" -maxdepth 1 -name "*.json.template"))
@@ -793,14 +811,14 @@ function vbox_remove_rule_marks() {
 
 function vbox_update_geoip() {
   # Update GEOIP
-  if [[ ! -e "$VBOX_DATA_DIR/geoip-cn.json" ]]; then
-    echo "$VBOX_DATA_DIR/geoip-cn.json not found"
+  if [[ ! -e "$VBOX_PATCH_DIR/geoip-cn.json" ]]; then
+    echo "$VBOX_PATCH_DIR/geoip-cn.json not found"
     exit 1
   fi
 
   # 使用 jq 直接生成逗号分隔的 IP 列表，避免 bash 数组的性能问题
-  GEOIP_CN_IPV4_LIST="$(jq -r '.rules[].ip_cidr[]' "$VBOX_DATA_DIR/geoip-cn.json" | grep -v ':' | tr '\n' ',' | sed 's/,$//')"
-  GEOIP_CN_IPV6_LIST="$(jq -r '.rules[].ip_cidr[]' "$VBOX_DATA_DIR/geoip-cn.json" | grep ':' | tr '\n' ',' | sed 's/,$//')"
+  GEOIP_CN_IPV4_LIST="$(jq -r '.rules[].ip_cidr[]' "$VBOX_PATCH_DIR/geoip-cn.json" | grep -v ':' | tr '\n' ',' | sed 's/,$//')"
+  GEOIP_CN_IPV6_LIST="$(jq -r '.rules[].ip_cidr[]' "$VBOX_PATCH_DIR/geoip-cn.json" | grep ':' | tr '\n' ',' | sed 's/,$//')"
 
   # 一次性刷入所有 GEOIP 数据
   nft -f - <<EOF
@@ -821,8 +839,9 @@ table inet vbox {
 EOF
 }
 
-if [ $VBOX_SETUP_IP_RULE_CLEAR -eq 0 ]; then
+if [ $VBOX_SETUP_IP_RULE_CONFIGURE -ne 0 ]; then
   vbox_patch_configure
+elif [ $VBOX_SETUP_IP_RULE_CLEAR -eq 0 ]; then
   vbox_clear_ip_rules "-4" "-6"
   vbox_initialize_rule_table inet vbox
   vbox_initialize_rule_table bridge vbox

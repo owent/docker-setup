@@ -27,7 +27,7 @@ cfssl genkey ./csr-$SUBCA_NAME.json | cfssljson -bare $SUBCA_NAME
 cfssl sign -ca root-ca.pem -ca-key root-ca-key.pem -config=./ca-config.json -profile=sub-ca-5y $SUBCA_NAME.csr | cfssljson -bare $SUBCA_NAME
 
 # 准备fullchain的前缀
-cat root-ca.pem $SUBCA_NAME.pem > fullchain.$SUBCA_NAME.pem
+cat $SUBCA_NAME.pem root-ca.pem > fullchain.$SUBCA_NAME.pem
 
 # 验证证书链
 openssl verify -CAfile root-ca.pem $SUBCA_NAME.pem
@@ -44,7 +44,7 @@ cfssl gencert -ca ./$USECA_NAME.pem                             \
             -hostname "使用者名称，多个用逗号分隔"              \
             ./csr-endpoint.json | cfssljson -bare ./$APP_NAME -
 
-cat fullchain.$USECA_NAME.pem ./$APP_NAME.pem > fullchain.$APP_NAME.pem
+cat ./$APP_NAME.pem fullchain.$USECA_NAME.pem > fullchain.$APP_NAME.pem
 
 # 验证证书链
 openssl verify -CAfile root-ca.pem $USECA_NAME.pem

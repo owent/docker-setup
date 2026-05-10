@@ -1,0 +1,37 @@
+{
+  "inbounds": [
+    {
+      "type": "http",
+      "tag": "in-http",
+
+      "listen": "0.0.0.0",
+      "listen_port": 3128
+    },
+    {
+      "type": "socks",
+      "tag": "in-socks",
+
+      "listen": "0.0.0.0",
+      "listen_port": 1080
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "direct",
+      "tag": "direct"
+    }
+  ],
+  "route": {
+    "rules": [
+      {
+        "action": "sniff",
+        "sniffer": ["http", "tls", "quic", "stun", "dns", "bittorrent", "dtls", "rdp", "ntp"],
+        "timeout": "1s"
+      },
+      {
+        "protocol": "dns",
+        "action": "hijack-dns"
+      }
+    ]
+  }
+}
