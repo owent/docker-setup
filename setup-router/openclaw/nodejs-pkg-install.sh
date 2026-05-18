@@ -8,16 +8,21 @@ npm config delete https-proxy
 
 echo '#!/bin/bash
 export PNPM_HOME=/app/pnpm
-export PATH=$PNPM_HOME:$PATH
+export PATH=$PNPM_HOME/bin:$PATH
 ' > /etc/profile.d/pnpm.sh
 chmod +x /etc/profile.d/pnpm.sh
 
 source /etc/profile.d/pnpm.sh
 
+env SHELL=bash pnpm setup || true
+
+if [[ -n "$PNPM_HOME" ]]; then
+  export PATH=$PNPM_HOME:$PATH
+fi
+
 # npx components
 pnpm install -g clawhub@latest
 pnpm install -g mcporter@latest
-
 
 # pip packages
 python3 -m pip install --upgrade --user --break-system-packages nano-pdf
