@@ -104,7 +104,7 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
   PODLET_OPTIONS=(--install --wanted-by default.target --wants network-online.target --after network-online.target)
 
   ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
-    $DOCKER_EXEC run -d --name keepalived --security-opt label=disable \
+    $DOCKER_EXEC run --name keepalived --security-opt label=disable \
         --restart=unless-stopped "${KEEPALIVED_OPTIONS[@]}" \
         local-keepalived -- \
         keepalived --dont-fork --log-console -f /etc/keepalived/keepalived.conf \

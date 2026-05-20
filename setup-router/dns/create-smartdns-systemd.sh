@@ -243,7 +243,7 @@ fi
 if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
   PODLET_OPTIONS=(--install --wanted-by default.target --wants network-online.target --after network-online.target)
   ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
-    podman run -d --name $SMARTDNS_POD_NAME \
+    podman run --name $SMARTDNS_POD_NAME \
       "${SMARTDNS_OPTIONS[@]}" \
       "$SMARTDNS_IMAGE" | tee "$SYSTEMD_CONTAINER_DIR/$SMARTDNS_POD_NAME.container"
 else

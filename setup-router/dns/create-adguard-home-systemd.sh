@@ -138,7 +138,7 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
     fi
   done
   ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
-    $DOCKER_EXEC run -d --name $ADGUARD_HOME_PODNAME --security-opt label=disable \
+    $DOCKER_EXEC run --name $ADGUARD_HOME_PODNAME --security-opt label=disable \
       "${ADGUARD_HOME_OPTIONS[@]}" \
       $ADGUARD_HOME_IMAGE | tee -p "$SYSTEMD_CONTAINER_DIR/$ADGUARD_HOME_PODNAME.container"
 else

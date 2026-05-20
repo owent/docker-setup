@@ -134,7 +134,7 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
     fi
   done
   ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
-    $DOCKER_EXEC run -d --name $UNBOUND_POD_NAME --security-opt label=disable \
+    $DOCKER_EXEC run --name $UNBOUND_POD_NAME --security-opt label=disable \
       "${UNBOUND_OPTIONS[@]}" \
       $UNBOUND_IMAGE | tee -p "$SYSTEMD_CONTAINER_DIR/$UNBOUND_POD_NAME.container"
 else
