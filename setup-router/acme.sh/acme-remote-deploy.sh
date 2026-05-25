@@ -85,8 +85,8 @@ for NODE_ADDR in ${REPLICATION_NODES[@]}; do
       "$LOCAL_DEPLOY_KEY" /data/vbox-server/etc /data/vbox-server/*.sh "$NODE_USER@$NODE_HOST:/data/vbox-server/"
 
     if [[ "x$1" == "xupdate-v2ray" ]] || [[ "x$1" == "xupdate-vproxy" ]] || [[ "x$1" == "xupdate-vbox" ]]; then
-        ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$LOCAL_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "env VBOX_UPDATE=1 bash /data/vbox-server/setup-server.sh" 
+        ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$LOCAL_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "[ -e /data/vbox-server/setup-server.sh ] && env VBOX_UPDATE=1 /bin/bash /data/vbox-server/setup-server.sh; [ -e /data/acme.sh/post-remote-deploy.sh ] && /bin/bash /data/acme.sh/post-remote-deploy.sh" 
     else
-        ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$LOCAL_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "bash /data/vbox-server/setup-server.sh"
+        ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$LOCAL_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "[ -e /data/vbox-server/setup-server.sh ] && /bin/bash /data/vbox-server/setup-server.sh; [ -e /data/acme.sh/post-remote-deploy.sh ] && /bin/bash /data/acme.sh/post-remote-deploy.sh"
     fi
 done

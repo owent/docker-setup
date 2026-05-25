@@ -119,7 +119,7 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
     fi
   done
   ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
-    $DOCKER_EXEC run -d --name vbox-client "${VBOX_DOCKER_OPRIONS[@]}" \
+    $DOCKER_EXEC run --name vbox-client "${VBOX_DOCKER_OPRIONS[@]}" \
       "$VBOX_IMAGE_URL" -D /var/lib/vbox -C /etc/vbox/ run | \
       sed "/\\[Install/i [Service]\n$VBOX_CLIENT_EXEC_RELOAD" | \
       sed "/ExecReload=/a $VBOX_CLIENT_EXEC_STOP_POST" | \
