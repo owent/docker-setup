@@ -732,6 +732,8 @@ owent:2000000:1000000
 
 ## 容器网络
 
+指向宿主机的特殊域名: `host.containers.internal`
+
 ### 自动创建 inet netavark 或 NETAVARK_FORWARD 策略和自定义策略冲突
 
 Podman 4.0+ 的默认会给 `sudo podman run` 且使用 Netavark 作为网络后端时增加 nftable/iptable netavark 策略。
