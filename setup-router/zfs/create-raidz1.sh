@@ -205,7 +205,7 @@ sudo cp -a /mnt/efiold/. /mnt/efinew/
 sudo umount /mnt/efiold /mnt/efinew
 sudo rmdir /mnt/efiold /mnt/efinew
 
-## 替换磁盘
+## 替换磁盘（这里最好是使用ls -la /dev/disk/by-id/ 查一下 ${ZFS_NEW_DISK}3 的UUID，然后用UUID）
 sudo zpool replace $ZFS_POOL_NAME ${ZFS_OLD_DISK}3 ${ZFS_NEW_DISK}3
 
 ## 等待重建完成
