@@ -180,7 +180,7 @@ sudo zpool status -v $ZFS_POOL_NAME
 ls -la /dev/disk/by-id/
 
 ## 主动离线旧盘（如果已拔出离线了，可以不用这一步）
-sudo zpool offline $ZFS_POOL_NAME ${ZFS_OLD_DISK}
+sudo zpool offline $ZFS_POOL_NAME ${ZFS_OLD_DISK} # ${ZFS_OLD_DISK}p3
 
 ## 插入新盘后，先从正常的盘复制分区表(PVE 安转在ZFS上时用于保留启动分区布局）
 sudo lsblk -f
@@ -193,27 +193,27 @@ sudo sgdisk -p ${ZFS_OTHER_ONLINE_DISK}
 sudo sgdisk -p ${ZFS_NEW_DISK}
 
 ### 格式化新盘 ESP
-sudo mkfs.vfat -F32 ${ZFS_NEW_DISK}2
+sudo mkfs.vfat -F32 ${ZFS_NEW_DISK}p2
 
 ### 挂载并复制原盘 ESP 内容（PVE 安装在 ZFS 上时，ESP 分区在磁盘的第 2 个分区）
 sudo mkdir -p /mnt/efiold /mnt/efinew
-sudo mount ${ZFS_OTHER_ONLINE_DISK}2 /mnt/efiold
-sudo mount ${ZFS_NEW_DISK}2 /mnt/efinew
+sudo mount ${ZFS_OTHER_ONLINE_DISK}p2 /mnt/efiold
+sudo mount ${ZFS_NEW_DISK}p2 /mnt/efinew
 
 sudo cp -a /mnt/efiold/. /mnt/efinew/
 
 sudo umount /mnt/efiold /mnt/efinew
 sudo rmdir /mnt/efiold /mnt/efinew
 
-## 替换磁盘（这里最好是使用ls -la /dev/disk/by-id/ 查一下 ${ZFS_NEW_DISK}3 的UUID，然后用UUID）
-sudo zpool replace $ZFS_POOL_NAME ${ZFS_OLD_DISK}3 ${ZFS_NEW_DISK}3
+## 替换磁盘（这里最好是使用ls -la /dev/disk/by-id/ 查一下 ${ZFS_NEW_DISK}p3 的UUID，然后用UUID）
+sudo zpool replace $ZFS_POOL_NAME ${ZFS_OLD_DISK}p3 ${ZFS_NEW_DISK}p3
 
 ## 等待重建完成
 sudo zpool status -v $ZFS_POOL_NAME
 
 ## 重新引导
 ### 将新盘的 ESP 加入 proxmox-boot-tool 管理
-sudo proxmox-boot-tool init ${ZFS_NEW_DISK}2
+sudo proxmox-boot-tool init ${ZFS_NEW_DISK}p2
 
 ### 清理无效盘的引导配置
 sudo proxmox-boot-tool clean
