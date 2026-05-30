@@ -168,3 +168,58 @@ echo "ZFS mail test" | sudo mail -s "test" ops@example.com
 sudo systemctl status zfs-zed
 ### 执行一次巡检（ sudo zpool scrub zfs-d1 ） 可以触发邮件发送
 ### 日志 sudo journalctl -xeu zfs-zed / sudo journalctl -xeu msmtp
+
+
+# 更换硬盘
+## ===============================================================
+
+## 查看当前磁盘状态
+sudo zpool status -v $ZFS_POOL_NAME
+
+## 确认设备名称（by-id）
+ls -la /dev/disk/by-id/
+
+## 主动离线旧盘（如果已拔出离线了，可以不用这一步）
+sudo zpool offline $ZFS_POOL_NAME ${ZFS_OLD_DISK}
+
+## 插入新盘后，先从正常的盘复制分区表(PVE 安转在ZFS上时用于保留启动分区布局）
+sudo lsblk -f
+### 复制分区表
+sudo sgdisk -R ${ZFS_NEW_DISK} ${ZFS_OTHER_ONLINE_DISK}
+### 重置UUID
+sudo sgdisk -G ${ZFS_NEW_DISK}
+### 确认分区表复制成功
+sudo sgdisk -p ${ZFS_OTHER_ONLINE_DISK}
+sudo sgdisk -p ${ZFS_NEW_DISK}
+
+### 格式化新盘 ESP
+sudo mkfs.vfat -F32 ${ZFS_NEW_DISK}2
+
+### 挂载并复制原盘 ESP 内容（PVE 安装在 ZFS 上时，ESP 分区在磁盘的第 2 个分区）
+sudo mkdir -p /mnt/efiold /mnt/efinew
+sudo mount ${ZFS_OTHER_ONLINE_DISK}2 /mnt/efiold
+sudo mount ${ZFS_NEW_DISK}2 /mnt/efinew
+
+sudo cp -a /mnt/efiold/. /mnt/efinew/
+
+sudo umount /mnt/efiold /mnt/efinew
+sudo rmdir /mnt/efiold /mnt/efinew
+
+## 替换磁盘
+sudo zpool replace $ZFS_POOL_NAME ${ZFS_OLD_DISK}3 ${ZFS_NEW_DISK}3
+
+## 等待重建完成
+sudo zpool status -v $ZFS_POOL_NAME
+
+## 重新引导
+### 将新盘的 ESP 加入 proxmox-boot-tool 管理
+sudo proxmox-boot-tool init ${ZFS_NEW_DISK}2
+
+### 清理无效盘的引导配置
+sudo proxmox-boot-tool clean
+
+### 刷新所有系统盘的引导配置
+sudo proxmox-boot-tool refresh
+
+### 刷新所有系统盘的引导配置
+sudo proxmox-boot-tool status
