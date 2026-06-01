@@ -1,7 +1,10 @@
 #!/bin/bash
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
+
+if [[ -e "$(dirname "$SCRIPT_DIR")/configure-router.sh" ]]; then
+  source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
+fi
 
 CADDY_IMAGE_URL="ghcr.io/owent/caddy:latest"
 # CADDY_IMAGE_URL="docker.io/owt5008137/caddy:latest"
@@ -35,9 +38,14 @@ else
   mkdir -p "$SYSTEMD_CONTAINER_DIR"
 fi
 
-mkdir -p "$ROUTER_LOG_ROOT_DIR/caddy"
+if [[ -n "$ROUTER_LOG_ROOT_DIR" ]]; then
+  CADDY_LOG_DIR="$ROUTER_LOG_ROOT_DIR/caddy"
+else
+  CADDY_LOG_DIR="$SCRIPT_DIR/logs"
+fi
+mkdir -p "$CADDY_LOG_DIR"
 CADDY_OPTIONS=(
-  --mount type=bind,source=$ROUTER_LOG_ROOT_DIR/caddy,target=/var/log/caddy
+  --mount type=bind,source=$CADDY_LOG_DIR,target=/var/log/caddy
   -v $PWD/Caddyfile:/etc/caddy/Caddyfile
 )
 
@@ -51,9 +59,15 @@ fi
 
 if [[ "x$NEXTCLOUD_REVERSE_ROOT_DIR" != "x" ]]; then
   CADDY_OPTIONS+=(
-    "--mount" "type=bind,source=$NEXTCLOUD_REVERSE_ROOT_DIR/nextcloud,target=/data/website/html/nextcloud"
+    "--mount" "type=bind,source=$NEXTCLOUD_REVERSE_ROOT_DIR,target=/data/website/html/nextcloud"
     "--mount" "type=bind,source=$NEXTCLOUD_APPS_DIR,target=/data/website/html/nextcloud/custom_apps"
   )
+fi
+
+podman run --rm "${CADDY_OPTIONS[@]}" $CADDY_IMAGE_URL caddy validate --config /etc/caddy/Caddyfile
+if [[ $? -ne 0 ]]; then
+  echo "Caddyfile validation failed"
+  exit 1
 fi
 
 if [[ ! -z "$CADDY_NETWORK" ]]; then
@@ -71,12 +85,6 @@ if [[ ! -z "$CADDY_NETWORK" ]]; then
   fi
 else
   CADDY_OPTIONS+=(--network=host)
-fi
-
-podman run --rm "${CADDY_OPTIONS[@]}" $CADDY_IMAGE_URL caddy validate --config /etc/caddy/Caddyfile
-if [[ $? -ne 0 ]]; then
-  echo "Caddyfile validation failed"
-  exit 1
 fi
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
@@ -128,7 +136,7 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
     fi
   done
   ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
-    podman run -d --name router-caddy --security-opt label=disable \
+    podman run --name router-caddy --security-opt label=disable \
     ${CADDY_OPTIONS[@]} \
     $CADDY_IMAGE_URL | tee -p "$SYSTEMD_CONTAINER_DIR/router-caddy.container"
 else

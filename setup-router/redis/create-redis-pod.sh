@@ -38,11 +38,22 @@ if [[ "x$REDIS_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman pull docker.io/redis:latest
 fi
 
-systemctl --user --all | grep -F container-redis.service
+if [[ "root" == "$(id -un)" ]]; then
+  SYSTEMD_SERVICE_DIR=/lib/systemd/system
+  SYSTEMD_CONTAINER_DIR=/etc/containers/systemd/
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
+else
+  SYSTEMD_SERVICE_DIR="$HOME/.config/systemd/user"
+  SYSTEMD_CONTAINER_DIR="$HOME/.config/containers/systemd"
+  mkdir -p "$SYSTEMD_SERVICE_DIR"
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
+fi
+
+systemctl --user --all | grep -F redis.service
 
 if [[ $? -eq 0 ]]; then
-  systemctl --user stop container-redis
-  systemctl --user disable container-redis
+  systemctl --user stop redis
+  systemctl --user disable redis
 fi
 
 podman container exists redis >/dev/null 2>&1
@@ -83,22 +94,64 @@ if [[ ! -z "$REDIS_NETWORK" ]]; then
   done
 fi
 if [[ $REDIS_NETWORK_HAS_HOST -eq 0 ]]; then
-  if [[ -z "$REDIS_PUBLISH" ]]; then
-    REDIS_OPTIONS+=(-p $REDIS_PORT:6379/tcp)
-  else
+  if [[ -n "$REDIS_PUBLISH" ]]; then
     for publish in ${REDIS_PUBLISH[@]}; do
       REDIS_OPTIONS+=(-p "$publish")
     done
   fi
 fi
 
-podman run -d --name redis --security-opt label=disable \
-  "${REDIS_OPTIONS[@]}" \
-  local_redis
+PODLET_IMAGE_URL="ghcr.io/containers/podlet:latest"
+PODLET_RUN=($(which podlet 2>/dev/null))
+FIND_PODLET_RESULT=$?
+if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+  (podman image inspect "$PODLET_IMAGE_URL" > /dev/null 2>&1 || podman pull "$PODLET_IMAGE_URL") && FIND_PODLET_RESULT=0 && PODLET_RUN=(podman run --rm "$PODLET_IMAGE_URL")
+fi
 
-podman stop redis
+if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
+  PODLET_OPTIONS=(--install --wanted-by default.target --wants network-online.target --after network-online.target)
+  for network in ${REDIS_NETWORK[@]}; do
+    if [[ -e "$HOME/.config/containers/systemd/$network.network" ]]; then
+      PODLET_OPTIONS+=(--after "$network-network.service" --wants "$network-network.service")
+    fi
+  done
+  ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
+    podman run --name redis --security-opt label=disable \
+      "${REDIS_OPTIONS[@]}" \
+      local_redis \
+      | tee -p "$SYSTEMD_CONTAINER_DIR/redis.container"
 
-podman generate systemd --name redis | tee $REDIS_ETC_DIR/container-redis.service
+else
+  podman run -d --name redis --security-opt label=disable \
+    "${REDIS_OPTIONS[@]}" \
+    local_redis
 
-systemctl --user enable $REDIS_ETC_DIR/container-redis.service
-systemctl --user restart container-redis
+  if [[ $? -ne 0 ]]; then
+    echo "Error: Unable to start redis container"
+    exit 1
+  fi
+  podman stop redis
+  podman generate systemd --name redis | tee $SYSTEMD_SERVICE_DIR/redis.service
+fi
+
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  systemctl daemon-reload
+else
+  systemctl --user daemon-reload
+fi
+
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl enable redis.service
+  fi
+  systemctl start redis.service
+else
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl --user enable redis.service
+  fi
+  systemctl --user start redis.service
+fi
+
+if [[ "x$REDIS_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman image prune -a -f --filter "until=240h"
+fi

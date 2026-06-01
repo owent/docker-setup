@@ -212,7 +212,7 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
     fi
   done
   ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
-    podman run -d --name aria2 \
+    podman run --name aria2 \
     --security-opt label=disable \
     --mount type=bind,source=$RUN_HOME/aria2/etc,target=/etc/aria2 \
     --mount type=bind,source=$RUN_HOME/aria2/log,target=/var/log/aria2 \
@@ -256,6 +256,6 @@ else
   systemctl --user start aria2.service
 fi
 
-if [[ "x$CADDY_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+if [[ "x$NEXTCLOUD_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman image prune -a -f --filter "until=240h"
 fi

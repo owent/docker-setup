@@ -1,7 +1,10 @@
 #!/bin/bash
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
+
+if [[ -e "$(dirname "$SCRIPT_DIR")/configure-router.sh" ]]; then
+  source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
+fi
 
 export XDG_RUNTIME_DIR="/run/user/$UID"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
@@ -127,16 +130,27 @@ if [[ "x$NEXTCLOUD_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; th
   fi
 fi
 
+if [[ "root" == "$(id -un)" ]]; then
+  SYSTEMD_SERVICE_DIR=/lib/systemd/system
+  SYSTEMD_CONTAINER_DIR=/etc/containers/systemd/
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
+else
+  SYSTEMD_SERVICE_DIR="$HOME/.config/systemd/user"
+  SYSTEMD_CONTAINER_DIR="$HOME/.config/containers/systemd"
+  mkdir -p "$SYSTEMD_SERVICE_DIR"
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
+fi
+
 systemctl --user enable --now podman.socket
 systemctl --user start --now podman.socket
 DOCKER_SOCK_PATH="$XDG_RUNTIME_DIR/podman/podman.sock"
 # php occ app_api:daemon:register local_docker "Docker Local" "docker-install" "http" "/var/run/docker.sock" "http://nextcloud.local" --net=nextcloud
 
-systemctl --user --all | grep -F container-nextcloud.service
+systemctl --user --all | grep -F nextcloud.service
 
 if [[ $? -eq 0 ]]; then
-  systemctl --user stop container-nextcloud
-  systemctl --user disable container-nextcloud
+  systemctl --user stop nextcloud
+  systemctl --user disable nextcloud
 fi
 
 podman container exists nextcloud
@@ -276,6 +290,7 @@ podman build \
 
 if [[ "x$NEXTCLOUD_REVERSE_ROOT_DIR" != "x" ]]; then
   NEXTCLOUD_COPY_PATHS=($(podman run --name nextcloud_temporary local_nextcloud bash -c 'find /usr/src/nextcloud/ -maxdepth 1 -mindepth 1 -name "*"' | grep -E '^/usr/src/nextcloud/'))
+  mkdir -p "$NEXTCLOUD_REVERSE_ROOT_DIR"
   if [[ $? -eq 0 ]]; then
     echo "[nextcloud] Remove old static files..."
     for OLD_PATH in $(find "$NEXTCLOUD_REVERSE_ROOT_DIR/" -maxdepth 1 -mindepth 1 -name "*"); do
@@ -317,33 +332,91 @@ if [[ $NEXTCLOUD_NETWORK_HAS_HOST -eq 0 ]]; then
   NEXTCLOUD_SETTINGS+=(-p $NEXTCLOUD_LISTEN_PORT:$NEXTCLOUD_REVERSE_PORT)
 fi
 
-podman run -d --name nextcloud \
-  --security-opt seccomp=unconfined \
-  --security-opt label=disable \
-  -e NEXTCLOUD_TRUSTED_DOMAINS="$NEXTCLOUD_TRUSTED_DOMAINS" \
-  -e OVERWRITEHOST=$NEXTCLOUD_DOMAIN:6443 -e OVERWRITEPROTOCOL=https \
-  -e NEXTCLOUD_ADMIN_USER=$ADMIN_USENAME -e NEXTCLOUD_ADMIN_PASSWORD=$ADMIN_TOKEN \
-  -e APACHE_DISABLE_REWRITE_IP=1 -e TRUSTED_PROXIES=0.0.0.0/32 \
-  ${NEXTCLOUD_CACHE_OPTIONS[@]} ${NEXTCLOUD_SETTINGS[@]} \
-  -u www-data:root \
-  --mount type=bind,source=$NEXTCLOUD_ETC_DIR,target=/var/www/html/config \
-  --mount type=bind,source=$NEXTCLOUD_DATA_DIR,target=/var/www/html/data \
-  --mount type=bind,source=$NEXTCLOUD_APPS_DIR,target=/var/www/html/custom_apps \
-  --mount type=bind,source=$NEXTCLOUD_EXTERNAL_DIR,target=/data-ext/external \
-  --mount type=bind,source=$NEXTCLOUD_TEMPORARY_DIR,target=/data-ext/temporary \
-  --mount type=bind,source=$DOCKER_SOCK_PATH,target=/var/run/docker.sock \
-  --mount type=tmpfs,target=/run,tmpfs-mode=1777,tmpfs-size=67108864 \
-  --mount type=tmpfs,target=/run/lock,tmpfs-mode=1777,tmpfs-size=67108864 \
-  --mount type=tmpfs,target=/tmp,tmpfs-mode=1777 \
-  --mount type=tmpfs,target=/var/log/journal,tmpfs-mode=1777 \
-  local_nextcloud
-# --copy-links
+PODLET_IMAGE_URL="ghcr.io/containers/podlet:latest"
+PODLET_RUN=($(which podlet 2>/dev/null))
+FIND_PODLET_RESULT=$?
+if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+  (podman image inspect "$PODLET_IMAGE_URL" > /dev/null 2>&1 || podman pull "$PODLET_IMAGE_URL") && FIND_PODLET_RESULT=0 && PODLET_RUN=(podman run --rm "$PODLET_IMAGE_URL")
+fi
 
-podman generate systemd --name nextcloud \
-  | sed "/ExecStart=/a ExecStartPost=/usr/bin/podman exec -d nextcloud /bin/bash /cron.sh" \
-  | tee "$RUN_HOME/nextcloud/container-nextcloud.service"
+if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
+  PODLET_OPTIONS=(--install --wanted-by default.target --wants network-online.target --after network-online.target)
+  for network in ${NEXTCLOUD_NETWORK[@]}; do
+    if [[ -e "$HOME/.config/containers/systemd/$network.network" ]]; then
+      PODLET_OPTIONS+=(--after "$network-network.service" --wants "$network-network.service")
+    fi
+  done
+  ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
+    podman run --name nextcloud \
+      --security-opt seccomp=unconfined \
+      --security-opt label=disable \
+      -e NEXTCLOUD_TRUSTED_DOMAINS="$NEXTCLOUD_TRUSTED_DOMAINS" \
+      -e OVERWRITEHOST=$NEXTCLOUD_DOMAIN:6443 -e OVERWRITEPROTOCOL=https \
+      -e NEXTCLOUD_ADMIN_USER=$ADMIN_USENAME -e NEXTCLOUD_ADMIN_PASSWORD=$ADMIN_TOKEN \
+      -e APACHE_DISABLE_REWRITE_IP=1 -e TRUSTED_PROXIES=0.0.0.0/32 \
+      ${NEXTCLOUD_CACHE_OPTIONS[@]} ${NEXTCLOUD_SETTINGS[@]} \
+      -u www-data:root \
+      --mount type=bind,source=$NEXTCLOUD_ETC_DIR,target=/var/www/html/config \
+      --mount type=bind,source=$NEXTCLOUD_DATA_DIR,target=/var/www/html/data \
+      --mount type=bind,source=$NEXTCLOUD_APPS_DIR,target=/var/www/html/custom_apps \
+      --mount type=bind,source=$NEXTCLOUD_EXTERNAL_DIR,target=/data/external \
+      --mount type=bind,source=$NEXTCLOUD_TEMPORARY_DIR,target=/data/temporary \
+      --mount type=bind,source=$DOCKER_SOCK_PATH,target=/var/run/docker.sock \
+      --mount type=tmpfs,target=/run,tmpfs-mode=1777,tmpfs-size=67108864 \
+      --mount type=tmpfs,target=/run/lock,tmpfs-mode=1777,tmpfs-size=67108864 \
+      --mount type=tmpfs,target=/tmp,tmpfs-mode=1777 \
+      --mount type=tmpfs,target=/var/log/journal,tmpfs-mode=1777 \
+      local_nextcloud \
+      | tee -p "$SYSTEMD_CONTAINER_DIR/nextcloud.container"
 
-podman stop nextcloud
+else
+  podman run -d --name nextcloud \
+    --security-opt seccomp=unconfined \
+    --security-opt label=disable \
+    -e NEXTCLOUD_TRUSTED_DOMAINS="$NEXTCLOUD_TRUSTED_DOMAINS" \
+    -e OVERWRITEHOST=$NEXTCLOUD_DOMAIN:6443 -e OVERWRITEPROTOCOL=https \
+    -e NEXTCLOUD_ADMIN_USER=$ADMIN_USENAME -e NEXTCLOUD_ADMIN_PASSWORD=$ADMIN_TOKEN \
+    -e APACHE_DISABLE_REWRITE_IP=1 -e TRUSTED_PROXIES=0.0.0.0/32 \
+    ${NEXTCLOUD_CACHE_OPTIONS[@]} ${NEXTCLOUD_SETTINGS[@]} \
+    -u www-data:root \
+    --mount type=bind,source=$NEXTCLOUD_ETC_DIR,target=/var/www/html/config \
+    --mount type=bind,source=$NEXTCLOUD_DATA_DIR,target=/var/www/html/data \
+    --mount type=bind,source=$NEXTCLOUD_APPS_DIR,target=/var/www/html/custom_apps \
+    --mount type=bind,source=$NEXTCLOUD_EXTERNAL_DIR,target=/data-ext/external \
+    --mount type=bind,source=$NEXTCLOUD_TEMPORARY_DIR,target=/data-ext/temporary \
+    --mount type=bind,source=$DOCKER_SOCK_PATH,target=/var/run/docker.sock \
+    --mount type=tmpfs,target=/run,tmpfs-mode=1777,tmpfs-size=67108864 \
+    --mount type=tmpfs,target=/run/lock,tmpfs-mode=1777,tmpfs-size=67108864 \
+    --mount type=tmpfs,target=/tmp,tmpfs-mode=1777 \
+    --mount type=tmpfs,target=/var/log/journal,tmpfs-mode=1777 \
+    local_nextcloud
 
-systemctl --user enable "$RUN_HOME/nextcloud/container-nextcloud.service"
-systemctl --user restart container-nextcloud
+  if [[ $? -ne 0 ]]; then
+    echo "Error: Unable to start nextcloud container"
+    exit 1
+  fi
+  podman stop nextcloud
+  podman generate systemd --name nextcloud | tee $SYSTEMD_SERVICE_DIR/nextcloud.service
+fi
+
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  systemctl daemon-reload
+else
+  systemctl --user daemon-reload
+fi
+
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl enable nextcloud.service
+  fi
+  systemctl start nextcloud.service
+else
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl --user enable nextcloud.service
+  fi
+  systemctl --user start nextcloud.service
+fi
+
+if [[ "x$NEXTCLOUD_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman image prune -a -f --filter "until=240h"
+fi

@@ -7,7 +7,7 @@ podman exec -it postgres-db psql -h localhost -d postgres -U postgres/或其他�
 
   CREATE USER <用户名> WITH PASSWORD '<密码>' CREATEDB;
   CREATE DATABASE <数据库名> TEMPLATE template0 ENCODING 'UTF8';
-  # \c gitea;
+  # \c <数据库名>;
   # CREATE EXTENSION IF NOT EXISTS vector;
   # CREATE EXTENSION IF NOT EXISTS pg_search;
   ALTER DATABASE <数据库名> OWNER TO <用户名>;
@@ -77,7 +77,7 @@ podman run --rm --network=host --mount type=bind,source=$PWD,target=/data/postgr
   pg_restore -h localhost -p 5432 -U [username] -d [db_name] -v /data/postgres_backup/sqlbkp_*.bak
 
 # Remote mode(mount)
-podman run --rm --network=host --mount type=bind,source=$PWD,target=/data/postgres_backup postgres:latest \
+podman run -it --rm --network=host --mount type=bind,source=$PWD,target=/data/postgres_backup postgres:latest \
   psql -h localhost -p 5432 -U [username] --password [password] -d [db_name] -f /data/postgres_backup/sqlbkp_*.bak
 
 # Remote mode(mount)
