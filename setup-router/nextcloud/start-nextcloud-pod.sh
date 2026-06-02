@@ -31,6 +31,11 @@ if [[ -z "$NEXTCLOUD_DOMAIN" ]]; then
   NEXTCLOUD_DOMAIN=$ROUTER_DOMAIN
 fi
 
+if [[ -z "$NEXTCLOUD_DOMAIN" ]]; then
+  echo "NEXTCLOUD_DOMAIN is not set, and ROUTER_DOMAIN is also not set. Please set one of them."
+  exit 1
+fi
+
 NEXTCLOUD_NETWORK=(internal-backend internal-frontend)
 if [[ -z "$NEXTCLOUD_PHP_MEMORY_LIMIT" ]]; then
   TOTAL_MEM_KB=$(cat /proc/meminfo | grep MemTotal | grep -o -E '[0-9]+')

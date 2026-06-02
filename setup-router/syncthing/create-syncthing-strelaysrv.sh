@@ -22,12 +22,6 @@ if [[ "x$RUN_USER" == "x" ]] || [[ "x$RUN_USER" == "xroot" ]]; then
   exit 1
 fi
 
-RUN_HOME=$(cat /etc/passwd | awk "BEGIN{FS=\":\"} \$1 == \"$RUN_USER\" { print \$6 }")
-
-if [[ "x$RUN_HOME" == "x" ]]; then
-  RUN_HOME="$HOME"
-fi
-
 if [[ "root" == "$(id -un)" ]]; then
   SYSTEMD_SERVICE_DIR=/lib/systemd/system
   SYSTEMD_CONTAINER_DIR=/etc/containers/systemd/
@@ -47,31 +41,25 @@ if [[ "x$SYNCTHING_RELAY_SERVER_STATUS_PORT" == "x" ]]; then
   SYNCTHING_RELAY_SERVER_STATUS_PORT=6350
 fi
 
-if [[ "x$SYNCTHING_ETC_DIR" == "x" ]]; then
-  SYNCTHING_ETC_DIR="$RUN_HOME/syncthing/etc"
-fi
-mkdir -p "$SYNCTHING_ETC_DIR"
-chmod 777 "$SYNCTHING_ETC_DIR"
-
 if [[ "x$SYNCTHING_RELAYSRV_ETC_DIR" == "x" ]]; then
-  SYNCTHING_RELAYSRV_ETC_DIR="$RUN_HOME/syncthing/strelaysrv/etc"
+  SYNCTHING_RELAYSRV_ETC_DIR="$SCRIPT_DIR/strelaysrv/etc"
 fi
 mkdir -p "$SYNCTHING_RELAYSRV_ETC_DIR"
 chmod 777 "$SYNCTHING_RELAYSRV_ETC_DIR"
 
 if [[ "x$SYNCTHING_DATA_DIR" == "x" ]]; then
-  SYNCTHING_DATA_DIR="$RUN_HOME/syncthing/data"
+  SYNCTHING_DATA_DIR="$SCRIPT_DIR/strelaysrv/data"
 fi
 mkdir -p "$SYNCTHING_DATA_DIR"
 chmod 777 "$SYNCTHING_DATA_DIR"
 
-if [[ -e "$RUN_HOME/syncthing/strelaysrv.token.txt" ]]; then
-  SYNCTHING_RELAYSRV_TOKEN=$(cat "$RUN_HOME/syncthing/strelaysrv.token.txt" | tr -d '\n\r ')
+if [[ -e "$SCRIPT_DIR/strelaysrv.token.txt" ]]; then
+  SYNCTHING_RELAYSRV_TOKEN=$(cat "$SCRIPT_DIR/strelaysrv.token.txt" | tr -d '\n\r ')
   echo "Found existing relay server token."
 fi
 if [[ -z "$SYNCTHING_RELAYSRV_TOKEN" ]]; then
   SYNCTHING_RELAYSRV_TOKEN=$(head -c 16 /dev/urandom | base64 | tr '/+' '_-' | tr -d '= \n\r')
-  echo -n "$SYNCTHING_RELAYSRV_TOKEN" > "$RUN_HOME/syncthing/strelaysrv.token.txt"
+  echo -n "$SYNCTHING_RELAYSRV_TOKEN" > "$SCRIPT_DIR/strelaysrv.token.txt"
   echo "Generated new relay server token."
 fi
 
@@ -162,7 +150,7 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
     fi
   done
   ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
-    podman run -d --name syncthing-relay-node --security-opt label=disable \
+    podman run --name syncthing-relay-node --security-opt label=disable \
       "${SYNCTHING_OPTIONS[@]}" \
       docker.io/syncthing/relaysrv:latest \
       "${SYNCTHING_RELAYSVR_EXT_OPTIONS[@]}" \

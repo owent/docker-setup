@@ -21,12 +21,6 @@ if [[ "x$RUN_USER" == "x" ]] || [[ "x$RUN_USER" == "xroot" ]]; then
   exit 1
 fi
 
-RUN_HOME=$(cat /etc/passwd | awk "BEGIN{FS=\":\"} \$1 == \"$RUN_USER\" { print \$6 }")
-
-if [[ "x$RUN_HOME" == "x" ]]; then
-  RUN_HOME="$HOME"
-fi
-
 if [[ "root" == "$(id -un)" ]]; then
   SYSTEMD_SERVICE_DIR=/lib/systemd/system
   SYSTEMD_CONTAINER_DIR=/etc/containers/systemd/
@@ -39,7 +33,7 @@ else
 fi
 
 if [[ "x$SYNCTHING_CLIENT_HOME_DIR" == "x" ]]; then
-  SYNCTHING_CLIENT_HOME_DIR="$RUN_HOME/syncthing/home"
+  SYNCTHING_CLIENT_HOME_DIR="$SCRIPT_DIR/client/home"
 fi
 if [[ ! -e "$SYNCTHING_CLIENT_HOME_DIR/data" ]]; then
   mkdir -p "$SYNCTHING_CLIENT_HOME_DIR/data"
@@ -53,11 +47,11 @@ if [[ "x$SYNCTHING_UPDATE" != "x" ]] && [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; th
   fi
 fi
 
-systemctl --user --all | grep -F container-syncthing-client.service
+systemctl --user --all | grep -F syncthing-client.service
 
 if [[ $? -eq 0 ]]; then
-  systemctl --user stop container-syncthing-client
-  systemctl --user disable container-syncthing-client
+  systemctl --user stop syncthing-client
+  systemctl --user disable syncthing-client
 fi
 
 podman inspect syncthing-client >/dev/null 2>&1
@@ -121,12 +115,12 @@ if [[ $HAS_MAKE_EXT_DIR -ne 0 ]]; then
 fi
 
 SYNCTHING_CLIENT_GUI_APIKEY=""
-if [[ -e "$RUN_HOME/syncthing/syncthing-client.token.txt" ]]; then
-  SYNCTHING_CLIENT_GUI_APIKEY=$(cat "$RUN_HOME/syncthing/syncthing-client.token.txt")
+if [[ -e "$SCRIPT_DIR/syncthing-client.token.txt" ]]; then
+  SYNCTHING_CLIENT_GUI_APIKEY=$(cat "$SCRIPT_DIR/syncthing-client.token.txt")
 fi
 if [[ -z "$SYNCTHING_CLIENT_GUI_APIKEY" ]]; then
   SYNCTHING_CLIENT_GUI_APIKEY=$(head -c 16 /dev/urandom | base64 | tr '/+' '_-' | tr -d '= \n\r')
-  echo -n "$SYNCTHING_CLIENT_GUI_APIKEY" > "$RUN_HOME/syncthing/syncthing-client.token.txt"
+  echo -n "$SYNCTHING_CLIENT_GUI_APIKEY" > "$SCRIPT_DIR/syncthing-client.token.txt"
 fi
 
 SYNCTHING_SERVER_OPTIONS+=(

@@ -14,14 +14,8 @@ if [[ "x$RUN_USER" == "x" ]] || [[ "x$RUN_USER" == "xroot" ]]; then
   exit 1
 fi
 
-RUN_HOME=$(cat /etc/passwd | awk "BEGIN{FS=\":\"} \$1 == \"$RUN_USER\" { print \$6 }")
-
-if [[ "x$RUN_HOME" == "x" ]]; then
-  RUN_HOME="$HOME"
-fi
-
 if [[ "x$RCLONE_ETC_DIR" == "x" ]]; then
-  RCLONE_ETC_DIR="$RUN_HOME/rclone/etc"
+  RCLONE_ETC_DIR="$SCRIPT_DIR/etc"
 fi
 mkdir -p "$RCLONE_ETC_DIR"
 
@@ -32,7 +26,7 @@ if [[ $RCLONE_REPLICATE_LOCAL_REPLICATE_MODE -eq 0 ]]; then
     if [[ ! -z "$ROUTER_DATA_ROOT_DIR" ]]; then
       RCLONE_DATA_DIR="$ROUTER_DATA_ROOT_DIR/rclone/data"
     else
-      RCLONE_DATA_DIR="$RUN_HOME/rclone/data"
+      RCLONE_DATA_DIR="$SCRIPT_DIR/data"
     fi
   fi
 else
