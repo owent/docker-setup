@@ -6,7 +6,10 @@
 # Kodi Addon(repository): https://kodi.emby.tv/
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
+
+if [[ -e "$(dirname "$SCRIPT_DIR")/configure-router.sh" ]]; then
+  source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
+fi
 
 if [[ "root" == "$(id -un)" ]]; then
   SYSTEMD_SERVICE_DIR=/lib/systemd/system
@@ -158,7 +161,7 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
     fi
   done
   ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
-    podman run --network=host --name emby-server -d \
+    podman run --network=host --name emby-server \
       --security-opt label=disable \
       ${EMBY_DOCKER_OPTIONS[@]} \
       $EMBY_DOCKER_IMAGE | tee -p "$SYSTEMD_CONTAINER_DIR/emby-server.container"

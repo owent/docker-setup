@@ -14,18 +14,13 @@ if [[ -z "$ARIA2_DATA_ROOT" ]]; then
   if [[ ! -z "$ROUTER_DATA_ROOT_DIR" ]]; then
     ARIA2_DATA_ROOT="$ROUTER_DATA_ROOT_DIR/website/download"
   else
-    ARIA2_DATA_ROOT="$HOME/aria2/download"
+    ARIA2_DATA_ROOT="$SCRIPT_DIR/download"
   fi
 fi
 mkdir -p "$ARIA2_DATA_ROOT"
 
 if [[ "x$RUN_USER" == "x" ]]; then
   RUN_USER=$(id -un)
-fi
-RUN_HOME=$(cat /etc/passwd | awk "BEGIN{FS=\":\"} \$1 == \"$RUN_USER\" { print \$6 }")
-
-if [[ "x$RUN_HOME" == "x" ]]; then
-  RUN_HOME="$HOME"
 fi
 
 if [[ "root" == "$(id -un)" ]]; then
@@ -72,12 +67,12 @@ if [[ "x$ARIA2_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   fi
 fi
 
-mkdir -p "$RUN_HOME/aria2/etc"
-mkdir -p "$RUN_HOME/aria2/log"
+mkdir -p "$SCRIPT_DIR/etc"
+mkdir -p "$SCRIPT_DIR/log"
 mkdir -p "$ARIA2_DATA_ROOT/download"
 mkdir -p "$ARIA2_DATA_ROOT/session"
 
-curl -qsSL "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt" -o "$RUN_HOME/aria2/etc/trackers_best.txt"
+curl -qsSL "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt" -o "$SCRIPT_DIR/etc/trackers_best.txt"
 
 echo "
 dir=$ARIA2_DATA_ROOT/download
@@ -88,7 +83,7 @@ save-session-interval=60
 log-level=warn
 max-concurrent-downloads=5
 continue=true
-" >$RUN_HOME/aria2/etc/aria2.conf
+" >$SCRIPT_DIR/etc/aria2.conf
 
 echo '
 # HTTP/FTP/SFTP
@@ -110,10 +105,10 @@ enable-dht=true
 bt-enable-lpd=true
 enable-peer-exchange=true
 max-overall-upload-limit=512K
-' >>$RUN_HOME/aria2/etc/aria2.conf
+' >>$SCRIPT_DIR/etc/aria2.conf
 
 ARIA2_BT_TRACKER=""
-for BT_SVR in $(cat "$RUN_HOME/aria2/etc/trackers_best.txt"); do
+for BT_SVR in $(cat "$SCRIPT_DIR/etc/trackers_best.txt"); do
   if [ ! -z "$ARIA2_BT_TRACKER" ]; then
     ARIA2_BT_TRACKER="$ARIA2_BT_TRACKER,$BT_SVR"
   else
@@ -123,7 +118,7 @@ done
 
 echo "
 bt-tracker=$ARIA2_BT_TRACKER
-" >>$RUN_HOME/aria2/etc/aria2.conf
+" >>$SCRIPT_DIR/etc/aria2.conf
 
 echo '
 # Advance
@@ -164,15 +159,15 @@ rpc-max-request-size=2M
 rpc-secure=false
 # rpc-certificate=<FILE>
 # rpc-private-key=<FILE>
-' >>$RUN_HOME/aria2/etc/aria2.conf
+' >>$SCRIPT_DIR/etc/aria2.conf
 
-chmod 775 "$RUN_HOME/aria2/etc"
-chmod 775 "$RUN_HOME/aria2/log"
+chmod 775 "$SCRIPT_DIR/etc"
+chmod 775 "$SCRIPT_DIR/log"
 chmod 775 "$ARIA2_DATA_ROOT/download"
 chmod 775 "$ARIA2_DATA_ROOT/session"
 
-chown $RUN_USER -R "$RUN_HOME/aria2/etc"
-chown $RUN_USER -R "$RUN_HOME/aria2/log"
+chown $RUN_USER -R "$SCRIPT_DIR/etc"
+chown $RUN_USER -R "$SCRIPT_DIR/log"
 chown $RUN_USER -R "$ARIA2_DATA_ROOT/download"
 chown $RUN_USER -R "$ARIA2_DATA_ROOT/session"
 
@@ -214,8 +209,8 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
   ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
     podman run --name aria2 \
     --security-opt label=disable \
-    --mount type=bind,source=$RUN_HOME/aria2/etc,target=/etc/aria2 \
-    --mount type=bind,source=$RUN_HOME/aria2/log,target=/var/log/aria2 \
+    --mount type=bind,source=$SCRIPT_DIR/etc,target=/etc/aria2 \
+    --mount type=bind,source=$SCRIPT_DIR/log,target=/var/log/aria2 \
     --mount type=bind,source=$ARIA2_DATA_ROOT,target=$ARIA2_DATA_ROOT \
     -p 6800:6800/tcp -p 6881-6883:6881-6883/tcp -p 6881-6883:6881-6883/udp \
     local-aria2 bash /usr/bin/aria2c_with_session.sh --conf-path=/etc/aria2/aria2.conf \
@@ -224,8 +219,8 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
 else
   podman run -d --name aria2 \
     --security-opt label=disable \
-    --mount type=bind,source=$RUN_HOME/aria2/etc,target=/etc/aria2 \
-    --mount type=bind,source=$RUN_HOME/aria2/log,target=/var/log/aria2 \
+    --mount type=bind,source=$SCRIPT_DIR/etc,target=/etc/aria2 \
+    --mount type=bind,source=$SCRIPT_DIR/log,target=/var/log/aria2 \
     --mount type=bind,source=$ARIA2_DATA_ROOT,target=$ARIA2_DATA_ROOT \
     -p 6800:6800/tcp -p 6881-6883:6881-6883/tcp -p 6881-6883:6881-6883/udp \
     local-aria2 bash /usr/bin/aria2c_with_session.sh --conf-path=/etc/aria2/aria2.conf
