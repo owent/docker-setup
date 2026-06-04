@@ -32,7 +32,6 @@ fi
 SYNCTHING_CLIENT_REPLICATE_MODE=0
 if [[ $SYNCTHING_CLIENT_REPLICATE_MODE -eq 0 ]]; then
   SYNCTHING_CLIENT_EXT_DIRS=(
-    "$ROUTER_DATA_ROOT_DIR/rclone/data/onedrive:archive/onedrive"
     "$NEXTCLOUD_DATA_DIR:archive/nextcloud/data"
     "$NEXTCLOUD_APPS_DIR:archive/nextcloud/apps"
     "$NEXTCLOUD_ETC_DIR:archive/nextcloud/etc"

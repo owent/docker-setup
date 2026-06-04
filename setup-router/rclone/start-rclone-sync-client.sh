@@ -1,7 +1,14 @@
 #!/bin/bash
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
+
+if [[ -e "$(dirname "$SCRIPT_DIR")/configure-router.sh" ]]; then
+  source "$(dirname "$SCRIPT_DIR")/configure-router.sh"
+fi
+
+if [[ -e "$(dirname "$SCRIPT_DIR")/syncthing/configure-server.sh" ]]; then
+  source "$(dirname "$SCRIPT_DIR")/syncthing/configure-server.sh"
+fi
 
 export XDG_RUNTIME_DIR="/run/user/$UID"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
@@ -22,30 +29,31 @@ mkdir -p "$RCLONE_ETC_DIR"
 RCLONE_REPLICATE_LOCAL_REPLICATE_MODE=0
 # RCLONE_REPLICATE_LOCAL_REPLICATE_MODE=1
 if [[ $RCLONE_REPLICATE_LOCAL_REPLICATE_MODE -eq 0 ]]; then
-  if [[ "x$RCLONE_DATA_DIR" == "x" ]]; then
+  if [[ "x$RCLONE_REMOTE_DATA_DIR" == "x" ]]; then
     if [[ ! -z "$ROUTER_DATA_ROOT_DIR" ]]; then
-      RCLONE_DATA_DIR="$ROUTER_DATA_ROOT_DIR/rclone/data"
+      RCLONE_REMOTE_DATA_DIR="$ROUTER_DATA_ROOT_DIR/rclone/data/remote"
     else
-      RCLONE_DATA_DIR="$SCRIPT_DIR/data"
+      RCLONE_REMOTE_DATA_DIR="$SCRIPT_DIR/data/remote"
     fi
   fi
 else
-  source "$(dirname "$SCRIPT_DIR")/syncthing/configure-server.sh"
   NEXTCLOUD_APPS_DIR=$SYNCTHING_CLIENT_HOME_DIR/data/archive/nextcloud/apps
   NEXTCLOUD_DATA_DIR=$SYNCTHING_CLIENT_HOME_DIR/data/archive/nextcloud/data
   NEXTCLOUD_EXTERNAL_DIR=$SYNCTHING_CLIENT_HOME_DIR/data/archive/nextcloud/external
   NEXTCLOUD_ETC_DIR=$SYNCTHING_CLIENT_HOME_DIR/data/archive/nextcloud/etc
-  RCLONE_DATA_DIR=$SYNCTHING_CLIENT_HOME_DIR/data/archive/data
+  RCLONE_REMOTE_DATA_DIR=$SYNCTHING_CLIENT_HOME_DIR/data/remote
 fi
-mkdir -p "$RCLONE_DATA_DIR"
+
+RCLONE_BACKUP_DATA_DIR="$(dirname "$RCLONE_REMOTE_DATA_DIR")/archive/backup"
 
 echo "NEXTCLOUD_APPS_DIR=$NEXTCLOUD_APPS_DIR"
 echo "NEXTCLOUD_DATA_DIR=$NEXTCLOUD_DATA_DIR"
 echo "NEXTCLOUD_EXTERNAL_DIR=$NEXTCLOUD_EXTERNAL_DIR"
 echo "NEXTCLOUD_ETC_DIR=$NEXTCLOUD_ETC_DIR"
-echo "RCLONE_DATA_DIR=$RCLONE_DATA_DIR"
+echo "RCLONE_REMOTE_DATA_DIR=$RCLONE_REMOTE_DATA_DIR"
+echo "RCLONE_BACKUP_DATA_DIR=$RCLONE_BACKUP_DATA_DIR"
 
-RCLONE_REMOTE_SOURCE=onedrive-live_com
+RCLONE_REMOTE_SOURCE= # onedrive-live_com
 RCLONE_REMOTE_DIR_NAMES=(onedrive/Apps onedrive/Documents)
 RCLONE_REPLICATE_TARGET=(onedrive-live_com onedrive-x-ha_com onedrive-r-ci_com)
 
@@ -62,28 +70,29 @@ if [[ "x$RCLONE_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
 fi
 
 # Truncate the log file
-if [[ -e rclone-sync-onedrive.log ]]; then
-  if [[ $(stat -c %s rclone-sync-onedrive.log) -gt 12582912 ]]; then # 12582912 = 12MB
-    tail -c 8m rclone-sync-onedrive.log >rclone-sync-onedrive.log.bak
-    rm -f rclone-sync-onedrive.log
-    mv rclone-sync-onedrive.log.bak rclone-sync-onedrive.log
+if [[ -e rclone-sync.log ]]; then
+  if [[ $(stat -c %s rclone-sync.log) -gt 12582912 ]]; then # 12582912 = 12MB
+    tail -c 8m rclone-sync.log >rclone-sync.log.bak
+    rm -f rclone-sync.log
+    mv rclone-sync.log.bak rclone-sync.log
   fi
 fi
 
-if [[ $RCLONE_REPLICATE_LOCAL_REPLICATE_MODE -eq 0 ]]; then
+if [[ $RCLONE_REPLICATE_LOCAL_REPLICATE_MODE -eq 0 ]] && [[ -n "$RCLONE_REMOTE_SOURCE" ]]; then
+  mkdir -p "$RCLONE_REMOTE_DATA_DIR"
   echo "============ Start to sync ${RCLONE_REMOTE_DIR_NAMES[@]} from onedrive ... ============"
   SYNC_REMOTE_HAS_ERROR=0
   for REMOTE_SYNC_DIR in ${RCLONE_REMOTE_DIR_NAMES[@]}; do
-    mkdir -p "$RCLONE_DATA_DIR/$REMOTE_SYNC_DIR/"
+    mkdir -p "$RCLONE_REMOTE_DATA_DIR/$REMOTE_SYNC_DIR/"
 
     echo "============ Start to sync from onedrive ... ============"
     podman run --rm --security-opt seccomp=unconfined \
       --mount type=bind,source=$RCLONE_ETC_DIR,target=/config/rclone \
-      --mount type=bind,source=$RCLONE_DATA_DIR,target=/data/remote \
+      --mount type=bind,source=$RCLONE_REMOTE_DATA_DIR,target=/data/remote \
       --mount type=bind,source=$SCRIPT_DIR,target=/var/log/rclone \
       --device /dev/fuse --cap-add SYS_ADMIN --network=host \
       $RCLONE_IMAGE \
-      --log-file /var/log/rclone/rclone-sync-onedrive.log --ignore-size --onedrive-chunk-size 2560k \
+      --log-file /var/log/rclone/rclone-sync.log --ignore-size --onedrive-chunk-size 2560k \
       sync --progress $RCLONE_REMOTE_SOURCE:/$REMOTE_SYNC_DIR /data/remote/$REMOTE_SYNC_DIR || SYNC_REMOTE_HAS_ERROR=1
   done
 
@@ -101,7 +110,7 @@ fi
 echo "============ Start to sync nextcloud to onedrive ... ============"
 
 for SYNC_TARGET in ${RCLONE_REPLICATE_TARGET[@]}; do
-  SYNC_NEXTCLOUD_HAS_ERROR=0
+  SYNC_TO_REPLICATE_HAS_ERROR=0
   if [[ -e "$NEXTCLOUD_DATA_DIR" ]]; then
     for DATA_FILTER_DIR in $(find "$NEXTCLOUD_DATA_DIR" -mindepth 1 -maxdepth 1 -name "appdata_*" -prune -o -name "*.log" -prune -o -name "*.log.*" -prune -o -print); do
       podman run --rm --security-opt seccomp=unconfined \
@@ -110,8 +119,8 @@ for SYNC_TARGET in ${RCLONE_REPLICATE_TARGET[@]}; do
         --mount type=bind,source=$SCRIPT_DIR,target=/var/log/rclone \
         --network=host \
         $RCLONE_IMAGE \
-        --log-file /var/log/rclone/rclone-sync-onedrive.log --ignore-size --onedrive-chunk-size 2560k \
-        sync --progress "$DATA_FILTER_DIR" "$SYNC_TARGET:/Archive/nextcloud/$(basename $NEXTCLOUD_DATA_DIR)/$(basename $DATA_FILTER_DIR)" || SYNC_NEXTCLOUD_HAS_ERROR=1
+        --log-file /var/log/rclone/rclone-sync.log --ignore-size --onedrive-chunk-size 2560k \
+        sync --progress "$DATA_FILTER_DIR" "$SYNC_TARGET:/Archive/nextcloud/$(basename $NEXTCLOUD_DATA_DIR)/$(basename $DATA_FILTER_DIR)" || SYNC_TO_REPLICATE_HAS_ERROR=1
     done
   fi
   if [[ -e "$NEXTCLOUD_EXTERNAL_DIR" ]]; then
@@ -121,8 +130,8 @@ for SYNC_TARGET in ${RCLONE_REPLICATE_TARGET[@]}; do
       --mount type=bind,source=$SCRIPT_DIR,target=/var/log/rclone \
       --network=host \
       $RCLONE_IMAGE \
-      --log-file /var/log/rclone/rclone-sync-onedrive.log --ignore-size --onedrive-chunk-size 2560k \
-      sync --progress $NEXTCLOUD_EXTERNAL_DIR "$SYNC_TARGET:/Archive/nextcloud/$(basename $NEXTCLOUD_EXTERNAL_DIR)" || SYNC_NEXTCLOUD_HAS_ERROR=1
+      --log-file /var/log/rclone/rclone-sync.log --ignore-size --onedrive-chunk-size 2560k \
+      sync --progress $NEXTCLOUD_EXTERNAL_DIR "$SYNC_TARGET:/Archive/nextcloud/$(basename $NEXTCLOUD_EXTERNAL_DIR)" || SYNC_TO_REPLICATE_HAS_ERROR=1
   fi
   if [[ -e "$NEXTCLOUD_ETC_DIR" ]]; then
     podman run --rm --security-opt seccomp=unconfined \
@@ -131,31 +140,44 @@ for SYNC_TARGET in ${RCLONE_REPLICATE_TARGET[@]}; do
       --mount type=bind,source=$SCRIPT_DIR,target=/var/log/rclone \
       --network=host \
       $RCLONE_IMAGE \
-      --log-file /var/log/rclone/rclone-sync-onedrive.log --ignore-size --onedrive-chunk-size 2560k \
-      sync --progress $NEXTCLOUD_ETC_DIR "$SYNC_TARGET:/Archive/nextcloud/$(basename $NEXTCLOUD_ETC_DIR)" || SYNC_NEXTCLOUD_HAS_ERROR=1
+      --log-file /var/log/rclone/rclone-sync.log --ignore-size --onedrive-chunk-size 2560k \
+      sync --progress $NEXTCLOUD_ETC_DIR "$SYNC_TARGET:/Archive/nextcloud/$(basename $NEXTCLOUD_ETC_DIR)" || SYNC_TO_REPLICATE_HAS_ERROR=1
   fi
-  if [[ $SYNC_NEXTCLOUD_HAS_ERROR -ne 0 ]]; then
-    echo "[ERROR]: Sync to onedrive-$SYNC_TARGET failed" >>$SCRIPT_DIR/rclone-sync-onedrive.log
+  if [[ -e "$RCLONE_BACKUP_DATA_DIR" ]]; then
+    podman run --rm --security-opt seccomp=unconfined \
+      --mount type=bind,source=$RCLONE_ETC_DIR,target=/config/rclone \
+      --mount type=bind,source=$RCLONE_BACKUP_DATA_DIR,target=$RCLONE_BACKUP_DATA_DIR \
+      --mount type=bind,source=$SCRIPT_DIR,target=/var/log/rclone \
+      --network=host \
+      $RCLONE_IMAGE \
+      --log-file /var/log/rclone/rclone-sync.log --ignore-size --onedrive-chunk-size 2560k \
+      sync --progress $RCLONE_BACKUP_DATA_DIR "$SYNC_TARGET:/Archive/$(basename $RCLONE_BACKUP_DATA_DIR)" || SYNC_TO_REPLICATE_HAS_ERROR=1
+  fi
+  if [[ $SYNC_TO_REPLICATE_HAS_ERROR -ne 0 ]]; then
+    echo "[ERROR]: Sync to onedrive-$SYNC_TARGET failed" >>$SCRIPT_DIR/rclone-sync.log
     echo "$(date +%Y-%m-%dT%H:%M:%S) [ERROR]: Sync apps to ${RCLONE_REPLICATE_TARGET[@]} failed" >>"$SCRIPT_DIR/warning-sync-apps-has-error.txt"
   fi
 done
 
 # Sync remote datas
-for SYNC_TARGET in ${RCLONE_REPLICATE_TARGET[@]}; do
-  if [[ "$SYNC_TARGET" != "$RCLONE_REMOTE_SOURCE" ]]; then
-    for REMOTE_SYNC_DIR in ${RCLONE_REMOTE_DIR_NAMES[@]}; do
-      SYNC_REMOTE_HAS_ERROR=0
-      podman run --rm --security-opt seccomp=unconfined \
-        --mount type=bind,source=$RCLONE_ETC_DIR,target=/config/rclone \
-        --mount type=bind,source=$RCLONE_DATA_DIR,target=$RCLONE_DATA_DIR \
-        --mount type=bind,source=$SCRIPT_DIR,target=/var/log/rclone \
-        --network=host \
-        $RCLONE_IMAGE \
-        --log-file /var/log/rclone/rclone-sync-onedrive.log --ignore-size --onedrive-chunk-size 2560k \
-        sync --progress $RCLONE_DATA_DIR/$REMOTE_SYNC_DIR $SYNC_TARGET:/$REMOTE_SYNC_DIR || SYNC_REMOTE_HAS_ERROR=1
-      if [[ $SYNC_REMOTE_HAS_ERROR -ne 0 ]]; then
-        echo "$(date +%Y-%m-%dT%H:%M:%S) [ERROR]: Sync $RCLONE_DATA_DIR/$REMOTE_SYNC_DIR to $SYNC_TARGET failed" >>"$SCRIPT_DIR/warning-sync-apps-has-error.txt"
-      fi
-    done
-  fi
-done
+if [[ -n "$RCLONE_REMOTE_SOURCE" ]]; then
+  for SYNC_TARGET in ${RCLONE_REPLICATE_TARGET[@]}; do
+    if [[ "$SYNC_TARGET" != "$RCLONE_REMOTE_SOURCE" ]]; then
+      for REMOTE_SYNC_DIR in ${RCLONE_REMOTE_DIR_NAMES[@]}; do
+        SYNC_REMOTE_HAS_ERROR=0
+        podman run --rm --security-opt seccomp=unconfined \
+          --mount type=bind,source=$RCLONE_ETC_DIR,target=/config/rclone \
+          --mount type=bind,source=$RCLONE_REMOTE_DATA_DIR,target=$RCLONE_REMOTE_DATA_DIR \
+          --mount type=bind,source=$SCRIPT_DIR,target=/var/log/rclone \
+          --network=host \
+          $RCLONE_IMAGE \
+          --log-file /var/log/rclone/rclone-sync.log --ignore-size --onedrive-chunk-size 2560k \
+          sync --progress $RCLONE_REMOTE_DATA_DIR/$REMOTE_SYNC_DIR $SYNC_TARGET:/$REMOTE_SYNC_DIR || SYNC_REMOTE_HAS_ERROR=1
+        if [[ $SYNC_REMOTE_HAS_ERROR -ne 0 ]]; then
+          echo "$(date +%Y-%m-%dT%H:%M:%S) [ERROR]: Sync $RCLONE_REMOTE_DATA_DIR/$REMOTE_SYNC_DIR to $SYNC_TARGET failed" >>"$SCRIPT_DIR/warning-sync-apps-has-error.txt"
+        fi
+      done
+    fi
+  done
+fi
+
