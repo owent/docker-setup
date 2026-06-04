@@ -762,8 +762,10 @@ sudo iptables -X NETAVARK_FORWARD
 | 类型  | 应用场景 | 建议选项                                                                  |
 | ----- | -------- | ------------------------------------------------------------------------- |
 | btrfs | SSD      | rw,noatime,compress=zstd:1,ssd,autodefrag,user_subvol_rm_allowed,subvol=/ |
-| xfs   | SSD      | rw,noatime,largeio,inode64,allocsize=128m,logbufs=8,logbsize=256k,noquota |
-| xfs   | 网络存储 | rw,noatime,largeio,inode64,allocsize=128m,logbufs=8,swalloc,noquota       |
+| xfs   | SSD      | rw,noatime,prjquota |
+| xfs   | 网络存储 | rw,noatime,logbufs=8,swalloc,prjquota       |
+
+> 注意: XFS + overlay2 存储驱动时，--storage-opt size=10G 的实现依赖 prjquota
 
 ### podman 存储
 
