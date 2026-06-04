@@ -62,46 +62,54 @@ EMBY_DOCKER_OPTIONS=(
 )
 
 if [[ $(id -u) -ne 0 ]]; then
-  EMBY_DOCKER_OPTIONS=(${EMBY_DOCKER_OPTIONS[@]} -e PUID=0 -e PGID=0)
+  EMBY_DOCKER_OPTIONS+=( -e PUID=0 -e PGID=0)
 fi
 
 if [[ ! -z "$EMBY_DOCKER_HTTPS_PORT" ]]; then
-  EMBY_DOCKER_OPTIONS=(${EMBY_DOCKER_OPTIONS[@]} -p $EMBY_DOCKER_HTTPS_PORT:8920)
+  EMBY_DOCKER_OPTIONS+=( -p $EMBY_DOCKER_HTTPS_PORT:8920)
 fi
 for EMBY_DATA_EXTERNAL_DIR in ${EMBY_DATA_EXTERNAL_DIRS[@]}; do
   EMBY_DATA_EXTERNAL_DIR_FROM="${EMBY_DATA_EXTERNAL_DIR%%:*}"
   EMBY_DATA_EXTERNAL_DIR_TO="${EMBY_DATA_EXTERNAL_DIR//*:/}"
   if [[ -e "$EMBY_DATA_EXTERNAL_DIR_FROM" ]] && [[ ! -z "$EMBY_DATA_EXTERNAL_DIR_TO" ]]; then
-    EMBY_DOCKER_OPTIONS=(${EMBY_DOCKER_OPTIONS[@]} --mount "type=bind,source=$EMBY_DATA_EXTERNAL_DIR_FROM,target=/data/external/$EMBY_DATA_EXTERNAL_DIR_TO")
+    EMBY_DOCKER_OPTIONS+=( --mount "type=bind,source=$EMBY_DATA_EXTERNAL_DIR_FROM,target=/data/external/$EMBY_DATA_EXTERNAL_DIR_TO")
   fi
 done
 
 # Intel Quicksync and AMD VAAPI
 if [[ -e "/dev/dri" ]]; then
-  EMBY_DOCKER_OPTIONS=(${EMBY_DOCKER_OPTIONS[@]} "--device=/dev/dri:/dev/dri")
+  EMBY_DOCKER_OPTIONS+=(
+  "--device=/dev/dri/card0:/dev/dri/card0"
+  "--device=/dev/dri/renderD128:/dev/dri/renderD128"
+  "--group-add video"
+  "--group-add render")
+fi
+
+if [[ -e "/dev/kfd" ]]; then
+  EMBY_DOCKER_OPTIONS+=("--device=/dev/kfd:/dev/kfd")
 fi
 
 # nvidia
 if [[ ! -z "$EMBY_DOCKER_ENABLE_NVIDIA_RUNTIME" ]] && [[ "x$EMBY_DOCKER_ENABLE_NVIDIA_RUNTIME" != "x0" ]] \
   && [[ "x$EMBY_DOCKER_ENABLE_NVIDIA_RUNTIME" != "xno" ]] && [[ "x$EMBY_DOCKER_ENABLE_NVIDIA_RUNTIME" != "xfalse" ]]; then
   # Install runtime: https://github.com/NVIDIA/nvidia-docker
-  EMBY_DOCKER_OPTIONS=(${EMBY_DOCKER_OPTIONS[@]} "--runtime=nvidia" -e "NVIDIA_VISIBLE_DEVICES=all")
+  EMBY_DOCKER_OPTIONS+=( "--runtime=nvidia" -e "NVIDIA_VISIBLE_DEVICES=all")
 fi
 
 # OpenMAX (Raspberry Pi)
 if [[ -e "/dev/vchiq" ]]; then
-  EMBY_DOCKER_OPTIONS=(${EMBY_DOCKER_OPTIONS[@]} "--device=/dev/vchiq:/dev/vchiq" -v "/opt/vc/lib:/opt/vc/lib")
+  EMBY_DOCKER_OPTIONS+=( "--device=/dev/vchiq:/dev/vchiq" -v "/opt/vc/lib:/opt/vc/lib")
 fi
 
 # V4L2 (Raspberry Pi)
 if [[ -e "/dev/video10" ]]; then
-  EMBY_DOCKER_OPTIONS=(${EMBY_DOCKER_OPTIONS[@]} "--device=/dev/video10:/dev/video10")
+  EMBY_DOCKER_OPTIONS+=( "--device=/dev/video10:/dev/video10")
 fi
 if [[ -e "/dev/video11" ]]; then
-  EMBY_DOCKER_OPTIONS=(${EMBY_DOCKER_OPTIONS[@]} "--device=/dev/video11:/dev/video11")
+  EMBY_DOCKER_OPTIONS+=( "--device=/dev/video11:/dev/video11")
 fi
 if [[ -e "/dev/video12" ]]; then
-  EMBY_DOCKER_OPTIONS=(${EMBY_DOCKER_OPTIONS[@]} "--device=/dev/video12:/dev/video12")
+  EMBY_DOCKER_OPTIONS+=( "--device=/dev/video12:/dev/video12")
 fi
 
 if [[ "root" == "$(id -un)" ]]; then
