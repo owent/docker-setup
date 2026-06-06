@@ -1,8 +1,9 @@
 #!/bin/bash
 
 DOMAIN_NAME=owent.net
-ACMESH_SSL_DIR=/data/website/ssl
+ACMESH_SSL_DIR=/data/acme.sh/ssl
 REMOTE_DEPLOY_KEY=<path of id_ed25519>
+HOME_CERT_SSL_DIR=/data/home-certs/ssl
 
 # Update local services
 if [[ "x$1" == "xupdate-v2ray" ]] || [[ "x$1" == "xupdate-vproxy" ]] || [[ "x$1" == "xupdate-vbox" ]]; then
@@ -12,10 +13,16 @@ else
 fi
 
 echo "" > sync-to-replications.log
-REPLICATION_NODES=(
+
+REPLICATION_HOME_CERT_NODES=(
   "USER@HOST:PORT"
   "USER@HOST:PORT:SSL_KEY_PATH"
-);
+)
+
+REPLICATION_ACMESH_NODES=(
+  "USER@HOST:PORT"
+  "USER@HOST:PORT:SSL_KEY_PATH"
+)
 
 # # HTTP Cache service certs
 # HTTP_CACHE_SERVICE_CERT_UPDATE_WEEKNO=-100
@@ -40,7 +47,7 @@ REPLICATION_NODES=(
 # cd -
 # set +x
 
-for NODE_ADDR in ${REPLICATION_NODES[@]}; do
+for NODE_ADDR in ${REPLICATION_HOME_CERT_NODES[@]}; do
     NODE_USER="${NODE_ADDR%%@*}"
     NODE_REMAINDER="${NODE_ADDR#*@}"
     IFS=':' read -r NODE_HOST NODE_PORT NODE_KEY <<< "$NODE_REMAINDER"
@@ -50,7 +57,27 @@ for NODE_ADDR in ${REPLICATION_NODES[@]}; do
         LOCAL_DEPLOY_KEY="$NODE_KEY"
     fi
 
-    echo "============ Upload SSL files to $NODE_USER@$NODE_HOST:$NODE_PORT ... " 
+    echo "============ Upload home cert SSL files to $NODE_USER@$NODE_HOST:$NODE_PORT ... " 
+
+    if [[ ! -e "$HOME_CERT_SSL_DIR" ]]; then
+        continue
+    fi
+    ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$LOCAL_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "mkdir -p $HOME_CERT_SSL_DIR" 
+    scp -r -P $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$LOCAL_DEPLOY_KEY" \
+        "$HOME_CERT_SSL_DIR/"* "$NODE_USER@$NODE_HOST:$HOME_CERT_SSL_DIR/"
+done
+
+for NODE_ADDR in ${REPLICATION_ACMESH_NODES[@]}; do
+    NODE_USER="${NODE_ADDR%%@*}"
+    NODE_REMAINDER="${NODE_ADDR#*@}"
+    IFS=':' read -r NODE_HOST NODE_PORT NODE_KEY <<< "$NODE_REMAINDER"
+
+    LOCAL_DEPLOY_KEY="$REMOTE_DEPLOY_KEY"
+    if [[ -n "$NODE_KEY" ]]; then
+        LOCAL_DEPLOY_KEY="$NODE_KEY"
+    fi
+
+    echo "============ Upload acme.sh SSL files to $NODE_USER@$NODE_HOST:$NODE_PORT ... " 
 
     for INSTALL_CERT_DIR in "$ACMESH_SSL_DIR/${DOMAIN_NAME}_ecc" "$ACMESH_SSL_DIR/${DOMAIN_NAME}"; do
         if [[ ! -e "$INSTALL_CERT_DIR/$DOMAIN_NAME.cer" ]]; then
@@ -67,7 +94,7 @@ for NODE_ADDR in ${REPLICATION_NODES[@]}; do
 done
 
 # Update remote services
-for NODE_ADDR in ${REPLICATION_NODES[@]}; do
+for NODE_ADDR in ${REPLICATION_ACMESH_NODES[@]}; do
     NODE_USER="${NODE_ADDR%%@*}"
     NODE_REMAINDER="${NODE_ADDR#*@}"
     IFS=':' read -r NODE_HOST NODE_PORT NODE_KEY <<< "$NODE_REMAINDER"

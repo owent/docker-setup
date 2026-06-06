@@ -8,16 +8,8 @@ fi
 export XDG_RUNTIME_DIR="/run/user/$UID"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
 
-if [[ "x$RUN_USER" == "x" ]]; then
-  RUN_USER=$(id -un)
-fi
-RUN_HOME=$(cat /etc/passwd | awk "BEGIN{FS=\":\"} \$1 == \"$RUN_USER\" { print \$6 }")
-
-if [[ "x$RUN_HOME" == "x" ]]; then
-  RUN_HOME="$HOME"
-fi
-
 # SCM_NETWORK=(internal-backend)
+# SCM_PUBLISH=()
 SCM_RUN_USER=root
 
 if [[ -z "$SCM_IMAGE" ]]; then
@@ -41,13 +33,13 @@ if [[ -z "$SCM_WEBAPP_INITIALPASSWORD" ]]; then
 fi
 
 if [[ -z "$SCM_DATA_DIR" ]]; then
-  SCM_DATA_DIR="$SCRIPT_DIR/data/scm-manager"
+  SCM_DATA_DIR="$SCRIPT_DIR/data"
 fi
 mkdir -p "$SCM_DATA_DIR/home"
 mkdir -p "$SCM_DATA_DIR/work"
 
 if [[ -z "$SCM_ETC_DIR" ]]; then
-  SCM_ETC_DIR="$SCRIPT_DIR/etc/scm-manager"
+  SCM_ETC_DIR="$SCRIPT_DIR/etc"
 fi
 mkdir -p "$SCM_ETC_DIR"
 
@@ -102,21 +94,21 @@ SCM_OPTIONS=(
   --mount "type=bind,source=/etc/localtime,target=/etc/localtime:ro"
 )
 
-SCM_HAS_HOST_NETWORK=0
 if [[ ! -z "$SCM_NETWORK" ]]; then
+  SCM_HAS_HOST_NETWORK=0
   for network in ${SCM_NETWORK[@]}; do
     SCM_OPTIONS+=("--network=$network")
-    if [[ $network == "host" ]]; then
+    if [[ "$network" == "host" ]]; then
       SCM_HAS_HOST_NETWORK=1
     fi
   done
-fi
-if [[ $SCM_HAS_HOST_NETWORK -eq 0 ]]; then
-  if [[ ! -z "$SCM_PORT" ]]; then
-    for bing_port in ${SCM_PORT[@]}; do
-      SCM_OPTIONS+=(-p "$bing_port")
+  if [[ ! -z "$SCM_PUBLISH" ]] && [[ $SCM_HAS_HOST_NETWORK -eq 0 ]]; then
+    for publish in ${SCM_PUBLISH[@]}; do
+      SCM_OPTIONS+=(-p "$publish")
     done
   fi
+else
+  SCM_OPTIONS+=(--network=host)
 fi
 
 if [[ ! -z "$SCM_RUN_USER" ]]; then
@@ -142,8 +134,6 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
     "${SCM_OPTIONS[@]}" $SCM_IMAGE \
       | tee -p "$SYSTEMD_CONTAINER_DIR/$SCM_POD_NAME.container"
   
-  systemctl --user daemon-reload
-
 else
   podman run --name $SCM_POD_NAME --security-opt label=disable \
     "${SCM_OPTIONS[@]}" \
@@ -153,11 +143,30 @@ else
     echo "Error: Unable to start $SCM_POD_NAME container"
     exit 1
   fi
-  podman stop $SCM_POD_NAME
+  
   podman generate systemd --name $SCM_POD_NAME | tee $SYSTEMD_SERVICE_DIR/$SCM_POD_NAME.service
-
-  systemctl --user daemon-reload
-  systemctl --user enable $SCM_POD_NAME
+  podman stop $SCM_POD_NAME
 fi
 
-systemctl --user restart $SCM_POD_NAME
+
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  systemctl daemon-reload
+else
+  systemctl --user daemon-reload
+fi
+
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl enable $SCM_POD_NAME
+  fi
+  systemctl start $SCM_POD_NAME
+else
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl --user enable $SCM_POD_NAME
+  fi
+  systemctl --user start $SCM_POD_NAME
+fi
+
+if [[ "x$SCM_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman image prune -a -f --filter "until=240h"
+fi
