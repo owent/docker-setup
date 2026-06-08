@@ -18,7 +18,7 @@ COPY ./ca-certificates/* /usr/local/share/ca-certificates/
 RUN update-ca-certificates
 # COPY ./supervisord.conf /etc/supervisor/
 
-USER git:git
+USER git:root
 
 # CMD ["/bin/bash", "/opt/bootstrap.sh", "supervisord", "--nodaemon", "-c", "/etc/supervisor/supervisord.conf"]
 

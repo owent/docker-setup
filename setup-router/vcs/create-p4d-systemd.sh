@@ -49,11 +49,11 @@ SYSTEMD_CONTAINER_DIR="$HOME/.config/containers/systemd"
 mkdir -p "$SYSTEMD_SERVICE_DIR"
 mkdir -p "$SYSTEMD_CONTAINER_DIR"
 
-systemctl --user --all | grep -F container-$P4D_POD_NAME
+systemctl --user --all | grep -F $P4D_POD_NAME
 
 if [[ $? -eq 0 ]]; then
-  systemctl --user stop container-$P4D_POD_NAME
-  systemctl --user disable container-$P4D_POD_NAME
+  systemctl --user stop $P4D_POD_NAME
+  systemctl --user disable $P4D_POD_NAME
 fi
 
 podman container inspect $P4D_POD_NAME >/dev/null 2>&1
@@ -119,9 +119,9 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
     fi
   done
   ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
-    podman run -d --name $P4D_POD_NAME --security-opt label=disable \
+    podman run --name $P4D_POD_NAME --security-opt label=disable \
     "${P4D_OPTIONS[@]}" $P4D_IMAGE \
-      | tee -p "$SYSTEMD_CONTAINER_DIR/container-$P4D_POD_NAME.container"
+      | tee -p "$SYSTEMD_CONTAINER_DIR/$P4D_POD_NAME.container"
   
   systemctl --user daemon-reload
 
@@ -135,10 +135,10 @@ else
     exit 1
   fi
   podman stop $P4D_POD_NAME
-  podman generate systemd --name $P4D_POD_NAME | tee $SYSTEMD_SERVICE_DIR/container-$P4D_POD_NAME.service
+  podman generate systemd --name $P4D_POD_NAME | tee $SYSTEMD_SERVICE_DIR/$P4D_POD_NAME.service
 
   systemctl --user daemon-reload
-  systemctl --user enable container-$P4D_POD_NAME
+  systemctl --user enable $P4D_POD_NAME
 fi
 
-systemctl --user restart container-$P4D_POD_NAME
+systemctl --user restart $P4D_POD_NAME
