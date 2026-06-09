@@ -33,7 +33,7 @@ if [[ "x$ACMESH_SSL_DIR" == "x" ]]; then
   if [[ "x$ROUTER_DATA_ROOT_DIR" != "x" ]]; then
     ACMESH_SSL_DIR=$ROUTER_DATA_ROOT_DIR/acme.sh/ssl
   else
-    ACMESH_SSL_DIR="$HOME/acme.sh/ssl"
+    ACMESH_SSL_DIR="$SCRIPT_DIR/ssl"
   fi
 fi
 mkdir -p "$ACMESH_SSL_DIR"

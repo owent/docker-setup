@@ -1,9 +1,20 @@
 #!/bin/bash
 
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+
 DOMAIN_NAME=owent.net
-ACMESH_SSL_DIR=/data/acme.sh/ssl
+# ACMESH_SSL_DIR=/data/acme.sh/ssl
 REMOTE_DEPLOY_KEY=<path of id_ed25519>
 HOME_CERT_SSL_DIR=/data/home-certs/ssl
+
+if [[ -z "$ACMESH_SSL_DIR" ]]; then
+  if [[ -n "$ROUTER_DATA_ROOT_DIR" ]]; then
+    ACMESH_SSL_DIR=$ROUTER_DATA_ROOT_DIR/acme.sh/ssl
+  else
+    ACMESH_SSL_DIR="$SCRIPT_DIR/ssl"
+  fi
+fi
+mkdir -p "$ACMESH_SSL_DIR"
 
 # Update local services
 if [[ "x$1" == "xupdate-v2ray" ]] || [[ "x$1" == "xupdate-vproxy" ]] || [[ "x$1" == "xupdate-vbox" ]]; then
@@ -59,7 +70,7 @@ for NODE_ADDR in ${REPLICATION_HOME_CERT_NODES[@]}; do
 
     echo "============ Upload home cert SSL files to $NODE_USER@$NODE_HOST:$NODE_PORT ... " 
 
-    if [[ ! -e "$HOME_CERT_SSL_DIR" ]]; then
+    if [[ -z "$HOME_CERT_SSL_DIR" ]] || [[ ! -e "$HOME_CERT_SSL_DIR" ]]; then
         continue
     fi
     ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$LOCAL_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "mkdir -p $HOME_CERT_SSL_DIR" 
@@ -106,14 +117,16 @@ for NODE_ADDR in ${REPLICATION_ACMESH_NODES[@]}; do
 
     echo "============ Update $NODE_USER@$NODE_HOST:$NODE_PORT ... " 
 
-    ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$LOCAL_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "mkdir -p /data/vbox-server" 
+    if [[ -e "/data/vbox-server" ]]; then
+        ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$LOCAL_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "mkdir -p /data/vbox-server" 
 
-    scp -r -P $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i \
-      "$LOCAL_DEPLOY_KEY" /data/vbox-server/etc /data/vbox-server/*.sh "$NODE_USER@$NODE_HOST:/data/vbox-server/"
+        scp -r -P $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i \
+        "$LOCAL_DEPLOY_KEY" /data/vbox-server/etc /data/vbox-server/*.sh "$NODE_USER@$NODE_HOST:/data/vbox-server/"
+    fi
 
     if [[ "x$1" == "xupdate-v2ray" ]] || [[ "x$1" == "xupdate-vproxy" ]] || [[ "x$1" == "xupdate-vbox" ]]; then
-        ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$LOCAL_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "[ -e /data/vbox-server/setup-server.sh ] && env VBOX_UPDATE=1 /bin/bash /data/vbox-server/setup-server.sh; [ -e /data/acme.sh/post-remote-deploy.sh ] && /bin/bash /data/acme.sh/post-remote-deploy.sh" 
+        ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$LOCAL_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "[ -e /data/vbox-server/setup-server.sh ] && env VBOX_UPDATE=1 /bin/bash /data/vbox-server/setup-server.sh; [ -e $SCRIPT_DIR/post-remote-deploy.sh ] && /bin/bash $SCRIPT_DIR/post-remote-deploy.sh" 
     else
-        ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$LOCAL_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "[ -e /data/vbox-server/setup-server.sh ] && /bin/bash /data/vbox-server/setup-server.sh; [ -e /data/acme.sh/post-remote-deploy.sh ] && /bin/bash /data/acme.sh/post-remote-deploy.sh"
+        ssh -p $NODE_PORT -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o User=$NODE_USER -i "$LOCAL_DEPLOY_KEY" "$NODE_USER@$NODE_HOST" "[ -e /data/vbox-server/setup-server.sh ] && /bin/bash /data/vbox-server/setup-server.sh; [ -e $SCRIPT_DIR/post-remote-deploy.sh ] && /bin/bash $SCRIPT_DIR/post-remote-deploy.sh"
     fi
 done

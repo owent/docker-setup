@@ -10,7 +10,7 @@ if [[ -z "$ACMESH_SSL_DIR" ]]; then
   if [[ -n "$ROUTER_DATA_ROOT_DIR" ]]; then
     ACMESH_SSL_DIR=$ROUTER_DATA_ROOT_DIR/acme.sh/ssl
   else
-    ACMESH_SSL_DIR="$HOME/acme.sh/ssl"
+    ACMESH_SSL_DIR="$SCRIPT_DIR/ssl"
   fi
 fi
 mkdir -p "$ACMESH_SSL_DIR"
@@ -29,6 +29,11 @@ fi
 systemctl --user --all | grep -F router-caddy
 if [[ $? -eq 0 ]]; then
   systemctl --user restart router-caddy
+fi
+
+systemctl --user --all | grep -F vbox-proxy
+if [[ $? -eq 0 ]]; then
+  systemctl --user restart vbox-proxy
 fi
 
 # Deploy to other service nodes

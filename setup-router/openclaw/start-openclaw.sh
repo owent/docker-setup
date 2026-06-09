@@ -492,7 +492,7 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
     fi
   done
   ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
-    podman run -d --name openclaw --security-opt label=disable --user root \
+    podman run --name openclaw --security-opt label=disable --user root \
     "${OPENCLAW_ENV[@]}" "${OPENCLAW_OPTIONS[@]}" \
     localhost/local_openclaw:latest \
     /bin/bash /entrypoint-openclaw.sh node openclaw.mjs gateway --allow-unconfigured --bind lan --port $OPENCLAW_PORT \

@@ -10,7 +10,7 @@ if [[ "x$ACMESH_SSL_DIR" == "x" ]]; then
   if [[ "x$ROUTER_DATA_ROOT_DIR" != "x" ]]; then
     ACMESH_SSL_DIR=$ROUTER_DATA_ROOT_DIR/acme.sh/ssl
   else
-    ACMESH_SSL_DIR="$HOME/acme.sh/ssl"
+    ACMESH_SSL_DIR="$SCRIPT_DIR/ssl"
   fi
 fi
 mkdir -p "$ACMESH_SSL_DIR"
@@ -77,7 +77,7 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
     fi
   done
   ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
-    podman run -d --name acme.sh --security-opt label=disable \
+    podman run --name acme.sh --security-opt label=disable \
       --mount type=bind,source=$ACMESH_SSL_DIR,target=/acme.sh \
       --network=host \
       docker.io/neilpang/acme.sh:latest daemon | tee -p "$SYSTEMD_CONTAINER_DIR/acme.sh.container"
