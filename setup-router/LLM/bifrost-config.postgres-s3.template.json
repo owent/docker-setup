@@ -1,0 +1,238 @@
+{
+  "$schema": "https://www.getbifrost.ai/schema",
+  "client": {
+    "initial_pool_size": 150,
+    "drop_excess_requests": false,
+    "enable_logging": true,
+    "disable_content_logging": false,
+    "log_retention_days": 90,
+    "enforce_auth_on_inference": false,
+    "max_request_body_size_mb": 64,
+    "compat": {
+      "should_drop_params": true
+    }
+  },
+  "encryption_key": "env.BIFROST_ENCRYPTION_KEY",
+  "governance": {
+    "auth_config": {
+      "is_enabled": true,
+      "admin_username": "env.BIFROST_ADMIN_USERNAME",
+      "admin_password": "env.BIFROST_ADMIN_PASSWORD"
+    }
+  },
+  "providers": {
+    "openrouter": {
+      "keys": [
+        {
+          "name": "openrouter",
+          "value": "env.OPENROUTER_API_KEY",
+          "models": ["*"],
+          "weight": 1,
+          "aliases": {
+            "claude-sonnet-4.6": "anthropic/claude-sonnet-4.6",
+            "claude-opus-4.8": "anthropic/claude-opus-4.8",
+            "claude-fable-5": "anthropic/claude-fable-5",
+            "claude-haiku-4.5": "anthropic/claude-haiku-4.5",
+            "gpt-latest": "openai/gpt-5.5",
+            "gpt-latest-chat": "openai/gpt-5.3-chat",
+            "gpt-latest-pro": "openai/gpt-5.5-pro",
+            "gpt-latest-codex": "openai/gpt-5.3-codex",
+            "gpt-5.5": "openai/gpt-5.5",
+            "gpt-5.5-pro": "openai/gpt-5.5-pro",
+            "gpt-5.4": "openai/gpt-5.4",
+            "gpt-5.4-pro": "openai/gpt-5.4-pro",
+            "gpt-5.3-chat": "openai/gpt-5.3-chat",
+            "gpt-5.2": "openai/gpt-5.2",
+            "gpt-5.2-chat": "openai/gpt-5.2-chat",
+            "gpt-5.2-pro": "openai/gpt-5.2-pro",
+            "gpt-5.4-image-2": "openai/gpt-5.4-image-2",
+            "grok-4.1-fast": "x-ai/grok-4.1-fast",
+            "grok-4": "x-ai/grok-4",
+            "grok-code-fast-1": "x-ai/grok-code-fast-1"
+          }
+        }
+      ],
+      "concurrency_and_buffer_size": {
+        "concurrency": 80,
+        "buffer_size": 40
+      }
+    },
+    "deepseek": {
+      "keys": [
+        {
+          "name": "deepseek",
+          "value": "env.DEEPSEEK_API_KEY",
+          "models": ["*"],
+          "weight": 1,
+          "aliases": {
+            "deepseek-v4-flash": "deepseek-v4-flash",
+            "deepseek-v4-pro": "deepseek-v4-pro"
+          }
+        }
+      ],
+      "network_config": {
+        "base_url": "https://api.deepseek.com/v1"
+      },
+      "custom_provider_config": {
+        "base_provider_type": "openai"
+      },
+      "concurrency_and_buffer_size": {
+        "concurrency": 80,
+        "buffer_size": 40
+      }
+    },
+    "zai": {
+      "keys": [
+        {
+          "name": "zai-coding",
+          "value": "env.GLM_API_KEY",
+          "models": ["*"],
+          "weight": 1,
+          "aliases": {
+            "glm-5": "zai/glm-5",
+            "glm-5.1": "zai/glm-5.1",
+            "glm-5-turbo": "zai/glm-5-turbo"
+          }
+        }
+      ],
+      "network_config": {
+        "base_url": "https://open.bigmodel.cn/api/coding/paas/v4"
+      },
+      "custom_provider_config": {
+        "base_provider_type": "openai"
+      },
+      "concurrency_and_buffer_size": {
+        "concurrency": 80,
+        "buffer_size": 40
+      }
+    },
+    "tencentcloud-lkeap": {
+      "keys": [
+        {
+          "name": "tencentcloud-lkeap",
+          "value": "env.TENCENTCLOUD_API_KEY",
+          "models": ["*"],
+          "weight": 1,
+          "aliases": {
+            "TencentCloud/GLM-5": "zai/glm-5",
+            "TencentCloud/Kimi-K2.5": "moonshot/kimi-k2.5",
+            "TencentCloud/MiniMax-M2.5": "minimax/minimax-m2.5"
+          }
+        }
+      ],
+      "network_config": {
+        "base_url": "https://api.lkeap.cloud.tencent.com/coding/v3"
+      },
+      "custom_provider_config": {
+        "base_provider_type": "openai"
+      },
+      "concurrency_and_buffer_size": {
+        "concurrency": 80,
+        "buffer_size": 40
+      }
+    },
+    "aihubmix": {
+      "keys": [
+        {
+          "name": "aihubmix",
+          "value": "env.AIHUBMIX_API_KEY",
+          "models": ["*"],
+          "weight": 1,
+          "aliases": {
+            "gpt-latest-image": "gpt-image-1.5",
+            "gpt-image-2": "gpt-image-2",
+            "gpt-image-1.5": "gpt-image-1.5",
+            "dall-e-3": "dall-e-3"
+          }
+        }
+      ],
+      "network_config": {
+        "base_url": "https://aihubmix.com/v1"
+      },
+      "custom_provider_config": {
+        "base_provider_type": "openai"
+      },
+      "concurrency_and_buffer_size": {
+        "concurrency": 80,
+        "buffer_size": 40
+      }
+    },
+    "vertex": {
+      "keys": [
+        {
+          "name": "vertex",
+          "value": "unused",
+          "models": [
+            "gemini-2.5-pro",
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
+            "gemini-embedding-001",
+            "codestral-25.08"
+          ],
+          "weight": 1
+        }
+      ],
+      "vertex_key_config": {
+        "project_id": "env.VERTEX_PROJECT_ID",
+        "region": "env.VERTEX_REGION"
+      },
+      "concurrency_and_buffer_size": {
+        "concurrency": 80,
+        "buffer_size": 40
+      }
+    }
+  },
+  "config_store": {
+    "enabled": true,
+    "type": "postgres",
+    "config": {
+      "host": "env.BIFROST_PG_HOST",
+      "port": "env.BIFROST_PG_PORT",
+      "user": "env.BIFROST_PG_USER",
+      "password": "env.BIFROST_PG_PASSWORD",
+      "db_name": "env.BIFROST_PG_DB",
+      "ssl_mode": "env.BIFROST_PG_SSL_MODE",
+      "max_idle_conns": 5,
+      "max_open_conns": 50
+    }
+  },
+  "logs_store": {
+    "enabled": true,
+    "type": "postgres",
+    "config": {
+      "host": "env.BIFROST_PG_HOST",
+      "port": "env.BIFROST_PG_PORT",
+      "user": "env.BIFROST_PG_USER",
+      "password": "env.BIFROST_PG_PASSWORD",
+      "db_name": "env.BIFROST_PG_DB",
+      "ssl_mode": "env.BIFROST_PG_SSL_MODE",
+      "max_idle_conns": 10,
+      "max_open_conns": 50,
+      "matview_refresh_interval": "5m"
+    },
+    "retention_days": 90,
+    "object_storage": {
+      "type": "s3",
+      "bucket": "env.S3_BUCKET",
+      "prefix": "env.S3_PREFIX",
+      "compress": true,
+      "region": "env.S3_REGION",
+      "endpoint": "env.S3_ENDPOINT",
+      "access_key_id": "env.S3_ACCESS_KEY_ID",
+      "secret_access_key": "env.S3_SECRET_ACCESS_KEY",
+      "force_path_style": false
+    }
+  },
+  "vector_store": {
+    "enabled": true,
+    "type": "redis",
+    "config": {
+      "addr": "env.BIFROST_REDIS_ADDR",
+      "password": "env.BIFROST_REDIS_PASSWORD",
+      "db": 13,
+      "use_tls": false,
+      "cluster_mode": false,
+      "pool_size": 10
+    }
+  }
+}

@@ -75,9 +75,13 @@ fi
 # ====================================== start deploy ======================================
 if [[ "root" == "$(id -un)" ]]; then
   SYSTEMD_SERVICE_DIR=/lib/systemd/system
+  SYSTEMD_CONTAINER_DIR=/etc/containers/systemd/
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
 else
   SYSTEMD_SERVICE_DIR="$HOME/.config/systemd/user"
+  SYSTEMD_CONTAINER_DIR="$HOME/.config/containers/systemd"
   mkdir -p "$SYSTEMD_SERVICE_DIR"
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
 fi
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
@@ -305,29 +309,58 @@ if [[ $LLM_LOBEHUB_HAS_HOST_NETWORK -eq 0 ]]; then
   LLM_LOBEHUB_OPTIONS+=(-p $LLM_LOBEHUB_PORT:$LLM_LOBEHUB_PORT)
 fi
 
-podman run -d --name llm-lobechat --security-opt label=disable \
-  "${LLM_LOBEHUB_ENV[@]}" \
-  "${LLM_LOBEHUB_OPTIONS[@]}" \
-  $LLM_LOBECHAT_IMAGE_URL
+PODLET_IMAGE_URL="ghcr.io/containers/podlet:latest"
+PODLET_RUN=($(which podlet 2>/dev/null))
+FIND_PODLET_RESULT=$?
+if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+  (podman image inspect "$PODLET_IMAGE_URL" > /dev/null 2>&1 || podman pull "$PODLET_IMAGE_URL") && FIND_PODLET_RESULT=0 && PODLET_RUN=(podman run --rm "$PODLET_IMAGE_URL")
+fi
 
-if [[ $? -ne 0 ]]; then
-  echo "Run llm-lobechat failed"
-  exit 1
+if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
+  PODLET_OPTIONS=(--install --wanted-by default.target --wants network-online.target --after network-online.target)
+  for network in ${LLM_LOBEHUB_NETWORK[@]}; do
+    if [[ -e "$HOME/.config/containers/systemd/$network.network" ]]; then
+      PODLET_OPTIONS+=(--after "$network-network.service" --wants "$network-network.service")
+    fi
+  done
+  ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
+    podman run --name llm-lobechat --security-opt label=disable \
+      "${LLM_LOBEHUB_ENV[@]}" \
+      "${LLM_LOBEHUB_OPTIONS[@]}" \
+      $LLM_LOBECHAT_IMAGE_URL | tee -p "$SYSTEMD_CONTAINER_DIR/llm-lobechat.container"
+else
+  podman run -d --name llm-lobechat --security-opt label=disable \
+    "${LLM_LOBEHUB_ENV[@]}" \
+    "${LLM_LOBEHUB_OPTIONS[@]}" \
+    $LLM_LOBECHAT_IMAGE_URL
+
+  if [[ $? -ne 0 ]]; then
+    echo "Failed to run llm-lobechat"
+    exit 1
+  fi
+
+  podman generate systemd llm-lobechat | tee -p "$SYSTEMD_SERVICE_DIR/llm-lobechat.service"
+  podman container stop llm-lobechat
+fi
+
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  systemctl daemon-reload
+else
+  systemctl --user daemon-reload
+fi
+
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl enable llm-lobechat.service
+  fi
+  systemctl start llm-lobechat.service
+else
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl --user enable llm-lobechat.service
+  fi
+  systemctl --user start llm-lobechat.service
 fi
 
 if [[ "x$LLM_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman image prune -a -f --filter "until=240h"
-fi
-
-podman generate systemd llm-lobechat | tee -p "$SYSTEMD_SERVICE_DIR/llm-lobechat.service"
-podman container stop llm-lobechat
-
-if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
-  systemctl enable llm-lobechat.service
-  systemctl daemon-reload
-  systemctl start llm-lobechat.service
-else
-  systemctl --user enable "$SYSTEMD_SERVICE_DIR/llm-lobechat.service"
-  systemctl --user daemon-reload
-  systemctl --user start llm-lobechat.service
 fi

@@ -61,9 +61,13 @@ ln -f "litellm-config.yaml" "$LLM_LITELLM_DATA_DIR/" || cp -f "litellm-config.ya
 
 if [[ "root" == "$(id -un)" ]]; then
   SYSTEMD_SERVICE_DIR=/lib/systemd/system
+  SYSTEMD_CONTAINER_DIR=/etc/containers/systemd/
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
 else
   SYSTEMD_SERVICE_DIR="$HOME/.config/systemd/user"
+  SYSTEMD_CONTAINER_DIR="$HOME/.config/containers/systemd"
   mkdir -p "$SYSTEMD_SERVICE_DIR"
+  mkdir -p "$SYSTEMD_CONTAINER_DIR"
 fi
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
@@ -151,19 +155,60 @@ if [[ $LLM_LITELLM_HAS_HOST_NETWORK -eq 0 ]]; then
   LLM_LITELLM_OPTIONS+=(-p $LLM_LITELLM_PORT:$LLM_LITELLM_PORT)
 fi
 
-podman run -d --name llm-litellm --security-opt label=disable \
-  "${LLM_LITELLM_ENV[@]}" "${LLM_LITELLM_OPTIONS[@]}" \
-  $LLM_LITELLM_IMAGE_URL --port $LLM_LITELLM_PORT --config /etc/litellm/litellm-config.yaml --num_workers $LLM_LITELLM_WORKER_COUNT
+PODLET_IMAGE_URL="ghcr.io/containers/podlet:latest"
+PODLET_RUN=($(which podlet 2>/dev/null))
+FIND_PODLET_RESULT=$?
+if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+  (podman image inspect "$PODLET_IMAGE_URL" > /dev/null 2>&1 || podman pull "$PODLET_IMAGE_URL") && FIND_PODLET_RESULT=0 && PODLET_RUN=(podman run --rm "$PODLET_IMAGE_URL")
+fi
 
-podman generate systemd llm-litellm | tee -p "$SYSTEMD_SERVICE_DIR/llm-litellm.service"
-podman container stop llm-litellm
+if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
+  PODLET_OPTIONS=(--install --wanted-by default.target --wants network-online.target --after network-online.target)
+  for network in ${LLM_LITELLM_NETWORK[@]}; do
+    if [[ -e "$HOME/.config/containers/systemd/$network.network" ]]; then
+      PODLET_OPTIONS+=(--after "$network-network.service" --wants "$network-network.service")
+    fi
+  done
+  ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
+    podman run --name llm-litellm --security-opt label=disable \
+      "${LLM_LITELLM_ENV[@]}" "${LLM_LITELLM_OPTIONS[@]}" \
+      $LLM_LITELLM_IMAGE_URL --port $LLM_LITELLM_PORT \
+      --config /etc/litellm/litellm-config.yaml \
+      --num_workers $LLM_LITELLM_WORKER_COUNT | tee -p "$SYSTEMD_CONTAINER_DIR/llm-litellm.container"
+else
+  podman run -d --name llm-litellm --security-opt label=disable \
+    "${LLM_LITELLM_ENV[@]}" "${LLM_LITELLM_OPTIONS[@]}" \
+    $LLM_LITELLM_IMAGE_URL --port $LLM_LITELLM_PORT \
+    --config /etc/litellm/litellm-config.yaml \
+    --num_workers $LLM_LITELLM_WORKER_COUNT
+
+  if [[ $? -ne 0 ]]; then
+    echo "Failed to run llm-litellm"
+    exit 1
+  fi
+
+  podman generate systemd llm-litellm | tee -p "$SYSTEMD_SERVICE_DIR/llm-litellm.service"
+  podman container stop llm-litellm
+fi
 
 if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
-  systemctl enable llm-litellm.service
   systemctl daemon-reload
+else
+  systemctl --user daemon-reload
+fi
+
+if [[ "$SYSTEMD_SERVICE_DIR" == "/lib/systemd/system" ]]; then
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl enable llm-litellm.service
+  fi
   systemctl start llm-litellm.service
 else
-  systemctl --user enable "$SYSTEMD_SERVICE_DIR/llm-litellm.service"
-  systemctl --user daemon-reload
+  if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+    systemctl --user enable llm-litellm.service
+  fi
   systemctl --user start llm-litellm.service
+fi
+
+if [[ "x$LLM_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
+  podman image prune -a -f --filter "until=240h"
 fi
