@@ -422,6 +422,9 @@ else
   systemctl --user start nextcloud.service
 fi
 
+# 移除 skeleton 目录下的默认文件
+podman exec nextcloud bash -c "ls -d -Q /var/www/html/core/skeleton/ | grep -i -v Readme.md | xargs rm -rf"
+
 if [[ "x$NEXTCLOUD_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   podman image prune -a -f --filter "until=240h"
 fi
