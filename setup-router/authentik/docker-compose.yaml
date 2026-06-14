@@ -17,6 +17,7 @@ services:
     user: root
     volumes:
       - ./data/media:/media
+      - ./data/certs:/certs
       - ./data/custom-templates:/templates
   authentik_worker:
     container_name: "authentik-worker"

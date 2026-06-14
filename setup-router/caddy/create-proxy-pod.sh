@@ -127,7 +127,7 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
     fi
   done
   ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
-    podman run -d --name proxy-caddy --security-opt label=disable \
+    podman run --name proxy-caddy --security-opt label=disable \
     ${PODMAN_COMMON_OPTIONS[@]} "${CADDY_OPTIONS[@]}" \
     $CADDY_IMAGE_URL | tee -p "$SYSTEMD_CONTAINER_DIR/proxy-caddy.container"
 else
