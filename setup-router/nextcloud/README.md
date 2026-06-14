@@ -93,7 +93,8 @@ php occ ldap:set-config s01 ldapGroupFilter "(&(objectClass=group)(|(cn=admin)(c
 php occ ldap:set-config s01 ldapGroupFilterGroups "admin;staff;external-collaborator"
 php occ ldap:set-config s01 ldapGroupFilterObjectclass group
 # ldapGroupMemberAssocAttr 默认值是 member 和 useMemberOfToDetectMembership 冲突，会导致用户组拉取抖动
-php occ ldap:set-config s01 ldapGroupMemberAssocAttr ""
+# 但是把 ldapGroupMemberAssocAttr 设置为空可能导致无法同步群组关系，所以先保留 member ，下面 useMemberOfToDetectMembership 设为 0
+php occ ldap:set-config s01 ldapGroupMemberAssocAttr "member"
 php occ ldap:set-config s01 ldapLoginFilter "(&(&(objectClass=user)(|(memberOf=cn=staff,ou=groups,dc=example,dc=org)(memberOf=cn=external-collaborator,ou=groups,dc=example,dc=org)))(cn=%uid))"
 php occ ldap:set-config s01 ldapUserFilter "(&(objectClass=user)(|(memberOf=cn=staff,ou=groups,dc=example,dc=org)(memberOf=cn=external-collaborator,ou=groups,dc=example,dc=org)))"
 php occ ldap:set-config s01 ldapUserDisplayName displayName
@@ -116,7 +117,8 @@ php occ ldap:set-config s01 ldapCacheTTL 1800
 php occ ldap:set-config s01 ldapExperiencedAdmin 0
 php occ ldap:set-config s01 ldapUserFilterMode 0
 # 如果上面使用 ldapGroupMemberAssocAttr , 这里需要设置成0, 然后移除所有 memberOf 相关的 filter,组限制改用基于 DN 的 group filter
-php occ ldap:set-config s01 useMemberOfToDetectMembership 1
+# 但是把 ldapGroupMemberAssocAttr 设置为空可能导致无法同步群组关系，所以先保留 member ，下面 useMemberOfToDetectMembership 设为 0
+php occ ldap:set-config s01 useMemberOfToDetectMembership 0
 php occ ldap:set-config s01 ldapConfigurationActive 1
 
 ```rst

@@ -1,0 +1,302 @@
+# https://github.com/BerriAI/litellm/blob/main/proxy_server_config.yaml
+model_list:
+  - model_name: glm-5
+    litellm_params:
+      model: zai/glm-5
+      api_base: https://open.bigmodel.cn/api/coding/paas/v4
+      api_key: "LLM_PLACEHOLDER_GLM_API_KEY"
+    model_info:
+      base_model: zai/glm-5
+  - model_name: glm-5.1
+    litellm_params:
+      model: zai/glm-5.1
+      api_base: https://open.bigmodel.cn/api/coding/paas/v4
+      api_key: "LLM_PLACEHOLDER_GLM_API_KEY"
+    model_info:
+      base_model: zai/glm-5
+  - model_name: glm-5-turbo
+    litellm_params:
+      model: zai/glm-5-turbo
+      api_base: https://open.bigmodel.cn/api/coding/paas/v4
+      api_key: "LLM_PLACEHOLDER_GLM_API_KEY"
+    model_info:
+      base_model: zai/glm-5
+  - model_name: TencentCloud/GLM-5
+    litellm_params:
+      model: zai/glm-5
+      api_base: https://api.lkeap.cloud.tencent.com/coding/v3
+      api_key: "LLM_PLACEHOLDER_TENCENTCLOUD_API_KEY"
+    model_info:
+      base_model: zai/glm-5
+  - model_name: TencentCloud/Kimi-K2.5
+    litellm_params:
+      model: moonshot/kimi-k2.5
+      api_base: https://api.lkeap.cloud.tencent.com/coding/v3
+      api_key: "LLM_PLACEHOLDER_TENCENTCLOUD_API_KEY"
+    model_info:
+      base_model: moonshot/kimi-k2.5
+  - model_name: TencentCloud/MiniMax-M2.5
+    litellm_params:
+      model: minimax/minimax-m2.5
+      api_base: https://api.lkeap.cloud.tencent.com/coding/v3
+      api_key: "LLM_PLACEHOLDER_TENCENTCLOUD_API_KEY"
+    model_info:
+      base_model: minimax/MiniMax-M2.5
+  - model_name: claude-sonnet-4.6
+    litellm_params:
+      model: openrouter/anthropic/claude-sonnet-4.6
+      api_key: LLM_PLACEHOLDER_OPENROUTER_API_KEY
+  - model_name: claude-opus-4.8
+    litellm_params:
+      model: openrouter/anthropic/claude-opus-4.8
+      api_key: LLM_PLACEHOLDER_OPENROUTER_API_KEY
+  - model_name: claude-fable-5
+    litellm_params:
+      model: openrouter/anthropic/claude-fable-5
+      api_key: LLM_PLACEHOLDER_OPENROUTER_API_KEY
+    model_info:
+      base_model: claude-opus-4-8
+  - model_name: claude-haiku-4.5
+    litellm_params:
+      model: openrouter/anthropic/claude-haiku-4.5
+      api_key: LLM_PLACEHOLDER_OPENROUTER_API_KEY
+  - model_name: gpt-latest
+    litellm_params:
+      model: openrouter/openai/gpt-5.5
+      api_key: LLM_PLACEHOLDER_OPENROUTER_API_KEY
+    model_info:
+      base_model: gpt-5.5
+  - model_name: gpt-latest-chat
+    litellm_params:
+      model: openrouter/openai/gpt-5.3-chat
+      api_key: LLM_PLACEHOLDER_OPENROUTER_API_KEY
+    model_info:
+      base_model: gpt-5.3-chat-latest
+  - model_name: gpt-latest-pro
+    litellm_params:
+      model: openrouter/openai/gpt-5.5-pro
+      api_key: LLM_PLACEHOLDER_OPENROUTER_API_KEY
+    model_info:
+      base_model: gpt-5.5-pro
+  - model_name: gpt-latest-codex
+    litellm_params:
+      model: openrouter/openai/gpt-5.3-codex
+      api_key: LLM_PLACEHOLDER_OPENROUTER_API_KEY
+    model_info:
+      base_model: gpt-5.3-codex
+  - model_name: gpt-latest-image
+    litellm_params:
+      model: openai/gpt-image-1.5
+      api_base: https://aihubmix.com/v1
+      api_key: LLM_PLACEHOLDER_AIHUBMIX_API_KEY
+    model_info:
+      base_model: gpt-image-1.5
+      mode: image_generation
+  - model_name: gpt-5.5
+    litellm_params:
+      model: openrouter/openai/gpt-5.5
+      api_key: LLM_PLACEHOLDER_OPENROUTER_API_KEY
+    model_info:
+      base_model: gpt-5.5
+  - model_name: gpt-5.5-pro
+    litellm_params:
+      model: openrouter/openai/gpt-5.5-pro
+      api_key: LLM_PLACEHOLDER_OPENROUTER_API_KEY
+    model_info:
+      base_model: gpt-5.5-pro
+  - model_name: gpt-5.4
+    litellm_params:
+      model: openrouter/openai/gpt-5.4
+      api_key: LLM_PLACEHOLDER_OPENROUTER_API_KEY
+    model_info:
+      base_model: gpt-5.4
+  - model_name: gpt-5.4-pro
+    litellm_params:
+      model: openrouter/openai/gpt-5.4-pro
+      api_key: LLM_PLACEHOLDER_OPENROUTER_API_KEY
+    model_info:
+      base_model: gpt-5.4-pro
+  - model_name: gpt-5.3-chat
+    litellm_params:
+      model: openrouter/openai/gpt-5.3-chat
+      api_key: LLM_PLACEHOLDER_OPENROUTER_API_KEY
+    model_info:
+      base_model: gpt-5.3-chat-latest
+  - model_name: gpt-5.2
+    litellm_params:
+      model: openrouter/openai/gpt-5.2
+      api_key: LLM_PLACEHOLDER_OPENROUTER_API_KEY
+    model_info:
+      base_model: gpt-5.2
+  - model_name: gpt-5.2-chat
+    litellm_params:
+      model: openrouter/openai/gpt-5.2-chat
+      api_key: LLM_PLACEHOLDER_OPENROUTER_API_KEY
+    model_info:
+      base_model: gpt-5.2-chat-latest
+  - model_name: gpt-5.2-pro
+    litellm_params:
+      model: openrouter/openai/gpt-5.2-pro
+      api_key: LLM_PLACEHOLDER_OPENROUTER_API_KEY
+    model_info:
+      base_model: gpt-5.2-pro
+  - model_name: gpt-5.4-image-2
+    litellm_params:
+      model: openrouter/openai/gpt-5.4-image-2
+      api_key: LLM_PLACEHOLDER_OPENROUTER_API_KEY
+    model_info:
+      mode: image_generation
+  - model_name: gpt-image-2
+    litellm_params:
+      model: openai/gpt-image-2
+      api_base: https://aihubmix.com/v1
+      api_key: LLM_PLACEHOLDER_AIHUBMIX_API_KEY
+    model_info:
+      mode: image_generation
+  - model_name: gpt-image-1.5
+    litellm_params:
+      model: openai/gpt-image-1.5
+      api_base: https://aihubmix.com/v1
+      api_key: LLM_PLACEHOLDER_AIHUBMIX_API_KEY
+    model_info:
+      base_model: gpt-image-1.5
+      mode: image_generation
+  - model_name: dall-e-3
+    litellm_params:
+      model: dall-e-3
+      api_base: https://aihubmix.com/v1
+      api_key: LLM_PLACEHOLDER_AIHUBMIX_API_KEY
+    model_info:
+      mode: image_generation
+  - model_name: grok-4.1-fast
+    litellm_params:
+      model: openrouter/x-ai/grok-4.1-fast
+      api_key: LLM_PLACEHOLDER_OPENROUTER_API_KEY
+    model_info:
+      base_model: xai/grok-4-1-fast-reasoning
+  - model_name: grok-4
+    litellm_params:
+      model: openrouter/x-ai/grok-4
+      api_key: LLM_PLACEHOLDER_OPENROUTER_API_KEY
+    model_info:
+      base_model: xai/grok-4
+  - model_name: grok-code-fast-1
+    litellm_params:
+      model: openrouter/x-ai/grok-code-fast-1
+      api_key: LLM_PLACEHOLDER_OPENROUTER_API_KEY
+    model_info:
+      base_model: xai/grok-code-fast
+  - model_name: deepseek-v4-flash
+    litellm_params:
+      model: deepseek/deepseek-v4-flash
+      api_base: https://api.deepseek.com/v1
+      api_key: LLM_PLACEHOLDER_DEEPSEEK_API_KEY
+    model_info:
+      max_tokens: 1048576
+      max_input_tokens: 393216
+      max_output_tokens: 393216
+      supports_assistant_prefill: true
+      supports_function_calling: true
+      supports_prompt_caching: true
+      supports_reasoning: true
+      supports_tool_choice: true
+  - model_name: deepseek-v4-pro
+    litellm_params:
+      model: deepseek/deepseek-v4-pro
+      api_base: https://api.deepseek.com/v1
+      api_key: LLM_PLACEHOLDER_DEEPSEEK_API_KEY
+    model_info:
+      max_tokens: 1048576
+      max_input_tokens: 393216
+      max_output_tokens: 393216
+      supports_assistant_prefill: true
+      supports_function_calling: true
+      supports_prompt_caching: true
+      supports_reasoning: true
+      supports_tool_choice: true
+  - model_name: gemini-3-flash-preview
+    litellm_params:
+      model: vertex_ai/gemini-3-flash-preview
+      vertex_project: "api-project-429734047293"
+      vertex_location: "global"
+      vertex_credentials: "/etc/litellm/google-application-credentials.json"
+    model_info:
+      base_model: vertex_ai/gemini-3-flash-preview
+  - model_name: gemini-3-pro-image-preview
+    litellm_params:
+      model: vertex_ai/gemini-3-pro-image-preview
+      vertex_project: "api-project-429734047293"
+      vertex_location: "global"
+      vertex_credentials: "/etc/litellm/google-application-credentials.json"
+    model_info:
+      base_model: vertex_ai/gemini-3-pro-image-preview
+  - model_name: gemini-3.1-pro-preview
+    litellm_params:
+      model: vertex_ai/gemini-3.1-pro-preview
+      vertex_project: "api-project-429734047293"
+      vertex_location: "global"
+      vertex_credentials: "/etc/litellm/google-application-credentials.json"
+    model_info:
+      base_model: vertex_ai/gemini-3.1-pro-preview
+  - model_name: gemini-3.1-flash-image-preview
+    litellm_params:
+      model: vertex_ai/gemini-3.1-flash-image-preview
+      vertex_project: "api-project-429734047293"
+      vertex_location: "global"
+      vertex_credentials: "/etc/litellm/google-application-credentials.json"
+    model_info:
+      base_model: vertex_ai/gemini-3.1-flash-image-preview
+  - model_name: text-embedding-3-small
+    litellm_params:
+      model: vertex_ai/gemini-embedding-2
+      vertex_project: "api-project-429734047293"
+      vertex_location: "global"
+      vertex_credentials: "/etc/litellm/google-application-credentials.json"
+  - model_name: gemini-embedding
+    litellm_params:
+      model: vertex_ai/gemini-embedding-2
+      vertex_project: "api-project-429734047293"
+      vertex_location: "global"
+      vertex_credentials: "/etc/litellm/google-application-credentials.json"
+  - model_name: codestral
+    litellm_params:
+      model: vertex_ai/codestral-2501
+      vertex_project: "api-project-429734047293"
+      vertex_location: "us-central1"
+      vertex_credentials: "/etc/litellm/google-application-credentials.json"
+    model_info:
+      base_model: mistral/codestral-2508
+  - model_name: codestral-2
+    litellm_params:
+      model: vertex_ai/codestral-2
+      vertex_project: "api-project-429734047293"
+      vertex_location: "us-central1"
+      vertex_credentials: "/etc/litellm/google-application-credentials.json"
+    model_info:
+      base_model: mistral/codestral-2508
+      max_tokens: 128000
+  - model_name: codestral/codestral-latest
+    litellm_params:
+      model: vertex_ai/codestral-2
+      vertex_project: "api-project-429734047293"
+      vertex_location: "us-central1"
+      vertex_credentials: "/etc/litellm/google-application-credentials.json"
+    model_info:
+      base_model: mistral/codestral-2508
+      max_tokens: 128000
+router_settings:
+  redis_host: os.environ/REDIS_HOST
+  #   redis_password: os.environ/REDIS_PASSWORD
+  redis_port: os.environ/REDIS_PORT
+litellm_settings:
+  # vertex_ai need this option to work around google api quota limits
+  drop_params: true
+general_settings:
+  allow_user_auth: true
+  store_model_in_db: True
+  proxy_batch_write_at: 60
+  # log_level: "DEBUG"
+  # 限制最大并发请求(2G内存推荐值)
+  # max_parallel_requests: 50
+  global_max_parallel_requests: 50
+  database_connection_pool_limit: 5

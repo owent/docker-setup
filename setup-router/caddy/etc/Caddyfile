@@ -17,7 +17,13 @@
 	# }
 }
 
+(common) {
+  encode zstd gzip
+}
+
 media.x-ha.com {
+	import common
+
 	reverse_proxy {
 		to http://127.0.0.1:8096
 		header_up Host {http.request.host}
