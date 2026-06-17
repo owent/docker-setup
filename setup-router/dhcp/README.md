@@ -1,4 +1,10 @@
-# dhcpd 注意事项
+# dhcp 注意事项
+
+## 启用VLAN的非桥接interface的问题
+
+解决方案: 让 untagged 和 tagged 使用不同的虚拟网卡。
+
+## DHCPD
 
 - 由于网络启动顺序和时间不定， `/lib/systemd/system/dhcpd4.service` 中请确保 `RestartSec` 和 `StartLimitInterval` 足够大。不然容器启动失败。
 

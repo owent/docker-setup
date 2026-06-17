@@ -160,8 +160,6 @@ maxage 30
 # 压缩旧日志
 compress
 delaycompress
-```
-
 
 # rlimit
 echo "
