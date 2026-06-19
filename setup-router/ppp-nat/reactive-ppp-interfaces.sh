@@ -55,3 +55,27 @@ if [[ ${#DHCPD_IPV4_ADDRESS[@]} -gt 0 ]]; then
     systemctl -q status dhcpd4.service >/dev/null || systemctl start dhcpd4.service
   fi
 fi
+
+# Only enable radvd in main router, disable in backup router to avoid radvd conflict
+KEEPALIVED_DIR="$(dirname "$SCRIPT_DIR")/keepalived"
+if [[ -e "$KEEPALIVED_DIR/etc/is-master.sh" ]]; then
+  RADVD_STATUS=$(systemctl status radvd.service | grep Active: | awk '{print $2}')
+  /bin/bash "$KEEPALIVED_DIR/etc/is-master.sh" --quiet
+  if [[ $? -eq 0 ]]; then
+    if [[ "$RADVD_STATUS" == "inactive" ]]; then
+      echo "Enable radvd.service for master router"
+      systemctl enable --now keepalived.service
+    else
+      echo "radvd.service is already active for master router"
+    fi
+  else
+    if [[ "$RADVD_STATUS" == "active" ]]; then
+      echo "Disable radvd.service for backup router"
+      systemctl disable radvd.service
+      systemctl stop radvd.service
+    else
+      echo "radvd.service is already inactive for backup router"
+    fi
+  fi
+fi
+
