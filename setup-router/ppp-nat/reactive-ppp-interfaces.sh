@@ -64,7 +64,7 @@ if [[ -e "$KEEPALIVED_DIR/etc/is-master.sh" ]]; then
   if [[ $? -eq 0 ]]; then
     if [[ "$RADVD_STATUS" == "inactive" ]]; then
       echo "Enable radvd.service for master router"
-      systemctl enable --now keepalived.service
+      systemctl enable --now radvd.service
     else
       echo "radvd.service is already active for master router"
     fi
