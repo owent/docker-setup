@@ -62,9 +62,9 @@ if [[ ! -z "$P4JOURNAL" ]]; then
     echo "$(which p4d) -jj $LOGDIR/journal.bak" >> /opt/p4d-rotate-journal.sh
     echo "find $LOGDIR/ -name 'journal.bak*' -mtime +15 -exec rm -f '{}' \;" >> /opt/p4d-rotate-journal.sh
     chmod +x /opt/p4d-rotate-journal.sh
-    crontab -l | grep p4d-rotate-journal || echo '0 */4 * * * /bin/bash /opt/p4d-rotate-journal.sh' | crontab -
+    crontab -l | grep p4d-rotate-journal || (crontab -l ; echo '0 */4 * * * /bin/bash /opt/p4d-rotate-journal.sh') | crontab -
 fi
 # Install cron job for logrotate if not already present
-crontab -l | grep logrotate || echo '0 */4 * * * /usr/sbin/logrotate /etc/logrotate.conf' | crontab -
+crontab -l | grep logrotate || (crontab -l ; echo '0 */4 * * * /usr/sbin/logrotate /etc/logrotate.conf') | crontab -
 
 exec "$@"
