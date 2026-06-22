@@ -267,6 +267,7 @@ systemd-machine-id-setup
 ### PVE的GUI没有设置VLAN tag passthrough的选项，需要命令行设置
 ### sudo qm set <VM ID> --net<N> <其他选项照抄>,trunks=2-4094
 sudo qm set 108 --net2 virtio=BC:24:11:8F:C6:1B,bridge=vmbr0,firewall=1,queues=4,trunks=2-4094
+### 然后让处理 untagged 包的网卡打上 tag 1 (否则DHCP广播会泄露)
 
 # IOMMU, IO直通()
 ## /etc/default/grub 的GRUB_CMDLINE_LINUX_DEFAULT里开 "quiet iommu=pt pcie_acs_override=downstream,multifunction pci=nommconf"

@@ -11,6 +11,8 @@
 sudo qm set 108 --net2 virtio=BC:24:11:8F:C6:1B,bridge=vmbr0,firewall=1,queues=4,trunks=2-4094
 ```
 
+然后让处理 untagged 包的网卡打上 tag 1 (否则DHCP广播会泄露)
+
 ## DHCPD
 
 - 由于网络启动顺序和时间不定， `/lib/systemd/system/dhcpd4.service` 中请确保 `RestartSec` 和 `StartLimitInterval` 足够大。不然容器启动失败。
