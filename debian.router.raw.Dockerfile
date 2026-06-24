@@ -12,6 +12,7 @@ RUN cp -f /etc/apt/sources.list /etc/apt/sources.list.bak ;                     
     apt install -y ppp pppconfig pppoe pppoeconf ipset ndisc6 dsniff;                            \
     apt install -y traceroute tcptraceroute tcpdump netcat-openbsd ncat network-manager nftables;               \
     apt install -y systemd-timesyncd yq jq;                                                                     \
+    apt install -y linux-cpupower lm-sensors stress-ng ;                                                        \
     echo "LANG=en_US.UTF-8" >  /etc/default/locale;                                                             \
     echo "LANGUAGE=en_US.UTF-8" >> /etc/default/locale;                                                         \
     ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/timezone;                                                      \

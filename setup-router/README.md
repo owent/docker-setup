@@ -269,8 +269,11 @@ systemd-machine-id-setup
 sudo qm set 108 --net2 virtio=BC:24:11:8F:C6:1B,bridge=vmbr0,firewall=1,queues=4,trunks=2-4094
 ### 然后让处理 untagged 包的网卡打上 tag 1 (否则DHCP广播会泄露)
 
-# IOMMU, IO直通()
+# IOMMU, IO直通
 ## /etc/default/grub 的GRUB_CMDLINE_LINUX_DEFAULT里开 "quiet iommu=pt pcie_acs_override=downstream,multifunction pci=nommconf"
+## 注意，如果是ZFS安装，内核选项可能是在 /etc/kernel/cmdline 里
+##   如果你的 PVE 用 GRUB 启动：改 /etc/default/grub
+##   如果你的 PVE 用 systemd-boot / proxmox-boot-tool 启动：改 /etc/kernel/cmdline
 ## # update-grub
 ### + For Intel CPUs (VT-d) set intel_iommu=on, unless your kernel sets the CONFIG_INTEL_IOMMU_DEFAULT_ON config option.
 ### + For AMD CPUs (AMD-Vi), IOMMU support is enabled automatically if the kernel detects IOMMU hardware support from the BIOS.

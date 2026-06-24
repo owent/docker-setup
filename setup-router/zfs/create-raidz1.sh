@@ -34,6 +34,9 @@ sudo apt install -y irqbalance
 sudo systemctl enable --now irqbalance
 
 # 给内核加供电管理参数，关掉省电 Debian通常是 /etc/default/grub
+## 注意，如果是ZFS安装，内核选项可能是在 /etc/kernel/cmdline 里
+##   如果你的 PVE 用 GRUB 启动：改 /etc/default/grub
+##   如果你的 PVE 用 systemd-boot / proxmox-boot-tool 启动：改 /etc/kernel/cmdline
 # GRUB_CMDLINE_LINUX_DEFAULT加 nvme_core.default_ps_max_latency_us=0 pcie_aspm=off pcie_port_pm=off
 # 然后 sudo update-grub && sudo reboot
 
