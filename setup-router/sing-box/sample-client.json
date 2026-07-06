@@ -42,30 +42,31 @@
       //   "tls": {},
       //   "detour": "out-ai-dns"
       // },
-      {
-        "tag": "dns-local",
-        "type": "tls",
-        "server": "223.5.5.5",
-        "server_port": 853,
-        "tls": {},
-        "detour": "direct"
-      } // ,
       // {
       //   "tag": "dns-local",
-      //   "type": "https",
+      //   "type": "tls",
       //   "server": "223.5.5.5",
-      //   "server_port": 443,
-      //   "path": "/dns-query",
+      //   "server_port": 853,
       //   "tls": {},
       //   "detour": "direct"
       // },
-      // {
-      //   "tag": "dns-local",
-      //   "type": "udp",
-      //   "server": "223.5.5.5",
-      //   "server_port": 53,
-      //   "detour": "direct"
-      // },
+      {
+        "tag": "dns-local",
+        "type": "https",
+        "server": "dns.alidns.com",
+        "server_port": 443,
+        "path": "/dns-query",
+        "tls": {},
+        "detour": "direct",
+        "domain_resolver": "dns-local-udp"
+      },
+      {
+        "tag": "dns-local-udp",
+        "type": "udp",
+        "server": "223.5.5.5",
+        "server_port": 53,
+        "detour": "direct"
+      } // ,
       // {
       //   "tag": "dns-local",
       //   "type": "local",
@@ -650,9 +651,7 @@
       "type": "direct",
       "tag": "direct",
       "domain_resolver": {
-        "server": "dns-local" // ,
-        // "rewrite_ttl": 60,
-        // "strategy": "prefer_ipv4" // prefer_ipv4, prefer_ipv6, ipv4_only, ipv6_only
+        "server": "dns-local-udp"
       }
     }
   ],
