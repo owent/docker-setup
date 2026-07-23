@@ -100,6 +100,16 @@ p4 -p $P4CLIENT_PORT -u admin ldapsync -g
 
 # 开启Monitor
 p4 -p $P4CLIENT_PORT -u admin configure set monitor=1
+
+# 开启并发传输（依赖monitor=1 ，8核/8GB 内存建议值）
+## 单命令线程上限：8，按官方"8 优于 20"的经验
+p4 -p $P4CLIENT_PORT -u admin configure set net.parallel.max=8
+
+## 服务端默认线程数：所有 sync 自动并行，客户端不用加任何参数
+p4 -p $P4CLIENT_PORT -u admin configure set net.parallel.threads=4
+
+## 服务器级总闸：全服务器并发传输线程超过 16 时，自动削减 sync 的线程数
+p4 -p $P4CLIENT_PORT -u admin configure set net.parallel.sync.svrthreads=16
 ```
 
 ### 使用S3/Minio存储Archive
