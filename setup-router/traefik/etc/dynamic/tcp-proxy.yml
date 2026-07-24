@@ -13,7 +13,7 @@
 #   - 支持 TLS 终止 (Traefik 解密后转发)
 #   - 支持 ProxyProtocol (传递真实客户端 IP)
 #
-# 注意: TCP 路由不支持 HTTP 中间件 (headers, rateLimit 等)
+# 注意: TCP 路由不支持 HTTP 中间件 (headers, rateLimit 等)，不支持权重配置(weight)。
 # ============================================================================
 
 tcp:
@@ -57,10 +57,8 @@ tcp:
       loadBalancer:
         servers:
           - address: "git-backend.example.org:22"
-            weight: 1
           # 可添加多个后端:
           # - address: "git-backend2.example.org:22"
-          #   weight: 1
         # 启用 ProxyProtocol (后端需要支持)
         # proxyProtocol:
         #   version: 2
@@ -72,9 +70,7 @@ tcp:
     #   loadBalancer:
     #     servers:
     #       - address: "db-primary.internal:5432"
-    #         weight: 3
     #       - address: "db-replica.internal:5432"
-    #         weight: 1
 
     # --- Perforce (P4D) 代理示例 ---
     # p4d-service:
