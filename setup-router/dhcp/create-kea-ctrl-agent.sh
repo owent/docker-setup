@@ -104,7 +104,7 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
   PODLET_OPTIONS=(--install --wanted-by default.target --wants network-online.target --after network-online.target)
   
   ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
-    podman run -d --name kea-ctrl-agent "${KEA_OPTIONS[@]}" \
+    podman run --name kea-ctrl-agent "${KEA_OPTIONS[@]}" \
       local-kea -- /usr/sbin/kea-ctrl-agent -c /etc/kea/kea-ctrl-agent.conf  | \
       sed "/\\[Install/i [Service]\n$KEA_EXEC_RELOAD" | \
       tee -p "$SYSTEMD_CONTAINER_DIR/kea-ctrl-agent.container"

@@ -65,7 +65,7 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
     fi
   done
   ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
-    podman run -d --name cloudflare-create-zero-trust-tunnel --security-opt label=disable \
+    podman run --name cloudflare-create-zero-trust-tunnel --security-opt label=disable \
       -e "TZ=Asia/Shanghai" \
       $CLOUDFLARE_ZERO_TRUST_TUNNEL_IMAGE \
       tunnel --no-autoupdate run --token "$CLOUDFLARE_ZERO_TRUST_TUNNEL_TOKEN" | tee -p "$SYSTEMD_CONTAINER_DIR/cloudflare-create-zero-trust-tunnel.container"

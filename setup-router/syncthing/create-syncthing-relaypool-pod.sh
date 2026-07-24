@@ -123,7 +123,7 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
     fi
   done
   ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
-    podman run -d --name syncthing-relay-pool --security-opt label=disable \
+    podman run --name syncthing-relay-pool --security-opt label=disable \
       -e "GEOIP_LICENSE_KEY=$GEOIP_LICENSE_KEY" -e "GEOIP_ACCOUNT_ID=$GEOIP_ACCOUNT_ID" \
       --mount type=bind,source=$SYNCTHING_SSL_DIR,target=/syncthing/ssl/ \
       --mount type=bind,source=$SYNCTHING_DATA_DIR,target=/syncthing/data/ \
