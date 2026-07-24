@@ -15,7 +15,9 @@
         "type": "tls",
         "server": "8.8.8.8",
         "server_port": 853,
-        "tls": {},
+        "tls": {
+          "server_name": "dns.google"
+        },
         "detour": "out-fast-dns"
       },
       // {
@@ -31,7 +33,9 @@
         "type": "tls",
         "server": "8.8.8.8",
         "server_port": 853,
-        "tls": {},
+        "tls": {
+          "server_name": "dns.google"
+        },
         "detour": "out-ai-dns"
       },
       // {
@@ -73,8 +77,10 @@
       //   "detour": "direct"
       // }
     ],
-    // 默认使用第一个服务器
-    // "final": "",
+    // 大陆白名单模式：未命中 DNS 规则时使用 FAST 远程 DNS。
+    "final": "dns-fast",
+    // 保存 DNS 响应中的 IP -> 域名映射，供 TUN 路由匹配域名规则。
+    "reverse_mapping": true,
     "rules": [
       // If using ip_cidr/ip_is_private/rule_set_ip_cidr_accept_empty in dns.rules, evaluate is required.
       // And these rules must have "match_response": true, and the last rule can be "action": "respond", so
@@ -151,8 +157,33 @@
       },
       {
         "rule_set": [
-          "geosite-ai",
           "geosite-google"
+        ],
+        "action": "route",
+        "rewrite_ttl": 600,
+        "server": "dns-ai"
+      },
+      {
+        "rule_set": [
+          "geosite-unity",
+          "geosite-category-ai-!cn",
+          "geosite-openai",
+          "geosite-anthropic"
+        ],
+        "action": "route",
+        "rewrite_ttl": 600,
+        "server": "dns-ai"
+      },
+      {
+        "domain_keyword": [
+          "anthropic",
+          "claude",
+          "openai",
+          "chatgpt"
+        ],
+        "domain_suffix": [
+          "nextcloud.com",
+          "topazlabs.com"
         ],
         "action": "route",
         "rewrite_ttl": 600,
@@ -190,7 +221,6 @@
       // }
     ],
     // "cache_capacity": 2097152,
-    "reverse_mapping": true // ,
     // 如果上面路由规则里有配置fakeip,请确保fakeip的路由要转入 tun
     // "fakeip": {
     //   "enabled": true,
@@ -668,14 +698,21 @@
         "outbound": "out-ai"
       },
       {
-        // "inbound": ["in-tun", "in-trojan", "in-dns", "in-http", "in-socks", "in-dns-auto"],
+        "inbound": "in-tun",
         "action": "sniff",
-        // 不sniff SSH协议，似乎会导致DNS解析不稳定
-        "sniffer": ["http", "tls", "quic", "stun", "dns", "bittorrent", "dtls", "rdp", "ntp"],
-        "timeout": "3s"
+        "timeout": "1s"
       },
       {
-        "protocol": "dns",
+        "type": "logical",
+        "mode": "or",
+        "rules": [
+          {
+            "port": 53
+          },
+          {
+            "protocol": "dns"
+          }
+        ],
         "action": "hijack-dns"
       },
       {
@@ -761,6 +798,31 @@
       },
       {
         "rule_set": [
+          "geosite-unity",
+          "geosite-category-ai-!cn",
+          "geosite-openai",
+          "geosite-anthropic"
+        ],
+        "action": "route",
+        "outbound": "out-ai"
+      },
+      {
+        "domain_keyword": [
+          "anthropic",
+          "claude",
+          "openai",
+          "chatgpt"
+        ],
+        // Special domains
+        "domain_suffix": [
+          "nextcloud.com",
+          "topazlabs.com"
+        ],
+        "action": "route",
+        "outbound": "out-ai"
+      },
+      {
+        "rule_set": [
           "geoip-cn",
           "geosite-geolocation-cn",
           "geosite-speedtest",
@@ -823,16 +885,6 @@
         ],
         "action": "route",
         "outbound": "direct"
-      },
-      // AI分流(Google走AI分流，降低锁区判定和主代理负载)
-      {
-        "rule_set": [
-          "geosite-ai",
-          "geoip-google",
-          "geosite-google"
-        ],
-        "action": "route",
-        "outbound": "out-ai"
       }
     ],
     "rule_set": [
@@ -946,15 +998,27 @@
       },
       {
         "type": "local",
+        "tag": "geosite-unity",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-unity.srs"
+      },
+      {
+        "type": "local",
         "tag": "geosite-category-ai-!cn",
         "format": "binary",
         "path": "/usr/share/vbox/geosite/geosite-category-ai-!cn.srs"
       },
       {
         "type": "local",
-        "tag": "geosite-ai",
+        "tag": "geosite-anthropic",
         "format": "binary",
-        "path": "/usr/share/vbox/geosite/geosite-ai.srs"
+        "path": "/usr/share/vbox/geosite/geosite-anthropic.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-openai",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-openai.srs"
       },
       {
         "type": "local",
@@ -976,8 +1040,8 @@
         "path": "/usr/share/vbox/geosite/geosite-connectivity-check.srs"
       }
     ],
-    // 默认出站标签。如果为空，将使用第一个可用于对应协议的出站。
-    // "final": "",
+    // 大陆白名单模式：未命中规则时使用 FAST。
+    "final": "out-fast",
     // 有时候sing-box的自动检测会有冲突，最好手动指定
     "auto_detect_interface": false,
     // "default_interface": "ppp0",
