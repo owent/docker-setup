@@ -102,7 +102,7 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
   PODLET_OPTIONS=(--install --wanted-by default.target --wants network-online.target --after network-online.target)
   
   ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
-    podman run -d --name kea-dhcp4 "${KEA_OPTIONS[@]}" \
+    podman run --name kea-dhcp4 "${KEA_OPTIONS[@]}" \
         local-kea -- /usr/sbin/kea-dhcp4 -c /etc/kea/kea-dhcp4.conf | \
       sed "/\\[Install/i [Service]\n$KEA_EXEC_RELOAD" | \
     tee -p "$SYSTEMD_CONTAINER_DIR/kea-dhcp4.container"

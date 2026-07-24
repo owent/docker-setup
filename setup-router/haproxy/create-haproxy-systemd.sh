@@ -111,7 +111,7 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
     fi
   done
   ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
-    podman run -d --name haproxy --security-opt label=disable \
+    podman run --name haproxy --security-opt label=disable \
       "${HAPROXY_OPTIONS[@]}" \
       $HAPROXY_IMAGE \
       haproxy -f /etc/haproxy/haproxy.cfg | tee -p "$SYSTEMD_CONTAINER_DIR/haproxy.container"

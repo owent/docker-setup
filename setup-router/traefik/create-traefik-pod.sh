@@ -237,7 +237,7 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
     fi
   done
   ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
-    podman run -d --name proxy-traefik --security-opt label=disable \
+    podman run --name proxy-traefik --security-opt label=disable \
     "${TRAEFIK_OPTIONS[@]}" \
     "$TRAEFIK_IMAGE" | tee -p "$SYSTEMD_CONTAINER_DIR/proxy-traefik.container"
 else

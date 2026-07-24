@@ -143,7 +143,7 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
     fi
   done
   ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
-    podman run -d --name syncthing-client --security-opt label=disable \
+    podman run --name syncthing-client --security-opt label=disable \
     ${SYNCTHING_OPTIONS[@]} \
     docker.io/syncthing/syncthing:latest \
     "${SYNCTHING_SERVER_OPTIONS[@]}" \

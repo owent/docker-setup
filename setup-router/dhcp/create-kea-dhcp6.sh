@@ -106,7 +106,7 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
   PODLET_OPTIONS=(--install --wanted-by default.target --wants network-online.target --after network-online.target)
   
   ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
-    podman run -d --name kea-dhcp6 "${KEA_OPTIONS[@]}" \
+    podman run --name kea-dhcp6 "${KEA_OPTIONS[@]}" \
         local-kea -- /usr/sbin/kea-dhcp6 -c /etc/kea/kea-dhcp6.conf | \
       sed "/\\[Install/i [Service]\n$KEA_EXEC_RELOAD" | \
       tee -p "$SYSTEMD_CONTAINER_DIR/kea-dhcp6.container"

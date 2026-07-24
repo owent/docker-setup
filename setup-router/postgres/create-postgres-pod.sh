@@ -180,11 +180,11 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
     fi
   done
   ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
-    podman run -d --name postgres-db --security-opt label=disable \
+    podman run --name postgres-db --security-opt label=disable \
       "${POSTGRES_OPTIONS[@]}" $POSTGRES_IMAGE -- "${POSTGRES_POD_ARGS[@]}" \
        | tee -p "$SYSTEMD_CONTAINER_DIR/postgres-db.container"
 else
-    podman run -d --name postgres-db --security-opt label=disable \
+  podman run -d --name postgres-db --security-opt label=disable \
       "${POSTGRES_OPTIONS[@]}" $POSTGRES_IMAGE "${POSTGRES_POD_ARGS[@]}"
 
   if [[ $? -ne 0 ]]; then
