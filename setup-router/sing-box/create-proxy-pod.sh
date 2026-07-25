@@ -100,7 +100,7 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
   ${PODLET_RUN[@]} "${PODLET_OPTIONS[@]}" \
     $DOCKER_EXEC run --name vbox-proxy "${VBOX_DOCKER_OPRIONS[@]}" \
       "$VBOX_IMAGE_URL" -D /var/lib/vbox -C /etc/vbox/ run | \
-      sed "/\\[Install/i [Service]\nExecStartPost=$(which $DOCKER_EXEC) exec vbox-proxy ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/timezone" | \
+      sed "/\\[Install/i [Service]\nExecStartPost=$(which $DOCKER_EXEC) exec vbox-proxy ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/localtime" | \
       tee -p "$SYSTEMD_CONTAINER_DIR/vbox-proxy.container"
 else
   $DOCKER_EXEC run -d --name vbox-proxy "${VBOX_DOCKER_OPRIONS[@]}" \
@@ -112,7 +112,7 @@ else
   fi
 
   $DOCKER_EXEC generate systemd vbox-proxy | \
-    sed "/ExecStart=/a ExecStartPost=$(which $DOCKER_EXEC) exec vbox-proxy ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/timezone" | \
+    sed "/ExecStart=/a ExecStartPost=$(which $DOCKER_EXEC) exec vbox-proxy ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/localtime" | \
   tee -p "$SYSTEMD_SERVICE_DIR/vbox-proxy.service"
   $DOCKER_EXEC container stop vbox-proxy
 fi

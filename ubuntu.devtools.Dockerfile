@@ -22,7 +22,7 @@ RUN /bin/bash /opt/docker-setup/replace-source.sh ;                             
     groupadd -g 29998 tools; useradd -u 29998 -g 29998 -m tools -s /bin/bash ;                                  \
     echo "LANG=en_US.UTF-8" >  /etc/default/locale;                                                             \
     echo "LANGUAGE=en_US.UTF-8" >> /etc/default/locale;                                                         \
-    ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/timezone;                                                      \
+    ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/localtime;                                                      \
     timedatectl set-ntp true;                                                                                   \
     /bin/bash /opt/docker-setup/cleanup.devtools.sh
 

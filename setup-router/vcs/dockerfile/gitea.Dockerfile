@@ -11,7 +11,7 @@ RUN sed -i.bak -r 's#dl-cdn.alpinelinux.org#mirrors.ustc.edu.cn#g' /etc/apk/repo
     apk cache clean -f ; \
     echo "export LANG=en_US.UTF-8" | tee -a /etc/profile;                                                      \
     echo "export LC_ALL=en_US.UTF-8" | tee -a /etc/profile;                                                    \
-    ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/timezone;                                                     \
+    ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/localtime;                                                     \
     mkdir -p /etc/supervisor/conf.d
 
 COPY ./ca-certificates/* /usr/local/share/ca-certificates/

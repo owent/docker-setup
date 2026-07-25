@@ -12,7 +12,7 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
     apt install -y vim wget curl ca-certificates telnet yq jq gpg logrotate supervisor;                         \
     echo "LANG=en_US.UTF-8" >  /etc/default/locale;                                                             \
     echo "LANGUAGE=en_US.UTF-8" >> /etc/default/locale;                                                         \
-    ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/timezone;                                                      \
+    ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/localtime;                                                      \
     mkdir -p /etc/supervisor/conf.d
 
 

@@ -74,7 +74,7 @@ GITEA_OPTIONS=(
   -e "USER_GID=0"
   --mount "type=bind,source=$GITEA_DATA_DIR,target=/data"
   --mount "type=bind,source=$GITEA_ETC_DIR,target=/etc/gitea"
-  --mount "type=bind,source=/etc/timezone,target=/etc/timezone:ro"
+  --mount "type=bind,source=/etc/localtime,target=/etc/localtime:ro"
   --mount "type=bind,source=/etc/localtime,target=/etc/localtime:ro"
 )
 

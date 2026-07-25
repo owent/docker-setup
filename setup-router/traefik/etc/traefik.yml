@@ -217,11 +217,66 @@ ping:
   entryPoint: traefik
 
 # ============================================================================
-# Metrics (Prometheus 格式)
+# Metrics (Prometheus 格式) — 流量 / 速度 / 请求数 统计
 # ============================================================================
-# metrics:
-#   prometheus:
-#     entryPoint: traefik
-#     addEntryPointsLabels: true
-#     addRoutersLabels: true
-#     addServicesLabels: true
+# 启用后 Traefik 会在 traefik entryPoint (:6401) 上暴露 /metrics 端点,
+# 输出 Prometheus 文本格式指标。直接浏览器/curl 访问即可看到原始统计:
+#     curl http://localhost:6401/metrics
+#
+# 采集到的关键指标 (前缀 traefik_):
+#   流量 (字节):
+#     *_requests_bytes_total       入站请求字节数 (上行流量)
+#     *_responses_bytes_total      出站响应字节数 (下行流量)
+#       —— 有 entrypoint / router / service 三个维度
+#   速度 / 延迟 (Histogram, 分桶见下方 buckets):
+#     traefik_entrypoint_request_duration_seconds  入口请求耗时
+#     traefik_router_request_duration_seconds      路由请求耗时
+#     traefik_service_request_duration_seconds     后端服务请求耗时
+#       —— rate() 计算即可换算出吞吐/速率
+#   请求数 / 并发连接:
+#     traefik_entrypoint_requests_total            入口请求总数 (按状态码/方法)
+#     traefik_router_requests_total                路由请求总数
+#     traefik_service_requests_total               服务请求总数
+#     traefik_open_connections                     当前打开连接数 (按入口/协议)
+#   其它:
+#     traefik_service_server_up                    后端健康状态 (需配置 healthcheck)
+#     traefik_tls_certs_not_after                  证书到期时间戳
+#     traefik_config_reloads_total                 配置热加载次数
+#
+# 说明 (重要):
+#   Traefik 开源版内置 Dashboard 只会在 "Features" 区块显示 Metrics 已启用,
+#   **不会**绘制实时的流量/速度曲线图。要获得图形化的流量、速度趋势面板,
+#   需用 Prometheus 抓取上面的 /metrics, 再用 Grafana 展示:
+#     - 官方 Grafana Dashboard (on-premises): ID 17346
+#     - 官方 Grafana Dashboard (Kubernetes):  ID 17347
+# ============================================================================
+metrics:
+  prometheus:
+    # 暴露指标的入口点 (复用本地 dashboard 入口 :6401, 仅本机可访问, 更安全)
+    entryPoint: traefik
+    # 请求耗时直方图分桶 (单位: 秒), 用于统计速度/延迟分布
+    # 默认: 0.1, 0.3, 1.2, 5.0; 这里加密分桶以便观察大文件/慢请求
+    buckets:
+      - 0.1
+      - 0.3
+      - 0.5
+      - 1.2
+      - 3.0
+      - 5.0
+      - 10.0
+    # 按入口点 (entryPoint) 维度统计流量/请求 (默认 true)
+    addEntryPointsLabels: true
+    # 按路由 (router) 维度统计 (默认 false, 这里开启以便逐条路由查看)
+    addRoutersLabels: true
+    # 按后端服务 (service) 维度统计流量/延迟 (默认 true)
+    addServicesLabels: true
+    # 采集内部资源指标 (dashboard/ping/api 等 @internal 服务), 默认 false
+    # 打开可统计 dashboard 自身流量, 但会增加指标数量; 按需启用
+    # addInternals: true
+    # 从请求头提取额外标签附加到 requests_total (可选), 例如按 UA 统计:
+    # headerLabels:
+    #   useragent: User-Agent
+
+  # 注: /metrics 默认由内部路由自动挂到上面的 entryPoint, 无需额外配置。
+  # 若想给 /metrics 加认证或自定义路径, 可设 manualRouting: true, 再在
+  # dynamic/ 中为 prometheus@internal 服务定义带中间件的自定义 router。

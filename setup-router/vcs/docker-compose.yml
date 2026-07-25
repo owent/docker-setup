@@ -22,7 +22,7 @@ services:
       - /data/performance/gitea:/data/performance
       - /data/archive/gitea:/data/archive
       - ./etc/gitea:/etc/gitea
-      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
       - "3221:3000"
@@ -47,7 +47,7 @@ services:
       - /data/performance/p4d:/data/performance
       - /data/archive/p4d:/data/archive
       - ./etc/p4d:/etc/p4d
-      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
       - /etc/localtime:/etc/localtime:ro
       - type: bind
         source: /data/acme.sh/ssl/fullchain.cer

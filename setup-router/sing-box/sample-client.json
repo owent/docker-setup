@@ -12,9 +12,10 @@
     "servers": [
       {
         "tag": "dns-fast",
-        "type": "tls",
+        "type": "https",
         "server": "8.8.8.8",
-        "server_port": 853,
+        "server_port": 443,
+        "path": "/dns-query",
         "tls": {
           "server_name": "dns.google"
         },
@@ -30,9 +31,10 @@
       // },
       {
         "tag": "dns-ai",
-        "type": "tls",
+        "type": "https",
         "server": "8.8.8.8",
-        "server_port": 853,
+        "server_port": 443,
+        "path": "/dns-query",
         "tls": {
           "server_name": "dns.google"
         },

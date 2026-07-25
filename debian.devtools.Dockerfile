@@ -21,7 +21,7 @@ RUN /bin/bash /opt/docker-setup/replace-source.sh ;                             
     apt install -y iftop iptraf-ng vnstat;                                                                                  \
     echo "LANG=en_US.UTF-8" >  /etc/default/locale;                                                                         \
     echo "LANGUAGE=en_US.UTF-8" >> /etc/default/locale;                                                                     \
-    ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/timezone;                                                                  \
+    ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/localtime;                                                                  \
     timedatectl set-ntp true;                                                                                               \
     systemctl enable systemd-timesyncd.service || true ;                                                                    \
     systemctl start systemd-timesyncd.service || true ;                                                                     \

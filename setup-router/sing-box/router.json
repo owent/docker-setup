@@ -1,0 +1,677 @@
+{
+  "log": {
+    "disabled": false,
+    "level": "error",
+    // "output": "/var/log/vbox/box.log",
+    "timestamp": true
+  },
+  "dns": {
+    "servers": [
+      {
+        "tag": "dns-proxy-fast",
+        "type": "https",
+        "server": "8.8.8.8",
+        "server_port": 443,
+        "path": "/dns-query",
+        "tls": {
+          "server_name": "dns.google"
+        },
+        "detour": "out-proxy-fast"
+      },
+      {
+        "tag": "dns-proxy-ai",
+        "type": "https",
+        "server": "8.8.8.8",
+        "server_port": 443,
+        "path": "/dns-query",
+        "tls": {
+          "server_name": "dns.google"
+        },
+        "detour": "out-proxy-ai"
+      },
+      // {
+      //   "tag": "dns-local",
+      //   "type": "tls",
+      //   "server": "223.5.5.5",
+      //   "server_port": 853,
+      //   "tls": {},
+      //   "detour": "direct"
+      // },
+      {
+        "tag": "dns-local",
+        "type": "https",
+        "server": "dns.alidns.com",
+        "server_port": 443,
+        "path": "/dns-query",
+        "tls": {},
+        "detour": "direct",
+        "domain_resolver": "dns-local-udp"
+      },
+      {
+        "tag": "dns-local-udp",
+        "type": "udp",
+        "server": "223.5.5.5",
+        "server_port": 53,
+        "detour": "direct"
+      } // ,
+    ],
+    // 大陆白名单模式：未命中 DNS 规则时使用 FAST 远程 DNS。
+    "final": "dns-proxy-fast",
+    // 保存 DNS 响应中的 IP -> 域名映射，供 TUN 路由匹配域名规则。
+    "reverse_mapping": true,
+    "rules": [
+      // 自定义服务器
+      {
+        "domain_suffix": [
+          "shkits.com",
+          "x-ha.com",
+          "r-ci.com",
+          "w-oa.com",
+          "myip.biturl.top",
+          "ifconfig.me",
+          "ifconfig.io",
+          "api.myip.la",
+          "getip.icu",
+          "api.ipify.org",
+          "ip.threep.top",
+          "ip.sb",
+          "test-ipv6.com",
+          "ipv6-test.com",
+
+          "epicgames.com",
+          "epicgames.dev",
+          "epicgamescdn.com"
+        ],
+        "action": "route",
+        "server": "dns-local"
+      },
+      {
+        "rule_set": "geosite-geolocation-cn",
+        "action": "route",
+        "server": "dns-local"
+      },
+      {
+        "source_ip_cidr": "172.26.0.0/16",
+        "action": "route",
+        "server": "dns-local"
+      },
+      {
+        "source_ip_cidr": "172.27.0.0/16",
+        "action": "route",
+        "server": "dns-local"
+      },
+      {
+        // 国内连通性探测域名直连，需放在 connectivity-check 之前做排除。
+        "domain": [
+          "connect.rom.miui.com",
+          "connectivitycheck.platform.hicloud.com",
+          "connectivitycheck.platform.hihonorcloud.com"
+        ],
+        "action": "route",
+        "server": "dns-local"
+      },
+      {
+        // 其余连通性探测域名走 FAST；这里尽量后移，但必须放在 geosite-google 前面。
+        "rule_set": [
+          "geosite-connectivity-check"
+        ],
+        "action": "route",
+        "rewrite_ttl": 600,
+        "server": "dns-proxy-fast"
+      },
+      {
+        // Google 家族统一交给 AI；这里尽量后移，但必须放在基于 geoip 的直连规则前面。
+        "rule_set": [
+          "geosite-google"
+        ],
+        "action": "route",
+        "rewrite_ttl": 600,
+        "server": "dns-proxy-ai"
+      },
+      {
+        "rule_set": [
+          "geosite-unity",
+          "geosite-category-ai-!cn",
+          "geosite-openai",
+          "geosite-anthropic"
+        ],
+        "action": "route",
+        "rewrite_ttl": 600,
+        "server": "dns-proxy-ai"
+      },
+      {
+        "domain_keyword": [
+          "anthropic",
+          "claude",
+          "openai",
+          "chatgpt"
+        ],
+        "domain_suffix": [
+          "nextcloud.com",
+          "topazlabs.com"
+        ],
+        "action": "route",
+        "rewrite_ttl": 600,
+        "server": "dns-proxy-ai"
+      },
+      {
+        "type": "logical",
+        "mode": "and",
+        "rules": [
+          {
+            "rule_set": "geosite-geolocation-!cn",
+            "invert": true
+          },
+          {
+            "rule_set": "geoip-cn"
+          }
+        ],
+        "action": "route",
+        "server": "dns-local"
+      },
+      {
+        "type": "logical",
+        "mode": "and",
+        "rules": [
+          {
+            "rule_set": "geosite-category-games"
+          },
+          {
+            "rule_set": "geoip-cn"
+          }
+        ],
+        "action": "route",
+        "server": "dns-local"
+      },
+      {
+        "action": "route",
+        "rewrite_ttl": 600,
+        "server": "dns-proxy-fast"
+      }
+    ]
+  },
+  "inbounds": [
+    {
+      "type": "tun",
+      "tag": "in-tun",
+      "interface_name": "tun-vbox",
+      "address": [
+        "172.19.0.1/30",
+        "fd08:0:0:ac13::1/126"
+      ],
+      "mtu": 9000,
+      "auto_route": true,
+      "iproute2_table_index": 2022,
+      "iproute2_rule_index": 9000,
+      "auto_redirect": false,
+      // Default: 0x2023
+      "auto_redirect_input_mark": "7",
+      // Default: 0x2024
+      "auto_redirect_output_mark": "15",
+      "strict_route": true,
+      // "endpoint_independent_nat": true,
+      "stack": "mixed",
+      // "include_interface": ["enp2s0"],
+      // "exclude_interface": ["enp2s0.5"],
+      // "route_exclude_address": [
+      //   "0.0.0.0/8",
+      //   "10.0.0.0/8",
+      //   "127.0.0.0/8",
+      //   "169.254.0.0/16",
+      //   "172.16.0.0/12",
+      //   "192.0.0.0/24",
+      //   "192.168.0.0/16",
+      //   "224.0.0.0/4",
+      //   "240.0.0.0/4",
+      //   "::1/128",
+      //   "::/128",
+      //   "::ffff:0:0/96",
+      //   "64:ff9b::/96",
+      //   "100::/64",
+      //   "fc00::/7",
+      //   "fe80::/10",
+      //   "ff00::/8"
+      //   // ROUTE_EXLUCDE_ADDRESS_PLACEHOLDER
+      // ],
+      // "route_address_set": [],
+      // "route_exclude_address_set": ["geoip-cn"],
+      // 建议值 < /proc/sys/net/netfilter/nf_conntrack_udp_timeout_stream - /proc/sys/net/netfilter/nf_conntrack_udp_timeout
+      //   Linux 默认值一般是 120s - 30s = 90s
+      //   建议改大 /proc/sys/net/netfilter/nf_conntrack_udp_timeout_stream 到 600s。udp_timeout保持5m。
+      "udp_timeout": "5m"
+    },
+    {
+      "type": "trojan",
+      "tag": "in-trojan",
+      "listen": "::",
+      "listen_port": 8372,
+      "tcp_fast_open": true,
+      "tcp_multi_path": true,
+      "users": [{
+        "name": "admin@owent.net",
+        "password": "<token>"
+      }],
+      "tls": {
+        "enabled": true,
+        "server_name": "media.x-ha.com",
+        "insecure": false,
+        "alpn": ["h2", "http/1.1"],
+        "min_version": "1.3",
+        "certificate_path": "/data/ssl/x-ha.com_ecc/fullchain.cer",
+        "key_path": "/data/ssl/x-ha.com_ecc/x-ha.com.key"
+      },
+      "fallback": {
+        "server": "127.0.0.1",
+        "server_port": 8375
+      },
+      "fallback_for_alpn": {
+        "h2": {
+          "server": "127.0.0.1",
+          "server_port": 8375
+        }
+      }
+    },
+    {
+      "type": "http",
+      "tag": "in-http",
+    
+      "listen": "127.0.0.1",
+      "listen_port": 3128,
+      // "users": [
+      //   {
+      //     "username": "owent",
+      //     "password": "admin"
+      //   }
+      // ],
+      // "tls": {},
+      "set_system_proxy": false
+    },
+    {
+      "type": "socks",
+      "tag": "in-socks",
+    
+      "listen": "127.0.0.1",
+      "listen_port": 1080
+      // "users": [
+      //   {
+      //     "username": "owent",
+      //     "password": "admin"
+      //   }
+      // ],
+    }
+  ],
+  "outbounds": [
+    // 大陆白名单模式,第一个或final指向默认值
+    {
+      "type": "trojan",
+      "tag": "out-proxy-fast",
+      //"server": "vr-m.shkits.com",
+      //"server_port": 8372,
+      "server": "127.0.0.1",
+      "server_port": 8376,
+      "password": "<token>",
+      "tls": {
+        "enabled": true,
+        "server_name": "vr-m.shkits.com",
+        "insecure": false,
+        "alpn": ["h2", "http/1.1"],
+        "min_version": "1.3",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      // "multiplex": {
+      //   "enabled": true
+      // },
+      "domain_resolver": {
+        "server": "dns-local" // ,
+        // "rewrite_ttl": 60,
+        // "strategy": "prefer_ipv4", // prefer_ipv4, prefer_ipv6, ipv4_only, ipv6_only
+      }
+    },
+    {
+      "type": "trojan",
+      "tag": "out-proxy-ai",
+      // "server": "vr-us.shkits.com",
+      // "server_port": 8372,
+      "server": "127.0.0.1",
+      "server_port": 8377,
+      "password": "<token>",
+      "tls": {
+        "enabled": true,
+        "server_name": "vr-m.shkits.com",
+        "insecure": false,
+        "alpn": ["h2", "http/1.1"],
+        "min_version": "1.3",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      // "multiplex": {
+      //   "enabled": true
+      // },
+      "domain_resolver": {
+        "server": "dns-local" // ,
+        // "rewrite_ttl": 60,
+        // "strategy": "prefer_ipv4", // prefer_ipv4, prefer_ipv6, ipv4_only, ipv6_only
+      }
+    },
+    {
+      "type": "direct",
+      "tag": "direct",
+      "domain_resolver": {
+        "server": "dns-local-udp"
+      }
+    }
+  ],
+  "route": {
+    "rules": [
+      {
+        "inbound": "in-tun",
+        "action": "sniff",
+        "timeout": "1s"
+      },
+      {
+        "type": "logical",
+        "mode": "or",
+        "rules": [
+          {
+            "port": 53
+          },
+          {
+            "protocol": "dns"
+          }
+        ],
+        "action": "hijack-dns"
+      },
+      {
+        "source_ip_cidr": [
+          "172.25.0.0/16",
+          "172.26.0.0/16",
+          "fd08:0:0:ac19::/64",
+          "fd08:0:0:ac1a::/64",
+          // home-dns-local
+          "172.23.0.16/32",
+          "172.23.1.16/32",
+          "172.23.1.17/32",
+          "fd08::ac17:0:0:0:10/128",
+          "fd08::ac17:0:0:1:10/128",
+          "fd08::ac17:0:0:1:11/128"
+        ],
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "source_ip_cidr": "172.27.0.0/16",
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "ip_is_private": true,
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        // 腾讯云
+        "ip_cidr": [
+          "43.161.234.219/32",
+          "43.161.251.39/32",
+          "43.162.114.205/32",
+          "240d:c000:f000:9200:8864:4706::/96",
+          "240d:c000:f07f:8d00:8864:4706::/96"
+         ],
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "protocol": [
+          "bittorrent"
+        ],
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "port": [
+          67,
+          68,
+          123,
+          546,
+          547
+        ],
+        "network": [
+          "udp"
+        ],
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "source_port": [
+           22,
+           36000
+        ],
+        "network": [
+          "tcp"
+        ],
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "source_port": [
+           6096,
+           6349,
+           6443,
+           6881,
+           6882,
+           6883,
+           8371,
+           8372,
+           8373
+        ],
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        // 国内连通性探测域名直连，需放在 connectivity-check 之前做排除。
+        "domain": [
+          "connect.rom.miui.com",
+          "connectivitycheck.platform.hicloud.com",
+          "connectivitycheck.platform.hihonorcloud.com"
+        ],
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        // 其余连通性探测域名走 FAST；这里尽量后移，但必须放在 geosite-google 前面。
+        "rule_set": [
+          "geosite-connectivity-check"
+        ],
+        "action": "route",
+        "outbound": "out-proxy-fast"
+      },
+      {
+        // Google 家族统一交给 AI；这里尽量后移，但必须放在基于 geoip 的直连规则前面。
+        "rule_set": [
+          "geosite-google"
+        ],
+        "action": "route",
+        "outbound": "out-proxy-ai"
+      },
+      {
+        "rule_set": [
+          "geosite-category-ads-all"
+        ],
+        "action": "reject"
+      },
+      {
+        "rule_set": [
+          "geosite-unity",
+          "geosite-category-ai-!cn",
+          "geosite-openai",
+          "geosite-anthropic"
+        ],
+        "action": "route",
+        "outbound": "out-proxy-ai"
+      },
+      {
+        "domain_keyword": [
+          "anthropic",
+          "claude",
+          "openai",
+          "chatgpt"
+        ],
+        // Special domains
+        "domain_suffix": [
+          "nextcloud.com",
+          "topazlabs.com"
+        ],
+        "action": "route",
+        "outbound": "out-proxy-ai"
+      },
+      {
+        "rule_set": [
+          "geoip-cn",
+          "geosite-geolocation-cn",
+          "geosite-speedtest"
+        ],
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        // Special domains
+        "domain_suffix": [
+          "shkits.com",
+          "x-ha.com",
+          "r-ci.com",
+          "w-oa.com",
+          "myip.biturl.top",
+          "ifconfig.me",
+          "ifconfig.io",
+          "api.myip.la",
+          "getip.icu",
+          "api.ipify.org",
+          "ip.threep.top",
+          "ip.sb",
+          "test-ipv6.com",
+          "ipv6-test.com",
+
+          "epicgames.com",
+          "epicgames.dev",
+          "epicgamescdn.com"
+        ],
+        "action": "route",
+        "outbound": "direct"
+      }
+    ],
+    "rule_set": [
+      {
+        "type": "local",
+        "tag": "geosite-geolocation-cn",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-geolocation-cn.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-geolocation-!cn",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-geolocation-!cn.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geoip-cn",
+        "format": "binary",
+        "path": "/usr/share/vbox/geoip/geoip-cn.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-speedtest",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-speedtest.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-category-ads-all",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-category-ads-all.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-unity",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-unity.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-google",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-google.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-google@cn",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-google@cn.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-anthropic",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-anthropic.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-category-ai-!cn",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-category-ai-!cn.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-openai",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-openai.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-category-games",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-category-games.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-connectivity-check",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-connectivity-check.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-pinterest",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-pinterest.srs"
+      }
+    ],
+    // 大陆白名单模式：未命中规则时使用 FAST。
+    "final": "out-proxy-fast",
+    // 有时候sing-box的自动检测会有冲突，最好手动指定
+    "auto_detect_interface": true,
+    // "default_interface": "eno1",
+    // For Android
+    // "override_android_vpn": true,
+    "default_mark": 15,
+    "default_domain_resolver": {
+      // 大陆白名单模式使用dns-proxy，否则默认用dns-local
+      "server": "dns-proxy-fast"
+      // "rewrite_ttl": 60,
+    }
+  },
+  "experimental": {
+    "cache_file": {
+      "enabled": true // ,
+      // Available from 1.9.0
+      // "store_rdrc": true
+    },
+    "clash_api": {
+      "default_mode": "Enhanced"
+    }
+  }
+}

@@ -90,7 +90,7 @@ SCM_OPTIONS=(
   --mount "type=bind,source=$SCM_DATA_DIR/home,target=/var/lib/scm"
   --mount "type=bind,source=$SCM_DATA_DIR/work,target=/var/cache/scm/work"
   --mount "type=bind,source=$SCM_ETC_DIR,target=/etc/scm"
-  --mount "type=bind,source=/etc/timezone,target=/etc/timezone:ro"
+  --mount "type=bind,source=/etc/localtime,target=/etc/localtime:ro"
   --mount "type=bind,source=/etc/localtime,target=/etc/localtime:ro"
 )
 

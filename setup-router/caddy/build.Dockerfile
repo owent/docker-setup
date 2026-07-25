@@ -10,7 +10,7 @@ COPY Caddyfile /etc/caddy/Caddyfile
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tencent.com/g' /etc/apk/repositories; \
     apk add --no-cache tzdata; \
     cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime; \
-    echo "Asia/Shanghai" > /etc/timezone; \
+    echo "Asia/Shanghai" > /etc/localtime; \
     apk add --no-cache nmap-ncat procps bash
 
 EXPOSE 80

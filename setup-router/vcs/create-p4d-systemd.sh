@@ -77,7 +77,7 @@ P4D_OPTIONS=(
   --mount "type=bind,source=/data/performance/p4d,target=/data/performance"
   --mount "type=bind,source=/data/archive/p4d,target=/data/archive"
   --mount "type=bind,source=./etc/p4d,target=/etc/p4d"
-  --mount "type=bind,source=/etc/timezone,target=/etc/timezone:ro"
+  --mount "type=bind,source=/etc/localtime,target=/etc/localtime:ro"
   --mount "type=bind,source=/etc/localtime,target=/etc/localtime:ro"
   --mount "type=bind,source=/data/acme.sh/ssl/fullchain.cer,target=/data/performance/ssl/certificate.txt:ro"
   --mount "type=bind,source=/data/acme.sh/ssl/example.org.key,target=/data/performance/ssl/privatekey.txt:ro"

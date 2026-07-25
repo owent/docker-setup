@@ -15,7 +15,7 @@ RUN cp -f /etc/apt/sources.list /etc/apt/sources.list.bak ;                     
     apt install -y linux-cpupower lm-sensors stress-ng ;                                                        \
     echo "LANG=en_US.UTF-8" >  /etc/default/locale;                                                             \
     echo "LANGUAGE=en_US.UTF-8" >> /etc/default/locale;                                                         \
-    ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/timezone;                                                      \
+    ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/localtime;                                                      \
     timedatectl set-ntp true;                                                                                   \
     systemctl enable systemd-timesyncd.service || true ;                                                        \
     systemctl start systemd-timesyncd.service || true ;                                                         \

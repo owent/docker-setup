@@ -123,7 +123,7 @@ if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
       "$VBOX_IMAGE_URL" -D /var/lib/vbox -C /etc/vbox/ run | \
       sed "/\\[Install/i [Service]\n$VBOX_CLIENT_EXEC_RELOAD" | \
       sed "/ExecReload=/a $VBOX_CLIENT_EXEC_STOP_POST" | \
-      sed "/ExecStopPost=/a ExecStartPost=$(which $DOCKER_EXEC) exec vbox-client ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/timezone" | \
+      sed "/ExecStopPost=/a ExecStartPost=$(which $DOCKER_EXEC) exec vbox-client ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/localtime" | \
       sed "/ExecStartPost=/a $VBOX_CLIENT_EXEC_START_POST" | \
       tee -p "$SYSTEMD_CONTAINER_DIR/vbox-client.container"
 else
@@ -136,7 +136,7 @@ else
   fi
 
   $DOCKER_EXEC generate systemd vbox-client | \
-    sed "/ExecStart=/a ExecStartPost=$(which $DOCKER_EXEC) exec vbox-client ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/timezone" | \
+    sed "/ExecStart=/a ExecStartPost=$(which $DOCKER_EXEC) exec vbox-client ln -f /usr/share/zoneinfo/Asia/Shanghai /etc/localtime" | \
     sed "/ExecStart=/a $VBOX_CLIENT_EXEC_STOP_POST" | \
     sed "/ExecStart=/a $VBOX_CLIENT_EXEC_START_POST" | \
     sed "/ExecReload=/d" | \
