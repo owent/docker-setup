@@ -59,8 +59,8 @@ elif [ "x$DISTRIBUTE_NAME" == "xdebian" ] || [[ "${DISTRIBUTE_LIKE_NAMES[@]}" =~
     if [ ! -e "/etc/apt/sources.list.d/debian.sources.bak" ]; then
       cp /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list.d/debian.sources.bak
     fi
-    sed -i -r 's;https?://.*/(debian-security/?);http://mirrors.ustc.edu.cn/\1;g' /etc/apt/sources.list.d/debian.sources
-    sed -i -r 's;https?://.*/(debian/?);http://mirrors.ustc.edu.cn/\1;g' /etc/apt/sources.list.d/debian.sources
+    sed -i -r 's;https?://.*/(debian-security/?);http://mirrors.ustc.edu.cn/\1;g' /etc/apt/sources.list.d/*debian.sources
+    sed -i -r 's;https?://.*/(debian/?);http://mirrors.ustc.edu.cn/\1;g' /etc/apt/sources.list.d/*debian.sources
   fi
 
   apt update -y
