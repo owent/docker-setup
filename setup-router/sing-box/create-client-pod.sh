@@ -77,7 +77,7 @@ if [[ "x$VBOX_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
 fi
 
 VBOX_DOCKER_OPRIONS=(
-  --cap-add=NET_ADMIN --cap-add=NET_BIND_SERVICE
+  --cap-add=NET_ADMIN --cap-add=CAP_NET_RAW --cap-add=NET_BIND_SERVICE
   --network=host --security-opt label=disable
   --device /dev/net/tun:/dev/net/tun
   --mount type=bind,source=$VBOX_DATA_DIR,target=/var/lib/vbox
