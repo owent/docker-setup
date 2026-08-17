@@ -207,20 +207,20 @@
         "action": "route",
         "server": "dns-local"
       },
+      // 如果默认不走dns-fast，要加代理域名
+      // {
+      //   "domain_suffix": [
+      //     "models.dev"
+      //   ],
+      //   "action": "route",
+      //   "rewrite_ttl": 600,
+      //   "server": "dns-fast"
+      // },
       {
         "action": "route",
         "rewrite_ttl": 600,
         "server": "dns-fast"
       }
-      // , {
-      //   "action": "route",
-      //   "server": "dns-fast",
-      //   // 代理DNS延长TTL，不然可能下游设备未过期这里就缓存失效了
-      //   "rewrite_ttl": 600
-      //   // "client_subnet": "114.114.114.114/24" // Any China client IP address
-      //   // "client_subnet": "202.96.209.133/24" // Shanghai ChinaNet IP address
-      //   // "client_subnet": "210.22.70.3/24" // Shanghai ChinaUnion IP address
-      // }
     ],
     // "cache_capacity": 2097152,
     // 如果上面路由规则里有配置fakeip,请确保fakeip的路由要转入 tun
@@ -888,6 +888,14 @@
         "action": "route",
         "outbound": "direct"
       }
+      // 如果默认不走dns-fast，这里加代理域名
+      // ,{
+      //   "domain_suffix": [
+      //     "models.dev"
+      //   ],
+      //   "action": "route",
+      //   "outbound": "out-fast"
+      // }
     ],
     "rule_set": [
       {
