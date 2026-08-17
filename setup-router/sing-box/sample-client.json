@@ -209,6 +209,15 @@
       },
       // 如果默认不走dns-fast，要加代理域名
       // {
+      //   "rule_set": [
+      //     "geosite-gfw",
+      //     "geosite-proxy"
+      //   ],
+      //   "action": "route",
+      //   "rewrite_ttl": 600,
+      //   "server": "dns-fast"
+      // },
+      // {
       //   "domain_suffix": [
       //     "models.dev"
       //   ],
@@ -889,6 +898,14 @@
         "outbound": "direct"
       }
       // 如果默认不走dns-fast，这里加代理域名
+      // , {
+      //   "rule_set": [
+      //     "geosite-gfw",
+      //     "geosite-proxy"
+      //   ],
+      //   "action": "route",
+      //   "outbound": "out-fast"
+      // }
       // ,{
       //   "domain_suffix": [
       //     "models.dev"

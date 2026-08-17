@@ -274,6 +274,87 @@ registry.npmmirror.com, cdn.npmmirror.com, mirrors.cloud.tencent.com {
 }
 
 # ==============================================================================
+# AI/LLM 模型与资源 CDN 域名配置
+# ==============================================================================
+# HF LFS / Xet CDN - 模型权重, 大文件下载
+cdn-lfs.huggingface.co, cdn-lfs-us-1.huggingface.co, cdn-lfs-eu-1.huggingface.co {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+cdn-lfs-us-1.hf.co, cdn-lfs-eu-1.hf.co, cdn-lfs.hf-mirror.com {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+transfer.xethub.hf.co, cas-bridge.xethub.hf.co {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+# Ollama 模型仓库 - 大文件下载
+registry.ollama.ai {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+# PyTorch / NVIDIA - wheel 与 CUDA 安装包, 大文件下载
+download.pytorch.org, pypi.nvidia.com, developer.download.nvidia.com {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+# OpenAI / Meta / GCS 公开模型文件 - 大文件下载
+openaipublic.blob.core.windows.net, openaipublic.azureedge.net, dl.fbaipublicfiles.com {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+storage.googleapis.com, commondatastorage.googleapis.com {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+# ModelScope 模型仓库 - 大文件下载
+modelscope.cn, www.modelscope.cn {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+# 模型目录/市场站点 - 元数据为主, 普通代理
+models.dev, huggingface.co, hf-mirror.com, ollama.com, www.ollama.com {
+    import proxy_to_ats
+    import hide_proxy_headers
+}
+
+hf.co, datasets-server.huggingface.co {
+    import proxy_to_ats
+    import hide_proxy_headers
+}
+
+civitai.com, replicate.com, www.kaggle.com {
+    import proxy_to_ats
+    import hide_proxy_headers
+}
+
+registry.modelcontextprotocol.io, smithery.ai {
+    import proxy_to_ats
+    import hide_proxy_headers
+}
+
+# 国内模型仓库 - 普通代理
+ai.gitee.com, hub.opencsg.com, opencsg.com, wisemodel.cn, modelers.cn, openxlab.org.cn {
+    import proxy_to_ats
+    import hide_proxy_headers
+}
+
+# Civitai 图片 CDN / Replicate 权重 CDN - 大文件下载
+image.civitai.com, replicate.delivery, weights.replicate.delivery, pbxt.replicate.delivery {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+# ==============================================================================
 # Perforce 包仓库域名配置
 # ==============================================================================
 package.perforce.com {

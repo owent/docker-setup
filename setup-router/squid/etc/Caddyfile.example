@@ -256,6 +256,53 @@ mirrors.cloud.tencent.com {
 }
 
 # =============================================================================
+# AI/LLM 模型与资源 CDN
+# =============================================================================
+models.dev,
+huggingface.co,
+hf-mirror.com,
+cdn-lfs.huggingface.co,
+cdn-lfs-us-1.huggingface.co,
+cdn-lfs-eu-1.huggingface.co,
+cdn-lfs-us-1.hf.co,
+cdn-lfs-eu-1.hf.co,
+cdn-lfs.hf-mirror.com,
+transfer.xethub.hf.co,
+cas-bridge.xethub.hf.co,
+registry.ollama.ai,
+download.pytorch.org,
+pypi.nvidia.com,
+developer.download.nvidia.com,
+openaipublic.blob.core.windows.net,
+openaipublic.azureedge.net,
+dl.fbaipublicfiles.com,
+storage.googleapis.com,
+commondatastorage.googleapis.com,
+modelscope.cn,
+www.modelscope.cn,
+ollama.com,
+www.ollama.com,
+hf.co,
+datasets-server.huggingface.co,
+civitai.com,
+image.civitai.com,
+replicate.com,
+replicate.delivery,
+weights.replicate.delivery,
+pbxt.replicate.delivery,
+www.kaggle.com,
+registry.modelcontextprotocol.io,
+smithery.ai,
+ai.gitee.com,
+hub.opencsg.com,
+opencsg.com,
+wisemodel.cn,
+modelers.cn,
+openxlab.org.cn {
+    import squid_proxy
+}
+
+# =============================================================================
 # Github pages cache
 # =============================================================================
 grafana.github.io,

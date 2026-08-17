@@ -66,6 +66,7 @@ squid/
 │       ├── 45-maven.conf           # Maven/Gradle 仓库
 │       ├── 50-python.conf          # Python/PyPi仓库
 │       ├── 55-nodejs.conf          # NodeJs/yarn仓库
+│       ├── 60-llm.conf             # AI/LLM 模型与资源 CDN (HF/Ollama/PyTorch/models.dev...)
 │       └── 99-deny-store-id.conf   # 默认拒绝 store_id
 └── script/
     ├── store_id_rewriter.py    # Store ID 重写程序
@@ -79,7 +80,8 @@ squid/
         ├── golang.py
         ├── maven.py
         ├── python.py
-        └── nodejs.py
+        ├── nodejs.py
+        └── llm.py
 ```
 
 ## Docker/Podman 部署
@@ -276,6 +278,11 @@ squid -k reconfigure
 | CDNJS    | `cdnjs.cloudflare.com`                 | 版本在路径中    |
 | Golang   | `proxy.golang.org`                     | 版本在路径中    |
 | Maven    | `repo1.maven.org`                      | 版本在路径中    |
+| HuggingFace LFS/Xet | `cdn-lfs*.huggingface.co`, `*.xethub.hf.co` | 签名参数, 内容寻址 |
+| Ollama   | `registry.ollama.ai` blobs             | sha256 内容寻址 |
+| PyTorch/NVIDIA | `download.pytorch.org`, `developer.download.nvidia.com` | 版本在路径中 |
+| 公开模型文件 | `openaipublic.*`, `dl.fbaipublicfiles.com` | 不可变文件 |
+| Replicate 权重 | `*.replicate.delivery` | 签名参数, 内容不可变 |
 
 ### 2. 需要版本号才缓存的 CDN
 
@@ -292,6 +299,9 @@ squid -k reconfigure
 - `api.nuget.org` - API 查询
 - `update.code.visualstudio.com` - 更新检查
 - `packages.unity.com` - 元数据查询
+- `huggingface.co` / `hf-mirror.com` - API 查询, `/resolve/` 302 含短时效签名 URL
+- `modelscope.cn` - `?Revision=&FilePath=` 决定返回文件
+- LLM API 端点 (`api.openai.com`, `api.anthropic.com` 等) - 已配置 `cache deny` 禁止缓存
 
 ## 添加新的缓存域名
 
@@ -359,6 +369,18 @@ echo "https://fonts.googleapis.com/css?family=Roboto" | python3 /opt/squid/scrip
 
 # 测试 Maven SNAPSHOT (不应重写)
 echo "https://repo1.maven.org/maven2/com/example/1.0-SNAPSHOT/example.jar" | python3 /opt/squid/script/store_id_rewriter.py
+# 输出: ERR
+
+# 测试 Hugging Face LFS (应移除签名参数)
+echo "https://cdn-lfs-us-1.huggingface.co/repos/xx/yy/abcdef?X-Amz-Signature=zzz" | python3 /opt/squid/script/store_id_rewriter.py
+# 输出: OK store-id=https://cdn-lfs-us-1.huggingface.co/repos/xx/yy/abcdef
+
+# 测试 Ollama blob (应移除参数)
+echo "https://registry.ollama.ai/v2/library/llama3/blobs/sha256:abc123?foo=bar" | python3 /opt/squid/script/store_id_rewriter.py
+# 输出: OK store-id=https://registry.ollama.ai/v2/library/llama3/blobs/sha256:abc123
+
+# 测试 huggingface.co API (不应重写)
+echo "https://huggingface.co/api/models/Qwen/Qwen2.5-7B" | python3 /opt/squid/script/store_id_rewriter.py
 # 输出: ERR
 ```
 

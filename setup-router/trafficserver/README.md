@@ -22,6 +22,7 @@ flowchart LR
         Maven[Maven]
         NodeJs[NodeJs/npm]
         Python[Python/PyPi]
+        LLM[AI/LLM<br/>HF/Ollama/PyTorch]
     end
     
     C -->|HTTPS| Caddy
@@ -34,6 +35,7 @@ flowchart LR
     ATS -->|HTTPS| Maven
     ATS -->|HTTPS| NodeJs
     ATS -->|HTTPS| Python
+    ATS -->|HTTPS| LLM
     
     style ATS fill:#e76f51,stroke:#333,color:#fff
     style Caddy fill:#22c55e,stroke:#333,color:#fff
@@ -286,6 +288,17 @@ cdn.example.com {
 | npm CDN | cdn.jsdelivr.net | 30 天 | 带版本号 |
 | 文档站点 | cppreference.com | 3 天 | 可能更新 |
 | API/元数据 | api.nuget.org | 10 分钟 | 频繁变化 |
+| HF LFS/Xet CDN | cdn-lfs*.huggingface.co, *.xethub.hf.co | 365 天 | 内容寻址，签名参数可忽略 |
+| Ollama blobs | registry.ollama.ai | 365 天 | sha256 内容寻址 |
+| PyTorch/NVIDIA | download.pytorch.org | 365 天 | 版本在路径中 |
+| 公开模型文件 | openaipublic.*, dl.fbaipublicfiles.com | 365 天 | 不可变内容 |
+| HF 主站/元数据 | huggingface.co, hf-mirror.com | 1 小时 | 302 含短时效签名 URL |
+| models.dev | models.dev/api.json | 1 小时 | 模型目录 JSON |
+| 模型目录/市场 | civitai.com, replicate.com, kaggle.com | 30 分钟 | 目录/搜索/API |
+| 图片/权重 CDN | image.civitai.com, *.replicate.delivery | 30 天/365 天 | UUID 寻址/签名 URL |
+| MCP 注册表 | registry.modelcontextprotocol.io | 1 小时 | agent 工具发现 |
+| 国内模型仓库 | ai.gitee.com, opencsg, wisemodel... | 30 分钟 | 元数据为主 |
+| LLM API | api.openai.com 等 | 禁止缓存 | 含用户数据 |
 
 ## 常用命令
 
