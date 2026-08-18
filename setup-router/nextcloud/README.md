@@ -4,8 +4,8 @@
 
   > `mkdir -p $NEXTCLOUD_DATA_DIR $NEXTCLOUD_APPS_DIR $NEXTCLOUD_ETC_DIR && chmod 770 $NEXTCLOUD_DATA_DIR $NEXTCLOUD_APPS_DIR $NEXTCLOUD_ETC_DIR`
 
-1. Use the final domain (e.g. `home.x-ha.com`) to setup nextcloud
-1. Modify/Add settings in `config.php`
+- Use the final domain (e.g. `home.x-ha.com`) to setup nextcloud
+- Modify/Add settings in `config.php`
   >
   > ```php
   > $CONFIG = array(
@@ -21,7 +21,11 @@
   > );
   > ```
   >
-1. Set and mount nginx paths:
+- Set app settings:
+  > ```bash
+  > php occ config:app:set --value '30' files_lock lock_timeout # 设置WebDav的锁自动超时
+  > ```
+- Set and mount nginx paths:
   >
   > + Set root of `nextcloud-fpm.nginx.conf` to `/usr/share/nginx/html/nextcloud`
   > + Mount `$NEXTCLOUD_REVERSE_ROOT_DIR/nextcloud` -> `/usr/share/nginx/html/nextcloud`.
