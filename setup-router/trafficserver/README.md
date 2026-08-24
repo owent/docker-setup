@@ -299,6 +299,8 @@ cdn.example.com {
 | MCP 注册表 | registry.modelcontextprotocol.io | 1 小时 | agent 工具发现 |
 | 国内模型仓库 | ai.gitee.com, opencsg, wisemodel... | 30 分钟 | 元数据为主 |
 | LLM API | api.openai.com 等 | 禁止缓存 | 含用户数据 |
+| Steam depot chunk | *.steamcontent.com/depot/.../chunk/ | 365 天 | SHA-1 内容寻址 |
+| Epic chunk | epicgames-download1.akamaized.net 等 | 365 天 | 内容哈希寻址 |
 
 ## 常用命令
 

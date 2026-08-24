@@ -227,6 +227,41 @@ cdn.unrealengine.com {
 }
 
 # ==============================================================================
+# Steam 内容分发网络域名配置
+# ==============================================================================
+# *.steamcontent.com: depot chunk/清单下载，大文件，子域名由服务器目录动态下发
+*.steamcontent.com, steampipe.akamaized.net {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+# Steam 客户端安装/更新包
+client-download.steampowered.com {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+# ==============================================================================
+# Epic Games Store 内容分发网络域名配置
+# ==============================================================================
+# chunk/manifest/安装器下载，大文件
+epicgames-download1.akamaized.net, download.epicgames.com, fastly-download.epicgames.com {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+egdownload.fastly-edge.com, cloudflare.epicgamescdn.com, egs-cloudfront-chunks.epicgamescdn.com {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+# 国内腾讯云 CDN
+epicgames-download1-1251447533.file.myqcloud.com {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+# ==============================================================================
 # Golang 域名配置
 # ==============================================================================
 proxy.golang.org, sum.golang.org {
