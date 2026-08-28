@@ -356,6 +356,12 @@ modelscope.cn, www.modelscope.cn {
     import hide_proxy_headers
 }
 
+# ModelScope LFS CDN - 302 跳转目标, 大文件下载
+cdn-lfs-cn-1.modelscope.cn, cdn-lfs-cn-2.modelscope.cn {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
 # 模型目录/市场站点 - 元数据为主, 普通代理
 models.dev, huggingface.co, hf-mirror.com, ollama.com, www.ollama.com {
     import proxy_to_ats
@@ -380,6 +386,24 @@ registry.modelcontextprotocol.io, smithery.ai {
 # 国内模型仓库 - 普通代理
 ai.gitee.com, hub.opencsg.com, opencsg.com, wisemodel.cn, modelers.cn, openxlab.org.cn {
     import proxy_to_ats
+    import hide_proxy_headers
+}
+
+# 国内模型仓库文件下载链路 (已实测)
+# Gitee AI: HF 兼容端点 (302/元数据) + LFS 对象存储 (大文件)
+hf-api.gitee.com {
+    import proxy_to_ats
+    import hide_proxy_headers
+}
+
+s3.gitee.com {
+    import proxy_to_ats_large
+    import hide_proxy_headers
+}
+
+# OpenCSG LFS OSS / wisemodel 文件下载 - 大文件
+opencsg-gitea-lfs-new.oss-cn-beijing.aliyuncs.com, download.wisemodel.cn {
+    import proxy_to_ats_large
     import hide_proxy_headers
 }
 

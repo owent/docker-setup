@@ -298,6 +298,10 @@ cdn.example.com {
 | 图片/权重 CDN | image.civitai.com, *.replicate.delivery | 30 天/365 天 | UUID 寻址/签名 URL |
 | MCP 注册表 | registry.modelcontextprotocol.io | 1 小时 | agent 工具发现 |
 | 国内模型仓库 | ai.gitee.com, opencsg, wisemodel... | 30 分钟 | 元数据为主 |
+| ModelScope LFS CDN | cdn-lfs-cn-1/2.modelscope.cn | 365 天 | sha256 内容寻址，auth_key 签名参数可忽略 |
+| Gitee AI LFS | s3.gitee.com | 365 天 | sha256 内容寻址，bce 签名参数可忽略 |
+| OpenCSG LFS | opencsg-gitea-lfs-new.oss-cn-beijing.aliyuncs.com | 365 天 | sha256 内容寻址，S3 预签名参数可忽略 |
+| wisemodel 文件下载 | download.wisemodel.cn | 1 天 | 路径含分支名，内容可变 |
 | LLM API | api.openai.com 等 | 禁止缓存 | 含用户数据 |
 | Steam depot chunk | *.steamcontent.com/depot/.../chunk/ | 365 天 | SHA-1 内容寻址 |
 | Epic chunk | epicgames-download1.akamaized.net 等 | 365 天 | 内容哈希寻址 |
