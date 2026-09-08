@@ -82,6 +82,12 @@
         "server": "dns-local"
       },
       {
+        "rule_set": "geosite-geolocation-!cn",
+        "invert": true,
+        "action": "evaluate",
+        "server": "dns-proxy"
+      },
+      {
         "type": "logical",
         "mode": "and",
         "rules": [
@@ -90,7 +96,8 @@
             "invert": true
           },
           {
-            "rule_set": "geoip-cn"
+            "rule_set": "geoip-cn",
+            "match_response": true
           }
         ],
         "action": "route",

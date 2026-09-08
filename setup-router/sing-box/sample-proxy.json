@@ -115,6 +115,12 @@
         "server": "dns-ai"
       },
       {
+        "rule_set": "geosite-geolocation-!cn",
+        "invert": true,
+        "action": "evaluate",
+        "server": "dns-fast"
+      },
+      {
         "type": "logical",
         "mode": "and",
         "rules": [
@@ -123,7 +129,9 @@
             "invert": true
           },
           {
-            "rule_set": "geoip-cn"
+            // 匹配上面 evaluate 得到的响应
+            "rule_set": "geoip-cn",
+            "match_response": true
           }
         ],
         "action": "route",

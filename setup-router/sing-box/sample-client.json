@@ -84,14 +84,8 @@
     // 保存 DNS 响应中的 IP -> 域名映射，供 TUN 路由匹配域名规则。
     "reverse_mapping": true,
     "rules": [
-      // If using ip_cidr/ip_is_private/rule_set_ip_cidr_accept_empty in dns.rules, evaluate is required.
-      // And these rules must have "match_response": true, and the last rule can be "action": "respond", so
-      // we do not need to resolve domain with the same server again.
-      // {
-      //   "action": "evaluate",
-      //   "rewrite_ttl": 600,
-      //   "server": "dns-fast"
-      // },
+      // 必须先用 "action": "evaluate" 获取响应，匹配规则中设置 "match_response": true (逻辑规则写在子规则里)，
+      // 之后可用 "action": "respond" 直接返回评估结果，无需用同一服务器再次解析。
       // 自定义服务器
       {
         "domain_suffix": [
@@ -192,6 +186,34 @@
         "server": "dns-ai"
       },
       {
+        "rule_set": "geosite-category-games",
+        "action": "evaluate",
+        "server": "dns-local"
+      },
+      {
+        "type": "logical",
+        "mode": "and",
+        "rules": [
+          {
+            "rule_set": "geosite-category-games"
+          },
+          {
+            "rule_set": "geoip-cn",
+            "match_response": true
+          }
+        ],
+        "action": "respond"
+      },
+      // 如果不是大陆白名单模式，不需要下面 geosite-geolocation-!cn 的3条规则
+      // 这3条规则是指非已知的海外服务，优先尝试解析国内ip
+      {
+        "rule_set": "geosite-geolocation-!cn",
+        "invert": true,
+        "action": "evaluate",
+        "rewrite_ttl": 600,
+        "server": "dns-fast"
+      },
+      {
         "type": "logical",
         "mode": "and",
         "rules": [
@@ -200,12 +222,17 @@
             "invert": true
           },
           {
-            // 走“乐观解析”（Optimistic Resolution）
-            "rule_set": "geoip-cn"
+            "rule_set": "geoip-cn",
+            "match_response": true
           }
         ],
         "action": "route",
         "server": "dns-local"
+      },
+      {
+        "rule_set": "geosite-geolocation-!cn",
+        "invert": true,
+        "action": "respond"
       },
       // 如果默认不走dns-fast，要加代理域名
       // {
@@ -230,13 +257,15 @@
         "rewrite_ttl": 600,
         "server": "dns-fast"
       }
-    ],
+    ]
     // "cache_capacity": 2097152,
     // 如果上面路由规则里有配置fakeip,请确保fakeip的路由要转入 tun
-    // "fakeip": {
-    //   "enabled": true,
-    //   "inet4_range": "172.28.0.1/14",
-    //   "inet6_range": "fd02:0:1:ac1c::1/64"
+    // 1.12+: fakeip 已改为 DNS server 类型，在 servers 中添加:
+    // {
+    //   "tag": "dns-fakeip",
+    //   "type": "fakeip",
+    //   "inet4_range": "172.28.0.0/14",
+    //   "inet6_range": "fd02:0:1:ac1c::/64"
     // }
   },
   "inbounds": [
@@ -1058,6 +1087,12 @@
         "tag": "geosite-category-ads-all",
         "format": "binary",
         "path": "/usr/share/vbox/geosite/geosite-category-ads-all.srs"
+      },
+      {
+        "type": "local",
+        "tag": "geosite-category-games",
+        "format": "binary",
+        "path": "/usr/share/vbox/geosite/geosite-category-games.srs"
       },
       {
         // 非大陆白名单模式请代理这个
