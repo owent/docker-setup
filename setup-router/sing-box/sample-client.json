@@ -102,6 +102,8 @@
           "test-ipv6.com",
           "ipv6-test.com",
 
+          "modelscope.cn",
+
           // Not necessary
           "discovery.steamserver.net",
           "epicgamescdn.com.cdn.cloudflare.net",
@@ -886,6 +888,8 @@
           "ip.sb",
           "test-ipv6.com",
           "ipv6-test.com",
+
+          "modelscope.cn",
 
           // Not necessary
           "discovery.steamserver.net",
