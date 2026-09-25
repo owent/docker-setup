@@ -2,3 +2,36 @@
 *.py eol=lf
 *.bat eol=crlf
 *.ps1 eol=crlf
+
+
+# codegraph index directories (mcp integration, per-platform)
+.codegraph*
+.tgrep
+.omp
+.codex
+.kilo
+.kilocode
+.zcode
+
+# AI agent project-level MCP configs (written by project/integration/mcp/setup.js
+# with machine-specific absolute paths; not meant to be committed)
+.mcp.json
+/mcp.json
+opencode.json
+opencode.jsonc
+/kilo.json
+/kilo.jsonc
+/mimocode.json
+/mimocode.jsonc
+.cursor
+.zed
+.roo
+.gemini
+.kimi-code
+.qwen
+.mimocode
+.workbuddy
+.cline
+/.trae
+.pi
+/.agents/mcp.json

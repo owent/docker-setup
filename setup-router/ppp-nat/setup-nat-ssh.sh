@@ -82,7 +82,7 @@ nft flush chain inet nat FORWARD
 # @see https://www.mankier.com/8/nft#Statements-Extension_Header_Statement
 # nft add rule inet nat FORWARD tcp flags syn counter tcp option maxseg size set 1424
 # nft add rule inet nat FORWARD tcp flags syn counter tcp option maxseg size set 1360
-nft add rule inet nat FORWARD tcp flags syn counter tcp option maxseg size set rt mtu
+# nft add rule inet nat FORWARD tcp flags syn counter tcp option maxseg size set rt mtu
 nft add rule inet nat FORWARD ct state { related, established } counter packets 0 bytes 0 accept
 nft add rule inet nat FORWARD ct status dnat accept
 # accept all but the interface binded to ppp(enp1s0f3)

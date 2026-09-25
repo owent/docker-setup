@@ -9,7 +9,7 @@ ROUTER_LOG_ROOT_DIR=$ROUTER_DATA_ROOT_DIR/router-logs
 
 ROUTER_IP_RULE_GOTO_DEFAULT_PRIORITY=9091
 
-ROUTER_LOCAL_LAN_INTERFACE='{ lo, br0, enp2s0 , vlan0, enp2s0.5, tun-vbox }'
+ROUTER_LOCAL_LAN_INTERFACE='{ "lo", "br0", "enp2s0", "vlan0", "enp2s0.5", "tun-vbox" }'
 ROUTER_IPV6_RADVD_NDP_DEVICE=(enp2s0 vlan0 enp2s0.5)
 #sysctl -w net.ipv6.conf.${ROUTER_IPV6_RADVD_NDP_DEVICE[@]}.proxy_ndp=1
 #sysctl -w net.ipv6.conf.${ROUTER_IPV6_RADVD_NDP_DEVICE[@]}.accept_ra=2
@@ -47,6 +47,24 @@ ROUTER_NET_LOCAL_ENABLE_VBOX=1
 ROUTER_NET_LOCAL_ENABLE_SDWAN=0
 ROUTER_NET_LOCAL_ENABLE_NAT=1
 ROUTER_NET_LOCAL_ENABLE_SECURITY=1
+
+# Source networks denied by the security firewall (all protocols and ports).
+ROUTER_SECURITY_BLOCKED_IPV4=(
+  "165.154.50.248/32" # Suspected compromised host
+  "212.102.40.0/23"   # Datacamp scanner
+  # censys-scanner.com
+  "162.142.125.0/24" "167.94.138.0/24" "167.94.145.0/24"
+  "167.94.146.0/24" "167.248.133.0/24" "199.45.154.0/24"
+  "199.45.155.0/24" "206.168.34.0/24" "206.168.35.0/24"
+  "66.132.148.0/24" "66.132.153.0/24" "66.132.159.0/24"
+  "66.132.172.0/24" "66.132.186.0/24" "66.132.195.0/24"
+  "66.132.224.0/24"
+)
+ROUTER_SECURITY_BLOCKED_IPV6=(
+  # censys-scanner.com
+  "2602:80d:1000:b0cc:e::/80" "2602:80d:1003::/112"
+  "2602:80d:1004::/112" "2620:96:e000:b0cc:e::/80"
+)
 
 # Unifi controller
 UNIFI_CONTROLLER_WEB_PORT=6543
