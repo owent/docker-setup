@@ -6,7 +6,8 @@
     - [1.1 amd\_pstate=active](#11-amd_pstateactive)
     - [1.2 scaling\_governor](#12-scaling_governor)
     - [1.3 energy\_performance\_preference / EPP](#13-energy_performance_preference--epp)
-    - [1.4 BIOS TDP Config](#14-bios-tdp-config)
+    - [1.4 boost](#14-boost)
+    - [1.5 BIOS TDP Config](#15-bios-tdp-config)
   - [2. 检查当前内核启动参数](#2-检查当前内核启动参数)
   - [3. 什么时候需要手动添加 amd\_pstate=active](#3-什么时候需要手动添加-amd_pstateactive)
   - [4. 判断 PVE 使用 GRUB 还是 systemd-boot / proxmox-boot-tool](#4-判断-pve-使用-grub-还是-systemd-boot--proxmox-boot-tool)
@@ -26,7 +27,7 @@
     - [7.2 systemd-boot / proxmox-boot-tool 回滚](#72-systemd-boot--proxmox-boot-tool-回滚)
     - [7.3 回滚后验证](#73-回滚后验证)
   - [8. BIOS 相关设置](#8-bios-相关设置)
-  - [9. 检查当前 governor 和 EPP](#9-检查当前-governor-和-epp)
+  - [9. 检查当前 governor , EPP 和 睿频(boost)](#9-检查当前-governor--epp-和-睿频boost)
   - [10. 临时设置 powersave + balance\_power](#10-临时设置-powersave--balance_power)
   - [11. 验证是否设置成功](#11-验证是否设置成功)
   - [12. 实时观察频率变化](#12-实时观察频率变化)
@@ -63,6 +64,7 @@ amd_pstate status: active
 scaling_driver: amd-pstate-epp
 scaling_governor: powersave
 energy_performance_preference: balance_power
+boost: 0 # 关睿频
 ```
 
 如果觉得交互响应变慢，可以把 `balance_power` 改成：
@@ -142,7 +144,15 @@ balance_power
 balance_performance
 ```
 
-### 1.4 BIOS TDP Config
+### 1.4 boost
+
+关闭睿频，限制最大CPU频率。
+
+```bash
+echo 0 > /sys/devices/system/cpu/cpufreq/boost
+```
+
+### 1.5 BIOS TDP Config
 
 对于 9950X + PVE 常驻服务，建议 BIOS 里使用：
 
@@ -307,7 +317,7 @@ sudo cp /etc/default/grub /etc/default/grub.bak.$(date +%F)
 ### 5.2 编辑
 
 ```bash
-sudo nano /etc/default/grub
+sudo vim /etc/default/grub
 ```
 
 找到类似：
@@ -403,7 +413,7 @@ root=ZFS=rpool/ROOT/pve-1 boot=zfs quiet iommu=pt
 ### 6.3 编辑
 
 ```bash
-sudo nano /etc/kernel/cmdline
+sudo vim /etc/kernel/cmdline
 ```
 
 改成类似：
@@ -444,7 +454,7 @@ amd-pstate-epp
 编辑：
 
 ```bash
-sudo nano /etc/default/grub
+sudo vim /etc/default/grub
 ```
 
 从 `GRUB_CMDLINE_LINUX_DEFAULT` 中删除：
@@ -465,7 +475,7 @@ sudo reboot
 编辑：
 
 ```bash
-sudo nano /etc/kernel/cmdline
+sudo vim /etc/kernel/cmdline
 ```
 
 删除：
@@ -519,12 +529,13 @@ BIOS
 
 ---
 
-## 9. 检查当前 governor 和 EPP
+## 9. 检查当前 governor , EPP 和 睿频(boost)
 
 ```bash
 cat /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
 cat /sys/devices/system/cpu/cpufreq/policy0/energy_performance_available_preferences
 cat /sys/devices/system/cpu/cpufreq/policy0/energy_performance_preference
+cat /sys/devices/system/cpu/cpufreq/boost
 ```
 
 如果当前 governor 是：
@@ -596,6 +607,8 @@ for p in /sys/devices/system/cpu/cpufreq/policy*; do
   echo -n "governor: "; cat "$p/scaling_governor"
   echo -n "epp: "; cat "$p/energy_performance_preference"
 done
+
+echo -n "boost: "; cat "/sys/devices/system/cpu/cpufreq/boost"
 ```
 
 理想输出类似：
@@ -608,6 +621,7 @@ epp: balance_power
 governor: powersave
 epp: balance_power
 ...
+boost: 0
 ```
 
 ---
@@ -630,7 +644,6 @@ done
 正常现象：
 
 - 空闲时频率会跳动，不一定长期保持很低；
-- 有负载时仍然会 boost；
 - `powersave + balance_power` 不等于锁低频；
 - 它只是让 CPU 更偏能效，不那么激进抢频。
 
@@ -677,7 +690,7 @@ stress-ng --cpu 32 --timeout 60s --metrics-brief
 
 ## 14. 如果响应变慢，改成 balance_performance
 
-如果 PVE Web UI、Nextcloud、Authentik、UniFi、Gitea 等服务响应不够跟手，可以改成：
+如果 PVE Web UI、Nextcloud、Authentik、UniFi、Gitea 等服务响应不够及时，可以改成：
 
 ```bash
 sudo bash -c '
@@ -685,6 +698,8 @@ for p in /sys/devices/system/cpu/cpufreq/policy*; do
   echo powersave > "$p/scaling_governor"
   echo balance_performance > "$p/energy_performance_preference"
 done
+
+echo 1 > /sys/devices/system/cpu/cpufreq/boost
 '
 ```
 
@@ -692,7 +707,8 @@ done
 
 ```text
 首选: powersave + balance_power
-响应偏慢: powersave + balance_performance
+响应偏慢: 开睿频(boost)
+响应还是慢: powersave + balance_performance
 不推荐常驻: performance governor
 不建议一开始使用: power EPP
 ```
@@ -704,7 +720,7 @@ done
 临时 `echo` 设置重启后会失效。确认稳定后，创建 systemd 服务。
 
 ```bash
-sudo nano /etc/systemd/system/amd-pstate-epp-tune.service
+sudo vim /etc/systemd/system/amd-pstate-epp-tune.service
 ```
 
 写入：
@@ -716,7 +732,7 @@ After=multi-user.target
 
 [Service]
 Type=oneshot
-ExecStart=/bin/bash -c 'for p in /sys/devices/system/cpu/cpufreq/policy*; do echo powersave > "$p/scaling_governor"; [ -w "$p/energy_performance_preference" ] && echo balance_power > "$p/energy_performance_preference"; done'
+ExecStart=/bin/bash -c 'for p in /sys/devices/system/cpu/cpufreq/policy*; do echo powersave > "$p/scaling_governor"; [ -w "$p/energy_performance_preference" ] && echo balance_power > "$p/energy_performance_preference"; done; echo 0 > /sys/devices/system/cpu/cpufreq/boost'
 RemainAfterExit=yes
 
 [Install]
@@ -739,8 +755,9 @@ systemctl status amd-pstate-epp-tune.service
 验证设置：
 
 ```bash
-cat /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
-cat /sys/devices/system/cpu/cpufreq/policy0/energy_performance_preference
+echo "scaling_governor: $(cat /sys/devices/system/cpu/cpufreq/policy0/scaling_governor)"
+echo "energy_performance_preference: $(cat /sys/devices/system/cpu/cpufreq/policy0/energy_performance_preference)"
+echo "boost: $(cat /sys/devices/system/cpu/cpufreq/boost)"
 ```
 
 理想输出：
@@ -757,7 +774,7 @@ balance_power
 如果想从 `balance_power` 改成 `balance_performance`：
 
 ```bash
-sudo nano /etc/systemd/system/amd-pstate-epp-tune.service
+sudo vim /etc/systemd/system/amd-pstate-epp-tune.service
 ```
 
 把这一段里的：
@@ -782,8 +799,9 @@ sudo systemctl restart amd-pstate-epp-tune.service
 验证：
 
 ```bash
-cat /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
-cat /sys/devices/system/cpu/cpufreq/policy0/energy_performance_preference
+echo "scaling_governor: $(cat /sys/devices/system/cpu/cpufreq/policy0/scaling_governor)"
+echo "energy_performance_preference: $(cat /sys/devices/system/cpu/cpufreq/policy0/energy_performance_preference)"
+echo "boost: $(cat /sys/devices/system/cpu/cpufreq/boost)"
 ```
 
 ---
@@ -806,14 +824,16 @@ for p in /sys/devices/system/cpu/cpufreq/policy*; do
   echo performance > "$p/scaling_governor"
   [ -w "$p/energy_performance_preference" ] && echo performance > "$p/energy_performance_preference"
 done
+echo 1 > /sys/devices/system/cpu/cpufreq/boost
 '
 ```
 
 验证：
 
 ```bash
-cat /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
-cat /sys/devices/system/cpu/cpufreq/policy0/energy_performance_preference
+echo "scaling_governor: $(cat /sys/devices/system/cpu/cpufreq/policy0/scaling_governor)"
+echo "energy_performance_preference: $(cat /sys/devices/system/cpu/cpufreq/policy0/energy_performance_preference)"
+echo "boost: $(cat /sys/devices/system/cpu/cpufreq/boost)"
 ```
 
 ---
@@ -947,6 +967,9 @@ for p in /sys/devices/system/cpu/cpufreq/policy*; do
   echo
 done
 
+echo "== boost =="
+echo "boost: $(cat /sys/devices/system/cpu/cpufreq/boost)"
+
 echo "== amd_pstate =="
 cat /sys/devices/system/cpu/amd_pstate/status 2>/dev/null
 cat /sys/devices/system/cpu/amd_pstate/dynamic_epp 2>/dev/null || true
@@ -967,6 +990,7 @@ amd_pstate: active
 driver: amd-pstate-epp
 governor: powersave
 EPP: balance_power
+boost: 0
 ```
 
 如果出现服务交互延迟、Web UI 响应不够快：
