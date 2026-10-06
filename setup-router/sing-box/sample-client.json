@@ -1258,6 +1258,12 @@
       },
       {
         "type": "local",
+        "tag": "geoip-private",
+        "format": "binary",
+        "path": "/usr/share/vbox/geoip/geoip-private.srs"
+      },
+      {
+        "type": "local",
         "tag": "geoip-google",
         "format": "binary",
         "path": "/usr/share/vbox/geoip/geoip-google.srs"
@@ -1412,9 +1418,7 @@
   },
   "experimental": {
     "cache_file": {
-      "enabled": true // ,
-      // Available from 1.9.0
-      // "store_dns": true
+      "enabled": true
     },
     "clash_api": {
       "default_mode": "Enhanced"
