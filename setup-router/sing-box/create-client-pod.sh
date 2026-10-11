@@ -35,6 +35,17 @@ if [[ "x$VBOX_UPDATE" != "x" ]] || [[ "x$ROUTER_IMAGE_UPDATE" != "x" ]]; then
   fi
 fi
 
+PODLET_IMAGE_URL="ghcr.io/containers/podlet:latest"
+PODLET_RUN=($(which podlet 2>/dev/null))
+FIND_PODLET_RESULT=$?
+if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+  (podman image inspect "$PODLET_IMAGE_URL" > /dev/null 2>&1 || podman pull "$PODLET_IMAGE_URL") && FIND_PODLET_RESULT=0 && PODLET_RUN=(podman run --rm "$PODLET_IMAGE_URL")
+  if [[ $? -ne 0 ]]; then
+    echo "Error: 拉取镜像 $PODLET_IMAGE_URL 失败"
+    exit 1
+  fi
+fi
+
 if [[ "root" == "$(id -un)" ]]; then
   SYSTEMD_SERVICE_DIR=/lib/systemd/system
   SYSTEMD_CONTAINER_DIR=/etc/containers/systemd/
@@ -92,13 +103,6 @@ if [[ -z "$ROUTER_NET_LOCAL_ENABLE_VBOX" ]] || [[ $ROUTER_NET_LOCAL_ENABLE_VBOX 
 else
   bash "$SCRIPT_DIR/setup-client-pod-ip-rules.sh" clear
   bash "$SCRIPT_DIR/setup-client-pod-ip-nft.sh" configure
-fi
-
-PODLET_IMAGE_URL="ghcr.io/containers/podlet:latest"
-PODLET_RUN=($(which podlet 2>/dev/null))
-FIND_PODLET_RESULT=$?
-if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
-  (podman image inspect "$PODLET_IMAGE_URL" > /dev/null 2>&1 || podman pull "$PODLET_IMAGE_URL") && FIND_PODLET_RESULT=0 && PODLET_RUN=(podman run --rm "$PODLET_IMAGE_URL")
 fi
 
 if [[ -z "$ROUTER_NET_LOCAL_ENABLE_VBOX" ]] || [[ $ROUTER_NET_LOCAL_ENABLE_VBOX -eq 0 ]]; then

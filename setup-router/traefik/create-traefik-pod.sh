@@ -127,6 +127,18 @@ if [[ ! -z "$TRAEFIK_UPDATE" ]] || [[ ! -z "$ROUTER_IMAGE_UPDATE" ]]; then
   fi
 fi
 
+PODLET_IMAGE_URL="ghcr.io/containers/podlet:latest"
+PODLET_RUN=($(which podlet 2>/dev/null))
+FIND_PODLET_RESULT=$?
+if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
+  (podman image inspect "$PODLET_IMAGE_URL" > /dev/null 2>&1 || podman pull "$PODLET_IMAGE_URL") && FIND_PODLET_RESULT=0 && PODLET_RUN=(podman run --rm "$PODLET_IMAGE_URL")
+  if [[ $? -ne 0 ]]; then
+    echo "Error: 拉取镜像 $PODLET_IMAGE_URL 失败"
+    exit 1
+  fi
+fi
+
+
 # ============================================================================
 # 停止并清理旧容器/服务
 # ============================================================================
@@ -222,12 +234,6 @@ fi
 # ============================================================================
 # 使用 podlet 生成 Quadlet 配置 或 回退到传统 systemd 方式
 # ============================================================================
-PODLET_IMAGE_URL="ghcr.io/containers/podlet:latest"
-PODLET_RUN=($(which podlet 2>/dev/null))
-FIND_PODLET_RESULT=$?
-if [[ $FIND_PODLET_RESULT -ne 0 ]]; then
-  (podman image inspect "$PODLET_IMAGE_URL" > /dev/null 2>&1 || podman pull "$PODLET_IMAGE_URL") && FIND_PODLET_RESULT=0 && PODLET_RUN=(podman run --rm "$PODLET_IMAGE_URL")
-fi
 
 if [[ $FIND_PODLET_RESULT -eq 0 ]]; then
   PODLET_OPTIONS=(--install --wanted-by default.target --wants network-online.target --after network-online.target)
