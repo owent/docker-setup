@@ -455,6 +455,12 @@ free -h
   + https://api.ip.sb/ip
 + https://ifconfig.io
   + https://ifconfig.io/ip
++ https://checkip.amazonaws.com
++ https://www.cloudflare.com/cdn-cgi/trace (需要加ip=过滤)
++ https://whatismyip.akamai.com
++ http://icanhazip.com
++ http://ipinfo.io/ip
++ http://ident.me
 + https://www.myip.la/
   + https://api.myip.la
 + https://www.ipify.org
