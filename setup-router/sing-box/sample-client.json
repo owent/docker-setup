@@ -105,7 +105,8 @@
           "modelscope.cn",
 
           // Not necessary
-          "discovery.steamserver.net",
+          "steamcontent.com",
+          "steamserver.net",
           "epicgamescdn.com.cdn.cloudflare.net",
           "epicgamescdn.com",
           "windowsupdate.com",
@@ -1182,7 +1183,8 @@
           "modelscope.cn",
 
           // Not necessary
-          "discovery.steamserver.net",
+          "steamcontent.com",
+          "steamserver.net",
           "epicgamescdn.com.cdn.cloudflare.net",
           "epicgamescdn.com",
           "windowsupdate.com",
